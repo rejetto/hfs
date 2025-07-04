@@ -19,7 +19,7 @@ import { getCurrentUsername } from './auth'
 import { setCommentFor } from './comments'
 import _ from 'lodash'
 import events from './events'
-import { rename, rm } from 'fs/promises'
+import { rm } from 'fs/promises'
 import { expiringCache } from './expiringCache'
 import { onProcessExit } from './first'
 import { once, Transform } from 'stream'
@@ -216,7 +216,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
                     while (fs.existsSync(dest))
                 }
                 try {
-                    await rename(tempName, dest)
+                    fs.renameSync(tempName, dest) // sync to avoid race conditions with checkIfNewUploadBecameLargerThanResumable
                     const t = Number(ctx.query.giveBack) // we know giveBack contains lastModified in ms
                     if (t) // so we use it to touch the file
                         await utimes(dest, Date.now() / 1000, t / 1000)
