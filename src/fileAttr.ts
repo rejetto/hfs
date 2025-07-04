@@ -23,8 +23,8 @@ const FILE_ATTR_PREFIX = 'user.hfs.' // user. prefix to be linux compatible
 export async function storeFileAttr(path: string, k: string, v: any) {
     const s = await stat(path).catch(() => null)
     // since we don't have fsx.remove, we simulate it with an empty string
-    if (await fsx?.set(path, FILE_ATTR_PREFIX + k, v === undefined ? '' : JSON.stringify(v)).then(() => 1, () => 0)) {
-        if (s && IS_WINDOWS) utimes(path, s.atime, s.mtime) // restore timestamps, necessary only on Windows
+    if (s && await fsx?.set(path, FILE_ATTR_PREFIX + k, v === undefined ? '' : JSON.stringify(v)).then(() => 1, () => 0)) {
+        if (IS_WINDOWS) utimes(path, s.atime, s.mtime) // restore timestamps, necessary only on Windows
         return true
     }
     // fallback to our kv-storage
