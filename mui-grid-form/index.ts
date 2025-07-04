@@ -51,18 +51,20 @@ export interface FieldProps<T> {
     [rest: string]: any
 }
 
-type Dict<T=any> = Record<string,T>
+export type Dict<T=any> = Record<string,T>
 
 export interface FormProps<Values> extends Partial<BoxProps> {
     fields: (FieldDescriptor | ReactElement<unknown> | null | undefined | false)[]
     defaults?: (f:FieldDescriptor) => Partial<FieldDescriptor>
     values: Values
     set: (v: any, fieldK: keyof Values) => void
+    get?: (fieldK: keyof Values | string) => any // the string is for a strange TS behavior on templated types
     save: false | Partial<Parameters<typeof Button>[0]> | (()=>any)
     stickyBar?: boolean
     addToBar?: ReactNode[]
     barSx?: Dict
     onError?: (err: any) => any
+    onValidation?: (errs: false | Dict<ValidationError>) => any
     formRef?: MutableRefObject<HTMLFormElement | undefined>
     saveOnEnter?: boolean
     gridProps?: Partial<GridProps>
@@ -73,6 +75,7 @@ export function Form<Values extends Dict>({
     fields,
     values,
     set,
+    get,
     defaults,
     save,
     stickyBar,
@@ -80,6 +83,7 @@ export function Form<Values extends Dict>({
     barSx,
     formRef,
     onError,
+    onValidation,
     saveOnEnter,
     gridProps,
     ...rest
@@ -132,7 +136,7 @@ export function Form<Values extends Dict>({
                 if (errMsg === true)
                     errMsg = "Not valid"
                 if (k) {
-                    const originalValue = row.hasOwnProperty('value') ? row.value : values?.[k]
+                    const originalValue = row.hasOwnProperty('value') ? row.value : getValueFor(k)
                     Object.assign(field, {
                         name: k,
                         value: toField(originalValue),
@@ -211,6 +215,10 @@ export function Form<Values extends Dict>({
             setPhase(cur => cur === Phase.Idle ? Phase.WaitValues : cur)) // don't interfere with ongoing process
     }
 
+    function getValueFor(k : string) {
+        return get ? get(k) : values?.[k]
+    }
+
     async function phaseChange() {
         if (phase === Phase.Idle) return
         if (phase === Phase.WaitValues)
@@ -220,7 +228,7 @@ export function Form<Values extends Dict>({
         for (const f of fields) {
             if (!f || isValidElement(f) || !f.k) continue
             const { k } = f
-            const v = values?.[k]
+            const v = getValueFor(k)
             let err: ReactNode
             try {
                 err = await apis[k]?.getError?.(v, { values, fields })
@@ -236,9 +244,11 @@ export function Form<Values extends Dict>({
             if (!mounted.current) return // abort
         }
         setErrors(errs)
+        const anyError = Object.values(errs).some(Boolean)
+        onValidation?.(anyError && errs)
         try {
             if (!submitAfterValidation.current) return
-            if (Object.values(errs).some(Boolean))
+            if (anyError)
                 return await onError?.(MSG)
             const cb = saveBtn && saveBtn.onClick
             if (cb) // @ts-ignore
