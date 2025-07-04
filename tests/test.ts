@@ -8,7 +8,7 @@ import _ from 'lodash'
 import { findDefined, randomId, try_, tryJson, wait } from '../src/cross'
 import { httpStream, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
-import { rm, writeFile } from 'fs/promises'
+import { access, rm, writeFile } from 'fs/promises'
 import { Readable } from 'stream'
 /*
 import { PORT, srv } from '../src'
@@ -27,7 +27,7 @@ const BASE_URL_127 = 'http://127.0.0.1:81'
 const UPLOAD_ROOT = '/for-admins/upload/'
 const UPLOAD_RELATIVE = 'temp/gpl.png'
 const UPLOAD_DEST = UPLOAD_ROOT + UPLOAD_RELATIVE
-const BIG_CONTENT = _.repeat(randomId(10), 200_000) // 2MB, big enough to saturate buffers
+const BIG_CONTENT = _.repeat(randomId(10), 300_000) // 3MB, big enough to saturate buffers
 const throttle = BIG_CONTENT.length /1000 /0.8 // KB, finish in 0.8s, quick but still overlapping downloads
 const SAMPLE_FILE_PATH = resolve(__dirname, 'page/gpl.png')
 let defaultBaseUrl = BASE_URL
@@ -206,7 +206,7 @@ describe('after-login', () => {
             const r = reqUpload(UPLOAD_DEST + '?supposedToAbort', 0, makeReadableThatTakes(neededTime))()
             setTimeout(r.abort, afterMs)
             return r.catch(() => {}) // wait for it to fail
-                .then(() => wait(1)) // aborted requests don't guarantee that the server has finished and released the file, so we wait some arbitrary time
+                .then(() => wait(10)) // aborted requests don't guarantee that the server has finished and released the file, so we wait some arbitrary time
         }
         const timeFirstRequest = neededTime * .5 // not enough to finish
         await makeAbortedRequest(timeFirstRequest)
@@ -219,7 +219,7 @@ describe('after-login', () => {
             throw Error("modified temp file")
         await makeAbortedRequest(timeFirstRequest * 1.5) // upload more than r1
         if (!(size < getTempSize()!)) // should be increased, as secondary temp file got bigger and replaced primary one
-            throw Error("temp file not enlarged")
+            throw Error(`temp file not enlarged, it was ${size} and now it's ${getTempSize()}`)
         await reqUpload(UPLOAD_DEST, 200, makeReadableThatTakes(0))() // quickly complete the upload, and check for final size
         if (getTempSize())
             throw Error("temp file should be cleared")
@@ -233,7 +233,12 @@ describe('after-login', () => {
     const renameTo = 'z'
     test('rename.ok', reqApi('rename', { uri: UPLOAD_DEST, dest: renameTo }, 200))
     test('delete.miss renamed', req(UPLOAD_DEST, 404, { method: 'delete' }))
-    test('delete.ok', req(dirname(UPLOAD_DEST) + '/' + renameTo, 200, { method: 'delete' }))
+    test('delete.ok', async () => {
+        const fn = resolve(__dirname, dirname(UPLOAD_RELATIVE), renameTo)
+        await access(fn)
+        await req(dirname(UPLOAD_DEST) + '/' + renameTo, 200, { method: 'delete' })()
+        await access(fn).then(() => { throw "not deleted" }, () => {})
+    })
     test('reupload', reqUpload(UPLOAD_DEST, 200))
     test('delete.method', req(UPLOAD_DEST, 200, { method: 'DELETE' }))
     test('delete.miss deleted', req(UPLOAD_DEST, 404, { method: 'delete' }))
@@ -336,6 +341,8 @@ function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }:
     )
 
     async function process(res:any) {
+        if (!res)
+            return console.log('got', { res })
         //console.debug('sent', requestOptions, 'got', res instanceof Error ? String(res) : [res.status])
         if (test && test instanceof RegExp)
             test = { re:test }
