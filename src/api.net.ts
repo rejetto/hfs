@@ -54,7 +54,7 @@ const apis: ApiHandlers = {
         if (external) // must use the object form of 'public' to work around a bug of the library
             await upnpClient.createMapping({ private: internal || internalPort, public: { host: '', port: external }, description: 'hfs', ttl: 0 })
                 .catch(res => {
-                    throw new ApiError(res.errorCode || res.statusCode, res.errorCode === 718 ? "Port not available" : res.errorDescription || "unknown error")
+                    throw new ApiError(res.errorCode || HTTP_SERVER_ERROR, res.errorCode === 718 ? "Port not available" : res.errorDescription || "unknown error")
                 })
         return {}
     },

@@ -441,7 +441,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         }
         catch(e: any) {
             if (errMsg) {
-                const low = external && Math.min(external, data!.internalPort!) < 1024
+                const low = (external || data!.internalPort!) < 1024
                 const msg = errMsg + prefix(': ', e?.message) + (low ? ". Some routers refuse to work with ports under 1024." : '')
                 await alertDialog(msg, 'error')
             }
