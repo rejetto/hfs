@@ -101,11 +101,14 @@ export function previousAvailable() {
 }
 
 export async function updateSupported() {
-    return process.env.DISABLE_UPDATE ? false : (argv.forceupdate || IS_BINARY && !await RUNNING_AS_SERVICE)
+    return !process.env.DISABLE_UPDATE && (argv.forceupdate || IS_BINARY && !await RUNNING_AS_SERVICE)
 }
 
 export async function update(tagOrUrl: string='') {
-    if (!await updateSupported()) throw "only binary versions supports automatic update for now"
+    if (!await updateSupported())
+        throw process.env.DISABLE_UPDATE ? "Automatic updates are disabled"
+            : !IS_BINARY ? "Only binary versions support automatic updates"
+                : "Automatic updates are not available running as a service"
     let url = tagOrUrl.includes('://') && tagOrUrl
     if (tagOrUrl === PREVIOUS_TAG)
         await rename(PREVIOUS_FN, LOCAL_UPDATE)
@@ -118,21 +121,21 @@ export async function update(tagOrUrl: string='') {
                 else throw e
             }) as Release | undefined
         if (!update)
-            throw "update not found"
+            throw "Update not found"
         const plat = '-' + xlate(process.platform, { win32: 'windows', darwin: 'mac' })
         const assetSearch = `${plat}-${process.arch}`
         const legacyAssetSearch = `${plat}${prefix('-', xlate(process.arch, { x64: '', arm64: 'arm' }))}.zip` // legacy pre-0.53.0-rc16
         const asset = update.assets.find((x: any) => x.name.includes(assetSearch) && x.name.endsWith('.zip'))
             || update.assets.find((x: any) => x.name.endsWith(legacyAssetSearch))
         if (!asset)
-            throw `asset not found: ${assetSearch}`
+            throw `Asset not found: ${assetSearch}`
         url = asset.browser_download_url
     }
     if (url) {
         console.log("downloading", url)
         const { body } = await httpWithBody(url)
         if (!body)
-            throw "download failed for " + url
+            throw "Download failed for " + url
         await writeFile(LOCAL_UPDATE, body)
     }
     const bin = process.execPath
