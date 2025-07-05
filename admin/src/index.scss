@@ -65,6 +65,17 @@ h2.MuiDialogTitle-root { /* less padding */
   border-radius: .2em;
 }
 
+.MuiAppBar-root {
+  .MuiAlert-standardInfo {
+    .MuiAlert-icon { color: #fff8 !important}
+    .MuiAlert-message { color: #fffa !important }
+  }
+  .MuiAlert-colorWarning {
+    .MuiAlert-icon { color: #ff08 !important}
+    .MuiAlert-message { color: #ff0a !important }
+  }
+}
+
 .animated-dashed-line {
   width: 100%;
   height: 2px;
