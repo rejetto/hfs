@@ -14,12 +14,12 @@ test('around1', async ({ page }) => {
   await screenshot(page);
 
   await page.getByRole('textbox', { name: 'Username' }).fill(username + '!'); // wrong username
-  await page.getByRole('textbox', { name: 'Username' }).press('Tab');
   await page.getByRole('textbox', { name: 'Password' }).fill(password);
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByText('x!ErrorInvalid credentials')).toBeVisible();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Close' }).click();
 
+  resetTimestamp();
   await page.getByRole('textbox', { name: 'Username' }).fill(username);
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.locator('div').filter({ hasText: 'Logged in' }).nth(3).click();
@@ -201,7 +201,6 @@ test('frontend-admin', async ({ page }) => {
   await page.getByRole('button', { name: 'Close' }).click();
   await page.getByRole('button', { name: 'Login' }).click();
   await page.getByRole('textbox', { name: 'Username' }).fill(username);
-  await page.getByRole('textbox', { name: 'Username' }).press('Tab');
   await page.getByRole('textbox', { name: 'Password' }).fill(password);
   await page.getByRole('textbox', { name: 'Password' }).press('Enter');
   await page.getByRole('button', { name: 'Options' }).click();

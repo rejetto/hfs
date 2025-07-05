@@ -11,7 +11,6 @@ test('upload1', async ({ page, context, browserName }) => {
     await page.goto(URL);
     await page.getByRole('button', { name: 'Login' }).click();
     await page.getByRole('textbox', { name: 'Username' }).fill(username);
-    await page.getByRole('textbox', { name: 'Username' }).press('Tab');
     await page.getByRole('textbox', { name: 'Password' }).fill(password);
     await page.getByRole('button', { name: 'Continue' }).click();
     await page.locator('div').filter({ hasText: 'Logged in' }).nth(3).click();
