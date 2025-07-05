@@ -51,9 +51,10 @@ const considerHttp = debounceAsync(async () => {
     httpSrv = Object.assign(http.createServer(commonServerOptions, app.callback()), { name: 'http' }, commonServerAssign)
     const host = listenInterface.get()
     const port = portCfg.get()
+    if (port === PORT_DISABLED) return
     if (!await startServer(httpSrv, { port, host }))
         if (port !== 80)
-            return console.log(` >> try specifying a different port, enter this command: config ${portCfg.key()} 1080`)
+            return console.log(`HINT: try specifying a different port, enter this command: config ${portCfg.key()} 1080`)
         else if (!await startServer(httpSrv, { port: 8080, host }))
             return
     httpSrv.on('connection', newConnection)
