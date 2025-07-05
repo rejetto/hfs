@@ -225,7 +225,6 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
                         cancelDeletion(firstTempName)
                         await rm(firstTempName) // wait, so the client can count on the temp-file being gone
                     }
-                    releaseFile()
                     ctx.state.uploadDestinationPath = dest
                     void setUploadMeta(dest, ctx)
                     if (ctx.query.comment)
