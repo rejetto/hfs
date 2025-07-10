@@ -60,7 +60,7 @@ export function showUpload() {
                 uploadState.adding.push(...files.map(f => ({ file: ref(f), path: getFilePath(f), to }))) )
         },
             h(FlexV, { className: 'upload-toolbar' },
-                !props?.can_upload ? t('no_upload_here', "No upload permission for the current folder")
+                props && !props.can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(FlexV, {},
                         h(Flex, { center: true, flexWrap: 'wrap', alignItems: 'stretch' },
                             h('button', {

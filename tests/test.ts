@@ -203,7 +203,7 @@ describe('after-login', () => {
         await rm(fn, {force: true})
         const neededTime = 600
         const makeAbortedRequest = (afterMs: number) => {
-            const r = reqUpload(UPLOAD_DEST + '?supposedToAbort', 0, makeReadableThatTakes(neededTime))()
+            const r = reqUpload(UPLOAD_DEST + '?supposedToAbort' /*to recognize in the logs*/, 0, makeReadableThatTakes(neededTime))()
             setTimeout(r.abort, afterMs)
             return r.catch(() => {}) // wait for it to fail
                 .then(() => wait(500)) // aborted requests don't guarantee that the server has finished and released the file, so we wait some arbitrary time
@@ -214,9 +214,7 @@ describe('after-login', () => {
         const size = getTempSize()
         if (!size) // temp file is left, not empty
             throw Error("missing temp file")
-        await makeAbortedRequest(timeFirstRequest * .5) // upload less than r1
-        if (size !== getTempSize()) // shouldn't change, as r2 is smaller, and therefore only wrote to secondary temp file
-            throw Error(`modified temp file, it was ${size} and now it's ${getTempSize()}`)
+        await reqUpload(UPLOAD_DEST + '?resume=0!', 412)()
         await makeAbortedRequest(timeFirstRequest * 1.5) // upload more than r1
         if (!(size < getTempSize()!)) // should be increased, as secondary temp file got bigger and replaced primary one
             throw Error(`temp file not enlarged, it was ${size} and now it's ${getTempSize()}`)

@@ -9,7 +9,7 @@ import {
 } from '@mui/icons-material'
 import {
     CFG, Html, HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate, formatTime, formatDate, replaceStringToReact,
-    callable, tryJson, useAutoScroll
+    callable, tryJson, useAutoScroll, NBSP
 } from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
@@ -238,7 +238,7 @@ export function renderName({ row, value }: any) {
             : with_(repo?.split('/'), arr => arr?.length !== 2 ? value
                 : h(Fragment, {},
                     h(Link, { href: 'https://github.com/' + repo, target: 'plugin', onClick(ev) { ev.stopPropagation() } }, treatPluginName(arr[1])),
-                    '\xa0by ', arr[0]
+                    NBSP + 'by ', arr[0]
                 ))
 )
 

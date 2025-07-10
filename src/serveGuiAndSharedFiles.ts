@@ -5,11 +5,11 @@ import { sendErrorPage } from './errorPages'
 import events from './events'
 import {
     ADMIN_URI, FRONTEND_URI, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND,
-    HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK, ICONS_URI, HTTP_FAILED_DEPENDENCY
+    HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK, ICONS_URI, HTTP_FAILED_DEPENDENCY, UPLOAD_TEMP_HASH
 } from './cross-const'
-import { uploadWriter } from './upload'
+import { getUploadTempFor, uploadWriter } from './upload'
 import formidable from 'formidable'
-import { Writable } from 'stream'
+import { once, Transform, Writable } from 'stream'
 import { serveFile, serveFileNode } from './serveFile'
 import { BUILD_TIMESTAMP, DEV, MIME_AUTO, VERSION } from './const'
 import { zipStreamFromFolder } from './zip'
@@ -17,7 +17,9 @@ import { preventAdminAccess, favicon } from './adminApis'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
-import { asyncGeneratorToReadable, filterMapGenerator, pathEncode, try_ } from './misc'
+import { asyncGeneratorToReadable, filterMapGenerator, parseFile, pathEncode, try_ } from './misc'
+import XXH from 'xxhashjs'
+import fs from 'fs'
 import { rm } from 'fs/promises'
 import { setCommentFor } from './comments'
 import { basicWeb, detectBasicAgent } from './basicWeb'
@@ -53,7 +55,9 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         ctx.state.considerAsGui = true
         return serveFile(ctx, join(plugin?.folder || '', ICONS_FOLDER, file), MIME_AUTO)
     }
-    if (ctx.method === 'PUT') { // curl -T file url/
+    const { get } = ctx.query
+    const getUploadTempHash = get === UPLOAD_TEMP_HASH
+    if (ctx.method === 'PUT' || getUploadTempHash) { // PUT is what you get with `curl -T file url/`
         const decPath = decodeURIComponent(path)
         let rest = basename(decPath)
         const folderUri = pathEncode(dirname(decPath)) // re-encode to get readable urls
@@ -61,6 +65,9 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         if (!folder)
             return sendErrorPage(ctx, HTTP_NOT_FOUND)
         ctx.state.uploadPath = decPath
+        if (getUploadTempHash)
+            return !folder.source ? sendErrorPage(ctx, HTTP_NOT_FOUND)
+                : ctx.body = await parseFile(getUploadTempFor(join(folder.source, rest)), calcHash)  // negligible memory leak
         const dest = uploadWriter(folder, folderUri, rest, ctx)
         if (dest) {
             ctx.req.pipe(dest).on('error', err => {
@@ -124,7 +131,6 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             return ctx.status = HTTP_SERVER_ERROR
         }
     }
-    const { get } = ctx.query
     if (node.default && path.endsWith('/') && !get) { // final/ needed on browser to make resource urls correctly with html pages
         const found = await urlToNode(node.default, ctx, node)
         if (found && /\.html?/i.test(node.default))
@@ -136,10 +142,10 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (!await nodeIsDirectory(node))
         return node.url ? ctx.redirect(node.url)
             : !node.source ? sendErrorPage(ctx, HTTP_METHOD_NOT_ALLOWED) // !dir && !source is not supported at this moment
-                : !statusCodeForMissingPerm(node, 'can_read', ctx) ? serveFileNode(ctx, node) // all good
-                    : ctx.status !== HTTP_UNAUTHORIZED ? null // all errors don't need extra handling, except unauthorized
-                        : detectBasicAgent(ctx) ? (ctx.set('WWW-Authenticate', 'Basic'), sendErrorPage(ctx))
-                            : ctx.query.dl === undefined && (ctx.state.serveApp = true) && serveFrontendFiles(ctx, next)
+            : !statusCodeForMissingPerm(node, 'can_read', ctx) ? serveFileNode(ctx, node) // all good
+            : ctx.status !== HTTP_UNAUTHORIZED ? null // all errors don't need extra handling, except unauthorized
+            : detectBasicAgent(ctx) ? (ctx.set('WWW-Authenticate', 'Basic'), sendErrorPage(ctx))
+            : ctx.query.dl === undefined && (ctx.state.serveApp = true) && serveFrontendFiles(ctx, next)
     if (!path.endsWith('/'))
         return ctx.redirect(ctx.state.revProxyPath + ctx.originalUrl.replace(/(\?|$)/, '/$1')) // keep query-string, if any
     if (statusCodeForMissingPerm(node, 'can_list', ctx)) {
@@ -176,6 +182,21 @@ async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
         return !folders && isFolder ? undefined
             : prepend + pathEncode(getNodeName(el)) + (isFolder ? '/' : '') + '\n'
     }))
+}
+
+async function calcHash(fn: string, limit=Infinity) {
+    const hash = XXH.h32()
+    const stream = new Transform({
+        transform(chunk, enc, done) {
+            hash.update(chunk)
+            done()
+        }
+    })
+    fs.createReadStream(fn, { end: limit - 1 }).pipe(stream)
+    console.debug('hashing', fn)
+    await once(stream, 'finish')
+    console.debug('hashed', fn)
+    return hash.digest().toString(16)
 }
 
 declare module "koa" {
