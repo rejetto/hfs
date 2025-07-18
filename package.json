@@ -114,7 +114,7 @@
     "@types/node": "^20.17.30",
     "@types/node-forge": "^1.3.11",
     "@types/picomatch": "^2.3.3",
-    "@yao-pkg/pkg": "^6.4.0",
+    "@yao-pkg/pkg": "^6.5.1",
     "cross-env": "^7.0.3",
     "koa-better-http-proxy": "^0.2.9",
     "nm-prune": "^5.0.0",
