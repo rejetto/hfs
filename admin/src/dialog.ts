@@ -58,7 +58,7 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
         h(DialogContent, {
             ref,
             sx: {
-                p: d.padding ? 1 : 0, pt: '16px !important', overflow: 'initial',
+                p: d.padding ? { xs: 1, sm: undefined } : 0, pt: '16px !important', overflow: 'initial',
                 display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'stretch',
                 ...sx,
             }
