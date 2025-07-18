@@ -54,10 +54,11 @@ let stuckSince = Infinity
 // keep track of speed
 let bytesSentTimestamp = Date.now()
 let bytesSent = 0
+const recentSpeedSamples: number[] = []
 setInterval(() => {
     const now = Date.now()
     const passed = (now - bytesSentTimestamp) / 1000
-    uploadState.speed = bytesSent / passed
+    const speed = bytesSent / passed
     if (currentReq && now - stuckSince >= 10_000) { // this will normally cause the upload to be retried after long time of no progress
         currentReq.abort()
         console.debug('upload stuck, aborting')
@@ -68,7 +69,13 @@ setInterval(() => {
     // keep track of ETA
     const qBytes = _.sumBy(uploadState.qs, q => _.sumBy(q.entries, x => x.file.size))
     const left = (qBytes  - uploadState.partial)
-    uploadState.eta = uploadState.speed && Math.round(left / uploadState.speed)
+    const doSample = uploadState.uploading
+    if (doSample)
+        recentSpeedSamples.push(speed)
+    if (!doSample || recentSpeedSamples.length > 5) // max 5 samples, 10 seconds
+        recentSpeedSamples.shift()
+    uploadState.speed = _.mean(recentSpeedSamples)
+    uploadState.eta = left / uploadState.speed
 }, 2_000)
 
 let currentReq: XMLHttpRequest | undefined

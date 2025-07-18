@@ -48,7 +48,7 @@ export function showUpload() {
     function Content(){
         const { qs, paused, eta, speed, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
         const { props, uploadOnExisting } = useSnapState()
-        const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
+        const etaStr = useMemo(() => !eta || eta === Infinity ? '' : formatTime(eta*1000, 0, 2), [eta])
         const inQ = _.sumBy(qs, q => q.entries.length) - (uploadState.uploading ? 1 : 0)
         const queueStr = inQ && t('in_queue', { n: inQ }, "{n} in queue")
         const size = formatBytes(adding.reduce((a, x) => a + x.file.size, 0))
