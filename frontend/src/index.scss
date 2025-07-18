@@ -207,6 +207,8 @@ kbd {
     box-shadow: 0 0 .3em .3em var(--warning);
 }
 
+.upload-send { @extend .ani-attention }
+
 .sliding {
     transition: flex .5s, flex-basis 0.5s ease, opacity 0.5s ease;
     overflow: hidden !important;
@@ -226,6 +228,13 @@ kbd {
     0% {opacity: 0}
     100% {opacity: 1}
 }
+.ani-attention { animation: attention 2s ease infinite; }
+@keyframes attention {
+    3% { transform: rotate(2deg); }
+    6% { transform: rotate(-2deg); }
+    9% { transform: rotate(0); }
+}
+
 
 .spinner, .icon.spinner:before {
     animation: 1.5s spin infinite linear;
