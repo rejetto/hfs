@@ -85,6 +85,7 @@ export function showUpload() {
                             }),
                         ),
                         !isMobile && h(Flex, { gap: 4 }, hIcon('info'), t('upload_dd_hint', "You can upload files doing drag&drop on the files list")),
+                        h(UploadStatus, { margin: '.5em 0' }),
                         adding.length > 0 && h(Flex, { center: true, flexWrap: 'wrap' },
                             h('button', {
                                 className: 'upload-send',
@@ -122,7 +123,6 @@ export function showUpload() {
                     },
                 },
             }),
-            h(UploadStatus, { margin: '.5em 0' }),
             qs.length > 0 && h('div', {},
                 h(Flex, { center: true, borderTop: '1px dashed', padding: '.5em' },
                     [etaStr, formatSpeed(speed), queueStr].filter(Boolean).join(', '),
