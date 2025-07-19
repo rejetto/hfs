@@ -97,18 +97,22 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
                 dest = join(tempInstallPath, dest)
                 return rm(dest, { force: true }).then(() => dest, () => false)
             })
-            if (!customRepo) {
-                const mainFile = join(tempInstallPath, PLUGIN_MAIN_FILE)
-                const content = await readFile(mainFile, 'utf8')
-                // force github plugins to have correct repo, in case it is missing, wrong, or just outdated after a rename
-                if (repo !== parsePluginSource('', content).repo) {
-                    const correct = `exports.repo = ${JSON.stringify(repo)}\n`
-                    let newContent = content.replace(/exports.repo\s*=\s*\S*/g, correct)
-                    if (newContent === content)
-                        newContent = correct + content
-                    await writeFile(mainFile, newContent) // first, as our parsing will consider that (unlike javascript)
+            if (!customRepo)
+                try {
+                    const mainFile = join(tempInstallPath, PLUGIN_MAIN_FILE)
+                    const content = await readFile(mainFile, 'utf8')
+                    // force github plugins to have correct repo, in case it is missing, wrong, or just outdated after a rename
+                    if (repo !== parsePluginSource('', content).repo) {
+                        const correct = `exports.repo = ${JSON.stringify(repo)}\n`
+                        let newContent = content.replace(/exports.repo\s*=\s*\S*/g, correct)
+                        if (newContent === content) // no change = the line is missing
+                            newContent = correct + content
+                        await writeFile(mainFile, newContent) // first, as our parsing will consider that (unlike javascript)
+                    }
                 }
-            }
+                catch (e) { // don't abort the whole procedure just because of the check above. It should never fail, but a user reported a mysterious ENOENT on the readFile()
+                    console.warn("plugin's repo check failed", e)
+                }
             // ready to replace
             const wasRunning = isPluginRunning(folder)
             if (wasRunning)
