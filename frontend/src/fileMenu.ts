@@ -47,6 +47,7 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
                     label: t('file_open', "Open"),
                     href: uri,
                     target: isFolder || entry.web ? undefined : '_blank',
+                    rel: isFolder || entry.web ? undefined : 'noopener noreferrer',
                     onClick: makeOnClickOpen(entry)
                 }
                 return !isFolder || open.onClick ? open : h(LinkClosingDialog, { to: uri, reloadDocument: entry.web }, hIcon(open.icon), open.label)
