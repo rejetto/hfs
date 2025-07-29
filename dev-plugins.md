@@ -356,6 +356,9 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `setInterval`, `setTimeout` same as standard js functions, but will automatically cancel if the plugin is unloaded. 
 
+- `onServer(cb: (Server) => any)` execute your callback on every instance of Server created by HFS.
+  It is the standard Node.js class, and it can be http or https. It can be instantiated multiple times.
+
 ## Frontend JS
 
 The following information applies to the frontend bundled with HFS.
@@ -728,7 +731,6 @@ This section is still partially documented, and you may need to have a look at t
     to let the default behavior while getting the content of the list, return a function, and it will be called for each
     entry, passed as first parameter (an object of standard class fs.Dirent), and when the list is over it will be called
     with a boolean, true if the list is completed and false if it was aborted
-    
 
 # Notifications (backend-to-frontend events)
 
@@ -820,6 +822,9 @@ You can decide if you want to use some building system/transpiler, but you'll ha
 While you may just put a zip on any website, that would require manual installation.
 If you want to appear in the Admin-panel, for easier finding and installation, please do as follows.
 
+Be sure that you are exporting (not returning) the essential properties, like `apiRequired`.
+Find the full list in the [[Things a plugin can export]], marked with "JSON syntax".
+
 Suggested method for publishing is to have a dedicated repository on GitHub, with topic `hfs-plugin`.
 To set the topic go on the repo home and click on the gear icon near the "About" box.
 Be sure to also fill the "exports.description" field, especially with words that people may search for.
@@ -841,7 +846,7 @@ You can refer to these published plugins for reference, like
 - https://github.com/rejetto/simple-player/
 - https://github.com/rejetto/theme-example/
 
-Published plugins are required to specify the `apiRequired` property.
+Published plugins to have `exports.apiRequired`.
 
 ### Multiple versions
 
@@ -1037,3 +1042,5 @@ If you want to override a text regardless of the language, use the special langu
   - HFS.isShowSupported
 - 12.6 (v0.57.6)
   - HFS.textSortCompare
+- 12.7 (v0.57.10)
+  - api.onServer

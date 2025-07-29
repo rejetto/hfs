@@ -33,6 +33,7 @@ import { i18nFromTranslations } from './i18n'
 import { addAccount, ctxBelongsTo, delAccount, getAccount, getUsernames, renameAccount, updateAccount } from './perm'
 import { getCurrentUsername } from './auth'
 import { CustomizedIcons, watchIconsFolder } from './icons'
+import { getServerStatus } from './listen'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
@@ -123,18 +124,17 @@ export function getPluginConfigFields(id: string) {
 async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>) {
     const undoEvents: any[] = []
     const timeouts: NodeJS.Timeout[] = []
+    const controlledEvents = Object.create(events, objFromKeys(['on', 'once', 'multi'], k => ({
+        value() {
+            const ret = (events[k] as any)(...arguments)
+            undoEvents.push(ret)
+            return ret
+        }
+    })))
     const res = await pl.init?.({
-        Const,
-        require,
-        getConnections,
+        Const, require,
         // intercept all subscriptions, so to be able to undo them on unload
-        events: Object.create(events, objFromKeys(['on', 'once', 'multi'], k => ({
-            value() {
-                const ret = (events[k] as any)(...arguments)
-                undoEvents.push(ret)
-                return ret
-            }
-        }))),
+        events: controlledEvents,
         log: console.log,
         setError(msg: string) { setError(morePassedToInit?.id || 'server_code', msg) },
         getHfsConfig: getConfig,
@@ -148,14 +148,17 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>
             timeouts.push(ret)
             return ret
         },
-        customApiCall,
-        notifyClient,
-        addBlock,
-        misc,
-        _,
-        ctxBelongsTo,
-        getCurrentUsername,
-        getAccount, getUsernames, addAccount, delAccount, updateAccount, renameAccount,
+        async onServer(cb: Callback<object>) {
+            const res = await getServerStatus()
+            if (res.http.srv)
+                cb(res.http.srv)
+            if (res.https.srv)
+                cb(res.https.srv)
+            controlledEvents.on('listening', ({ server }: any) => cb(server))
+        },
+        misc, _,
+        customApiCall, notifyClient, addBlock, ctxBelongsTo, getConnections,
+        getCurrentUsername, getAccount, getUsernames, addAccount, delAccount, updateAccount, renameAccount,
         ...morePassedToInit
     })
     Object.assign(pl, typeof res === 'function' ? { unload: res } : res)

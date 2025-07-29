@@ -145,8 +145,6 @@ const considerHttps = debounceAsync(async () => {
         console.error("failed to create https server: check your private key and certificate", e.message)
         return
     }
-    port = await startServer(httpsSrv, { port, host: listenInterface.get() })
-    if (!port) return
     httpsSrv.on('connection', newConnection) // this event is emitted as soon as the tcp layer is connected
     httpsSrv.on('secureConnection', (socket: TLSSocket) => { // emitted when the TLS layer is connected
         for (const c of getConnections()) // TLSSocket shares same ip:port, so we can find its matching Connection
@@ -154,6 +152,8 @@ const considerHttps = debounceAsync(async () => {
             && socket.remotePort === c.socket.remotePort)
                 return c.socket.emit('secure', socket) // let know Connection about the secure socket
     })
+    port = await startServer(httpsSrv, { port, host: listenInterface.get() })
+    if (!port) return
     printUrls(httpsSrv.name)
     events.emit('httpsReady')
     defaultBaseUrl.proto = 'https'
@@ -237,6 +237,7 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                     return reject('type of socket not supported')
                 }
                 srv.removeListener('error', onError) // necessary in case someone calls stop/start many times
+                events.emit('listening', { server: srv, port: ad.port })
                 resolve(ad.port)
             })
 
