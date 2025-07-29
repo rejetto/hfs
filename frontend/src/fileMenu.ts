@@ -196,7 +196,8 @@ async function editComment(entry: DirEntry) {
     const res = await inputComment(entry.name, entry.comment)
     if (res === undefined) return
     await apiCall('comment', { uri: entry.uri, comment: res }, { modal: working })
-    if (entry.uri === location.pathname) // current folder = breadcrumb
+    // location is fully encoded, while entry.uri uses pathEncode
+    if (decodeURI(entry.uri) === decodeURI(location.pathname)) // is current folder = is from breadcrumb
         _.set(state, 'props.comment', res)
     else
         updateEntry(entry, e => e.comment = res)
