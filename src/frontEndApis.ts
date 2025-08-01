@@ -11,9 +11,8 @@ import {
     HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED
 } from './const'
 import {
-    hasPermission, isRoot, nodeIsDirectory, nodeStats, saveVfs, statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
+    hasPermission, isRoot, nodeIsDirectory, nodeStats, statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
 } from './vfs'
-import { simplifyName } from './api.vfs'
 import fs from 'fs'
 import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'

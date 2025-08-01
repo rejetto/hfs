@@ -151,7 +151,7 @@ const apis: ApiHandlers = {
             || new ApiError(HTTP_SERVER_ERROR)
     },
 
-    async update_plugin({ id, branch }) {
+    async update_plugin({ id }) {
         const found = getPluginInfo(id)
         if (!found)
             return new ApiError(HTTP_NOT_FOUND)
