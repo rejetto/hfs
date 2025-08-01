@@ -15,9 +15,9 @@ import {
     HFS_REPO, HFS_REPO_BRANCH, HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FORBIDDEN, HTTP_NOT_ACCEPTABLE,
     HTTP_SERVER_ERROR, VERSION
 } from './const'
-import { readFile, rename, rm, writeFile } from 'fs/promises'
+import { access, readFile, rename, rm, writeFile } from 'fs/promises'
 import { join } from 'path'
-import { readFileSync } from 'fs'
+import fs from 'fs'
 import { storedMap } from './persistence'
 import { argv } from './argv'
 
@@ -82,6 +82,7 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
 
         async function go(url: string, folder: string, zipRoot: string) {
             const installPath = PLUGINS_PATH + '/' + folder
+            await access(installPath, fs.constants.W_OK) // early check for permission
             const tempInstallPath = installPath + '-installing' + DISABLING_SUFFIX
             const foldersToCopy = [ // from longer to shorter, so we first test the longer
                 zipRoot + '-' + process.platform + '-' + process.arch,
@@ -255,7 +256,7 @@ const cachedCentralInfo = storedMap.singleSync('cachedCentralInfo', '') // persi
 export let blacklistedInstalledPlugins: string[] = []
 // centralized hosted information, to be used as little as possible
 const FN = 'central.json'
-let builtIn = JSON.parse(readFileSync(join(__dirname, '..', FN), 'utf8'))
+let builtIn = JSON.parse(fs.readFileSync(join(__dirname, '..', FN), 'utf8'))
 export const getProjectInfo = debounceAsync(
     () => argv.central === false ? Promise.resolve(builtIn) : readGithubFile(`${HFS_REPO}/${HFS_REPO_BRANCH}/${FN}`)
         .then(JSON.parse, () => null)
