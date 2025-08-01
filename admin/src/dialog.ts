@@ -83,7 +83,7 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
     const opt = typeof options === 'string' ? { type: options } : (options ?? {})
     let { type='info', ...rest } = opt
     if (msg instanceof Error) {
-        msg = msg.message || String(err2msg((msg as any).code))
+        msg = err2msg(msg.message || (msg as any).code)
         type = 'error'
     }
 
