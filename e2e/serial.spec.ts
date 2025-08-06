@@ -7,7 +7,7 @@ import { clearUploads, password, uploadName, URL, username } from './common'
 export const fileToUpload = 'dev-plugins.md'
 
 test('upload1', async ({ page, context, browserName }) => {
-    if (page.viewportSize()?.width! < 1000 || browserName !== 'chromium') return // test only for desktop, as safari has no cdpSession, and to disconnect i need only 1 upload at a time
+    if (page.viewportSize()?.width! < 1000 || browserName !== 'chromium') return // test only for desktop, as only chromium has cdpSession, and to disconnect i need only 1 upload at a time
     await page.goto(URL);
     await page.getByRole('button', { name: 'Login' }).click();
     await page.getByRole('textbox', { name: 'Username' }).fill(username);
@@ -30,13 +30,14 @@ test('upload1', async ({ page, context, browserName }) => {
     await page.getByRole('button', { name: 'Pick files' }).click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(fileToUpload);
+    // can't do without. I tried using route.continue, but i can't send half-body keeping the full content-length, and i also cannot pass a stream (to throttle)
     const cdpSession = await context.newCDPSession(page)
     await cdpSession.send('Network.emulateNetworkConditions', NETWORK_PRESETS.Regular2G)
     await page.getByRole('button', { name: 'Edit' }).click();
     await page.getByRole('textbox').fill(uploadName);
     await page.getByRole('button', { name: 'Continue' }).click();
     await page.getByRole('button', { name: 'Send 1 file' }).click();
-    await wait(2000)
+    await wait(1500)
     await pageAdmin.getByRole('cell', { name: uploadName }).click();
     await pageAdmin.getByRole('button', { name: '(Disconnect)' }).click();
     await pageAdmin.getByRole('button', { name: '(Close)' }).click();

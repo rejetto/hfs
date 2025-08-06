@@ -41,6 +41,10 @@ export default defineConfig({
       name: 'iPhone 6',
       use: { ...devices['iPhone 6'] },
     },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    }
 /*
     {
       name: 'firefox',

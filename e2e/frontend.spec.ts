@@ -76,7 +76,7 @@ test('around1', async ({ page }) => {
   const pageListPromise = page.waitForEvent('popup');
   await page.getByRole('link', { name: 'Get list' }).click();
   const pageList = await pageListPromise;
-  await expect(pageList.getByText('localhost')).toBeVisible();
+  await expect(pageList.getByText('::1')).toBeVisible();
   await pageList.close()
 
   await page.getByRole('link', { name: 'home' }).click();
