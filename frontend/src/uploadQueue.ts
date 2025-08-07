@@ -101,14 +101,26 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     const uriPath = to + pathEncode(toUpload.path)
     let stopLooping = false // allow callbacks to stop the loop
     do { // at least one iteration, even for empty files
-        const req = currentReq = new XMLHttpRequest()
+        let req = currentReq = new XMLHttpRequest()
         const requestIsOver = pendingPromise()
         stuckSince = Date.now()
         // beware of 'abort' event: it isn't triggered if connection isn't established yet
-        req.onloadend = async () => {
+        req.onloadend = async () => { // loadend = fired for both success and error. Safari doesn't always fire this on disconnections, leaving readyState = 3. The problem is mitigated by the abort-when-stuck mechanism above.
             try {
                 currentReq = undefined
                 strictResume = true // reset at each request
+                if (!userAborted && !req.status) { // we were disconnected, possibly with a status that we couldn't read, so we give it another chance without the body
+                    /* Browsers are unreliable when it comes to read the status before the request is fully sent.
+                        - chrome139 works for most of the cases. It seems it doesn't when the disconnection happens a bit late (like for file system errors).
+                        - safari18 is inconsistent and it seems random.
+                        - firefox141 basically never works.
+                    */
+                    req = new XMLHttpRequest()
+                    req.open('PUT', uriPath + queryString + '&simulating=' + body.size, false) // not async this time
+                    try { req.send() }
+                    catch(e) { console.log(e) }
+                    await wait(500) // on a fast connection (localhost) firefox is aborting next request (without the delay), reporting NS_BINDING_ABORTED. Still don't know why
+                }
                 const { status } = req
                 if (status === HTTP_RANGE_NOT_SATISFIABLE)
                     return stopLooping = true
@@ -171,7 +183,8 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
             existing: with_(state.uploadOnExisting, x => x !== 'rename' ? x : undefined), // rename is the default
         })
         req.open('PUT', uriPath + queryString, true)
-        req.send(toUpload.file.slice(resume, splitSize ? resume + splitSize : undefined))
+        const body = toUpload.file.slice(resume, splitSize ? resume + splitSize : undefined)
+        req.send(body)
         await requestIsOver
     } while (!stopLooping)
 

@@ -71,7 +71,8 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
     const dir = dirname(fullPath)
     // enforce minAvailableMb
     const min = minAvailableMb.get() * (1 << 20)
-    const contentLength = Number(ctx.headers["content-length"])
+    const {simulate} = ctx.query // `simulate` is used to get the same error but with an empty body, so that the request is processed quickly
+    const contentLength = Number(simulate || ctx.headers["content-length"])
     const isPartial = ctx.query.partial !== undefined // while the presence of "partial" conveys the upload is split...
     const stillToWrite = Math.max(contentLength, Number(ctx.query.partial) || 0) // ...the number is used to tell how much space we need (fullSize - offset)
     if (isNaN(stillToWrite)) {
@@ -155,6 +156,8 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
             try {
                 ctx.state.uploadSize = bytesGot() // in case content-length is not specified
                 await new Promise(res => fileStream.close(res)) // this only seems necessary on Windows
+                if (simulate)
+                    return rm(tempName).catch(() => {})
                 if (ctx.isAborted()) { // in the very unlikely case the connection is interrupted between last-byte and here, we still consider it unfinished, as the client had no way to know, and will resume, but it would get an error if we finish the process
                     const sec = deleteUnfinishedUploadsAfter.get()
                     return _.isNumber(sec) && delayedDelete(tempName, sec)
@@ -243,7 +246,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
             expires: Date.now() + secs * 1000,
             timeout: setTimeout(() => {
                 delete waitingToBeDeleted[path]
-                void rm(path)
+                rm(path).catch(() => {})
             }, secs * 1000)
         }
     }
