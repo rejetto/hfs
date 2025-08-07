@@ -7,7 +7,7 @@ import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONT
 import { getNodeName, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
 import { defineConfig } from './config'
-import { CFG, Dict, makeMatcher, matches, normalizeHost, with_ } from './misc'
+import { CFG, Dict, makeMatcher, matches, normalizeHost, try_, with_ } from './misc'
 import _ from 'lodash'
 import { basename } from 'path'
 import { promisify } from 'util'
@@ -43,8 +43,8 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     const mimeString = typeof mime === 'string' ? mime
         : _.find(mime, (val,mask) => matches(name, mask))
     if (allowedReferer.get()) {
-        const ref = /\/\/([^:/]+)/.exec(ctx.get('referer'))?.[1] // extract host from url
-        if (ref && ref !== normalizeHost(ctx.host) // automatically accept if referer is basically the hosting domain
+        const ref = try_(() => new URL(ctx.get('referer')||'').host)
+        if (ref && ref !== ctx.host // automatically accept if referer is basically the hosting domain
         && !matches(ref, allowedReferer.get()))
             return ctx.status = HTTP_FORBIDDEN
     }
