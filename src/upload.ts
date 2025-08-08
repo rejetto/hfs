@@ -2,7 +2,7 @@ import { getNodeByName, statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
 import {
     HTTP_CONFLICT, HTTP_FOOL, HTTP_INSUFFICIENT_STORAGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_BAD_REQUEST, HTTP_NO_CONTENT,
-    HTTP_PRECONDITION_FAILED, MTIME_CHECK,
+    HTTP_PRECONDITION_FAILED, MTIME_CHECK, HTTP_SERVER_ERROR,
 } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
@@ -152,10 +152,18 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         writeStream.on('data', () => setTimeout(() => tracked.got = bytesGot()))
 
         const lockMiddleware = pendingPromise<string>() // expose outside, to let know when all operations stopped
+        let errored: any
+        fileStream.on('error', (e: any) => {
+            console.warn('file error while uploading', path, ':', e.message)
+            errored = e
+            fail(HTTP_SERVER_ERROR, e.code) // don't send e.message as it may contain a disk paths we don't want to leak
+        })
         writeStream.once('close', async () => {
             try {
                 ctx.state.uploadSize = bytesGot() // in case content-length is not specified
                 await new Promise(res => fileStream.close(res)) // this only seems necessary on Windows
+                if (errored)
+                    return
                 if (simulate)
                     return rm(tempName).catch(() => {})
                 if (ctx.isAborted()) { // in the very unlikely case the connection is interrupted between last-byte and here, we still consider it unfinished, as the client had no way to know, and will resume, but it would get an error if we finish the process
