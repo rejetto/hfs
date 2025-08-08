@@ -1,6 +1,7 @@
 /* avoid meaningless graphical effects that may cause changes in the screenshots */
 *:focus { outline: none !important; box-shadow: none !important; }
 main *:hover { background: none !important; }
+* { animation: none !important; transition: none !important; }
 
 .hideInTests, /* use for elements with variable size, where masking would produce changes anyway */
 .list-wrapper:not([uri="/"]) .entry-ts { display: none } /* ignore changing timestamps inside folders */

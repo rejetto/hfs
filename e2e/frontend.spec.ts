@@ -173,7 +173,8 @@ test('search1', async ({ page }) => {
 });
 
 test('frontend-admin', async ({ page }) => {
-  await page.goto(URL);
+  await page.goto(URL, { waitUntil: 'networkidle' });
+  await page.evaluate(() => document.fonts.ready); // aspetta i font
   await page.getByRole('button', { name: 'Options' }).click();
   // no admin button yet,
   await expect(page.getByRole('dialog')).toMatchAriaSnapshot(`
