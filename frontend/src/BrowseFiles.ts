@@ -1,12 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { Link, useNavigate } from 'react-router-dom'
-import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState,
-    useId} from 'react'
-import { useEventListener, useMediaQuery, useWindowSize } from 'usehooks-ts'
 import {
-    domOn, ErrorMsg, hIcon, onlyTruthy, prefix, isMac, isCtrlKey, hfsEvent, formatTimestamp
-} from './misc'
+    createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState, useId
+} from 'react'
+import { useEventListener, useMediaQuery, useWindowSize } from 'usehooks-ts'
+import { domOn, ErrorMsg, hIcon, onlyTruthy, prefix, isMac, isCtrlKey, hfsEvent, formatTimestamp } from './misc'
 import { Checkbox, CustomCode, Bytes, iconBtn, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'

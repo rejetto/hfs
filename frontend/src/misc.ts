@@ -114,6 +114,13 @@ Object.assign(getHFS(), {
         return apiCall(cross.PLUGIN_CUSTOM_REST_PREFIX + name, ...rest)
     },
     html: (html: string) => h(Html, {}, html),
+    elementToEntry(el: any) {
+        if (!(el instanceof HTMLElement)) return
+        const a = el.closest('li')?.querySelector('.link-wrapper a')
+        if (!(a instanceof HTMLAnchorElement)) return
+        try { return _.find(state.list, { uri: new URL(a.href).pathname }) }
+        catch {}
+    },
 })
 
 export function operationSuccessful() {

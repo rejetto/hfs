@@ -447,8 +447,9 @@ In frontend you will have access to the `HFS` object of the global scope, which 
 - `textSortCompare(a: string, b: string): number` the function HFS will use for text sorting. 
   Returns a negative if `a` must go before `b`, a positive if `b` must go before `a`, or zero they have same order.
   It's exposed for you to use, or to overwrite if you need.
+- `elementToEntry(el: HTMLElement): DirEntry | undefined` given a DOM element, returns the DirEntry associated to it, if any.
 
-The following properties are accessible only immediately at top-level; don't call it later in a callback.
+- The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
 - `getPluginPublic()` returns plugin's public folder, with final slash. Useful to point to public files.
 
@@ -1042,5 +1043,6 @@ If you want to override a text regardless of the language, use the special langu
   - HFS.isShowSupported
 - 12.6 (v0.57.6)
   - HFS.textSortCompare
-- 12.7 (v0.57.10)
+- 12.8 (v0.57.10)
   - api.onServer
+  - HFS.elementToEntry
