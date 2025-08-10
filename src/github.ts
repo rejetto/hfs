@@ -12,8 +12,8 @@ import {
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
 import {
-    HFS_REPO, HFS_REPO_BRANCH, HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FORBIDDEN, HTTP_NOT_ACCEPTABLE,
-    HTTP_SERVER_ERROR, VERSION
+    HFS_REPO, HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FORBIDDEN, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR, VERSION,
+    RUNNING_BETA,
 } from './const'
 import { access, readFile, rename, rm, writeFile } from 'fs/promises'
 import { join } from 'path'
@@ -257,8 +257,10 @@ export let blacklistedInstalledPlugins: string[] = []
 // centralized hosted information, to be used as little as possible
 const FN = 'central.json'
 let builtIn = JSON.parse(fs.readFileSync(join(__dirname, '..', FN), 'utf8'))
+const branch = RUNNING_BETA ? VERSION.split('.')[1] : 'main'
 export const getProjectInfo = debounceAsync(
-    () => argv.central === false ? Promise.resolve(builtIn) : readGithubFile(`${HFS_REPO}/${HFS_REPO_BRANCH}/${FN}`)
+    () => argv.central === false ? Promise.resolve(builtIn) : readGithubFile(`${HFS_REPO}/${branch}/${FN}`)
+        .catch(e => RUNNING_BETA ? readGithubFile(`${HFS_REPO}/main/${FN}`) : Promise.reject(e)) // for beta versions, try again with 'main'
         .then(JSON.parse, () => null)
         .then(o => {
             if (o)
