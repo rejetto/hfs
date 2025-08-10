@@ -109,6 +109,17 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
             setUploadMeta(dir, ctx)
         // use temporary name while uploading
         const tempName = getUploadTempFor(fullPath)
+        // try to catch errors early (sync): this is avoiding on chrome139 when uploading a big file (1GB) to get miss the error code and have to make a `simulate`
+        try { fs.accessSync(tempName, fs.constants.W_OK) }
+        catch {
+            try {
+                fs.closeSync(fs.openSync(tempName, 'w'))
+                fs.unlinkSync(tempName)
+            }
+            catch(e: any) {
+                return fail(HTTP_SERVER_ERROR, e.code)
+            }
+        }
         const stats = try_(() => fs.statSync(tempName))
         const resumableSize = stats?.size || 0
         // checks for resume feature
