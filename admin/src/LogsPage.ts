@@ -82,9 +82,9 @@ export default function LogsPage({ setTitleSide }: PageProps) {
                     form: {
                         stickyBar: true,
                         fields: [
-                            { k: CFG.log, label: logLabels.log, sm: 6, helperText: "Requests are logged here" },
+                            { k: CFG.log, label: logLabels.log, sm: 6, helperText: "Requests are logged here. Empty to disable it." },
                             { k: CFG.error_log, label: logLabels.error_log, sm: 6, placeholder: "errors go to main log",
-                                helperText: "If you want errors in a different log"
+                                helperText: "Write errors in a different file. Empty to use same file."
                             },
                             { k: CFG.log_rotation, comp: SelectField, sm: 6, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
                                 helperText: wikiLink('Logs#rotation', "To keep log-files smaller"),

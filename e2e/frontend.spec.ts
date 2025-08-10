@@ -258,7 +258,7 @@ test('admin1', async ({ page }) => {
   await page.getByRole('tab').nth(3).click();
   await page.getByRole('tab').nth(4).click();
   await page.getByRole('button', { name: '(Options)' }).click();
-  await page.locator('div').filter({ hasText: 'ServedRequests are logged hereNot servedIf you want errors in a different' }).nth(3).click();
+  await page.locator('div').filter({ hasText: 'ServedRequests are logged here. Empty to disable it.Not servedWrite errors in a different file. Empty to use same file.' }).nth(3).click();
   await page.getByRole('button', { name: '(Close)' }).click();
   await expect(page.getByText('LogsServedNot')).toBeVisible();
   await clickMenu('Language');
