@@ -1,31 +1,30 @@
-# For plug-in makers
+# For plugin makers
 
-If the information you are searching for is not in this document, [please ask](https://github.com/rejetto/hfs/discussions). 
+If the information you are searching for is not in this document, [feel free to ask](https://github.com/rejetto/hfs/discussions). 
 
-A plug-in is a folder with a `plugin.js` file in it. To install a plugin you just copy the folder into the `plugins` folder.
+A plugin for HFS is a folder that contains a `plugin.js` file. To install a plugin you just copy the folder into the `plugins` folder.
 You will find `plugins` folder near `config.yaml`, and then in `USER_FOLDER/.hfs` for Linux and macOS, or near `hfs.exe` on Windows. 
 
-Plug-ins can be hot-swapped, and to some extent can be edited without restarting the server.
+plugins can be hot-swapped, and to some extent can be edited without restarting the server.
 
-Each plug-in has access to the same set of features.
-Normally you'll have a plug-in that's a theme, and another that's a firewall,
-but nothing is preventing a single plug-in from doing both tasks.
+Normally you'll have a plugin that's a theme, and another that's a firewall,
+but nothing is preventing a single plugin from doing both tasks.
 
 ## Development environment
 
-The simplest way to develop is to create your folder inside the .hfs/plugins folder, and work there.
+The simplest way to develop is to create your folder inside the `.hfs/plugins` folder, and work there.
 Each time you make a change, you'll see it reflected in the running server.
 This is probably the easiest form to start with.
 
 A neater way is to keep it both in the form of github repo and installed plugin.
 If you want to do so, have a folder with your github repo in it, *outside* your `.hfs` folder.
-As you'll see in the [[Publish your plug-in]] section, you should keep your files inside the `dist` subfolder.
-Then you'll need to link it inside the plugins folder.
-If you go in your .hfs/plugins folder on linux and mac, and enter
+As you'll see in the [[Publish your plugin]] section, you should keep your files inside the `dist` subfolder.
+Then you'll need to link it inside the `plugins` folder.
+If you go in your `.hfs/plugins` folder on linux and mac, and enter
 
     ln -s /PATH_TO_YOUR_REPO/dist MY_PLUGIN_NAME
 
-On Windows it may be something like
+On Windows, the command would be something like
 
     mklink /d C:\path\to\hfs\plugins\my_plugin C:\my_code\my_plugin\dist
 
@@ -34,7 +33,8 @@ This allows you to continue editing your repo and be ready to commit changes.
 
 ## Backend / Frontend
 
-Plugins can run both in backend (the server) and frontend (the browser). Frontend files reside in the "public" folder, while all the rest is backend.
+plugins can have a part running in the backend (the server) and a part running in the frontend (the browser).
+Frontend files reside in the "public" folder, while all the rest is backend.
 
 ## System icons
 
@@ -280,9 +280,8 @@ The `api` object you get as parameter of the `init` contains the following:
 - `storageDir: string` folder where a plugin is supposed to store run-time data. This folder is preserved during
   an update of the plugin, while the rest could be deleted.
 
-- `events` this is the main events emitter used by HFS.
-  These are backend side events, not to be confused with frontend ones. It's not the standard EventEmitter class,
-  and the API is slightly different.
+- `events` this is the main events emitter used by HFS. These are backend-side events, not to be confused with frontend ones.
+  It's not the standard EventEmitter class, but the API is mostly the same.
 
     - `events.on(name: string, listener: Callback): Callback`
 
@@ -732,6 +731,13 @@ This section is still partially documented, and you may need to have a look at t
     to let the default behavior while getting the content of the list, return a function, and it will be called for each
     entry, passed as first parameter (an object of standard class fs.Dirent), and when the list is over it will be called
     with a boolean, true if the list is completed and false if it was aborted
+- `checkVfsPermission` called when a vfs permission is checked
+  - parameters: { node, perm, who, ctx }
+    - `perm: string` is the permission we are checking for
+    - `node: VfsNode` is the node on which the permission is checked
+    - `who: Who` is like `node[perm]`, that is the configured permission on the node, 
+      but without references to other permissions or the object form, as they have already been translated
+  - return: an http error as number >= 400, or 0 or undefined
 
 # Notifications (backend-to-frontend events)
 
@@ -818,7 +824,7 @@ If you use a library for the browser, you'll have to keep it in the "public" fol
 If you want to use a module for node.js, just include "node_modules" folder (not in "public" folder).
 You can decide if you want to use some building system/transpiler, but you'll have to set it up yourself.
 
-## Publish your plug-in
+## Publish your plugin
 
 While you may just put a zip on any website, that would require manual installation.
 If you want to appear in the Admin-panel, for easier finding and installation, please do as follows.
@@ -1046,3 +1052,4 @@ If you want to override a text regardless of the language, use the special langu
 - 12.8 (v0.57.10)
   - api.onServer
   - HFS.elementToEntry
+  - backend event: checkVfsPermission

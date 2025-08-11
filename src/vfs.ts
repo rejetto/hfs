@@ -266,6 +266,12 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
             }
             cur = who
         } while (1)
+        const eventName = 'checkVfsPermission'
+        if (events.anyListener(eventName)) {
+            const first = Number(events.emit(eventName, { who, node, perm, ctx })?.find(Boolean))
+            if (first >= 400)
+                return first
+        }
 
         if (Array.isArray(who))
             return ctxBelongsTo(ctx, who) ? 0 : HTTP_UNAUTHORIZED

@@ -41,6 +41,7 @@ export function getHttpsWorkingPort() {
 }
 
 const commonServerOptions: http.ServerOptions = { requestTimeout: 0 }
+// these are properties that can be assigned to the server object
 const commonServerAssign = { headersTimeout: 30_000, timeout: MINUTE } // 'headersTimeout' is not recognized by type lib, and 'timeout' is not effective when passed in parameters
 
 const readyToListen = Promise.all([ storedMap.isOpening(), events.once('app') ])
@@ -103,9 +104,14 @@ const considerHttps = debounceAsync(async () => {
     defaultBaseUrl.port = getCurrentPort(httpSrv) ?? 0
     let port = httpsPortCfg.get()
     try {
-        const moreOptions = Object.assign({}, ...await events.emitAsync('httpsServerOptions') || [])
+        const moreOptions = Object.assign({}, ...await events.emitAsync('httpsServerOptions') || [])  // emitAsync returns an array of objects
         httpsSrv = Object.assign(
-            https.createServer(port === PORT_DISABLED ? {} : { ...commonServerOptions, key: httpsOptions.private_key, cert: httpsOptions.cert, ...moreOptions }, app.callback()),
+            https.createServer(port === PORT_DISABLED ? {} : {
+                ...commonServerOptions,
+                key: httpsOptions.private_key,
+                cert: httpsOptions.cert,
+                ...moreOptions,
+            }, app.callback()),
             { name: 'https' },
             commonServerAssign
         )
