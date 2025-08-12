@@ -15,7 +15,7 @@ import {
     HFS_REPO, HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FORBIDDEN, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR, VERSION,
     RUNNING_BETA,
 } from './const'
-import { access, readFile, rename, rm, writeFile } from 'fs/promises'
+import { access, mkdir, rmdir, readFile, rename, rm, writeFile } from 'fs/promises'
 import { join } from 'path'
 import fs from 'fs'
 import { storedMap } from './persistence'
@@ -82,7 +82,8 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
 
         async function go(url: string, folder: string, zipRoot: string) {
             const installPath = PLUGINS_PATH + '/' + folder
-            await access(installPath, fs.constants.W_OK) // early check for permission
+            await access(installPath, fs.constants.W_OK) // early check for permission: access if it exists, mkdir if it doesn't
+                .catch(() => mkdir(installPath, { recursive: true }).then(() => rmdir(installPath)))
             const tempInstallPath = installPath + '-installing' + DISABLING_SUFFIX
             const foldersToCopy = [ // from longer to shorter, so we first test the longer
                 zipRoot + '-' + process.platform + '-' + process.arch,
