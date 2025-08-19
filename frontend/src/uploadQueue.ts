@@ -74,6 +74,8 @@ setInterval(() => {
         recentSpeedSamples.push(speed)
     if (!doSample || recentSpeedSamples.length > 5) // max 5 samples, 10 seconds
         recentSpeedSamples.shift()
+    if (uploadState.paused)
+        recentSpeedSamples.length = 0
     uploadState.speed = _.mean(recentSpeedSamples)
     uploadState.eta = left / uploadState.speed
 }, 2_000)
@@ -108,6 +110,8 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         req.onloadend = async () => { // loadend = fired for both success and error. Safari doesn't always fire this on disconnections, leaving readyState = 3. The problem is mitigated by the abort-when-stuck mechanism above.
             try {
                 currentReq = undefined
+                if (uploadState.paused)
+                    return stopLooping = true
                 strictResume = true // reset at each request
                 if (!userAborted && !req.status) { // we were disconnected, possibly with a status that we couldn't read, so we give it another chance without the body
                     /* Browsers are unreliable when it comes to read the status before the request is fully sent.

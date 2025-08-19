@@ -16,14 +16,12 @@ import { Link } from 'react-router-dom'
 import { LinkClosingDialog } from './fileMenu'
 import {
     abortCurrentUpload, enqueueUpload, getFilePath, normalizeAccept, resetCounters, resetReloadOnClose,
-    simulateBrowserAccept, ToUpload, uploadState
+    simulateBrowserAccept, startUpload, ToUpload, uploadState
 } from './uploadQueue'
 import i18n from './i18n'
 const { t } = i18n
 
 const renameEnabled = getHFS().dontOverwriteUploading
-
-let everPaused = false
 
 export function showUpload() {
     if (!uploadState.qs.length)
@@ -130,12 +128,12 @@ export function showUpload() {
                         uploadState.qs = []
                         abortCurrentUpload(true)
                     }, { title: t`Clear` }),
-                    inQ > 0 && iconBtn(paused ? 'play' : 'pause', () => {
+                    iconBtn(paused ? 'play' : 'pause', () => {
                         uploadState.paused = !uploadState.paused
-                        if (!everPaused) {
-                            everPaused = true
-                            alertDialog("Pause applies to the queue, but current file will still be uploaded")
-                        }
+                        if (uploadState.paused)
+                            abortCurrentUpload()
+                        else if (uploadState.uploading)
+                            startUpload(uploadState.uploading, uploadState.qs[0].to)
                     }),
                 ),
                 qs.map((q,idx) =>
@@ -145,8 +143,13 @@ export function showUpload() {
                             entries: uploadState.qs[idx].entries,
                             actions: {
                                 cancel: f => {
-                                    if (f === uploadState.uploading)
-                                        return abortCurrentUpload(true)
+                                    if (f === uploadState.uploading) {
+                                        if (!uploadState.paused)
+                                            return abortCurrentUpload(true)
+                                        f.error = t`Interrupted`
+                                        uploadState.skipped.push(f)
+                                        uploadState.uploading = undefined
+                                    }
                                     const q = uploadState.qs[idx]
                                     _.pull(q.entries, f)
                                     if (!q.entries.length)
