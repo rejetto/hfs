@@ -43,7 +43,7 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
     const asRest = options.restUri
     const started = new Date
     // rebuilding the whole url makes it resistant to url-with-credentials
-    return Object.assign(fetch(`${location.origin}${getPrefixUrl()}${asRest || (API_URL + cmd)}`, {
+    return Object.assign(fetch(`${location.origin}${asRest || (getPrefixUrl() + API_URL + cmd)}`, {
         method: asRest ? cmd : (options.method || 'POST'),
         headers: { 'content-type': 'application/json', 'x-hfs-anti-csrf': '1' },
         signal: controller.signal,
