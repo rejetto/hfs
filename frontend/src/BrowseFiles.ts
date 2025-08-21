@@ -289,24 +289,31 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder, name, n } = entry
     const { showFilter, selected, file_menu_on_link } = useSnapState()
     const isLink = Boolean(entry.url)
-    const containerName = n.slice(0, -name.length).replaceAll('/', '/ ')
     let className = isFolder ? 'folder' : 'file'
     if (entry.cantOpen)
         className += ' cant-open'
     if (separator)
         className += ' ' + PAGE_SEPARATOR_CLASS
-    const ico = getEntryIcon(entry)
-    const onClick = !isFolder && !isLink && !entry.web && file_menu_on_link && fileMenu || makeOnClickOpen(entry)
     const hasHover = useMediaQuery('(hover: hover)')
     const showingButton = !file_menu_on_link || isFolder && !hasHover
     const ariaId = useId()
-    const ariaProps = { id: ariaId, 'aria-label': prefix(name + ', ', isFolder ? t`Folder` : entry.web ? t`Web page` : isLink ? t`Link` : '') }
-    const dragProps = dragFilesSource(entry)
+    const commonProps = {
+        id: ariaId,
+        'aria-label': prefix(name + ', ', isFolder ? t`Folder` : entry.web ? t`Web page` : isLink ? t`Link` : ''),
+        ...dragFilesSource(entry),
+        onClick: !isFolder && !isLink && !entry.web && file_menu_on_link && fileMenu || makeOnClickOpen(entry),
+        children: h(Fragment, {},
+            getEntryIcon(entry),
+            h('span', { className: 'container-folder' }, n.slice(0, -name.length).replaceAll('/', '/ ')),
+            h('span', { className: 'entry-name' }, name)
+        )
+    }
     return h(CustomCode, {
         name: 'entry',
         entry,
         render: x => x ? h('li', { className, label: separator }, x) : _.remove(state.list, { n }) && null // custom-code wants us to skip this entry
-    }, showFilter && h(Checkbox, {
+    },
+        showFilter && h(Checkbox, {
             disabled: !entry.canSelect(),
             'aria-labelledby': ariaId,
             value: selected[uri] || false,
@@ -319,22 +326,16 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
         }),
         h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
             // we treat webpages as folders, with menu to comment
-            isFolder ? h(Fragment, {}, // internal navigation, use Link component
-                h(Link, {
-                    to: uri,
-                    onClick,
-                    reloadDocument: entry.web, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
-                    ...dragProps,
-                    ...ariaProps,
-                },
-                    ico, h('span', { className: 'container-folder' }, containerName), name), // don't use name, as we want to include whole path in case of search
-                // popup button is here to be able to detect link-wrapper:hover
-                file_menu_on_link && !showingButton && h('button', {
-                    className: 'popup-menu-button',
-                    onClick: fileMenu
-                }, hIcon('menu'), t`Menu`)
-            ) : h('a', { href: uri, onClick, target: entry.target, ...ariaProps, ...dragProps },
-                ico, h('span', { className: 'container-folder' }, containerName), name ),
+            !isFolder ? h('a', { href: uri, ...commonProps, target: entry.target, rel: entry.target && 'noopener noreferrer' })
+                : h(Fragment, {},
+                    // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
+                    h(Link, { to: uri, reloadDocument: entry.web, ...commonProps }), // Link = internal navigation
+                    // popup button is here to be able to detect link-wrapper:hover
+                    file_menu_on_link && !showingButton && h('button', {
+                        className: 'popup-menu-button',
+                        onClick: fileMenu
+                    }, hIcon('menu'), t`Menu`)
+                ),
         ),
         h(CustomCode, { name: 'afterEntryName', entry }),
         entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
