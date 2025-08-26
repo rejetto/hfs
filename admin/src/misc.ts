@@ -3,6 +3,7 @@
 import { apiCall } from './api'
 import { HTTP_MESSAGES, MD_TAGS } from '@hfs/shared'
 import { Link } from '@mui/material'
+import httpCodes from './httpCodes'
 export * from '@hfs/shared'
 
 ;(MD_TAGS as any).a = Link
@@ -23,7 +24,7 @@ export function err2msg(code: string | number) {
         github_quota: "Request denied. You may have reached the limit, retry later.",
         ENOENT: "Not found",
         ENOTDIR: "Not a folder",
-    }[code] || HTTP_MESSAGES[code as any] || String(code)
+    }[code] || HTTP_MESSAGES[code as any] || httpCodes[code] || String(code) // prefer short form, as httpCodes is quite long
 }
 
 export function formatTimestamp(x: number | string | Date) {

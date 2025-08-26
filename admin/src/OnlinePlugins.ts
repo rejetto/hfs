@@ -3,7 +3,7 @@
 import { apiCall, useApiList } from './api'
 import { Fragment, createElement as h, useState } from 'react'
 import { DataTable } from './DataTable'
-import { HFS_REPO, HTTP_FAILED_DEPENDENCY, newDialog, wantArray, xlate } from './misc'
+import { err2msg, HFS_REPO, HTTP_FAILED_DEPENDENCY, newDialog, wantArray, xlate } from './misc'
 import { ArrowBack, ArrowForward, Download, RemoveRedEye, Search, Warning } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'usehooks-ts'
@@ -31,7 +31,7 @@ export default function OnlinePlugins() {
             label: "Search text"
         }),
         h(DataTable, {
-            error: xlate(error, PLUGIN_ERRORS),
+            error: error && err2msg(xlate(error, PLUGIN_ERRORS)),
             rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
             noRows: "No compatible plugins have been found",
             fillFlex: true,

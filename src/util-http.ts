@@ -32,7 +32,7 @@ export interface XRequestOptions extends https.RequestOptions {
 }
 
 export declare namespace httpStream { let defaultProxy: string | undefined }
-export function httpStream(url: string, { body, jar, noRedirect, httpThrow, proxy, ...options }: XRequestOptions ={}) {
+export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThrow, ...options }: XRequestOptions ={}) {
     const controller = new AbortController()
     options.signal ??= controller.signal
     return Object.assign(new Promise<IncomingMessage>(async (resolve, reject) => {
@@ -59,8 +59,8 @@ export function httpStream(url: string, { body, jar, noRedirect, httpThrow, prox
                 url = parsed.protocol + '//' + parsed.host + parsed.path // rewrite without authentication part
         }
         if (proxy) {
-            options.path = url
-            options.headers.host ??= parse(url).host || undefined
+            options.path = url // full url as path
+            options.headers.host ??= parse(url).host || undefined // keep original host header
         }
         // this needs the prefix "proxy-"
         const proxyAuth = proxyParsed?.auth ? { 'proxy-authorization': `Basic ${Buffer.from(proxyParsed.auth, 'utf8').toString('base64')}` } : undefined
@@ -93,7 +93,9 @@ export function httpStream(url: string, { body, jar, noRedirect, httpThrow, prox
                 return resolve(httpStream(r, options))
             }
             resolve(res)
-        }).on('error', e => {
+        }).on('error', (e: any) => {
+            if (proxy && e?.code === 'ECONNREFUSED')
+                console.debug("cannot connect to proxy ", proxy)
             reject((req as any).res || e)
         })
         if (body && body instanceof Readable)
@@ -123,4 +125,3 @@ export function httpStream(url: string, { body, jar, noRedirect, httpThrow, prox
         abort() { controller.abort() }
     })
 }
-
