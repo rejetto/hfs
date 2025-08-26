@@ -240,7 +240,15 @@ describe('after-login', () => {
     test('reupload', reqUpload(UPLOAD_DEST, 200))
     test('delete.method', req(UPLOAD_DEST, 200, { method: 'DELETE' }))
     test('delete.miss deleted', req(UPLOAD_DEST, 404, { method: 'delete' }))
-    test('upload.too much', reqUpload(UPLOAD_ROOT + 'temp/tooMuch', 400, BIG_CONTENT, BIG_CONTENT.length / 2)) // 400 is caused by nodejs itself, intercepting the mismatch
+    const declaredSize = BIG_CONTENT.length / 2
+    test('upload.too much', reqUpload(UPLOAD_DEST, (x,res)=> {
+        if (res.statusCode === 400) return // status 400 is caused by nodejs itself, intercepting the mismatch, but it's probably an unreliable race condition
+        if (res.statusCode !== 200) // it happened sometimes that node didn't block (can't replicate). In such case we should get a 200 with a file the size of declaredSize.
+            throw `expected 200, got ${res.statusCode}`
+        const size = try_(() => statSync(resolve(__dirname, UPLOAD_RELATIVE)).size)
+        if (size !== declaredSize)
+            throw `expected ${declaredSize}, got ${size}`
+    }, BIG_CONTENT, declaredSize))
     test('upload.free space', async () => {
         const res = statfsSync(ROOT)
         const free = res.bavail * res.bsize
@@ -306,7 +314,7 @@ async function testMaxDl(uri: string, good: number, bad: number) {
     }, { throttle })() )) // slow down to ensure the attempted downloads are all concurrent
 }
 
-type TesterFunction = ((data: any, fullResponse: any) => boolean | void)
+type TesterFunction = ((data: any, fullResponse: any) => boolean | void) // true or void for ok, false or throw for error
 type Tester = number
     | TesterFunction
     | RegExp
