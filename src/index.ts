@@ -15,7 +15,7 @@ import { serveGuiAndSharedFiles } from './serveGuiAndSharedFiles'
 import './listen'
 import './commands'
 import { adminApis } from './adminApis'
-import { defineConfig } from './config'
+import { defineConfig, Version } from './config'
 import { ok } from 'assert'
 import _ from 'lodash'
 import { randomId } from './misc'
@@ -29,6 +29,11 @@ import { trackIpsMw } from './ips'
 import './outboundProxy'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints, don't clash
+
+if (new Version(process.versions.node).olderThan('18.15.0')) {
+    console.error("Node.js 18.15+ is required, please update")
+    process.exit(2)
+}
 
 process.title = 'HFS ' + VERSION
 const keys = process.env.COOKIE_SIGN_KEYS?.split(',')

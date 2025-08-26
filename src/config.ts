@@ -42,7 +42,7 @@ export const versionToScalar = _.memoize((ver: string) => { // memoize so we don
     return officialScalar - betaScalar
 })
 
-class Version extends String {
+export class Version extends String {
     readonly scalar
     constructor(v: string) {
         super(v)
