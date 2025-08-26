@@ -26,6 +26,7 @@ import { geoFilter } from './geo'
 import { rootsMiddleware } from './roots'
 import events from './events'
 import { trackIpsMw } from './ips'
+import './outboundProxy'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints, don't clash
 

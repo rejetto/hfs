@@ -121,7 +121,8 @@ Configuration can be done in several ways
 - `dynamic_dns_url` URL to be requested to keep a domain updated with your latest IP address.
      Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used.
      Multiple URLs are supported, and you can specify one for each line.
-- `outbound_proxy` if you need outgoing http(s) requests to pass through an HTTP proxy. Default is none. 
+- `outbound_proxy` if you need outgoing http(s) requests to pass through an HTTP proxy. E.g.: `http://user:password@localhost:8888`. Default is none.
+  Setting one will trigger a test request to google.com. You can skip this with env HFS_SKIP_PROXY_TEST=1 . 
 - `auto_basic` automatically detect (based on user-agent) when the basic web interface should be served, to support legacy browsers. Default is true. No UI.
 - `authorization_header` support Authentication HTTP header. Default is true. No UI.
 - `cache_control_disk_files` number of seconds after which the browser should bypass the cache and check the server for an updated version of the file. Default is 5. No UI.

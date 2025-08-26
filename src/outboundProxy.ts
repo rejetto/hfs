@@ -1,23 +1,25 @@
 import { defineConfig } from './config'
 import { parse } from 'node:url'
-import { httpStream } from './util-http'
+import { httpStream, httpString } from './util-http'
 import { reg } from './util-os'
 import events from './events'
 import { IS_WINDOWS } from './const'
-import { prefix } from './cross'
+import { CFG, prefix } from './cross'
 
-// don't move this in util-http, where it would mostly belong, as a require to config.ts would prevent tests using util-http
-const outboundProxy = defineConfig('outbound_proxy', '', v => {
+const outboundProxy = defineConfig(CFG.outbound_proxy, '', v => {
     try {
-        parse(v)
+        parse(v) // just validate
         httpStream.defaultProxy = v
+        if (!v || process.env.HFS_SKIP_PROXY_TEST) return
+        const test = 'https://google.com'
+        httpString(test).catch(e =>
+            console.error(`proxy failed for ${test} : ${e?.errors?.[0] || e}`)) // `.errors` in case of AggregateError
     }
     catch {
         console.warn("invalid URL", v)
         return ''
     }
 })
-
 
 events.once('configReady', async startedWithoutConfig => {
     if (!IS_WINDOWS || !startedWithoutConfig) return

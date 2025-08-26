@@ -159,7 +159,7 @@ export default function OptionsPage() {
                 error: proxyWarning(values, status),
                 helperText: "Wrong number will prevent detection of users' IP"
             },
-            { k: 'outbound_proxy', xs: 12, sm: 5, md: 4, placeholder: "none", helperText: "URL form",
+            { k: CFG.outbound_proxy, xs: 12, sm: 5, md: 4, placeholder: "none", helperText: "URL form",
                 getError: x => try_(() => x && new URL(x) && '', () => "Invalid URL") },
             { k: 'allowed_referer', comp: AllowedReferer, sm: 3, md: 4, placeholder: "any", label: "Links from other websites",
                 helperText: "In case another website is linking your files" },

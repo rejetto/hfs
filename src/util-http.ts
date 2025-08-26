@@ -6,6 +6,7 @@ import http, { IncomingMessage } from 'node:http'
 import { Readable } from 'node:stream'
 import _ from 'lodash'
 import { text as stream2string, buffer } from 'node:stream/consumers'
+import * as tls from 'node:tls'
 export { stream2string }
 
 export async function httpString(url: string, options?: XRequestOptions): Promise<string> {
@@ -23,7 +24,7 @@ export async function httpWithBody(url: string, options?: XRequestOptions): Prom
 export interface XRequestOptions extends https.RequestOptions {
     body?: string | Buffer | Readable
     proxy?: string // url format
-    // basic cookie store
+    // very basic cookie store
     jar?: Record<string, string>
     noRedirect?: boolean
     // throw for http-level errors. Default is true.
@@ -34,7 +35,7 @@ export declare namespace httpStream { let defaultProxy: string | undefined }
 export function httpStream(url: string, { body, jar, noRedirect, httpThrow, proxy, ...options }: XRequestOptions ={}) {
     const controller = new AbortController()
     options.signal ??= controller.signal
-    return Object.assign(new Promise<IncomingMessage>((resolve, reject) => {
+    return Object.assign(new Promise<IncomingMessage>(async (resolve, reject) => {
         proxy ??= httpStream.defaultProxy
         options.headers ??= {}
         if (body) {
@@ -49,11 +50,25 @@ export function httpStream(url: string, { body, jar, noRedirect, httpThrow, prox
         if (jar)
             options.headers.cookie = _.map(jar, (v,k) => `${k}=${v}; `).join('')
                 + (options.headers.cookie || '') // preserve parameter
-        Object.assign(options, _.pick(parse(proxy || url), ['hostname', 'port', 'path', 'protocol', 'auth']))
+        const { auth, ...parsed } = parse(url)
+        const proxyParsed = proxy ? parse(proxy) : null
+        Object.assign(options, _.pick(proxyParsed || parsed, ['hostname', 'port', 'path', 'protocol']))
+        if (auth) {
+            options.auth = auth
+            if (proxy)
+                url = parsed.protocol + '//' + parsed.host + parsed.path // rewrite without authentication part
+        }
         if (proxy) {
             options.path = url
             options.headers.host ??= parse(url).host || undefined
         }
+        // this needs the prefix "proxy-"
+        const proxyAuth = proxyParsed?.auth ? { 'proxy-authorization': `Basic ${Buffer.from(proxyParsed.auth, 'utf8').toString('base64')}` } : undefined
+
+        // https through proxy is better with CONNECT
+        if (!proxy || parsed.protocol === 'http:' || !await connect())
+            Object.assign(options.headers, proxyAuth)
+
         const proto = options.protocol === 'https:' ? https : http
         const req = proto.request(options, res => {
             console.debug("http responded", res.statusCode, "to", url)
@@ -67,12 +82,14 @@ export function httpStream(url: string, { body, jar, noRedirect, httpThrow, prox
                 return reject(new Error(String(res.statusCode), { cause: res }))
             let r = res.headers.location
             if (r && !noRedirect) {
-                if (r.startsWith('/')) // relative
-                    r = /(.+)\b\/(\b|$)/.exec(url)?.[1] + r
+                r = new URL(r, url).toString() // rewrite in case r is just a path, and thus relative to current url
                 const stack = ((options as any)._stack ||= [])
                 if (stack.length > 20 || stack.includes(r))
                     return reject(new Error('endless http redirection'))
                 stack.push(r)
+                delete options.method // redirections are always GET
+                delete options.headers?.['content-length']
+                delete options.auth
                 return resolve(httpStream(r, options))
             }
             resolve(res)
@@ -83,6 +100,25 @@ export function httpStream(url: string, { body, jar, noRedirect, httpThrow, prox
             body.pipe(req).on('end', () => req.end())
         else
             req.end(body)
+
+        function connect() {
+            return proxyParsed && new Promise<boolean>(resolve => {
+                (proxyParsed.protocol === 'https:' ? https : http).request({
+                    ...proxyParsed,
+                    method: 'CONNECT',
+                    path: `${parsed.hostname}:${parsed.port || 443}`,
+                    auth: undefined,
+                    headers: proxyAuth
+                }).on('error', reject).on('connect', (res, socket) => {
+                    if (res.statusCode !== 200)
+                        return resolve(false)
+                    // a TLS for every request is inefficient. Consider optimizing in the future, especially for reading plugins from github, which makes tens of requests.
+                    options.createConnection = () => tls.connect({ socket, servername: parsed.hostname || undefined })
+                    resolve(true)
+                }).end()
+            })
+        }
+
     }), {
         abort() { controller.abort() }
     })
