@@ -33,12 +33,12 @@ upnpClient.getGateway().then(res => {
     console.log("upnp found", res.gateway.description)
 }, e => console.debug('upnp failed:', e.message || String(e)))
 
-// poll external ip
-repeat(10 * MINUTE, () => upnpClient.getPublicIp().then(v => {
+// poll external ip – asking the modem is cheap, so it can be done often
+repeat(MINUTE, () => upnpClient.getPublicIp().then(v => {
     if (v === defaultBaseUrl.externalIp) return
     getPublicIps.clearRetain()
     return defaultBaseUrl.externalIp = v
-}))
+}, () => {}))
 
 export const getPublicIps = debounceAsync(async () => {
     const res = await getProjectInfo()
