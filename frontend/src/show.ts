@@ -1,5 +1,5 @@
 import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
-import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { createElement as h, forwardRef, Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import {
     basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation, useStateMounted,
     isNumeric,
@@ -377,23 +377,21 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
 }
 
 export function getShowComponent(entry: DirEntry) {
-    const res = hfsEvent('fileShow', { entry }).find(Boolean)
-    if (res)
-        return res
     const type = ext2type(entry.ext)
-    return type === 'audio' ? Audio
+    const Component = type === 'audio' ? Audio
         : type === 'video' ? Video
         : type === 'image' ? 'img'
         : ''
+    const params = { entry, Component }
+    const res = hfsEvent('fileShow', params).findLast(Boolean)
+    return res || params.Component
 }
 
-export function Audio({ onLoad, ...rest }: any) {
-    return h('audio', { onLoadedData: onLoad, controls: true, ...rest })
-}
+export const Audio = forwardRef<HTMLVideoElement, any>(({ onLoad, ...rest }: any, ref) =>
+    h('audio', { ref, onLoadedData: onLoad, controls: true, ...rest }) )
 
-export function Video({ onLoad, ...rest }: any) {
-    return h('video', { onLoadedData: onLoad, controls: true, ...rest })
-}
+export const Video = forwardRef<HTMLVideoElement, any>(({ onLoad, ...rest }: any, ref) =>
+    h('video', { ref, onLoadedData: onLoad, controls: true, ...rest }) )
 
 function showHelp() {
     newDialog({

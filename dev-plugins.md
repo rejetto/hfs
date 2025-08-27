@@ -566,15 +566,16 @@ This is a list of available frontend-events, with respective object parameter an
     ```
     or if you like lodash, you can simply `HFS._.remove(menu, { id: 'show' })`
 - `fileShow`
-  - you receive an entry of the list, and optionally produce React Component for visualization.
+  - you receive an entry of the list, and the default Component that will be used.
+    You can optionally replace Component in the parameters object, or return it, but replacing is chainable with other plugins.
     Your component will be rendered with the following props:
     - `src`: string, uri of the entry
-    - `className`: string, must be reported in your component
+    - `className`: string, this must be reported in your component
     - `onLoad`
     - `onError`
     - `onPlay`
-  - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
-  - output `ReactComponent`
+  - parameter `{ entry: DirEntry, Component: FC }` (refer above for DirEntry object)
+  - output `ReactComponent | undefined`
 - `showPlay`
   - emitted on each file played inside file-show. Use setCover if you want to customize the background picture.
   - parameter `{ entry: DirEntry, setCover(uri: string), meta: { title, album, artist, year } }`
@@ -1053,3 +1054,5 @@ If you want to override a text regardless of the language, use the special langu
   - api.onServer
   - HFS.elementToEntry
   - backend event: checkVfsPermission
+- 12.9 (v0.57.14)
+  - frontend event fileShow gets Component parameter 
