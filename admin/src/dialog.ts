@@ -164,7 +164,7 @@ export async function formDialog<T>(
                 const { onChange, before, ...props } = typeof form === 'function' ? form(curValues) : form
                 if (props.save === false)
                     exposedValues = curValues
-                return h(Fragment, {},
+                return h(Wrapper || Fragment, {},
                     before,
                     h(Form, {
                         ...props,
