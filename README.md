@@ -132,6 +132,7 @@ If your language is missing, please consider [translating yourself](https://gith
 - Type the name of a file/folder to focus it, and ctrl+backspace to go to parent folder
 - `--consoleFile PATH` will output all stdout and stderr also to a file
 - env `DISABLE_UPDATE=1` (for containers)
+- launch with `--debug` or env `HFS_DEBUG=1` to produce additional logs in console 
 
 ## Contribute
 

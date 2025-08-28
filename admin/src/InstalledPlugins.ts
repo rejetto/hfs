@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { apiCall, useApiEx, useApiList } from './api'
-import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
+import { createElement as h, Fragment, useEffect } from 'react'
 import { Box, Breakpoint, Link, Paper, Table, TableCell, TableRow, useTheme } from '@mui/material'
 import { DataTable, DataTableColumn } from './DataTable'
 import {
@@ -38,7 +38,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
     const theme = useTheme()
     return h(DataTable, {
         error: xlate(error, PLUGIN_ERRORS),
-        rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
+        rows: list.length ? list : [], // workaround for DataGrid's bug causing 'no rows' message to be not displayed after 'loading' was also used
         fillFlex: true,
         initializing,
         disableColumnSelector: true,

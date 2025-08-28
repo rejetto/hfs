@@ -42,7 +42,7 @@ if (DEV) {
     console.clear()
     process.env.DEBUG = 'acme-client'
 }
-else if (!argv.debug) console.debug = ()=>{}
+else if (!argv.debug && !process.env.HFS_DEBUG) console.debug = ()=>{}
 console.log(`HFS ~ HTTP File Server`)
 console.log(`© Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt`)
 console.log('started', formatTimestamp(HFS_STARTED), DEV)
