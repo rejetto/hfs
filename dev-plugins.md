@@ -55,6 +55,7 @@ In this document we define some types using pseudo-typescript syntax.
 We use some predefined types for brevity:
 
 `Promisable<Type> = Type | Promise<Type>` where Type can be wrapped in a promise or not (direct).
+When this is used for the return type, the function *can* be async.
 
 `Functionable<Type, Arguments> = Type | ((...args: Arguments) => Type)` where Type can be returned by a function or not (direct).
 
@@ -136,20 +137,18 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
   You can also include external files, by entering a full URL. Multiple files can be specified as `['file1.css', 'file2.css']`.  
 - `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
   You can also include external files, by entering a full URL.
-- `middleware: (Context) => Promisable<void | function>` a function that will be used as a middleware: use this to interfere with http activity.
-  
+- `middleware: (Context) => Promisable<void | function>` a function that will be used as middleware: use this to interfere with http activity.
+  E.g.:
   ```js
   exports.middleware = ctx => {
     ctx.body = "You are in the wrong place"
     ctx.status = 404
   }
   ```
-  You'll find more examples by studying plugins like `antidos` or `antibrute`.
   To interrupt other middlewares on this http request, call `ctx.stop()`.
-  In past versions stop() was not available, and to get the same effect you'd `return true`, therefore a possible way
-  to be compatible with older versions is to `return ctx.stop?.() || true`. 
-
-  If you want to execute something in the "upstream" of middlewares, return a function. This function can be async.
+  If you want to execute something in the "upstream" of middlewares, return a function.
+  Upstream you can access the response calculated by HFS and other middlewares, so you'll find both the status and body set.
+  See more at https://github.com/rejetto/hfs/wiki/Middlewares .
   You can read more in [the ctx object](#the-ctx-object) section.
 
 - `unload: function` called when unloading a plugin. This is a good place for example to clearInterval().
