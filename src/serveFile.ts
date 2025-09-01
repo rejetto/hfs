@@ -7,7 +7,7 @@ import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONT
 import { getNodeName, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
 import { defineConfig } from './config'
-import { CFG, Dict, makeMatcher, matches, normalizeHost, try_, with_ } from './misc'
+import { CFG, Dict, makeMatcher, matches, try_, with_ } from './misc'
 import _ from 'lodash'
 import { basename } from 'path'
 import { promisify } from 'util'

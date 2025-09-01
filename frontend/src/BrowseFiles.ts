@@ -115,8 +115,8 @@ function FilesList() {
         if (ev.target !== document.body && !(ev.target && ref.current?.contains(ev.target as any))) return
         if (isCtrlKey(ev as any) === 'Backspace' && location.pathname > '/')
             return navigate(location.pathname + '..')
-        const { key } = ev
         if (ev.metaKey || ev.ctrlKey || ev.altKey) return
+        const { key } = ev
         if (key === 'Tab' && focus) {
             const go = ev.shiftKey ? -1 : 1
             setFocusSkip(x => x + (go > 0 || x ? go : 0)) // we always try to go forward, and skip more, and if no enough matching items are found, we adjust "focusSkip" back
@@ -124,6 +124,9 @@ function FilesList() {
             ev.preventDefault()
             return
         }
+        if (key === ' ' && !focus) return
+        if (key.length === 1 || key === 'Backspace')
+            ev.preventDefault()
         setFocus(was => {
             const will = key === 'Backspace' ? was.slice(0, -1)
                 : key === 'Escape' ? ''
