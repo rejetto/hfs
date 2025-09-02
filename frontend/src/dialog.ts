@@ -19,11 +19,12 @@ interface PromptOptions extends Partial<DialogOptions> {
     type?: string,
     trim?: boolean,
     helperText?: ReactNode,
+    placeholder?: string,
     inputProps?: Partial<InputHTMLAttributes<string>>
     onSubmit?: (v: string) => Promisable<string>
     onField?: (el: HTMLInputElement | HTMLTextAreaElement) => void
 }
-export async function promptDialog(msg: string, { value, type, helperText, trim=true, inputProps, onSubmit, onField, ...rest }:PromptOptions={}) : Promise<string | undefined> {
+export async function promptDialog(msg: string, { value, type, helperText, trim=true, inputProps, onSubmit, onField, placeholder, ...rest }:PromptOptions={}) : Promise<string | undefined> {
     const textarea = type === 'textarea' && type
     return new Promise(resolve => newDialog({
         className: 'dialog-prompt',
@@ -58,12 +59,14 @@ export async function promptDialog(msg: string, { value, type, helperText, trim=
                 ref,
                 type,
                 name: 'input',
+                autoFocus: true,
+                placeholder,
+                ...inputProps,
                 style: {
                     width: value ? (value.length / 2) + 'em' : 'auto',
                     minWidth: '100%', maxWidth: '100%', boxSizing: 'border-box',
                     ...textarea && { width: '30em', maxHeight: '70vh' },
                 },
-                autoFocus: true,
                 onKeyDown(ev: KeyboardEvent) {
                     const { key } = ev
                     if (key === 'Escape')
