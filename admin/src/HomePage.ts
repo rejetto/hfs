@@ -23,6 +23,7 @@ import { CheckboxField } from '@hfs/mui-grid-form'
 import { ConfigForm } from './ConfigForm'
 import { Release } from '../../src/update'
 import { adminApis } from '../../src/adminApis'
+import { RandomPlugin } from './RandomPlugin'
 
 export default function HomePage() {
     const SOLUTION_SEP = " — "
@@ -64,94 +65,97 @@ export default function HomePage() {
         },
         title: status.updatePossible && "Right-click if you want to install a zip",
     }
-    return h(Box, { display:'flex', gap: 2, flexDirection:'column', alignItems: 'flex-start', height: '100%' },
-        account?.adminActualAccess ? entry('', "Welcome, "+username)
-            : entry('', md("On <u>localhost</u> you don't need to login"),
-                SOLUTION_SEP, "to access Admin-panel from another computer ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission")) ),
-        dontBotherWithKeys(status.alerts?.map(x => entry('warning', md(x, { html: false })))),
-        errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
-            : entry('success', "Server is working"),
-        !href && entry('warning', "Frontend unreachable: ",
-            _.map(serverErrors, (v,k) => k + " " + (v ? "is in error" : "is off")).join(', '),
-            !errors.length && [ SOLUTION_SEP, cfgLink("switch http or https on") ]
-        ),
-        with_(status.acmeRenewError, x => x && entry('warning', x)),
-        with_(status.blacklistedInstalledPlugins, x => x?.length > 0
-            && entry('warning', "Found blacklisted plugin(s): ", x.join(', ')) ),
-        with_(plugins?.filter(x => x.error || x.badApi).length, x => x > 0
-            && entry('warning', `${x} plugin(s) failing`, SOLUTION_SEP, h(InLink, { to:'plugins' }, "check now"))),
-        !cfg.data?.split_uploads && (Date.now() - Number(status.cloudflareDetected || 0)) < DAY
-            && entry('', wikiLink('Reverse-proxy#cloudflare', "Cloudflare detected, read our guide")),
-        !vfs ? h(LinearProgress)
-            : !vfs.root?.children?.length && !vfs.root?.source ? entry('warning', "You have no files shared", SOLUTION_SEP, fsLink("add some"))
-                : entry('', md("This is the Admin-panel, where you manage your server. Access your files on "),
-                    h(Link, { target:'frontend', href: '../..' }, "Front-end", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
+    return h(Box, {},
+        h(RandomPlugin),
+        h(Box, { display:'flex', gap: 2, flexDirection:'column', alignItems: 'flex-start', height: '100%' },
+            account?.adminActualAccess ? entry('', "Welcome, "+username)
+                : entry('', md("On <u>localhost</u> you don't need to login"),
+                    SOLUTION_SEP, "to access Admin-panel from another computer ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission")) ),
+            dontBotherWithKeys(status.alerts?.map(x => entry('warning', md(x, { html: false })))),
+            errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
+                : entry('success', "Server is working"),
+            !href && entry('warning', "Frontend unreachable: ",
+                _.map(serverErrors, (v,k) => k + " " + (v ? "is in error" : "is off")).join(', '),
+                !errors.length && [ SOLUTION_SEP, cfgLink("switch http or https on") ]
+            ),
+            with_(status.acmeRenewError, x => x && entry('warning', x)),
+            with_(status.blacklistedInstalledPlugins, x => x?.length > 0
+                && entry('warning', "Found blacklisted plugin(s): ", x.join(', ')) ),
+            with_(plugins?.filter(x => x.error || x.badApi).length, x => x > 0
+                && entry('warning', `${x} plugin(s) failing`, SOLUTION_SEP, h(InLink, { to:'plugins' }, "check now"))),
+            !cfg.data?.split_uploads && (Date.now() - Number(status.cloudflareDetected || 0)) < DAY
+                && entry('', wikiLink('Reverse-proxy#cloudflare', "Cloudflare detected, read our guide")),
+            !vfs ? h(LinearProgress)
+                : !vfs.root?.children?.length && !vfs.root?.source ? entry('warning', "You have no files shared", SOLUTION_SEP, fsLink("add some"))
+                    : entry('', md("This is the Admin-panel, where you manage your server. Access your files on "),
+                        h(Link, { target:'frontend', href: '../..' }, "Front-end", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
 
-        with_(proxyWarning(cfg.data, status), x => x && entry('warning', x,
-                SOLUTION_SEP, cfgLink("set the number of proxies"),
-                SOLUTION_SEP, "unless you are sure and you can ", h(Btn, {
-                    variant: 'outlined',
-                    size: 'small',
-                    sx: { lineHeight: 'unset' }, // fit in the line, avoiding bad layout
-                    confirm: "Go on only if you know what you are doing",
-                    onClick: () => apiCall('set_config', { values: { ignore_proxies: true } }).then(cfg.reload)
-                }, "ignore this warning"),
-                SOLUTION_SEP, wikiLink('Proxy-warning', "Explanation")
-        )),
-        (cfg.data?.proxies > 0 || status?.proxyDetected) && entry('', wikiLink('Reverse-proxy', "Read our guide on proxies")),
-        status.frpDetected && entry('warning', `FRP is detected. It should not be used with "type = tcp" with HFS. Possible solutions are`,
-            h('ol',{},
-                h('li',{}, `configure FRP with type=http (best solution)`),
-                h('li',{}, md(`configure FRP to connect to HFS <u>not</u> with localhost (safe, but you won't see users' IPs)`)),
-                h('li',{}, `disable "admin access for localhost" in HFS (safe, but you won't see users' IPs)`),
+            with_(proxyWarning(cfg.data, status), x => x && entry('warning', x,
+                    SOLUTION_SEP, cfgLink("set the number of proxies"),
+                    SOLUTION_SEP, "unless you are sure and you can ", h(Btn, {
+                        variant: 'outlined',
+                        size: 'small',
+                        sx: { lineHeight: 'unset' }, // fit in the line, avoiding bad layout
+                        confirm: "Go on only if you know what you are doing",
+                        onClick: () => apiCall('set_config', { values: { ignore_proxies: true } }).then(cfg.reload)
+                    }, "ignore this warning"),
+                    SOLUTION_SEP, wikiLink('Proxy-warning', "Explanation")
             )),
-        entry('', wikiLink('', "See the documentation"), " and ", h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "get support")),
-        !updates && with_(status.autoCheckUpdateResult, x => x?.isNewer && h(Update, { info: x, bodyCollapsed: true, title: "An update has been found" })),
-        pluginUpdates.length > 0 && entry('success', "Updates available for plugin(s): " + pluginUpdates.map(p => p.id).join(', ')),
-        h(ConfigForm, {
-            gridProps: { sx: { mt: 1, display: 'flex', columnGap: 1, alignitems: 'center', '&>div.MuiGrid2-root': { width: 'auto', px: .5, py: 0 }, '.MuiCheckbox-root': { pl: '2px' } } },
-            saveOnChange: true,
-            form: {
-                fields: [
-                    status.updatePossible === 'local' ? h(Btn, { icon: UpdateIcon, onClick: () => update() }, "Update from local file")
-                        : !updates && h(Btn, {
-                            icon: UpdateIcon,
-                            onClick() {
-                                apiCall('wait_project_info').then(reloadStatus)
-                                setCheckPlugins(true) // this only happens once, actually (until you change page)
-                                return apiCall<typeof adminApis.check_update>('check_update').then(x => setUpdates(x.options), alertDialog)
-                            },
-                            ...rightClickToInstallFromUrl
-                        }, "Check for updates"),
-                    { k: 'auto_check_update', comp: CheckboxField, label: "Auto check updates daily" },
-                    { k: 'update_to_beta', comp: CheckboxField, label: "Include beta versions" },
-                ]
-            }
-        }),
-        updates && with_(_.find(updates, 'isNewer'), newer =>
-            !updates.length || !status.updatePossible && !newer ? entry('', "No update available")
-                : newer && !status.updatePossible ? entry('success', `Version ${newer.name} available`)
-                    : h(Flex, { vert: true },
-                        updates.map((x: any) => h(Update, { info: x, key: x.name })) ),
-        ),
-        h(Flex, { flexWrap: 'wrap' },
-            !otherVersions && status.updatePossible && status.previousVersionAvailable
-                && h(Btn, { icon: Restore, onClick: () => update(PREVIOUS_TAG) }, "Reinstall previous version"),
-            !status.updatePossible ? entry('', h(Link, { href: REPO_URL + 'releases/', target: 'repo' }, "All releases"))
-                : !otherVersions ? h(Btn, { icon: Colorize, onClick: getOtherVersions, ...rightClickToInstallFromUrl }, "Get another version")
-                    : h(Flex, { vert: true }, otherVersions.map((x: any) => h(Update, {
-                        info: x,
-                        key: x.name,
-                        bodyCollapsed: true
-                    }))),
-        ),
-        h(SwitchThemeBtn),
-        Date.now() - Number(new Date(status.started)) > HOUR && h(Link, {
-            title: "Donate",
-            target: 'donate',
-            style: { textDecoration: 'none', position: 'fixed', bottom: 0, right: 4, fontSize: 'large' },
-            href: 'https://www.paypal.com/donate/?hosted_button_id=HC8MB4GRVU5T2'
-        }, '❤️')
+            (cfg.data?.proxies > 0 || status?.proxyDetected) && entry('', wikiLink('Reverse-proxy', "Read our guide on proxies")),
+            status.frpDetected && entry('warning', `FRP is detected. It should not be used with "type = tcp" with HFS. Possible solutions are`,
+                h('ol',{},
+                    h('li',{}, `configure FRP with type=http (best solution)`),
+                    h('li',{}, md(`configure FRP to connect to HFS <u>not</u> with localhost (safe, but you won't see users' IPs)`)),
+                    h('li',{}, `disable "admin access for localhost" in HFS (safe, but you won't see users' IPs)`),
+                )),
+            entry('', wikiLink('', "See the documentation"), " and ", h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "get support")),
+            !updates && with_(status.autoCheckUpdateResult, x => x?.isNewer && h(Update, { info: x, bodyCollapsed: true, title: "An update has been found" })),
+            pluginUpdates.length > 0 && entry('success', "Updates available for plugin(s): " + pluginUpdates.map(p => p.id).join(', ')),
+            h(ConfigForm, {
+                gridProps: { sx: { mt: 1, display: 'flex', columnGap: 1, alignitems: 'center', '&>div.MuiGrid2-root': { width: 'auto', px: .5, py: 0 }, '.MuiCheckbox-root': { pl: '2px' } } },
+                saveOnChange: true,
+                form: {
+                    fields: [
+                        status.updatePossible === 'local' ? h(Btn, { icon: UpdateIcon, onClick: () => update() }, "Update from local file")
+                            : !updates && h(Btn, {
+                                icon: UpdateIcon,
+                                onClick() {
+                                    apiCall('wait_project_info').then(reloadStatus)
+                                    setCheckPlugins(true) // this only happens once, actually (until you change page)
+                                    return apiCall<typeof adminApis.check_update>('check_update').then(x => setUpdates(x.options), alertDialog)
+                                },
+                                ...rightClickToInstallFromUrl
+                            }, "Check for updates"),
+                        { k: 'auto_check_update', comp: CheckboxField, label: "Auto check updates daily" },
+                        { k: 'update_to_beta', comp: CheckboxField, label: "Include beta versions" },
+                    ]
+                }
+            }),
+            updates && with_(_.find(updates, 'isNewer'), newer =>
+                !updates.length || !status.updatePossible && !newer ? entry('', "No update available")
+                    : newer && !status.updatePossible ? entry('success', `Version ${newer.name} available`)
+                        : h(Flex, { vert: true },
+                            updates.map((x: any) => h(Update, { info: x, key: x.name })) ),
+            ),
+            h(Flex, { flexWrap: 'wrap' },
+                !otherVersions && status.updatePossible && status.previousVersionAvailable
+                    && h(Btn, { icon: Restore, onClick: () => update(PREVIOUS_TAG) }, "Reinstall previous version"),
+                !status.updatePossible ? entry('', h(Link, { href: REPO_URL + 'releases/', target: 'repo' }, "All releases"))
+                    : !otherVersions ? h(Btn, { icon: Colorize, onClick: getOtherVersions, ...rightClickToInstallFromUrl }, "Get another version")
+                        : h(Flex, { vert: true }, otherVersions.map((x: any) => h(Update, {
+                            info: x,
+                            key: x.name,
+                            bodyCollapsed: true
+                        }))),
+            ),
+            h(SwitchThemeBtn),
+            Date.now() - Number(new Date(status.started)) > HOUR && h(Link, {
+                title: "Donate",
+                target: 'donate',
+                style: { textDecoration: 'none', position: 'fixed', bottom: 0, right: 4, fontSize: 'large' },
+                href: 'https://www.paypal.com/donate/?hosted_button_id=HC8MB4GRVU5T2'
+            }, '❤️')
+        )
     )
 
     async function getOtherVersions() {

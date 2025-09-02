@@ -22,6 +22,7 @@ const INIT = {
     customHtmlSection: '',
     darkTheme: undefined as undefined | boolean,
     dataTablePersistence: {} as any,
+    hideRandomPlugin: false,
     onlinePluginsColumns: {
         version: false,
         pushed_at: false,
@@ -30,8 +31,10 @@ const INIT = {
 }
 Object.assign(INIT, JSON.parse(localStorage[STORAGE_KEY]||null))
 export const state = proxy(INIT)
+Object.assign(window, { state })
 
-const SETTINGS_TO_STORE: (keyof typeof state)[] = ['onlinePluginsColumns', 'monitorOnlyFiles', 'monitorWithLog', 'customHtmlSection', 'darkTheme', 'dataTablePersistence', 'accountsAsTree']
+const SETTINGS_TO_STORE: (keyof typeof state)[] = ['onlinePluginsColumns', 'monitorOnlyFiles', 'monitorWithLog',
+    'customHtmlSection', 'darkTheme', 'dataTablePersistence', 'accountsAsTree', 'hideRandomPlugin']
 const storeSettings = _.debounce(() =>
     localStorage[STORAGE_KEY] = JSON.stringify(_.pick(state, SETTINGS_TO_STORE)), 500, { maxWait: 1000 })
 for (const k of SETTINGS_TO_STORE)

@@ -80,22 +80,7 @@ export default function OnlinePlugins() {
                     progress: row.downloading,
                     disabled: row.installed && "Already installed",
                     tooltipProps: { placement:'bottom-end' }, // workaround problem with horizontal scrolling by moving the tooltip leftward
-                    confirm: !id.startsWith(HFS_GITHUB_ACCOUNT) && h(Flex, { vert: true, alignItems: 'center' },
-                        h(Warning, { color: 'warning', fontSize: 'large' }),
-                        "Proceed only if you trust this plugin",
-                        h(Box, { fontSize: '60%' }, "A plugin has the same power of any other software"),
-                    ),
-                    async onClick() {
-                        if (row.missing && !await confirmDialog("This will also install: " + _.map(row.missing, 'repo').join(', '))) return
-                        const branch = row.branch || row.default_branch
-                        return installPlugin(id, branch).catch((e: any) => {
-                            if (e.code !== HTTP_FAILED_DEPENDENCY)
-                                return alertDialog(e)
-                            const msg = h(Fragment, {}, "This plugin has some dependencies unmet:",
-                                e.data.map((x: any) => h('li', { key: x.repo }, x.repo + ': ' + x.error)) )
-                            return alertDialog(msg, 'error')
-                        })
-                    }
+                    onClick: () => installPluginFromResult(row)
                 }),
                 h(IconBtn, {
                     icon: RemoveRedEye,
@@ -109,27 +94,6 @@ export default function OnlinePlugins() {
             ]
         })
     )
-
-    async function installPlugin(id: string, branch?: string): Promise<any> {
-        try {
-            const res = await apiCall('download_plugin', { id, branch, stop: true }, { timeout: false })
-            if (await confirmDialog(`Plugin ${id} downloaded`, { trueText: "Start" }))
-                await startPlugin(res.id)
-        }
-        catch(e:any) {
-            let done = false
-            if (e.code === HTTP_FAILED_DEPENDENCY) // try to install automatically
-                for (const x of e.cause)
-                    if (x.error === 'missing') {
-                        toast("Installing dependency: " + x.repo)
-                        await installPlugin(x.repo)
-                        done = true
-                    }
-            if (done) // try again
-                return installPlugin(id, branch)
-            throw e
-        }
-    }
 }
 
 function ShowImages({ imgs }: { imgs: string[] }) {
@@ -143,4 +107,44 @@ function ShowImages({ imgs }: { imgs: string[] }) {
             h(IconBtn, { icon: ArrowForward, disabled: cur >= imgs.length - 1, onClick: () => setCur(cur + 1) }),
         ),
     )
+}
+
+export async function installPluginFromResult(row: any) {
+    if (!row.id.startsWith(HFS_GITHUB_ACCOUNT))
+        if (!await confirmDialog(
+            h(Flex, { vert: true, alignItems: 'center' },
+                h(Warning, { color: 'warning', fontSize: 'large' }),
+                "Proceed only if you trust this plugin",
+                h(Box, { fontSize: '60%' }, "A plugin has the same power of any other software"),
+            ))) return
+    if (row.missing && !await confirmDialog("This will also install: " + _.map(row.missing, 'repo').join(', '))) return
+    const branch = row.branch || row.default_branch
+    return installPlugin(row.id, branch).catch((e: any) => {
+        if (e.code !== HTTP_FAILED_DEPENDENCY)
+            return alertDialog(e)
+        const msg = h(Fragment, {}, "This plugin has some dependencies unmet:",
+            e.data.map((x: any) => h('li', { key: x.repo }, x.repo + ': ' + x.error)) )
+        return alertDialog(msg, 'error')
+    })
+}
+
+async function installPlugin(id: string, branch?: string): Promise<any> {
+    try {
+        const res = await apiCall('download_plugin', { id, branch, stop: true }, { timeout: false })
+        if (await confirmDialog(`Plugin ${id} downloaded`, { trueText: "Start" }))
+            await startPlugin(res.id)
+    }
+    catch(e:any) {
+        let done = false
+        if (e.code === HTTP_FAILED_DEPENDENCY) // try to install automatically
+            for (const x of e.cause)
+                if (x.error === 'missing') {
+                    toast("Installing dependency: " + x.repo)
+                    await installPlugin(x.repo)
+                    done = true
+                }
+        if (done) // try again
+            return installPlugin(id, branch)
+        throw e
+    }
 }

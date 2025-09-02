@@ -225,7 +225,7 @@ function getSingleConfig(k: string) {
 }
 
 // hide the hfs- prefix, as one may want to use it for its repository, because github is the context, but in the hfs context the prefix it's not only redundant, but also ruins the sorting
-function treatPluginName(name: string) {
+export function treatPluginName(name: string) {
     return name.replace(/hfs-/, '')
 }
 
