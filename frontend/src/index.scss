@@ -845,6 +845,7 @@ form label+input { margin-top: .2em; }
 @media (max-width: 42em) {
     :root { --ghost-contrast: #8883; } /* phones have different curve */
     body, button, select { font-size: 14pt; }
+    button:not(:hidden) { min-width: 2em; } // easy on the finger
     #menu-bar, #filter-bar, #clipBar {
         button .icon + .label { display: none } /* icons only */
     }
