@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "0.57.14",
+  "version": "3.0.0-rc1",
   "description": "HTTP File Server",
   "keywords": ["file server", "http server"],
   "homepage": "https://rejetto.com/hfs",
@@ -102,7 +102,7 @@
     "yaml": "^2.0.0-10"
   },
   "devDependencies": {
-    "@playwright/test": "^1.51.1",
+    "@playwright/test": "^1.55.0",
     "@types/formidable": "^3.4.1",
     "@types/koa": "^2.13.4",
     "@types/koa__router": "^8.0.11",
