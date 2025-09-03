@@ -446,6 +446,10 @@ In frontend you will have access to the `HFS` object of the global scope, which 
   Returns a negative if `a` must go before `b`, a positive if `b` must go before `a`, or zero they have same order.
   It's exposed for you to use, or to overwrite if you need.
 - `elementToEntry(el: HTMLElement): DirEntry | undefined` given a DOM element, returns the DirEntry associated to it, if any.
+- `isVideoComponent(Component): boolean` tell if the component is used by show for video files. 
+- `markVideoComponent(Component): Component` if you replace the show-video component with yours, wrap it with this function.
+- `isAudioComponent(Component): boolean` tell if the component is used by show for audio files.
+- `markAudioComponent(Component): Component` if you replace the show-audio component with yours, wrap it with this function.
 
 - The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -1055,3 +1059,5 @@ If you want to override a text regardless of the language, use the special langu
   - backend event: checkVfsPermission
 - 12.9 (v0.57.14)
   - frontend event fileShow gets Component parameter 
+- 12.91 (v3.0.0)
+  - HFS.isVideoComponent, HFS.markVideoComponent, HFS.isAudioComponent, HFS.markAudioComponent 

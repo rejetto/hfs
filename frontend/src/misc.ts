@@ -99,6 +99,7 @@ Object.assign(getHFS(), {
     h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, iconBtn, useBatch, fileShow,
     toast, domOn, getNotifications, debounceAsync, useSnapState, DirEntry, Btn,
     fileShowComponents: { Video, Audio },
+    isVideoComponent, markVideoComponent, isAudioComponent, markAudioComponent,
     isShowSupported: getShowComponent,
     misc: { ...cross, ...shared, ...thisModule },
     emit: hfsEvent,
@@ -122,6 +123,23 @@ Object.assign(getHFS(), {
         catch {}
     },
 })
+
+markVideoComponent(Video)
+markAudioComponent(Audio)
+function isVideoComponent(Component: any) {
+    return Boolean(Component?.hfs_show_video)
+}
+function markVideoComponent(Component: any) {
+    Component.hfs_show_video = true
+    return Component
+}
+function isAudioComponent(Component: any) {
+    return Boolean(Component?.hfs_show_audio)
+}
+function markAudioComponent(Component: any) {
+    Component.hfs_show_audio = true
+    return Component
+}
 
 export function operationSuccessful() {
     return toast(t`Operation successful`, 'success')
