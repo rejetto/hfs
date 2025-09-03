@@ -157,6 +157,7 @@ export default function AccountsPage() {
             adminActualAccess: false,
             invalidated: undefined,
             canLogin: true,
+            canChangePassword: true,
             isGroup: sel === 'new-group',
             members: [],
             directMembers: [],

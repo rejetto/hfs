@@ -127,6 +127,6 @@ export const change_my_srp: ApiHandler = async ({ salt, verifier }, ctx) => {
         })
 }
 
-function canChangePassword(account: Account | undefined) {
+export function canChangePassword(account: Account | undefined) {
     return account && !getFromAccount(account, a => a.disable_password_change)
 }

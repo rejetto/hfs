@@ -10,6 +10,7 @@ import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
 import { getCurrentUsername, invalidateSessionBefore } from './auth'
 import { apiAssertTypes, objFromKeys, onlyTruthy, with_ } from './misc'
 import { pickProps } from './api.vfs'
+import { canChangePassword } from './api.auth'
 
 function prepareAccount(ac: Account | undefined) {
     return ac && {
@@ -19,6 +20,7 @@ function prepareAccount(ac: Account | undefined) {
         isGroup: !ac.plugin?.auth && !accountHasPassword(ac),
         adminActualAccess: accountCanLoginAdmin(ac),
         canLogin: accountHasPassword(ac) ? accountCanLogin(ac) : undefined,
+        canChangePassword: canChangePassword(ac),
         invalidated: invalidateSessionBefore.get(ac.username),
         directMembers: Object.values(accounts.get()).filter(a => a.belongs?.includes(ac.username)).map(x => x.username),
         members: with_(Object.values(accounts.get()), accounts => {
