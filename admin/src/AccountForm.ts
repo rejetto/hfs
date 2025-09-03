@@ -1,12 +1,12 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, ReactNode, useEffect, useRef, useState } from 'react'
-import { BoolField, Form, MultiSelectField, NumberField } from '@hfs/mui-grid-form'
+import { BoolField, Form, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
 import { Alert, Box } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, useDialogBarColors } from './dialog'
 import { formatTimestamp, isEqualLax, prefix, reactJoin, useIsMobile, wantArray } from './misc'
-import { Btn, IconBtn, NetmaskField, propsForModifiedValues } from './mui'
+import { Btn, Flex, IconBtn, NetmaskField, propsForModifiedValues, useLogBreakpoint } from './mui'
 import { Account } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { AutoDelete, Delete } from '@mui/icons-material'
@@ -68,7 +68,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             !isGroup && !pluginAuth && { k: 'password2', xs: 6, md: 4, type: 'password', autoComplete: 'new-password', label: 'Repeat password',
                 getError: (x, { values }) => (x||'') !== (values.password||'') && "Enter same password" },
 
-            { k: 'disabled', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Enabled", xs: 12, sm: 6, lg: 8,
+            { k: 'disabled', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Enabled", xs: 12, sm: 6, lg: 4,
                 helperText:  values.disabled || values.canLogin !== false ? "Login is prevented if account is disabled, or all its groups are disabled"
                     : h(Box, { color: 'warning.main', component: 'span' },
                         new Date(account.expire!) < new Date() ? "Login is prevented because account is expired" // use account instead of values, so to use the value currently applied
@@ -76,18 +76,21 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             },
             { k: 'ignore_limits', comp: BoolField, xs: 12, sm: 6, lg: 4,
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
-
-            { k: 'admin', comp: BoolField, fromField: (v:boolean) => v||null, label: "Admin-panel access", xs: 12, sm: isGroup ? 6 : 4, lg: isGroup ? 8 : 4,
+            { k: 'admin', comp: BoolField, fromField: (v:boolean) => v||null, label: "Admin-panel access", xs: 12, sm: 6, lg: 4,
                 helperText: "To access THIS interface you are using right now",
                 ...!account.admin && account.adminActualAccess && { value: true, disabled: true, helperText: "This permission is inherited. To disable it, act on the groups." },
             },
-            { k: 'disable_password_change', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Allow password change", xs: 12, sm: 4 },
-            !isGroup && { k: 'require_password_change', comp: BoolField, xs: 12, sm: 4, helperText: "At first login" },
+            !isGroup && { k: 'require_password_change', comp: BoolField, xs: 12, sm: 6, lg: 6, helperText: "At next login" },
+
+            { k: 'disable_password_change', label: "Password change", comp: SelectField, xs: 12, sm: 6, lg: isGroup ? 4 : 6,
+                defaultValue: null,
+                options: { [`Default (${values.canChangePassword ? 'Allowed' : 'Disabled'})`]: null, "Allowed": false, "Disabled": true },
+            },
 
             !members ? null
                 : isGroup && !members.length ? h(Box, {}, "No members")
-                    : members.length > 0 && h(Box, {}, `${members.length} members: `,
-                        reactJoin(', ', account.members?.map(u => h(groups.includes(u) ? 'i' : 'span', {}, u))),
+                    : members.length > 0 && h(Flex, { gap: 0, flexWrap: 'wrap' }, `${members.length} members: `,
+                        reactJoin(', ', account.members?.map(u => h(groups.includes(u) ? 'i' : 'span', {}, u))),
                         h(Btn, {
                             icon: Delete,
                             confirm: `Delete ${account.members.length} accounts?`,

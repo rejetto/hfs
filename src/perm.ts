@@ -209,6 +209,10 @@ export function accountCanLoginAdmin(account: Account) {
     return accountCanLogin(account) && getFromAccount(account, a => a.admin) || false
 }
 
+export function accountCanChangePassword(account: Account | undefined) {
+    return account && !getFromAccount(account, a => a.disable_password_change)
+}
+
 export async function changeSrpHelper(account: Account, salt: string, verifier: string) {
     if (!salt || !verifier)
         return new ApiError(HTTP_BAD_REQUEST, 'missing parameters')

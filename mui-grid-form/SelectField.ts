@@ -13,8 +13,8 @@ type SelectOptions<T> = { [label:string]: T } | SelectOption<T>[]
 type SelectOption<T> = SelectOptionNormalized<T> | (T extends string | number ? T : never)
 interface SelectOptionNormalized<T> { label?: string, value: T, disabled?: boolean }
 
-export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T>) {
-    const { value, onChange, setApi, options, sx, disabled, afterList, ...rest } = props
+export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T> & { defaultValue?: T }) {
+    const { defaultValue, value=defaultValue, onChange, setApi, options, sx, disabled, afterList, ...rest } = props
     const normalizedOptions = useMemo(() => normalizeOptions(options), [options])
     const jsonValue = JSON.stringify(value)
     const currentOption = normalizedOptions?.find(x => JSON.stringify(x.value) === jsonValue)

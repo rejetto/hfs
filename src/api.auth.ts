@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    Account, accountCanLogin, accountIsDisabled, changeSrpHelper, expandUsername, getAccount, getFromAccount
+    accountCanLogin, accountIsDisabled, accountCanChangePassword, changeSrpHelper, expandUsername, getAccount
 } from './perm'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPServerSessionStep1 } from 'tssrp6a'
@@ -112,7 +112,7 @@ export const refresh_session: ApiHandler = async ({}, ctx) => {
         username,
         expandedUsername: expandUsername(username),
         adminUrl: ctxAdminAccess(ctx) ? ctx.state.revProxyPath + ADMIN_URI : undefined,
-        canChangePassword: canChangePassword(ctx.state.account),
+        canChangePassword: accountCanChangePassword(ctx.state.account),
         requireChangePassword: ctx.state.account?.require_password_change,
         exp: keepSessionAlive.get() ? new Date(Date.now() + sessionDuration.compiled()) : undefined,
         accountExp: ctx.state.account?.expire,
@@ -121,12 +121,8 @@ export const refresh_session: ApiHandler = async ({}, ctx) => {
 
 export const change_my_srp: ApiHandler = async ({ salt, verifier }, ctx) => {
     const a = ctx.state.account
-    return !a || !canChangePassword(a) ? new ApiError(HTTP_UNAUTHORIZED)
+    return !a || !accountCanChangePassword(a) ? new ApiError(HTTP_UNAUTHORIZED)
         : changeSrpHelper(a, salt, verifier).then(() => {
             delete a.require_password_change
         })
-}
-
-function canChangePassword(account: Account | undefined) {
-    return account && !getFromAccount(account, a => a.disable_password_change)
 }

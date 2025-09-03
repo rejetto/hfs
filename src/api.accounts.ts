@@ -3,7 +3,7 @@
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import {
     Account, accountCanLoginAdmin, accountHasPassword, accounts, addAccount, delAccount, getAccount,
-    changeSrpHelper, updateAccount, accountCanLogin
+    changeSrpHelper, updateAccount, accountCanLogin, accountCanChangePassword
 } from './perm'
 import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
@@ -19,6 +19,7 @@ function prepareAccount(ac: Account | undefined) {
         isGroup: !ac.plugin?.auth && !accountHasPassword(ac),
         adminActualAccess: accountCanLoginAdmin(ac),
         canLogin: accountHasPassword(ac) ? accountCanLogin(ac) : undefined,
+        canChangePassword: accountCanChangePassword(ac),
         invalidated: invalidateSessionBefore.get(ac.username),
         directMembers: Object.values(accounts.get()).filter(a => a.belongs?.includes(ac.username)).map(x => x.username),
         members: with_(Object.values(accounts.get()), accounts => {
