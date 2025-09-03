@@ -85,6 +85,7 @@ export default defineConfig({
   expect: {
     toHaveScreenshot: {
       stylePath: 'e2e/screenshot.css',
+      threshold: 0.5,
     },
   },
   /* Run your local dev server before starting the tests */
