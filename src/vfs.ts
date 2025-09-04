@@ -268,8 +268,8 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
         } while (1)
         const eventName = 'checkVfsPermission'
         if (events.anyListener(eventName)) {
-            const first = Number(events.emit(eventName, { who, node, perm, ctx })?.find(Boolean))
-            if (first >= 400)
+            const first = _.max(events.emit(eventName, { who, node, perm, ctx }))
+            if (first !== undefined)
                 return first
         }
 
