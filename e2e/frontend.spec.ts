@@ -109,7 +109,7 @@ test('around1', async ({ page }) => {
   await expect(page.locator('#menu-prop-name').getByText('cantSearchForMasks')).toBeVisible();
   await page.getByRole('button', { name: 'Close' }).click();
   await page.getByRole('link', { name: 'cantSearchForMasks' }).click();
-  await page.locator('div').filter({ hasText: 'xFolder' }).nth(2).click();
+  await expect(page.getByText('xFolder')).toBeVisible();
   await page.getByRole('button', { name: 'Close' }).click();
   await page.getByRole('link', { name: 'home' }).click();
   await expect(page.getByText('file, 10 folders, 6 B')).toBeVisible();
@@ -137,7 +137,7 @@ test('search1', async ({ page }) => {
   await page.getByRole('button', { name: 'Close' }).click();
   await page.getByRole('button', { name: 'Clear search' }).click();
   await page.getByRole('link', { name: 'home' }).click();
-  await page.locator('div').filter({ hasText: 'xFolder' }).nth(2).click();
+  await expect(page.getByText('xFolder')).toBeVisible();
   await page.getByRole('button', { name: 'Close' }).click();
   await page.getByRole('button', { name: 'Options' }).click();
   await expect(page.locator('#option-sort-by')).toBeVisible();
