@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state, useSnapState } from './state'
-import { createElement as h, ReactElement, useCallback, useEffect, useRef, useState, MouseEvent } from 'react'
+import { createElement as h, ReactElement, useCallback, useEffect, useRef, MouseEvent } from 'react'
 import { TreeItem, TreeView } from '@mui/x-tree-view'
 import {
     ChevronRight, ExpandMore, TheaterComedy, Folder, Home, Link, InsertDriveFileOutlined, Lock,
@@ -9,7 +9,7 @@ import {
 } from '@mui/icons-material'
 import { Box, Typography } from '@mui/material'
 import { reloadVfs, VfsNode } from './VfsPage'
-import { onlyTruthy, useEffectOnce, Who, with_ } from './misc'
+import { onlyTruthy, toMutable, useEffectOnce, Who, with_ } from './misc'
 import { Flex, iconTooltip, useToggleButton } from './mui'
 import VfsMenuBar from './VfsMenuBar'
 import { apiCall, ApiObject } from './api'
@@ -20,8 +20,7 @@ export const FolderIcon = Folder
 export const FileIcon = InsertDriveFileOutlined
 
 export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, VfsNode>, statusApi: ApiObject }) {
-    const { vfs, selectedFiles } = useSnapState()
-    const [expanded, setExpanded] = useState<string[]>([])
+    const { vfs, selectedFiles, expanded } = useSnapState()
     const dragging = useRef<string>()
     const Branch = useCallback(function({ node }: { node: Readonly<VfsNode> }): ReactElement {
         let { id, name, isRoot } = node
@@ -100,22 +99,24 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
         }
 
         function toggle(ev: MouseEvent<any>){
-            setExpanded(was => was?.includes(id) ? was.filter(x => x !== id) : [...was!, id])
+            const was = state.expanded
+            state.expanded = was.includes(id) ? was.filter(x => x !== id) : [...was, id]
             ev.preventDefault()
             ev.stopPropagation()
         }
-    }, [setExpanded, statusApi.data])
+    }, [statusApi.data])
     const ref = useRef<HTMLUListElement>(null)
     const [expandAll, toggleBtn] = useToggleButton("Collapse all", "Expand all", exp => ({
         icon: exp ? UnfoldLess : UnfoldMore,
         sx: { rotate: exp ? 0 : '180deg' },
     }))
-    useEffectOnce(() => {
-        setExpanded(expandAll ? Array.from(id2node.keys())
-            : ['/', ...vfs?.children?.length === 1 ? [vfs.children[0].id] : []]) // in case there's only one child, expand that too
+    useEffectOnce(() => { // this is also resetting the state at each mount
+        state.expanded = expandAll ? Array.from(id2node.keys())
+            : state.expanded.length ? state.expanded // keep previous state
+                :  ['/', ...vfs?.children?.length === 1 ? [vfs.children[0].id] : []] // in case there's only one child, expand that too
     }, [expandAll, Boolean(vfs)]) // vfs is undefined on first render, we want to be called again as soon as it is loaded first time and not at reloads
     useEffect(() => {
-        setExpanded(was => _.uniq(was.concat(state.selectedFiles.map(x => x.parent?.id || ''))))
+        state.expanded = _.uniq(state.expanded.concat(state.selectedFiles.map(x => x.parent?.id || '')))
     }, [state.vfs])
     // be sure selected element is visible
     const treeId = 'vfs'
@@ -129,7 +130,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
         ),
         vfs && h(TreeView, {
             ref,
-            expanded,
+            expanded: toMutable(expanded),
             selected: selectedFiles.map(x => x.id),
             multiSelect: true,
             id: treeId,

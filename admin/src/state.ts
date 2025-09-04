@@ -15,6 +15,7 @@ const INIT = {
     accountsAsTree: false,
     movingFile: '',
     vfs: undefined as VfsNode | undefined,
+    expanded: [] as string[],
     loginRequired: false as boolean | number,
     username: '',
     monitorOnlyFiles: true,

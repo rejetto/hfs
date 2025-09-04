@@ -537,6 +537,13 @@ export function patchKey(o: any, k: string, replacer: (was: unknown) => unknown)
     return o
 }
 
+export type Mutable<T> = { -readonly [K in keyof T]: T[K] }
+export function toMutable<T>(value: readonly T[]): T[]
+export function toMutable<T extends object>(value: T): Mutable<T>
+export function toMutable(value: readonly unknown[] | object) {
+    return Array.isArray(value) ? value.slice() : { ...value }
+}
+
 export function shortenAgent(agent: string) {
     return _.findKey(BROWSERS, re => re.test(agent))
         || /^[^/(]+ ?/.exec(agent)?.[0]
