@@ -22,10 +22,14 @@ import { Btn, Flex, hTooltip, IconBtn, iconTooltip, NetmaskField, usePauseButton
 import VfsPathField from './VfsPathField'
 import { DateTimeField } from './DateTimeField'
 
+function evalWrapper(s: string) {
+    return eval(s)
+}
+
 // updates=true will show the "check updates" version of the page
 export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, error, setList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins', {}, {
-        map(x: any) { x.config &&= tryJson(x.config, s => eval('()=>('+s+')')()) }
+        map(x: any) { x.config &&= tryJson(x.config, s => evalWrapper('()=>('+s+')')()) }
     })
     useEffect(() => {
         setList(list =>
@@ -252,9 +256,9 @@ function makeFields(config: any, values: any) {
         if (!o) return
         let { type, defaultValue, frontend, showIf, ...rest } = o
         try {
-            rest.getError = eval(rest.getError)
+            rest.getError = evalWrapper(rest.getError)
             if (typeof showIf === 'string') // compile once
-                rest.showIf = showIf = eval(showIf) // eval is normally considered a threat, but this code is coming from a plugin that's already running on your server, so you already decided to trust it. Here it will run in your browser, and inside the page that administrating the same server.
+                rest.showIf = showIf = evalWrapper(showIf) // eval is normally considered a threat, but this code is coming from a plugin that's already running on your server, so you already decided to trust it. Here it will run in your browser, and inside the page that administrating the same server.
             if (showIf && !showIf(values))
                 return
         }
@@ -267,7 +271,7 @@ function makeFields(config: any, values: any) {
             let {fields} = rest
             rest.valuesForAdd = newObj(callable(fields, false), x => x.defaultValue)
             if (typeof fields === 'string')
-                fields = eval(fields)
+                fields = evalWrapper(fields)
             rest.details ??= false
             rest.fields = (values: unknown) => _.map(makeFields(callable(fields, values), values), (v,k) => v && ({ k, ...v, defaultValue: undefined })).filter(Boolean)
         }

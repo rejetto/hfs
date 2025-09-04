@@ -6,7 +6,7 @@ export default defineConfig({
     build: {
         outDir: '../dist/frontend',
         emptyOutDir: true,
-        target: "chrome69",
+        //target: "chrome69",
     },
     server: {
         port: 3005,
@@ -24,7 +24,7 @@ export default defineConfig({
         legacy({
             renderModernChunks: false, // single version, legacy one
             polyfills: false, // keeping polyfills at a minimum, manually
-            targets: ['firefox 40'],
+            targets: ['firefox 40', 'chrome 69'],
         }),
     ],
 })
