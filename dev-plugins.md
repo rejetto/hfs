@@ -1059,5 +1059,5 @@ If you want to override a text regardless of the language, use the special langu
   - backend event: checkVfsPermission
 - 12.9 (v0.57.14)
   - frontend event fileShow gets Component parameter 
-- 12.91 (v3.0.0)
+- 12.91 (v0.57.15)
   - HFS.isVideoComponent, HFS.markVideoComponent, HFS.isAudioComponent, HFS.markAudioComponent 
