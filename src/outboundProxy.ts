@@ -1,8 +1,7 @@
-import { defineConfig } from './config'
+import { configReady, defineConfig } from './config'
 import { parse } from 'node:url'
 import { httpStream, httpString } from './util-http'
 import { reg } from './util-os'
-import events from './events'
 import { IS_WINDOWS } from './const'
 import { CFG, prefix } from './cross'
 
@@ -21,7 +20,7 @@ const outboundProxy = defineConfig(CFG.outbound_proxy, '', v => {
     }
 })
 
-events.once('configReady', async startedWithoutConfig => {
+configReady.then(async ([startedWithoutConfig]) => {
     if (!IS_WINDOWS || !startedWithoutConfig) return
     // try to read Windows system setting for proxy
     const out = await reg('query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings')

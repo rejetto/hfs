@@ -3,13 +3,13 @@ import { basename, extname, join } from 'path'
 import { watchDir } from './util-files'
 import { debounceAsync } from './debounceAsync'
 import { readdir } from 'fs/promises'
-import events from './events'
+import { configReady } from './config'
 
 export const ICONS_FOLDER = 'icons'
 
 export type CustomizedIcons = undefined | Dict<string>
 export let customizedIcons: CustomizedIcons
-events.once('configReady', () => { // wait for cwd to be defined
+configReady.then(() => { // wait for cwd to be defined
     watchIconsFolder('.', v => customizedIcons = v)
 })
 export function watchIconsFolder(parentFolder: string, cb: Callback<CustomizedIcons>) {

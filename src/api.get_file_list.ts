@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    applyParentToChild, getNodeName, hasDefaultFile, hasPermission, masksCouldGivePermission, nodeIsDirectory,
+    applyParentToChild, getNodeName, hasDefaultFile, hasPermission, masksCouldGivePermission, nodeIsFolder,
     statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
 } from './vfs'
 import { ApiError, ApiHandler } from './apiMiddleware'
@@ -36,7 +36,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     if (!node)
         return fail(HTTP_NOT_FOUND)
     admin &&= ctxAdminAccess(ctx) // validate 'admin' flag
-    if (await hasDefaultFile(node, ctx) || !await nodeIsDirectory(node)) // in case of files without permission, we are provided with the frontend, and the location is the file itself
+    if (await hasDefaultFile(node, ctx) || !nodeIsFolder(node)) // in case of files without permission, we are provided with the frontend, and the location is the file itself
         // so, we first check if you have a permission problem, to tell frontend to show login, otherwise we fall back to method_not_allowed, as it's proper for files.
         return fail(!admin && statusCodeForMissingPerm(node, 'can_read', ctx) ? undefined : HTTP_METHOD_NOT_ALLOWED)
     if (!admin && statusCodeForMissingPerm(node, 'can_list', ctx))
@@ -78,7 +78,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
         for await (const sub of walker) {
             let name = getNodeName(sub)
             name = basename(name) || name // on windows, basename('C:') === ''
-            if (filterName && !filterName(name) || fileMask && !await nodeIsDirectory(sub) && !fileMask(name)
+            if (filterName && !filterName(name) || fileMask && !nodeIsFolder(sub) && !fileMask(name)
             || filterComment && !filterComment(await getCommentFor(sub.source) || ''))
                 continue
             const entry = await nodeToDirEntry(ctx, sub)
@@ -114,7 +114,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
         const name = getNodeName(node)
         if (url)
             return name ? { n: name, url, target: node.target } : null
-        const isFolder = await nodeIsDirectory(node)
+        const isFolder = nodeIsFolder(node)
         try {
             const st = source ? node.stats || await stat(source).catch(e => {
                 if (!isFolder || !node.children?.length) // folders with virtual children, keep them

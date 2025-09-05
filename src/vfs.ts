@@ -42,7 +42,7 @@ export interface VfsNode extends VfsNodeStored { // include fields that are only
     isTemp?: true // this node doesn't belong to the tree and was created by necessity
     original?: VfsNode // if this is a temp node but reflecting an existing node
     parent?: VfsNode // available when original is available
-    isFolder?: boolean
+    isFolder?: boolean // use nodeIsFolder() instead of relying on this field
     stats?: Stats
 }
 
@@ -65,7 +65,9 @@ export function permsFromParent(parent: VfsNode, child: VfsNode) {
     return _.isEmpty(ret) ? undefined : ret
 }
 
-function inheritFromParent(parent: VfsNode, child: VfsNode) {
+function inheritFromParent(child: VfsNode) {
+    const { parent } = child
+    if (!parent) return
     Object.assign(child, permsFromParent(parent, child))
     if (typeof parent.mime === 'object' && typeof child.mime === 'object')
         _.defaults(child.mime, parent.mime)
@@ -90,14 +92,14 @@ export async function applyParentToChild(child: VfsNode | undefined, parent: Vfs
     const ret: VfsNode = {
         original: child, // this can be overridden by passing an 'original' in `child`
         ...child,
-        isFolder: child?.isFolder ?? (child?.children?.length! > 0 || undefined), // isFolder is hidden in original node, so we must read it to copy it
+        isFolder: child?.isFolder ?? (child?.children?.length! > 0 || undefined), // isFolder is hidden in original node, so we must copy it explicitly
         isTemp: true,
         parent,
     }
     name ||= child ? getNodeName(child) : ''
     inheritMasks(ret, parent, name)
     await parentMaskApplier(parent)(ret, name)
-    inheritFromParent(parent, ret)
+    inheritFromParent(ret)
     return ret
 }
 
@@ -127,7 +129,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
             const rest = ret.source.slice(parent.source!.length) // parent has source, otherwise !ret.source || ret.original
             getRest(removeStarting('/', rest))
             return parent
-    }
+        }
     return ret
 }
 
@@ -169,21 +171,17 @@ export async function getNodeByName(name: string, parent: VfsNode) {
 }
 
 export let vfs: VfsNode = {}
-defineConfig<VfsNode>('vfs', {}).sub(data =>
-    vfs = (function recur(node) {
-        const {masks} = node
-        _.each(masks, (v: any, mask) => { // legacy pre-0.56: convert from property to key suffix
-            if (v.maskOnly) {
-                masks![`${mask}|${v.maskOnly}|`] = v = _.omit(v, 'maskOnly')
-                delete masks![mask]
-            }
-            recur(v)
-        })
+defineConfig('vfs', vfs).sub(async data => {
+    await (async function recur(node) {
+        if (node.source && !node.children?.length && node.isFolder === undefined) {
+            const isFolder = /[\\/]$/.test(node.source) || (await nodeStats(node))?.isDirectory()
+            setHidden(node, { isFolder })
+        }
         if (node.children)
-            for (const c of node.children)
-                recur(c)
-        return node
-    })(data) )
+            await Promise.allSettled(node.children.map(recur))
+    })(data)
+    vfs = data
+})
 
 export function saveVfs() {
     return setConfig({ vfs: _.cloneDeep(vfs) }, true)
@@ -213,20 +211,13 @@ export function getNodeName(node: VfsNode) {
     return base
 }
 
-export async function nodeIsDirectory(node: VfsNode) {
-    if (node.isFolder !== undefined)
-        return node.isFolder
-    if (nodeIsLink(node))
-        return false
-    if (node.children?.length || !node.source)
-        return true
-    const isFolder = await nodeStats(node).then(x => x!.isDirectory(), () => false)
-    setHidden(node, { isFolder }) // don't make it to the storage (a node.isTemp doesn't need it to be hidden)
-    return isFolder
+export function nodeIsFolder(node: VfsNode) {
+    return node.isFolder ?? node.original?.isFolder
+        ?? (!nodeIsLink(node) && (node.children?.length! > 0 || !node.source))
 }
 
 export async function hasDefaultFile(node: VfsNode, ctx: Koa.Context) {
-    return node.default && await nodeIsDirectory(node) && await urlToNode(node.default, ctx, node) || undefined
+    return node.default && nodeIsFolder(node) && await urlToNode(node.default, ctx, node) || undefined
 }
 
 export function nodeIsLink(node: VfsNode) {
@@ -314,12 +305,12 @@ export async function* walkNode(parent: VfsNode, {
                 const nodeName = getNodeName(child)
                 const name = prefixPath + nodeName
                 taken?.add(normalizeFilename(name))
-                const item = { ...child, original: child, name }
+                const item = { ...child, original: child, name, parent }
                 if (await cantSee(item)) continue
                 if (item.source && !item.children?.length) // real items must be accessible, unless there's more to it
                     try { await fs.access(item.source) }
                     catch { continue }
-                const isFolder = await nodeIsDirectory(child)
+                const isFolder = nodeIsFolder(child)
                 if (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
                     stream.push(item)
                 if (!depth || !isFolder || cantRecur(item)) continue
@@ -355,7 +346,7 @@ export async function* walkNode(parent: VfsNode, {
                         if (taken?.has(normalizeFilename(name))) // taken by vfs node above
                             return false // false just in case it's a folder
 
-                        const item: VfsNode = { name, isFolder, source: join(source, path) }
+                        const item: VfsNode = { name, isFolder, source: join(source, path), parent }
                         if (await cantSee(item)) // can't see: don't produce and don't recur
                             return false
                         if (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
@@ -382,7 +373,7 @@ export async function* walkNode(parent: VfsNode, {
             // item will be changed, so be sure to pass a temp node
             async function cantSee(item: VfsNode) {
                 await maskApplier(item)
-                inheritFromParent(parent, item)
+                inheritFromParent(item)
                 if (ctx && !hasPermission(item, 'can_see', ctx)) return true
                 item.isTemp = true
             }
@@ -419,7 +410,7 @@ export function parentMaskApplier(parent: VfsNode) {
         let isFolder: boolean | undefined = undefined
         for (const { matcher, mods, mustBeFolder } of matchers) {
             if (mustBeFolder !== undefined) {
-                isFolder ??= await nodeIsDirectory(item)
+                isFolder ??= nodeIsFolder(item)
                 if (mustBeFolder !== isFolder) continue
             }
             if (!matcher(virtualBasename)) continue

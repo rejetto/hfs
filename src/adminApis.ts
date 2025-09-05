@@ -51,7 +51,7 @@ export const adminApis = {
 
     async set_config({ values }) {
         apiAssertTypes({ object: { values } })
-        setConfig(values)
+        await setConfig(values)
         if (values.port === 0 || values.https_port === 0)
             return await waitFor(async () => {
                 const st = await getServerStatus()

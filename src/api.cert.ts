@@ -33,7 +33,7 @@ export default {
         const configs = { cert: fileName + '.cer', private_key: fileName + '.key' }
         await writeFile(configs.private_key, ret.private_key)
         await writeFile(configs.cert, ret.cert)
-        setConfig(configs)
+        await setConfig(configs)
         return configs
     }
 

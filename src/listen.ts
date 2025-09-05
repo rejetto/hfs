@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import * as http from 'http'
-import { defineConfig } from './config'
+import { defineConfig, subMultipleConfigs } from './config'
 import { app } from './index'
 import * as https from 'https'
 import { watchLoad } from './watchLoad'
@@ -64,10 +64,9 @@ const considerHttp = debounceAsync(async () => {
         openAdmin()
 })
 
-export const portCfg = defineConfig<number>('port', 80)
+export const portCfg = defineConfig('port', 80)
 const listenInterface = defineConfig('listen_interface', '')
-portCfg.sub(considerHttp)
-listenInterface.sub(considerHttp)
+subMultipleConfigs(considerHttp, [portCfg, listenInterface])
 
 export function openAdmin() {
     for (const srv of [httpSrv, httpsSrv]) {
@@ -90,8 +89,9 @@ export function openAdmin() {
 }
 
 export function getCertObject() {
-    if (!httpsOptions.cert) return
-    const all = new X509Certificate(httpsOptions.cert)
+    const c = cert.compiled()
+    if (!c) return
+    const all = new X509Certificate(c)
     const some = _.pick(all, ['subject', 'issuer', 'validFrom', 'validTo'])
     const ret = objSameKeys(some, v => v?.includes('=') ? Object.fromEntries(v.split('\n').map(x => x.split('='))) : v)
     return Object.assign(ret, { altNames: all.subjectAltName?.replace(/DNS:/g, '').split(/, */) })
@@ -108,22 +108,22 @@ const considerHttps = debounceAsync(async () => {
         httpsSrv = Object.assign(
             https.createServer(port === PORT_DISABLED ? {} : {
                 ...commonServerOptions,
-                key: httpsOptions.private_key,
-                cert: httpsOptions.cert,
+                key: privateKey.compiled(),
+                cert: cert.compiled(),
                 ...moreOptions,
             }, app.callback()),
             { name: 'https' },
             commonServerAssign
         )
         if (port >= 0) {
-            const cert = getCertObject()
-            if (cert) {
-                const cn = cert.subject?.CN
+            const certObj = getCertObject()
+            if (certObj) {
+                const cn = certObj.subject?.CN
                 if (cn)
-                    console.log("certificate loaded for", cert.altNames?.join(' + ') || cn)
+                    console.log("certificate loaded for", certObj.altNames?.join(' + ') || cn)
                 const now = new Date()
-                const from = new Date(cert.validFrom)
-                const to = new Date(cert.validTo)
+                const from = new Date(certObj.validFrom)
+                const to = new Date(certObj.validTo)
                 updateError() // error will change at from and to dates of the certificate
                 const cancelTo = runAt(to.getTime(), updateError)
                 const cancelFrom = runAt(from.getTime(), updateError)
@@ -137,12 +137,11 @@ const considerHttps = debounceAsync(async () => {
                 }
             }
             const namesForOutput: any = { cert: 'certificate', private_key: 'private key' }
-            const missing = httpsNeeds.find(x => !x.get())?.key()
-            if (missing)
-                return httpsSrv.error = "missing " + namesForOutput[missing]
-            const cantRead = httpsNeeds.find(x => !httpsOptions[x.key() as HttpsKeys])?.key()
-            if (cantRead)
-                return httpsSrv.error = "cannot read " + namesForOutput[cantRead]
+            for (const x of httpsNeeds)
+                if (!x.get())
+                    return httpsSrv.error = "missing " + namesForOutput[x.key()]
+                else if (!x.compiled())
+                    return httpsSrv.error = "cannot read " + namesForOutput[x.key()]
         }
     }
     catch(e: any) {
@@ -153,7 +152,7 @@ const considerHttps = debounceAsync(async () => {
     }
     httpsSrv.on('connection', newConnection) // this event is emitted as soon as the tcp layer is connected
     httpsSrv.on('secureConnection', (socket: TLSSocket) => { // emitted when the TLS layer is connected
-        for (const c of getConnections()) // TLSSocket shares same ip:port, so we can find its matching Connection
+        for (const c of getConnections()) // TLSSocket shares the same ip:port, so we can find its matching Connection
             if (socket.remoteAddress === c.socket.remoteAddress
             && socket.remotePort === c.socket.remotePort)
                 return c.socket.emit('secure', socket) // let know Connection about the secure socket
@@ -166,32 +165,21 @@ const considerHttps = debounceAsync(async () => {
     defaultBaseUrl.port = getCurrentPort(httpsSrv) ?? 0
 }, { wait: 200 }) // give time to have key and cert ready
 
-export const cert = defineConfig('cert', '')
-export const privateKey = defineConfig('private_key', '')
+export const cert = defineConfig('cert', '' as string, load)
+export const privateKey = defineConfig('private_key', '' as string, load)
 const httpsNeeds = [cert, privateKey]
-const httpsOptions = { cert: '', private_key: '' }
-type HttpsKeys = keyof typeof httpsOptions
-for (const cfg of httpsNeeds) {
-    let unwatch: ReturnType<typeof watchLoad>['unwatch']
-    cfg.sub(async v => {
-        unwatch?.()
-        const k = cfg.key() as HttpsKeys
-        httpsOptions[k] = v
-        if (!v || v.includes('\n'))
-            return considerHttps()
-        // v is a path
-        httpsOptions[k] = ''
-        unwatch = watchLoad(v, async data => {
-            httpsOptions[k] = data
-            await considerHttps()
-        }, { immediateFirst: true }).unwatch
-        await considerHttps()
-    })
+
+function load(v: string, { object }: any) {
+    object.watcher?.unwatch()
+    if (!v || v.includes('\n'))
+        return v
+    // v is a path, we'll watch the file for changes
+    object.watcher = watchLoad(v, x => object.setCompiled(x), { immediateFirst: true })
+    return ''
 }
 
 export const httpsPortCfg = defineConfig('https_port', PORT_DISABLED)
-httpsPortCfg.sub(considerHttps)
-listenInterface.sub(considerHttps)
+subMultipleConfigs(considerHttps, [httpsPortCfg, listenInterface, ...httpsNeeds])
 
 const genericInterfaceNames = {
     '0.0.0.0': "any IPv4",
@@ -210,7 +198,7 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
         try {
             if (port === PORT_DISABLED)
                 return resolve(0)
-            if (!host && !await testIpV4()) // !host means ipV4+6, and if v4 port alone is busy we won't be notified of the failure, so we'll first test it on its own
+            if (!host && !await testIpV4()) // !host means ipV4+6, and if v4 port alone is busy, we won't be notified of the failure, so we'll first test it on its own
                 throw srv.error
             // from a few tests, this seems enough to support the expect-100 http/1.1 mechanism, at least with curl -T, not used by chrome|firefox anyway
             srv.on('checkContinue', (req, res) => srv.emit('request', req, res))
@@ -256,7 +244,7 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                     srv.busy = findProcess('port', port).then(
                         res => res?.map(x => prefix("Service", x.name === 'svchost.exe' && x.cmd.split(x.name)[1]?.trim()) || x.name).join(' + '),
                         () => '')
-                if (code === 'EACCES' && port < 1024 && !srv.busy) // on Windows, when port is used by a service, we get EACCESS
+                if (code === 'EACCES' && port < 1024 && !srv.busy) // on Windows, when port is used by a service, we get EACCES
                     srv.error = `lacking permission on port ${port}, try with permission (${IS_WINDOWS ? 'administrator' : 'sudo'}) or port > 1024`
                 if (code === 'EADDRINUSE' || srv.busy)
                     srv.error = `port ${port} busy: ${await srv.busy || "unknown process"}`

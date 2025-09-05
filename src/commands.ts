@@ -80,13 +80,13 @@ const commands = {
     },
     config: {
         params: '<key> <value>',
-        cb(key: string, value: string) {
+        async cb(key: string, value: string) {
             if (!configKeyExists(key))
                 throw "specified key doesn't exist"
             let v: any = value
             try { v = JSON.parse(v) }
             catch {}
-            setConfig({ [key]: v })
+            await setConfig({ [key]: v })
         }
     },
     'get-config': {

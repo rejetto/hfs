@@ -42,7 +42,7 @@ repeat(MINUTE, async stop => {
 })
 
 async function generateSSLCert(domain: string, email?: string, altNames?: string[]) {
-    // will answer challenge through our koa app (if on port 80) or must we spawn a dedicated server?
+    // will answer the challenge through our koa app (if on port 80) or must we spawn a dedicated server?
     const nat = await getNatInfo()
     const { http } = await getServerStatus()
     const tempSrv = nat.externalPort === 80 || http.listening && http.port === 80 ? undefined

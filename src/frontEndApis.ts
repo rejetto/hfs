@@ -11,7 +11,7 @@ import {
     HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED
 } from './const'
 import {
-    hasPermission, isRoot, nodeIsDirectory, nodeStats, statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
+    hasPermission, isRoot, nodeIsFolder, nodeStats, statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
 } from './vfs'
 import fs from 'fs'
 import { mkdir, rename, copyFile, unlink } from 'fs/promises'
@@ -167,7 +167,7 @@ export const frontEndApis: ApiHandlers = {
         const folder = await urlToNode(uri, ctx)
         if (!folder)
             throw new ApiError(HTTP_NOT_FOUND)
-        if (!await nodeIsDirectory(folder))
+        if (!nodeIsFolder(folder))
             throw new ApiError(HTTP_METHOD_NOT_ALLOWED)
         if (statusCodeForMissingPerm(folder, 'can_list', ctx))
             return new ApiError(ctx.status)

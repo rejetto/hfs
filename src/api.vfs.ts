@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
+    getNodeName, isSameFilenameAs, nodeIsFolder, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
     permsFromParent, nodeIsLink, VfsNodeStored, isRoot
 } from './vfs'
 import _ from 'lodash'
@@ -87,7 +87,7 @@ const apis: ApiHandlers = {
         if (_.isEmpty(oldParent!.children))
             delete oldParent!.children
         ;(parentNode.children ||= []).push(fromNode)
-        saveVfs()
+        await saveVfs()
         return {}
     },
 
@@ -106,7 +106,8 @@ const apis: ApiHandlers = {
             delete props.masks
         Object.assign(n, pickProps(props, ALLOWED_KEYS))
         simplifyName(n)
-        saveVfs()
+        n.isFolder = undefined // reset field, it will be set by saveVfs
+        await saveVfs()
         return n
     },
 
@@ -118,12 +119,12 @@ const apis: ApiHandlers = {
         const parentNode = parent ? await urlToNodeOriginal(parent) : vfs
         if (!parentNode)
             return new ApiError(HTTP_NOT_FOUND, 'parent not found')
-        if (!await nodeIsDirectory(parentNode))
+        if (!nodeIsFolder(parentNode))
             return new ApiError(HTTP_NOT_ACCEPTABLE, 'parent not a folder')
         if (isWindowsDrive(source))
             source += '\\' // slash must be included, otherwise it will refer to the cwd of that drive
-        const isDir = source && await isDirectory(source)
-        if (source && isDir === undefined)
+        const isFolder = source && await isDirectory(source)
+        if (source && isFolder === undefined)
             return new ApiError(HTTP_NOT_FOUND, 'source not found')
         const child = { source, name, ...pickProps(rest, ALLOWED_KEYS) }
         name = getNodeName(child) // could be not given as input
@@ -135,11 +136,11 @@ const apis: ApiHandlers = {
         child.name = name
         simplifyName(child)
         ;(parentNode.children ||= []).unshift(child)
-        saveVfs()
+        await saveVfs()
         const link = rest.url ? undefined : await getBaseUrlOrDefault()
             + (parent ? enforceStarting('/', enforceFinal('/', parent)) : '/')
             + encodeURIComponent(getNodeName(child))
-            + (isDir ? '/' : '')
+            + (isFolder ? '/' : '')
         return { name, link }
     },
 
@@ -164,7 +165,7 @@ const apis: ApiHandlers = {
                     return HTTP_SERVER_ERROR
                 const idx = children.indexOf(node)
                 children.splice(idx, 1)
-                saveVfs()
+                await saveVfs()
                 return 0 // error code 0 is OK
             }))
         }

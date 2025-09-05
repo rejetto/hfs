@@ -13,7 +13,7 @@ import {
     PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir, objFromKeys, patchKey
 } from './misc'
 import * as misc from './misc'
-import { defineConfig, getConfig } from './config'
+import { defineConfig, getConfig, subMultipleConfigs } from './config'
 import { DirEntry } from './api.get_file_list'
 import { VfsNode } from './vfs'
 import { serveFile } from './serveFile'
@@ -436,17 +436,14 @@ function watchPlugin(id: string, path: string) {
     console.debug('plugin watch', id)
     const module = resolve(path)
     let starting: PendingPromise | undefined
-    const unsub = enablePlugins.sub(() => getPluginInfo(id) && considerStart()) // only after it has been loaded
-    const unsub2 = suspendPlugins.sub(() => getPluginInfo(id) && considerStart())
-    function considerStart() {
+    const unsub = subMultipleConfigs(() => {
+        if (!getPluginInfo(id)) return // not loaded yet
         const should = isPluginEnabled(id, true)
         if (should === isPluginRunning(id)) return
-        if (should) {
-            start()
-            return true
-        }
+        if (should)
+            return start()
         stop()
-    }
+    }, [enablePlugins, suspendPlugins])
     const { unwatch } = watchLoad(module, async source => {
         const notRunning = availablePlugins[id]
         if (!source)
@@ -461,7 +458,6 @@ function watchPlugin(id: string, path: string) {
     return () => {
         console.debug('plugin unwatch', id)
         unsub()
-        unsub2()
         unwatch()
         return onUninstalled()
     }

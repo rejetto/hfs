@@ -1,6 +1,6 @@
 import Koa from 'koa'
 import { basename, dirname, join } from 'path'
-import { getNodeName, nodeIsDirectory, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, walkNode } from './vfs'
+import { getNodeName, nodeIsFolder, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, walkNode } from './vfs'
 import { sendErrorPage } from './errorPages'
 import events from './events'
 import {
@@ -139,7 +139,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     }
     if (get === 'icon')
         return serveFile(ctx, node.icon || '|') // pipe to cause not-found
-    if (!await nodeIsDirectory(node))
+    if (!nodeIsFolder(node))
         return node.url ? ctx.redirect(node.url)
             : !node.source ? sendErrorPage(ctx, HTTP_METHOD_NOT_ALLOWED) // !dir && !source is not supported at this moment
             : !statusCodeForMissingPerm(node, 'can_read', ctx) ? serveFileNode(ctx, node) // all good
@@ -178,7 +178,7 @@ async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
     }
     const walker = walkNode(node, { ctx, depth: depth === '*' ? Infinity : Number(depth), parallelizeRecursion: false })
     ctx.body = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
-        const isFolder = await nodeIsDirectory(el)
+        const isFolder = nodeIsFolder(el)
         return !folders && isFolder ? undefined
             : prepend + pathEncode(getNodeName(el)) + (isFolder ? '/' : '') + '\n'
     }))

@@ -2,7 +2,7 @@ import { getCurrentUsername, setLoggedIn } from './auth'
 import { HTTP_UNAUTHORIZED } from './cross-const'
 import Koa from 'koa'
 import { defineConfig } from './config'
-import { getNodeName, hasDefaultFile, nodeIsDirectory, VfsNode, walkNode } from './vfs'
+import { getNodeName, hasDefaultFile, nodeIsFolder, VfsNode, walkNode } from './vfs'
 import { asyncGeneratorToReadable, Dict, filterMapGenerator, pathEncode } from './misc'
 import _ from 'lodash'
 import { title } from './adminApis'
@@ -34,7 +34,7 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
     const force = forced ? '?get=basic' : ''
     const walker = walkNode(node, { ctx, depth: 0 })
     const stream = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
-        const isFolder = await nodeIsDirectory(el)
+        const isFolder = nodeIsFolder(el)
         const name = getNodeName(el) + (isFolder ? '/' : '')
         return `<li>${a(pathEncode(name) + (isFolder && !await hasDefaultFile(el, ctx) ? force : ''), name)}\n`
     }))

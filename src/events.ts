@@ -32,10 +32,11 @@ export class BetterEventEmitter {
             }
         }
     }
-    // call me when listeners for event have changed
+    // call me when listeners for the event have changed
     onListeners(event: string, listener: Listener) {
         return this.on(event + LISTENERS_SUFFIX, listener)
     }
+    // returns the unsubscriber function, which is also a PromiseLike with the array of arguments received by the listener
     once(event: string, listener?: Listener) {
         let off: () => unknown
         const pro = new Promise<any[]>(resolve => {
@@ -45,7 +46,7 @@ export class BetterEventEmitter {
                 return listener?.(...args)
             })
         })
-        return Object.assign(off!, { then: pro.then.bind(pro) } satisfies PromiseLike<any> as Promise<any>)
+        return Object.assign(off!, { then: pro.then.bind(pro) } satisfies PromiseLike<any> as typeof pro)
     }
     multi(map: { [eventName: string]: Listener }) {
         const cbs = Object.entries(map).map(([name, cb]) => this.on(name.split(' '), cb))

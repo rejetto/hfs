@@ -28,7 +28,7 @@ export const HFS_STARTED = new Date()
 const PKG_PATH = join(__dirname, '..', 'package.json')
 export const BUILD_TIMESTAMP = fs.statSync(PKG_PATH).mtime.toISOString()
 const pkg = JSON.parse(fs.readFileSync(PKG_PATH,'utf8'))
-export const VERSION = pkg.version
+export const VERSION = pkg.version as string
 export const RUNNING_BETA = VERSION.includes('-')
 export const IS_WINDOWS = process.platform === 'win32'
 export const IS_MAC = process.platform === 'darwin'

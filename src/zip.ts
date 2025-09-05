@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getNodeName, hasPermission, nodeIsDirectory, nodeIsLink, urlToNode, VfsNode, walkNode, statusCodeForMissingPerm } from './vfs'
+import { getNodeName, hasPermission, nodeIsFolder, nodeIsLink, urlToNode, VfsNode, walkNode, statusCodeForMissingPerm } from './vfs'
 import Koa from 'koa'
 import { filterMapGenerator, isWindowsDrive, safeDecodeURIComponent, wantArray } from './misc'
 import { QuickZipStream } from './QuickZipStream'
@@ -30,7 +30,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
                 const subNode = await urlToNode(uri, ctx, node)
                 if (!subNode)
                     continue
-                if (await nodeIsDirectory(subNode)) { // a directory needs to walked
+                if (nodeIsFolder(subNode)) { // a directory needs to walked
                     if (hasPermission(subNode, 'can_list', ctx) && hasPermission(subNode, 'can_archive', ctx)) {
                         yield subNode // it could be empty
                         yield* walkNode(subNode, { ctx, prefixPath: decodeURI(uri) + '/', requiredPerm: 'can_archive' })

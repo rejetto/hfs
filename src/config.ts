@@ -57,12 +57,11 @@ const CONFIG_CHANGE_EVENT_PREFIX = 'config.'
 export const currentVersion = new Version(VERSION)
 const configVersion = defineConfig('version', VERSION, v => new Version(v))
 
-type Subscriber<T,R=void> = (v:T, more: { was?: T, version?: Version, defaultValue: T, k: string }) => R
+type Subscriber<T,R=void> = (v:T, more: { was?: T, version?: Version, defaultValue: T, k: string, object: object, onlyCompileChanged?: true }) => R
 export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler?: Subscriber<T,CT>) {
     configProps[k] = { defaultValue }
     type Updater = (currentValue:T) => T
-    let compiled = compiler?.(defaultValue, { k, version: currentVersion, defaultValue })
-    const ret = { // consider a Class
+    const object = { // consider a Class
         key() {
             return k
         },
@@ -71,11 +70,11 @@ export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler
         },
         sub(cb: Subscriber<T>) {
             if (started) // initial event already passed, we'll make the first call
-                cb(getConfig(k), { k, was: defaultValue, defaultValue, version: configVersion.compiled() })
-            return events.on(CONFIG_CHANGE_EVENT_PREFIX + k, (v, was, version) => {
+                cb(getConfig(k), { k, was: defaultValue, defaultValue, version: configVersion.compiled(), object })
+            return events.on(CONFIG_CHANGE_EVENT_PREFIX + k, (v, was, version, onlyCompileChanged) => {
                 if (stack.includes(cb)) return // avoid infinite loop in case a subscriber changes the value
                 stack.push(cb)
-                try { return cb(v, { k, was, version, defaultValue }) }
+                try { cb(v, { k, was, version, defaultValue, object, onlyCompileChanged }) }
                 finally { stack.pop() }
             }, { warnAfter: 1000 }) // e.g. each plugin watch enable_plugins
         },
@@ -86,11 +85,19 @@ export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler
                 setConfig1(k, v)
         },
         compiled: () => (compiler ? compiled : throw_("missing compiler")) as CT,
+        setCompiled(v: CT) {
+            compiled = v
+            const was = getConfig(k)
+            return events.emitAsync(CONFIG_CHANGE_EVENT_PREFIX + k, was, was, VERSION, true)
+        }
     }
+    let compiled = compiler?.(defaultValue, { k, version: currentVersion, defaultValue, object })
     if (compiler)
-        ret.sub((...args) =>
-            compiled = compiler(...args) )
-    return ret
+        object.sub((v, more) => {
+            if (!more.onlyCompileChanged)
+                compiled = compiler(v, more)
+        })
+    return object
 }
 
 export function configKeyExists(k: string) {
@@ -114,7 +121,7 @@ export function getWholeConfig({ omit, only }: { omit?:string[], only?:string[] 
 }
 
 // pass a value to `save` to force saving decision, or leave undefined for auto. Passing false will also reset previously loaded configs.
-export function setConfig(newCfg: Record<string,unknown>, save?: boolean) {
+export async function setConfig(newCfg: Record<string,unknown>, save?: boolean) {
     const version = _.isString(newCfg.version) ? new Version(newCfg.version) : undefined
     const considerEnvs = !process.env['HFS_ENV_BOOTSTRAP'] || !started && _.isEmpty(newCfg)
     // first time we consider also CLI args
@@ -125,26 +132,24 @@ export function setConfig(newCfg: Record<string,unknown>, save?: boolean) {
         saveConfigAsap() // don't set `save` argument, as it would interfere below at check `save===false`
         Object.assign(newCfg, argCfg)
     }
-    for (const k in newCfg)
-        apply(k, newCfg[k])
+    await Promise.allSettled(Object.keys(newCfg).map(k =>
+        apply(k, newCfg[k])))
     if (save) {
         saveConfigAsap()
         return
     }
     if (started) {
         if (save === false) // false is used when loading whole config, and in such case we should not leave previous values untreated. Also, we need this only after we already `started`.
-            for (const k of Object.keys(state))
-                if (!newCfg.hasOwnProperty(k))
-                    apply(k, undefined)
+            await Promise.allSettled(Object.keys(state).map(k =>
+                newCfg.hasOwnProperty(k) || apply(k, undefined)))
         return
     }
     // first time we emit also for the default values
-    for (const k of Object.keys(configProps))
-        if (!newCfg.hasOwnProperty(k))
-            apply(k, newCfg[k], true)
+    await Promise.allSettled(Object.keys(configProps).map(k =>
+        newCfg.hasOwnProperty(k) || apply(k, undefined, true)))
     started = true
     events.emit('configReady', startedWithoutConfig)
-    if (version !== VERSION) // be sure to save version
+    if (version?.valueOf() !== VERSION) // be sure to save version
         saveConfigAsap()
 
     function apply(k: string, newV: any, isDefault=false) {
@@ -152,7 +157,7 @@ export function setConfig(newCfg: Record<string,unknown>, save?: boolean) {
     }
 }
 
-function setConfig1(k: string, newV: unknown, saveChanges=true, valueVersion?: Version) {
+async function setConfig1(k: string, newV: unknown, saveChanges=true, valueVersion?: Version) {
     if (_.isPlainObject(newV))
         newV = _.pickBy(newV as any, x => x !== undefined)
     const def = configProps[k]?.defaultValue
@@ -161,7 +166,7 @@ function setConfig1(k: string, newV: unknown, saveChanges=true, valueVersion?: V
     if (started && same(newV, state[k])) return // no change
     const was = getConfig(k) // include cloned default, if necessary
     state[k] = newV
-    events.emit(CONFIG_CHANGE_EVENT_PREFIX + k, getConfig(k), was, valueVersion)
+    await events.emitAsync(CONFIG_CHANGE_EVENT_PREFIX + k, getConfig(k), was, valueVersion, false)
     if (saveChanges)
         saveConfigAsap()
 
@@ -192,7 +197,7 @@ let startedWithoutConfig = false
 console.log("config", filePath)
 export const configFile = watchLoad(filePath, text => {
     startedWithoutConfig = !text
-    try { setConfig(yaml.parse(text, { uniqueKeys: false }) || {}, false) }
+    try { return setConfig(yaml.parse(text, { uniqueKeys: false }) || {}, false) }
     catch(e: any) { console.error("Error in", filePath, ':', e.message || String(e)) }
 }, {
     failedOnFirstAttempt(){
@@ -203,8 +208,19 @@ export const configFile = watchLoad(filePath, text => {
     }
 })
 
+export function subMultipleConfigs(cb: () => any, configs: Array<ReturnType<typeof defineConfig>>) {
+    // we depend on multiple configs, so wait for all of them to be ready
+    const unsub_s = configReady.then(() =>
+        configs.map(x => x.sub(cb)) )
+    return async () => {
+        for (const x of await unsub_s)
+            x()
+    }
+}
+
 export const showHelp = argv.help
-events.on('configReady', () => {
+export const configReady = events.once('configReady') // the boolean value means startedWithoutConfig
+configReady.then(() => {
     if (!showHelp) return
     console.log(`HELP
 You can pass any configuration in the form: --name value
