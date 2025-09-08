@@ -52,7 +52,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     const can_delete_children = admin || hasPermission(fakeChild, 'can_delete', ctx)
     const can_archive = admin || hasPermission(node, 'can_archive', ctx)
     const can_comment = can_upload && areCommentsEnabled()
-    const can_overwrite = can_upload && (can_delete || !dontOverwriteUploading.get())
+    const can_overwrite = can_upload && (can_delete_children || !dontOverwriteUploading.get())
     const comment = node.comment ?? await getCommentFor(node.source)
     const props = { can_archive, can_upload, can_delete, can_delete_children, can_overwrite, can_comment, comment, accept: node.accept, icon: getNodeIcon(node) }
     ctx.state.browsing = uri.replace(/\/{2,}/g, '/')
