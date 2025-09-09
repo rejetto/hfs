@@ -48,7 +48,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
     }, [filter])
 
     const [listHeight, setListHeight] = useState(0)
-    const filteredList = useMemo(() => _.sortBy(list.filter(it => filterMatch(it.n)), ['k', 'd']), [list,filterMatch])
+    const filteredList = useMemo(() => _.sortBy(list.filter(it => filterMatch(it.n)), ['k', 'n']), [list,filterMatch])
     const root = isWindows.current ? '' : '/'
     const pathDelimiter = isWindows.current ? '\\' : '/'
     const cwdDelimiter = enforceFinal(pathDelimiter, cwd)
