@@ -53,7 +53,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
         || filterComment && !filterComment(await getCommentFor(source) || ''))
             return
         try {
-            if (el.isFolder)
+            if (nodeIsFolder(el))
                 return { path: name + '/' }
             if (!source) return
             const st = el.stats || await fs.stat(source)

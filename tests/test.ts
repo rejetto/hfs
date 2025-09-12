@@ -117,11 +117,12 @@ describe('basics', () => {
     test('protectFromAbove.list', reqList('/protectFromAbove/child/', { inList:['alfa.txt'] }))
     test('inheritNegativeMask', reqList('/tests/page', { outList: ['index.html'] }))
 
-    const zipSize = 13010
-    const zipOfs = 0x1359
+    const zipSize = 13178
+    const zipOfs = 0x32AF
+    const zipLength = 4
     test('zip.head', req('/f1/?get=zip', { empty:true, length:zipSize }, { method:'HEAD' }) )
-    test('zip.partial', req('/f1/?get=zip', { re:/^C3$/, length: 2 }, { headers: { Range: `bytes=${zipOfs}-${zipOfs+1}` } }) )
-    test('zip.partial.resume', req('/f1/?get=zip', { re:/^C3/, length:zipSize-zipOfs }, { headers: { Range: `bytes=${zipOfs}-` } }) )
+    test('zip.partial', req('/f1/?get=zip', { re:/^page$/, length: zipLength }, { headers: { Range: `bytes=${zipOfs}-${zipOfs+zipLength-1}` } }) )
+    test('zip.partial.resume', req('/f1/?get=zip', { re:/^page/, length:zipSize-zipOfs }, { headers: { Range: `bytes=${zipOfs}-` } }) )
     test('zip.partial.end', req('/f1/f2/?get=zip', { re:/^6/, length:10 }, { headers: { Range: 'bytes=-10' } }) )
     test('zip.alfa is forbidden', req('/protectFromAbove/child/?get=zip&list=alfa.txt//renamed', { empty: true, length:118 }, { method:'HEAD' }))
     test('zip.cantReadPage', req('/cantReadPage/?get=zip', { length: 4800 }, { method:'HEAD' }))

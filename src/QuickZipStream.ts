@@ -57,6 +57,10 @@ export class QuickZipStream extends Readable {
         this.push(null) // EOF
     }
 
+    continuePiping() {
+        setImmediate(() => this.push('')) // stimulate the pipe. In some situations this needs to be done at next tick; not sure when, but maybe it's when we are inside a _read call that writes nothing
+    }
+
     applyRange(start: number, end: number) {
         if (end < start)
             return this.closeStream()
@@ -153,12 +157,11 @@ export class QuickZipStream extends Readable {
             this.skip -= size
             this.dataWritten += size
             this.entries.push(entry)
-            setTimeout(() => this.push('')) // this "signal" works only after _read() is done
-            return
+            return this.continuePiping()
         }
         if (!getData) {
             this.entries.push(entry)
-            return
+            return this.continuePiping()
         }
         const data = getData()
         data.on('error', (err) => {
@@ -166,7 +169,7 @@ export class QuickZipStream extends Readable {
                 console.error('zipping:', String(err))
             data.destroy(err)
             this.workingFile = undefined
-            this.push('') // continue piping
+            this.continuePiping()
         })
         data.on('end', ()=>{
             entry.crc = crc
@@ -174,7 +177,7 @@ export class QuickZipStream extends Readable {
                 crcCache[sourcePath] = { ts, crc }
             this.entries.push(entry)
             this.workingFile = undefined
-            this.push('') // continue piping
+            this.continuePiping()
         })
         this.workingFile = data
         data.on('data', chunk => {
