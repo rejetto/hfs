@@ -90,7 +90,7 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
         isFolder && !entry.cantOpen && { id: 'folderSize', label: t`Size`, value: h(FolderSize) },
     ].filter(Boolean)
     const res = await Promise.all(hfsEvent('fileMenu', { entry, menu, props }))
-    menu.push(...res.flat()) // flat because each plugin may return an array of entries
+    menu.push(...res.flat().filter(Boolean)) // flat because each plugin may return an array of entries
     _.remove(menu, (x, i) => _.find(menu, y => x.id ? x.id === y.id : (!y.id && x.label === y.label), i + 1)) // avoid duplicates, keeping later ones
     const ico = getEntryIcon(entry)
     const { close } = newDialog({
