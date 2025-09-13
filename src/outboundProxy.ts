@@ -24,8 +24,8 @@ configReady.then(async ([startedWithoutConfig]) => {
     if (!IS_WINDOWS || !startedWithoutConfig) return
     // try to read Windows system setting for proxy
     const out = await reg('query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings')
-    if (!/ProxyEnable.+(\d)/.exec(out)?.[1]) return
-    const read = /ProxyServer.+?([\d:.]+)/.exec(out)?.[1]
+    if (!Number(/ProxyEnable\s+\w+\s+(.+)/.exec(out)?.[1])) return
+    const read = /ProxyServer\s+\w+\s+(.+)/.exec(out)?.[1]
     if (!read) return
     // it can be like "IP:PORT" or "http=IP:PORT;https=IP:PORT;ftp=IP:PORT"
     const url = prefix('https://', /https=([\d:.]+)/.exec(out)?.[1]) // prefer https
