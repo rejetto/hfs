@@ -52,19 +52,20 @@ export class QuickZipStream extends Readable {
         return this.entries.map(x => String(x.pathAsBuffer))
     }
 
-    earlyClose() {
+    closeStream() {
         this.finished = true
-        this.push(null)
+        this.push(null) // EOF
     }
 
     applyRange(start: number, end: number) {
         if (end < start)
-            return this.earlyClose()
+            return this.closeStream()
         this.skip = start
         this.limit = end - start + 1
     }
 
     controlledPush(chunk: number[] | Buffer) {
+        if (this.finished) return
         if (Array.isArray(chunk))
             chunk = buffer(chunk)
         this.dataWritten += chunk.length
@@ -82,7 +83,7 @@ export class QuickZipStream extends Readable {
 
         const ret = this.push(chunk)
         if (lastBit)
-            this.earlyClose()
+            this.closeStream()
         return ret
     }
 
@@ -189,7 +190,6 @@ export class QuickZipStream extends Readable {
     }
 
     closeArchive() {
-        this.finished = true
         let centralDirOffset = this.dataWritten
         for (let { size, ts, crc, offset, pathAsBuffer, version, extAttr } of this.entries) {
             const extra = []
@@ -263,7 +263,7 @@ export class QuickZipStream extends Readable {
             4, centralDirOffset,
             2, 0, // comment length
         ])
-        this.push(null) // EOF
+        this.closeStream()
     }
 }
 
