@@ -235,10 +235,14 @@ async function isPluginBlacklisted(repo: string) {
 }
 
 export async function searchPlugins(text='', { skipRepos=[''] }={}) {
-    const searches = [encodeURI(text), ...text.split(' ').filter(Boolean).slice(0, 2).map(x => 'user:' + encodeURI(x))] // first 2 words can be the author
+    // github doesn't allow complex search, so we have to do it multiple times and merge the results
+    const searches = [
+        ...text.split(' ').filter(Boolean).slice(0, 2).map(x => 'user:' + encodeURI(x)), // first 2 words can be the author of the plugin
+        encodeURI(text), // search elsewhere, and results after the author search
+    ]
     const list = await Promise.all(searches.map(x => asyncGeneratorToArray(apiGithubPaginated(`search/repositories?q=topic:hfs-plugin+${x}`))))
-        .then(all => all.flat()) // make it a single array
-    return new AsapStream(list.map(async it => { // using AsapStream we parallelize these promises and produce each result as it's ready
+    const deduped = _.uniqBy(list.flat(), x => x.full_name)
+    return new AsapStream(deduped.map(async it => { // using AsapStream we parallelize these promises and produce each result as it's ready
         const repo = it.full_name as string
         if (skipRepos.includes(repo) || await isPluginBlacklisted(repo)) return
         const pl = await readOnlineCompatiblePlugin(repo, it.default_branch).catch(() => undefined)
