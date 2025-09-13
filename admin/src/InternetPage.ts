@@ -175,7 +175,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         const cert = useApiEx('get_cert')
         useEffect(() => { apiCall('get_config', { only: ['acme_domain', 'acme_renew'] }).then(setValues) } , [])
         const [saving, setSaving] = useState(false)
-        if (!status || !values) return h(CircularProgress)
+        if (!values) return h(CircularProgress)
         const { https } = status.data ||{}
         const disabled = https?.port === PORT_DISABLED
         const error = https?.error
@@ -221,6 +221,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                         comp: BoolField,
                         disabled: !values.acme_domain
                     },
+                    with_(status.data.acmeRenewError, x => x && h(Alert, { severity: 'error' }, x)),
                 ],
                 save: {
                     children: "Request",
@@ -240,6 +241,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                                     await notEnabled()
                                 cert.reload()
                             }, alertDialog)
+                            .finally(status.reload)
                     }
                 },
             })
