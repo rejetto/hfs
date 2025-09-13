@@ -71,6 +71,7 @@ export interface FormProps<Values> extends Partial<BoxProps> {
 }
 enum Phase { Idle, WaitValues, Validating }
 
+const ERROR_CLASS = 'field-container-with-error'
 export function Form<Values extends Dict>({
     fields,
     values,
@@ -102,6 +103,7 @@ export function Form<Values extends Dict>({
     const [phase, setPhase] = useState(Phase.Idle)
     const submitAfterValidation = useRef(false)
     const validateUpTo = useRef('')
+    formRef ||= useRef()
     useEffect(() => void phaseChange(), [phase]) //eslint-disable-line
     const keyMet: Dict<number> = {}
 
@@ -135,12 +137,13 @@ export function Form<Values extends Dict>({
                 let errMsg = errors[k] || error || fieldExceptions[k]
                 if (errMsg === true)
                     errMsg = "Not valid"
+                const anyError = Boolean(errMsg || error) || undefined
                 if (k) {
                     const originalValue = row.hasOwnProperty('value') ? row.value : getValueFor(k)
                     Object.assign(field, {
                         name: k,
                         value: toField(originalValue),
-                        error: Boolean(errMsg || error) || undefined,
+                        error: anyError,
                         setApi(api) { apis[k] = api },
                         onKeyDown(event: any) {
                             if (saveOnEnter && event.key === 'Enter')
@@ -175,7 +178,7 @@ export function Form<Values extends Dict>({
                         field.label = labelFromKey(k)
                 }
                 const n = (keyMet[k] = (keyMet[k] || 0) + 1)
-                return h(Grid, { key: k ? k + n : idx, xs, sm, md, lg, xl, ...parentProps },
+                return h(Grid, { key: k ? k + n : idx, xs, sm, md, lg, xl, className: anyError && ERROR_CLASS, ...parentProps },
                     before,
                     isValidElement(comp) ? comp : h(comp, field),
                     after
@@ -248,8 +251,12 @@ export function Form<Values extends Dict>({
         onValidation?.(anyError && errs)
         try {
             if (!submitAfterValidation.current) return
-            if (anyError)
-                return await onError?.(MSG)
+            if (anyError) {
+                try { return await onError?.(MSG) }
+                finally {
+                    setTimeout(() => formRef?.current?.querySelector('.' + ERROR_CLASS)?.scrollIntoView({ block: 'center' }), 1)
+                }
+            }
             const cb = saveBtn && saveBtn.onClick
             if (cb) // @ts-ignore
                 await cb()
