@@ -119,11 +119,12 @@ Configuration can be done in several ways
 - `geo_list` list of country codes to be used as white-list or black-list. Default is none.
 - `geo_allow_unknown` set false to disconnect connections for which country cannot be determined. Works only if `geo_allow` is set. Default is true. 
 - `dynamic_dns_url` URL to be requested to keep a domain updated with your latest IP address.
-     Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used.
-     Multiple URLs are supported, and you can specify one for each line.
+  Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used.
+  Multiple URLs are supported, and you can specify one for each line.
 - `outbound_proxy` if you need outgoing http(s) requests to pass through an HTTP proxy. E.g.: `http://user:password@localhost:8888`. Default is none.
   Setting one will trigger a test request to google.com. You can skip this with env HFS_SKIP_PROXY_TEST=1 . 
 - `auto_basic` automatically detect (based on user-agent) when the basic web interface should be served, to support legacy browsers. Default is true. No UI.
+  You can disable it setting it to `false`, or recognize additional user-agents by setting a regular expression. 
 - `authorization_header` support Authentication HTTP header. Default is true. No UI.
 - `cache_control_disk_files` number of seconds after which the browser should bypass the cache and check the server for an updated version of the file. Default is 5. No UI.
 - `disable_custom_html` disable the content of `custom_html`. Default is false.

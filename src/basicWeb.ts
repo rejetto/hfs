@@ -8,7 +8,7 @@ import _ from 'lodash'
 import { title } from './adminApis'
 import { getSection } from './customHtml'
 
-const autoBasic = defineConfig('auto_basic', true)
+const autoBasic = defineConfig<boolean|string, null|RegExp>('auto_basic', true, v => _.isString(v) ? new RegExp(v, 'i') : null)
 
 export function basicWeb(ctx: Koa.Context, node: VfsNode) {
     const { get } = ctx.query
@@ -60,8 +60,7 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
 
 export function detectBasicAgent(ctx: Koa.Context) {
     const ua = ctx.get('user-agent')
-    const v = autoBasic.get()
-    return v && (/^$|Mozilla\/4|WebKit\/([234]\d\d|5[012]\d|53[0123456])[. ]|Trident|Lynx|curl|Firefox\/(\d|[1234]\d)\./.test(ua)
-        || _.isString(v) && ua.includes(v))
+    return autoBasic.get() && /^$|Mozilla\/4|WebKit\/([234]\d\d|5[012]\d|53[0123456])[. ]|Trident|Lynx|curl|Firefox\/(\d|[1234]\d)\./.test(ua)
+        || autoBasic.compiled()?.test(ua)
 }
 
