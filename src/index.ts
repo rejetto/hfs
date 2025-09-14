@@ -91,4 +91,5 @@ declare module "koa" {
 }
 app.context.isAborted = function() {
     return this.res.destroyed || this.req.aborted // investigate: "aborted" is deprecated, but "destroyed" will cause failure of some tests
+        || this.socket.destroyed
 }

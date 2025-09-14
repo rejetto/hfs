@@ -76,13 +76,15 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
     // do it now so it's available for returning plugins
     ctx.state.completed = Promise.race([ once(ctx.res, 'finish'), once(ctx.res, 'close') ])
     await next()
-    console.debug(ctx.status, ctx.method, ctx.originalUrl)
+    console.debug(ctx.status, ctx.method, ctx.originalUrl, ctx.isAborted() ? '(aborted)' : '')
     if (!logSpam.get()
         && (ctx.querystring.includes('{.exec|')
             || ctx.status === HTTP_NOT_FOUND && /wlwmanifest.xml$|robots.txt$|\.(php)$|cgi/.test(ctx.path))) {
         events.emit('spam', ctx)
         return
     }
+    if (ctx.isAborted())
+        ctx.logExtra({ aborted: true })
     const conn = getConnection(ctx) // collect reference before close
     // don't await, as we don't want to hold the middlewares chain
     ctx.state.completed.then(() => {

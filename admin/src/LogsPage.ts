@@ -349,6 +349,8 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 : upload ? `${partial ? "partial " : ""} upload ${extra.speed ? formatSpeed(extra.speed, { sep: ' ' }) : ''}`
                     : row.status === HTTP_UNAUTHORIZED && row.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
                         : _.map(extra?.params, (v, k) => `${k}: ${v}\n`).join('') + (row.notes || '')
+            if (extra?.aborted)
+                row.notes += ' (aborted)'
         }
         return row
     }
