@@ -143,7 +143,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         const fullSize = stillToWrite + resume
         ctx.state.uploadDestinationPath = tempName
         // allow plugins to mess with the write-stream, because the read-stream can be complicated in case of multipart
-        const obj = { ctx, writeStream, uri: '' }
+        const obj = { ctx, writeStream, fullPath, tempName, resume, fullSize, uri: '' }
         const resEvent = events.emit('uploadStart', obj)
         if (resEvent?.isDefaultPrevented()) return
 

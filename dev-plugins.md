@@ -713,7 +713,7 @@ This section is still partially documented, and you may need to have a look at t
 - `httpsServerOptions` if you need to customize the options of the https server.
   - return: object with some properties [documented here](https://nodejs.org/api/https.html#httpscreateserveroptions-requestlistener).  
 - `uploadStart`
-  - parameters: { ctx, writeStream } 
+  - parameters: { ctx, writeStream, fullPath, tempName, resume, fullSize } 
   - preventable
   - return: callback to call when upload is finished
 - `uploadFinished`
@@ -1063,3 +1063,5 @@ If you want to override a text regardless of the language, use the special langu
   - HFS.isVideoComponent, HFS.markVideoComponent, HFS.isAudioComponent, HFS.markAudioComponent 
 - 12.92 (v0.57.16)
   - fixed checkVfsPermission
+- 12.93 (v0.57.17)
+  - uploadStart now gets fullPath, tempName, resume, fullSize
