@@ -83,13 +83,3 @@ defineConfig('proxies', 0).sub(n => {
     app.proxy = n > 0
     app.maxIpsCount = n
 })
-
-declare module "koa" {
-    interface BaseContext {
-        isAborted(): boolean
-    }
-}
-app.context.isAborted = function() {
-    return this.res.destroyed || this.req.aborted // investigate: "aborted" is deprecated, but "destroyed" will cause failure of some tests
-        || this.socket.destroyed
-}

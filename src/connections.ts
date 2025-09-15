@@ -88,17 +88,34 @@ export function updateConnection(conn: Connection, change: Partial<Connection>, 
 
 export const disconnectionsLog: { ts: Date, ip: string, country?: string, msg?: string }[] = []
 
-export function disconnect(what: Context | Socket | Connection, debugLog='') {
+export function disconnect(what: Context | Socket | Connection, logMessage='') {
     if ('socket' in what)
         what = what.socket
     const ip = normalizeIp(what.remoteAddress || '')
-    if (debugLog)
-        console.debug("disconnection:", debugLog, ip)
+    if (logMessage)
+        console.debug("disconnection:", logMessage, ip)
     ip2country(ip).then(res => {
-        const rec = { ip, country: res || undefined, ts: new Date, msg: debugLog || undefined }
+        const rec = { ip, country: res || undefined, ts: new Date, msg: logMessage || undefined }
         disconnectionsLog.unshift(rec)
         disconnectionsLog.length = Math.min(1000, disconnectionsLog.length)
         events.emit('disconnection', rec)
     })
     return what.destroy()
 }
+
+
+declare module "koa" {
+    interface BaseContext {
+        isAborted(): boolean
+        disconnect(logMessage?: string): unknown
+    }
+}
+events.once('app', app => { // can't simply import 'app', as it's not defined at this point (this file is required by 'plugins.ts' which is required by 'index.ts')
+    app.context.isAborted = function() {
+        return this.res.destroyed || this.req.aborted // investigate: "aborted" is deprecated, but "destroyed" will cause failure of some tests
+            || this.socket.destroyed
+    }
+    app.context.disconnect = function(logMessage='') {
+        return disconnect(this as Context, logMessage)
+    }
+})

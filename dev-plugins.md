@@ -771,12 +771,16 @@ HFS.getNotifications('test', console.log)
 
 HFS is currently based on [Koa](https://koajs.com), so you'll see some things related to it in the backend API.
 The most prominent is the `ctx` object, short for "context".
-To know what the Context object contains please refer to [Koa documentation](https://github.com/koajs/koa/blob/master/docs/api/context.md).
+To know what the Context object offers, please refer to [Koa documentation](https://github.com/koajs/koa/blob/master/docs/api/context.md).
+Additional methods you may be interested in:
+- `ctx.disconnect(logMessage?: string)`
+- `ctx.stop()` (explained in the *middleware* section)
+- `ctx.isAborted(): boolean` if the client will actually never receive the response
 
-HFS adds a few useful properties in the `ctx.state` object. Some of it may turn to be useful,
+HFS adds a few useful properties in the `ctx.state` object. Some of it may turn out to be useful,
 so we prepared this list as a quick reference, but beware that it may become out of date and needs a double check.
 If so, please report, and we'll do our best to update it asap.
-Where information is too little, you'll have to consult the source code, sorry.
+Where there is too little information, you'll have to consult the source code. Apologies.
 
         originalPath: string // before roots is applied
         browsing?: string // for admin/monitoring
@@ -1065,3 +1069,4 @@ If you want to override a text regardless of the language, use the special langu
   - fixed checkVfsPermission
 - 12.93 (v0.57.17)
   - uploadStart now gets fullPath, tempName, resume, fullSize
+  - ctx.disconnect(logMessage)
