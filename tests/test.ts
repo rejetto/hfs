@@ -269,6 +269,20 @@ describe('after-login', () => {
     after(() => rm(resolve(__dirname, 'temp'), { recursive: true }).catch(() => 0))
 })
 
+describe('admin', () => {
+    const auth = `${username}:${password}`
+    test('add folder', async () => {
+        const name = 'added'
+        try {
+            await reqApi('add_vfs', { source: '.', name, can_see: { this: false, children: true } }, 200, { auth })() // add an invisible folder
+            await reqList(name, { inList: ['plugins/'] })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: ['/'+name] }, 200, { auth })() // remove
+        }
+    })
+})
+
 function login(usr: string, pwd=password) {
     return srpClientSequence(usr, pwd, (cmd: string, params: any) =>
         reqApi(cmd, params, (x,res)=> res.statusCode < 400)())
@@ -390,11 +404,12 @@ function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }:
     }
 }
 
-function reqApi(api: string, params: object, test:Tester) {
+function reqApi(api: string, params: object, test:Tester, options:any={}) {
     const isGet = api.startsWith('/')
     return req(API+api, test, {
         body: JSON.stringify(params),
-        headers: isGet ? undefined : { 'x-hfs-anti-csrf': '1'}
+        headers: isGet ? undefined : { 'x-hfs-anti-csrf': '1'},
+        ...options,
     })
 }
 

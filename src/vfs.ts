@@ -3,7 +3,7 @@
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
-    makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who,
+    makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who, debounceAsync,
     isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_, matches,
 } from './misc'
 import Koa from 'koa'
@@ -171,7 +171,9 @@ export async function getNodeByName(name: string, parent: VfsNode) {
 }
 
 export let vfs: VfsNode = {}
-defineConfig('vfs', vfs).sub(async data => {
+defineConfig('vfs', vfs).sub(reviewVfs)
+
+async function reviewVfs(data=vfs) {
     await (async function recur(node) {
         if (node.source && !node.children?.length && node.isFolder === undefined) {
             const isFolder = /[\\/]$/.test(node.source) || (await nodeStats(node))?.isDirectory()
@@ -181,11 +183,12 @@ defineConfig('vfs', vfs).sub(async data => {
             await Promise.allSettled(node.children.map(recur))
     })(data)
     vfs = data
-})
-
-export function saveVfs() {
-    return setConfig({ vfs: _.cloneDeep(vfs) }, true)
 }
+
+export const saveVfs = debounceAsync(async () => {
+    await reviewVfs()
+    await setConfig({ vfs }, true)
+})
 
 export function isRoot(node: VfsNode) {
     return node === vfs

@@ -128,7 +128,7 @@ export async function setConfig(newCfg: Record<string,unknown>, save?: boolean) 
     const argCfg = !started && _.pickBy(newObj(configProps,
         (x, k) => argv[k] ?? tryJson(considerEnvs ? process.env['HFS_' + k.toUpperCase().replaceAll('-','_')] : '', _.identity)),
             x => x !== undefined)
-    if (! _.isEmpty(argCfg)) {
+    if (!_.isEmpty(argCfg)) {
         saveConfigAsap() // don't set `save` argument, as it would interfere below at check `save===false`
         Object.assign(newCfg, argCfg)
     }
@@ -149,7 +149,7 @@ export async function setConfig(newCfg: Record<string,unknown>, save?: boolean) 
         newCfg.hasOwnProperty(k) || apply(k, undefined, true)))
     started = true
     events.emit('configReady', startedWithoutConfig)
-    if (version?.valueOf() !== VERSION) // be sure to save version
+    if (version?.valueOf() !== VERSION) // be sure to save the new version in the file
         saveConfigAsap()
 
     function apply(k: string, newV: any, isDefault=false) {
