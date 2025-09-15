@@ -8,7 +8,8 @@ import iconv from 'iconv-lite'
 import { unlink } from 'node:fs/promises'
 
 export const DESCRIPT_ION = 'descript.ion'
-const commentsStorage = defineConfig<'' | 'attr' | 'attr+ion'>(CFG.comments_storage, '')
+const commentsStorage = defineConfig<'' | 'attr' | 'attr+ion'>(CFG.comments_storage, '',
+        v => ['', 'attr+ion'].includes(v)) // compiled tell us if we are using descript.ion
 defineConfig('descript_ion', true, (v, more) => { // legacy: convert previous setting
     if (!v && more.version?.olderThan('0.57.0-alpha1'))
         commentsStorage.set('attr')
@@ -20,7 +21,7 @@ function readFromDescriptIon(path: string) {
 }
 
 export function usingDescriptIon() {
-    return ['', 'attr+ion'].includes(commentsStorage.get())
+    return commentsStorage.compiled()
 }
 
 const COMMENT_ATTR = 'comment'
