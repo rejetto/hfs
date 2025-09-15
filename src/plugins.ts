@@ -192,6 +192,8 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
                 lastStatus = ctx.status
                 lastBody = ctx.body
             }
+            if (ctx.isAborted())
+                ctx.stop()
             if (res === true && !ctx.isStopped) { //legacy pre-0.53
                 ctx.stop()
                 warnOnce(`plugin ${id} is using deprecated API (return true on middleware) and may not work with future versions (check for an update to "${id}")`)
