@@ -165,9 +165,8 @@ const apis: ApiHandlers = {
                     return HTTP_SERVER_ERROR
                 const idx = children.indexOf(node)
                 children.splice(idx, 1)
-                await saveVfs()
                 return 0 // error code 0 is OK
-            }))
+            })).finally(saveVfs)
         }
     },
 

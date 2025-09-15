@@ -3,12 +3,12 @@
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
-    makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who,
+    makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who, debounceAsync,
     isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_, matches,
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
-import { defineConfig, setConfig } from './config'
+import { defineConfig, saveConfigAsap } from './config'
 import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_MAC, IS_WINDOWS } from './const'
 import events from './events'
 import { ctxBelongsTo } from './perm'
@@ -171,7 +171,9 @@ export async function getNodeByName(name: string, parent: VfsNode) {
 }
 
 export let vfs: VfsNode = {}
-defineConfig('vfs', vfs).sub(async data => {
+defineConfig('vfs', vfs).sub(reviewVfs)
+
+async function reviewVfs(data=vfs) {
     await (async function recur(node) {
         if (node.source && !node.children?.length && node.isFolder === undefined) {
             const isFolder = /[\\/]$/.test(node.source) || (await nodeStats(node))?.isDirectory()
@@ -181,11 +183,12 @@ defineConfig('vfs', vfs).sub(async data => {
             await Promise.allSettled(node.children.map(recur))
     })(data)
     vfs = data
-})
-
-export function saveVfs() {
-    return setConfig({ vfs: _.cloneDeep(vfs) }, true)
 }
+
+export const saveVfs = debounceAsync(async () => {
+    await reviewVfs()
+    return saveConfigAsap()
+})
 
 export function isRoot(node: VfsNode) {
     return node === vfs
