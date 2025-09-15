@@ -3,7 +3,7 @@ import { Box, Card, CardActions, CardContent } from '@mui/material'
 import { Btn } from './mui'
 import { state, useSnapState } from './state'
 import { useApiList } from './api'
-import { DAY, tryJson } from '../../src/cross'
+import { DAY, tryJson, wantArray } from './misc'
 import _ from 'lodash'
 import { renderName } from './InstalledPlugins'
 import { installPluginFromResult } from './OnlinePlugins'
@@ -37,7 +37,7 @@ export function RandomPlugin() {
             h(Box, { fontWeight: 'bold', fontSize: '1.8em', my: 1 }, renderName({ row: one })),
             h(Box, {}, one.description),
             one.preview && h('img', {
-                src: one.preview[0],
+                src: wantArray(one.preview)[0],
                 style: {
                     maxWidth: '100%',
                     maxHeight: '50vh',
