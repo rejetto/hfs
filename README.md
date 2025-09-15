@@ -6,13 +6,13 @@
 
 Access via web your files directly from your disk.
 
-- You be the server, share files **fresh from your disk**, with **unlimited** space and bandwidth.
+- Be your own server, share files **fresh from your disk**, with **unlimited** space and bandwidth.
 - **Fast!** Try zipping 100GB, download starts immediately!
-- **Intelligent**. HFS tries to detect problems and suggest solutions.
+- **Smart**. HFS tries to detect problems and suggest solutions.
 - Share **even a single file** with our *virtual file system*, even with a different name, all without touching the real file. Present things the way you want!
-- **Watch** all activities in real-time.
-- **Control bandwidth**, decide how much to give.
-- **No intermediaries**, give a huge file to your friend without waiting for it to be uploaded on a server first.
+- **Monitor** all activities in real-time.
+- **Bandwidth throttling**, decide how much to give.
+- **Direct transfers**, share large files with friends without having to upload them first.
 
 This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 
@@ -60,10 +60,10 @@ Minimum Windows version required is 10 or Server 2019. If you have a previous ve
 3. **download** the right version for your system, unzip and launch `hfs` file. 
    - Mac: if you get *"cannot be opened because it is from an unidentified developer"*,
      you can hold `control` key while clicking, then click `open`.
-   - If you cannot find your system in the list, see next section [Other systems](#other-systems).
+   - If your system isn't listed, please see the [Other systems](#other-systems) section.
 4. the browser should automatically open on `localhost` address, so you can configure the rest in the Admin-panel.
 
-Got problems?
+Troubleshooting
    - if a browser cannot be opened on the computer where you are installing HFS, 
      you should enter this command in the HFS console: `create-admin <PASSWORD>`
    - if you cannot access the console (like when you are running as a service), 
@@ -72,7 +72,7 @@ Got problems?
      
      `echo "create-admin: PASSWORD" > config.yaml` 
 
-If you access *Admin-panel* via localhost, by default HFS **won't** require you to login.
+By default, HFS does not require a login when you access the *Admin-panel* from localhost.
 If you don't like this behavior, disable it in the Admin-panel or enter this console command `config localhost_admin false`.
 
 ### Other systems
@@ -87,10 +87,6 @@ The `@latest` part is optional, and ensures that you are always up to date.
 If this procedure fails, it may be that you are missing one of [these requirements](https://github.com/nodejs/node-gyp#installation).
 
 Configuration and other files will be stored in `%HOME%/.vfs`
-
-## Console commands
-
-If you have full access to HFS' console, you can enter commands. Start with `help` to have a full list.
 
 ## Configuration
 
@@ -119,21 +115,23 @@ If your language is missing, please consider [translating yourself](https://gith
 
 ## Hidden features
 
-- Appending `#LOGIN` to address will bring up the login dialog
-- Appending ?lang=CODE to address will force a specific language
-- Right-click on toggle-all checkbox will invert each checkbox state
-- Appending `?login=USER:PASSWORD` will automatically log in the browser
-- Appending `?overwrite` on uploads, will override the dont_overwrite_uploading configuration, provided you also have *delete* permission
-- Appending `?search=PATTERN` will trigger search at start
-- Appending `?onlyFiles` or `?onlyFolders` will limit type of results
-- Appending `?get=basic` will show an elementary web interface, meant for old/basic browsers. This is automatic if a basic browser is detected.
-- Appending `?autoplay=shuffle` will trigger show & play; `?autoplay` will not shuffle, but also will not start until the list is complete 
-- Right-click on "check for updates" will let you input a URL of a version to install
-- Shift+click on a file will show & play
-- Type the name of a file/folder to focus it, and ctrl+backspace to go to parent folder
-- `--consoleFile PATH` will output all stdout and stderr also to a file
-- env `DISABLE_UPDATE=1` (for containers)
-- launch with `--debug` or env `HFS_DEBUG=1` to produce additional logs in console 
+- Append `#LOGIN` to the URL to open the login dialog
+- Append `?lang=CODE` to the URL to force a specific language
+- `Right-click` on toggle-all checkbox to *invert* the state of all checkboxes
+- Append `?login=USER:PASSWORD` to automatically log in to the browser
+- Append `?overwrite` when uploading to override the `dont_overwrite_uploading` configuration, provided you also have *delete* permission
+- Append `?search=PATTERN` to trigger a search on startup
+- Append `?onlyFiles` or `?onlyFolders` to limit the type of results
+- Append `?get=basic` to display a basic web interface, intended for older/simpler browsers 
+  - This is automatic if a basic browser is detected.
+- Append `?autoplay=shuffle` to trigger show & play; `?autoplay` will not shuffle, but also will not start until the list is complete 
+- `Right-click` on "check for updates" to enter a URL of a version to install
+- `Shift+click` on a file to *show* and play
+- `Ctrl+backspace` to navigate to the parent folder
+- Start typing a filename to focus it in the list
+- `--consoleFile PATH` to also output all stdout/stderr to a file
+- Set env.var. `DISABLE_UPDATE=1` (for containers)
+- Launch with `--debug` or env.var. `HFS_DEBUG=1` to generate additional console logs 
 
 ## Contribute
 
