@@ -5,7 +5,9 @@ import {
     createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState, useId
 } from 'react'
 import { useEventListener, useMediaQuery, useWindowSize } from 'usehooks-ts'
-import { domOn, ErrorMsg, hIcon, onlyTruthy, prefix, isMac, isCtrlKey, hfsEvent, formatTimestamp } from './misc'
+import {
+    domOn, ErrorMsg, hIcon, onlyTruthy, prefix, isMac, isCtrlKey, hfsEvent, formatTimestamp, restartAnimation
+} from './misc'
 import { Checkbox, CustomCode, Bytes, iconBtn, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
@@ -109,6 +111,8 @@ function FilesList() {
     const [focus, setFocus] = useState('')
     const [focusSkip, setFocusSkip] = useState(0)
     useEffect(() => setFocus(''), [theList]) // reset
+    const focusTypingId = 'focus-typing'
+    const endReached = () => restartAnimation(document.getElementById(focusTypingId), 'spin .3s')
     const navigate = useNavigate()
     const timeout = useRef()
     useEventListener('keydown', ev => {
@@ -119,7 +123,12 @@ function FilesList() {
         const { key } = ev
         if (key === 'Tab' && focus) {
             const go = ev.shiftKey ? -1 : 1
-            setFocusSkip(x => x + (go > 0 || x ? go : 0)) // we always try to go forward, and skip more, and if no enough matching items are found, we adjust "focusSkip" back
+            setFocusSkip(was => {
+                if (go > 0 || was)
+                    return was + go
+                endReached()
+                return was
+            }) // we always try to go forward, and skip more, and if no enough matching items are found, we adjust "focusSkip" back
             renewTimeout()
             ev.preventDefault()
             return
@@ -149,7 +158,7 @@ function FilesList() {
         }
         let ret = search(offset) // first attempt within this page
         if (offset && (ret < 0 || ret > pageEnd))
-            ret = search(0) // search again on whole list
+            ret = search(0) // search again on the whole list
         if (ret >= 0)
             setPage(Math.floor(ret / pageSize))
         return ret
@@ -164,7 +173,7 @@ function FilesList() {
                         return -1
                     if (focusSkip)
                         setFocusSkip(x => x - leftToSkip - 1) // prev is a result, but let's lessen the skip
-                    console.log(prev, theList[prev]?.name, leftToSkip)
+                    endReached()
                     return prev
                 }
                 if (! leftToSkip--)
@@ -206,7 +215,7 @@ function FilesList() {
 
     const focusHint = `${t('focus_hint', "By typing on your keyboard, you search and focus elements of the list.")}\n\nESC: ${t`Cancel`}`
     return h(Fragment, {},
-        focus && h('div', { id: 'focus-typing', className: focusIndex < 0 ? 'focus-typing-mismatch' : '' }, focus,
+        focus && h('div', { id: focusTypingId, className: focusIndex < 0 ? 'focus-typing-mismatch' : '' }, focus,
             hIcon('info', { style: { cursor: 'default', marginLeft: '.3em' }, title: focusHint, onClick: () => alertDialog(focusHint) }) ),
         h('ul', { ref, className: 'dir' },
             msgInstead ? h('p', {}, msgInstead)
