@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useMemo } from 'react'
-import { formatBytes, hIcon } from './misc'
+import { formatBytes, hIcon, useFixSticky } from './misc'
 import { CustomCode, Spinner } from './components'
 import { useSnapState } from './state'
 import { MenuPanel } from './menu'
@@ -11,7 +11,7 @@ import i18n from './i18n'
 const { useI18N } = i18n
 
 export function Head() {
-    return h('header', {},
+    return h('header', { ref: useFixSticky() },
         h(MenuPanel),
         h(CustomCode, { name: 'afterMenuBar' }),
         h(Breadcrumbs),

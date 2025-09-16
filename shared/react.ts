@@ -126,14 +126,24 @@ export function useIsMobile() {
     return useMediaQuery('(pointer:coarse)')
 }
 
+// workaround for the usability problem caused by sticky headers/footers. Just assign the returned value as ref prop of your sticky element.
+export function useFixSticky() {
+    return useOnResize((_w, h, _el, style) => {
+        Object.assign(document.documentElement.style, {
+            scrollPaddingTop: `${h + (parseFloat(style.top) || 0)}px`,
+            scrollPaddingBottom: `${h + (parseFloat(style.bottom) || 0)}px`,
+        })
+    }).refToPass
+}
+
 // returns props to assign to your component, and a copy of the ref; calls back with [width, height]
-export function useOnResize(cb: Callback<[number, number]>) {
+export function useOnResize(cb: (width: number, height: number, target: HTMLElement, style: CSSStyleDeclaration) => any) {
     const observer = useMemo(() =>
         new ResizeObserver(_.debounce(([{ contentRect: r, target }]) => {
             const style = getComputedStyle(target)
             const pw = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
             const ph = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
-            cb([r.width + pw, r.height + ph])
+            cb(r.width + pw, r.height + ph, target, style)
         }, 10)),
         [])
     const ref = useRef<HTMLElement>()
@@ -150,7 +160,7 @@ export function useOnResize(cb: Callback<[number, number]>) {
 
 export function useGetSize() {
     const [size, setSize] = useState<[number,number]>()
-    const { refToPass, ref } = useOnResize(setSize)
+    const { refToPass, ref } = useOnResize((w, h) => setSize([w, h]))
     return useMemo(() => ({
         w: size?.[0],
         h: size?.[1],
