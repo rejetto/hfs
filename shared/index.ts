@@ -60,7 +60,7 @@ export function domOn<K extends keyof WindowEventMap>(eventName: K, cb: (ev: Win
     return () => target.removeEventListener(eventName, cb)
 }
 
-export function restartAnimation(e: HTMLElement | null, animation: string) {
+export function restartAnimation(e: HTMLElement | null | undefined, animation: string) {
     if (!e) return
     e.style.animation = ''
     void e.offsetWidth
