@@ -14,7 +14,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import ConfigFilePage from './ConfigFilePage'
 import { useSnapState } from './state'
 import { useEventListener } from 'usehooks-ts'
-import { AriaOnly, isMac, xlate } from './misc'
+import { AriaOnly, isMac, useFixSticky, xlate } from './misc'
 import { getLocale } from './locale'
 import { fillFlexParentSx } from './DataTable'
 
@@ -130,7 +130,7 @@ function itemTitle(idx: number) {
 }
 
 function StickyBar({ title, titleSide, openMenu, props }: { props?: BoxProps, titleSide?: ReactNode, title?: string, openMenu: ()=>void }) {
-    return h(AppBar, { position: 'sticky', sx: { mb: 1 } },
+    return h(AppBar, { ref: useFixSticky(), position: 'sticky', sx: { mb: 1 },  },
         h(Toolbar, {},
             h(IconButton, {
                 size: 'large',
