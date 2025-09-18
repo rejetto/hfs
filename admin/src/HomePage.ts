@@ -109,7 +109,8 @@ export default function HomePage() {
                     h('li',{}, `disable "admin access for localhost" in HFS (safe, but you won't see users' IPs)`),
                 )),
             entry('', wikiLink('', "See the documentation"), " and ", h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "get support")),
-            !updates && with_(status.autoCheckUpdateResult, x => x?.isNewer && h(Update, { info: x, bodyCollapsed: true, title: "An update has been found" })),
+            !updates && with_(status.autoCheckUpdateResult, x =>
+                x?.isNewer && h(Update, { info: x, fromAuto: true, bodyCollapsed: true, title: "An update has been found" }) ),
             pluginUpdates.length > 0 && entry('success', "Updates available for plugin(s): " + pluginUpdates.map(p => p.id).join(', ')),
             h(ConfigForm, {
                 gridProps: { sx: { mt: 1, display: 'flex', columnGap: 1, alignitems: 'center', '&>div.MuiGrid2-root': { width: 'auto', px: .5, py: 0 }, '.MuiCheckbox-root': { pl: '2px' } } },
@@ -164,7 +165,7 @@ export default function HomePage() {
     }
 }
 
-function Update({ info, title, bodyCollapsed }: { title?: ReactNode, info: Release, bodyCollapsed?: boolean }) {
+function Update({ info, title, bodyCollapsed, fromAuto }: { title?: ReactNode, info: Release, bodyCollapsed?: boolean, fromAuto?: true }) {
     const [collapsed, setCollapsed] = useState(bodyCollapsed)
     return h(Flex, { alignItems: 'flex-start', flexWrap: 'wrap' },
         h(Card, { className: 'release' }, h(CardContent, {},
@@ -173,7 +174,7 @@ function Update({ info, title, bodyCollapsed }: { title?: ReactNode, info: Relea
                 h(Btn, {
                     icon: UpdateIcon,
                     ...!info.isNewer && info.prerelease && { color: 'warning', variant: 'outlined' },
-                    onClick: () => update(info.tag_name)
+                    onClick: () => update(fromAuto ? undefined : info.tag_name) // in case of autoCheck, don't specify the tag_name, as it may have been retired in the meantime (in favor of a newer one)
                 }, prefix("Install ", info.name, info.isNewer ? '' : " (older)")),
                 h(Link, { href: REPO_URL + 'releases/tag/' + info.tag_name, target: 'repo' }, h(OpenInNew)),
             ),
