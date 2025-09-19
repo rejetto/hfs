@@ -1,8 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { Readable } from 'stream'
-// @ts-ignore
-import { unsigned } from 'buffer-crc32'
+import bufferCrc32 from 'buffer-crc32'
+const { unsigned } = bufferCrc32
 import assert from 'assert'
 import { try_ } from './misc'
 

@@ -6,7 +6,8 @@ import { createWriteStream, mkdirSync, watch, ftruncate } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
-import { once, Readable } from 'stream'
+import { once } from 'events'
+import { Readable } from 'stream'
 // @ts-ignore
 import unzipper from 'unzip-stream'
 
