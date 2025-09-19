@@ -9,7 +9,7 @@ for (const k of ['log','warn','error']) {
     const original = console[k as 'log']
     console[k as 'log'] = (...args: any[]) => {
         const ts = new Date()
-        const msg = args.join(' ')
+        const msg = safeJoin(args) // if args contains a symbol, join will throw
         const rec = { ts, k, msg }
         consoleLog.push(rec)
         if (consoleLog.length > 100_000) // limit to avoid infinite space
@@ -19,5 +19,22 @@ for (const k of ['log','warn','error']) {
         if (k !== 'log')
             args.unshift('!')
         return original(formatTime(ts), ...args) // bundled nodejs doesn't have locales (and apparently uses en-US)
+    }
+}
+
+function safeJoin(a: unknown[]): string {
+    try { return a.join(' ') }
+    catch {
+        return a.map(x => {
+            if (x == null)
+                return ''
+            try { return String(x) }
+            catch {
+                if (Array.isArray(x))
+                    return `[${safeJoin(x)}]`
+                try { return JSON.stringify(x) }
+                catch { return 'N/A' }
+            }
+        }).join(' ')
     }
 }

@@ -134,7 +134,7 @@ export class DirentFromStats extends Dirent {
 
 for (const key of Reflect.ownKeys(Dirent.prototype)) {
     const name = key as DirentStatsKeysIntersection | 'constructor';
-    if (name === 'constructor')
+    if (name === 'constructor' || typeof name === 'symbol')
         continue;
     DirentFromStats.prototype[name] = function () {
         return this[kStats][name]();

@@ -95,7 +95,7 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
     useEffect(() => {
         setError(undefined)
         const aborted = () => getLoading()?.aborted()
-        const wholePromise = wait(0) // postpone a bit, so that if it is aborted immediately, it is never really fired (happens mostly in dev mode)
+        const wholePromise = wait(0) // postpone a bit so that if it is aborted immediately, it is never really fired (happens mostly in dev mode)
             .then(() => {
                 const ret = !cmd || aborted() ? undefined : apiCall<T>(cmd, params, options)
                 setLoading(ret)

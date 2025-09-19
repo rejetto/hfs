@@ -79,7 +79,7 @@ export async function getVersions(interrupt?: (r: Release) => boolean) {
 }
 
 export async function getUpdates(strict=false) {
-    getProjectInfo() // check for alerts
+    void getProjectInfo() // also check for alerts and print them asap in the console
     const stable: Release = prepareRelease(await getRepoInfo(HFS_REPO + '/releases/latest'))
     const res = await getVersions(r => r.versionScalar < stable.versionScalar) // we don't consider betas before stable
     const ret = res.filter(x => x.prerelease && (strict ? x.isNewer : (x.versionScalar !== curV)) )
