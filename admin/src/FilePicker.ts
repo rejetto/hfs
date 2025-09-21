@@ -5,7 +5,7 @@ import { apiCall, useApiList } from './api'
 import _ from 'lodash'
 import { Alert, Box, Button, Checkbox, ListItemIcon, ListItemText, MenuItem, TextField, Typography } from '@mui/material'
 import { enforceFinal, formatBytes, isWindowsDrive, err2msg, basename, formatPerc } from './misc'
-import { spinner, Center, IconBtn, Flex, IconProgress } from './mui'
+import { spinner, Center, IconBtn, Flex, IconProgress, useBreakpoint } from './mui'
 import { ArrowUpward, CreateNewFolder, Storage, VerticalAlignTop } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { FileIcon, FolderIcon } from './VfsTree'
@@ -47,6 +47,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
         return (v:string) => re.test(v)
     }, [filter])
 
+    const sm = useBreakpoint('sm')
     const [listHeight, setListHeight] = useState(0)
     const filteredList = useMemo(() => _.sortBy(list.filter(it => filterMatch(it.n)), ['k', 'n']), [list,filterMatch])
     const root = isWindows.current ? '' : '/'
@@ -148,7 +149,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                         onClick() {
                             onSelect(sel.length ? sel.map(x => cwdDelimiter + x) : [cwd])
                         }
-                    }, files && (sel.length || !folders) ? `Select (${sel.length})` : `Select this folder`),
+                    }, files && (sel.length || !folders) ? `Select (${sel.length})` : sm ? "Select this folder" : "This folder"),
                     h(TextField, {
                         size: 'small',
                         value: filter,

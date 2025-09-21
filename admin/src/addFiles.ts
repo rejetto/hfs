@@ -13,7 +13,7 @@ let lastFolder: undefined | string
 export default function addFiles() {
     const { close } = newDialog({
         title: "Add files or folders",
-        dialogProps: { sx:{ minWidth: 'min(90vw, 40em)', minHeight: 'calc(100vh - 9em)' } },
+        dialogProps: { sx:{ minWidth: 'min(80vw, 40em)', minHeight: 'calc(100vh - 9em)' } },
         Content() {
             const parent = getFolderFromSelected()
             return h(Fragment, {},
