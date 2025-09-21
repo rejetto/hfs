@@ -37,7 +37,7 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
         return h(Modal, { open: true, children: h(Center, {}, h(d.Content)) })
     return h(MuiDialog, {
         open: true,
-        maxWidth: 'lg',
+        maxWidth: false,
         fullScreen: mobile,
         ...rest,
         ...root,

@@ -87,7 +87,6 @@ export default function OnlinePlugins() {
                     disabled: !row.preview,
                     onClick: () => newDialog({
                         title: id,
-                        dialogProps: { sx: { minHeight: '50vh', minWidth: '50vw' } }, // the image will use available space, so we must reserve it (while mobile is going full-screen)
                         Content: () => h(ShowImages, { imgs: wantArray(row.preview) })
                     })
                 }),
@@ -99,7 +98,7 @@ export default function OnlinePlugins() {
 function ShowImages({ imgs }: { imgs: string[] }) {
     const [cur, setCur] = useState(0)
     return h(Flex, { vert: true, flex: 1 },
-        h(Flex, { vert: true, center: true, height: 0, flex: 'auto' },
+        h(Flex, { vert: true, center: true, height: 0, flex: 'auto', minHeight: '50vh', minWidth: '50vw'  },
             h('img', { src: imgs[cur], style: { margin: 'auto', /*center*/ maxWidth: '100%', maxHeight: '100%' /*limit*/ } }),
         ),
         imgs.length > 1 && h(Flex, { center: true },
