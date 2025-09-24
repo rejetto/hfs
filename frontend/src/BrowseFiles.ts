@@ -6,7 +6,8 @@ import {
 } from 'react'
 import { useEventListener, useMediaQuery, useWindowSize } from 'usehooks-ts'
 import {
-    domOn, ErrorMsg, hIcon, onlyTruthy, prefix, isMac, isCtrlKey, hfsEvent, formatTimestamp, restartAnimation
+    domOn, ErrorMsg, hIcon, onlyTruthy, prefix, isMac, isCtrlKey, hfsEvent, formatTimestamp, restartAnimation,
+    anyDialogOpen
 } from './misc'
 import { Checkbox, CustomCode, Bytes, iconBtn, Spinner } from './components'
 import { Head } from './Head'
@@ -116,24 +117,25 @@ function FilesList() {
     const navigate = useNavigate()
     const timeout = useRef()
     useEventListener('keydown', ev => {
-        if (ev.target !== document.body && !(ev.target && ref.current?.contains(ev.target as any))) return
+        if (anyDialogOpen()) return // won't work while dialogs are open
         if (isCtrlKey(ev as any) === 'Backspace' && location.pathname > '/')
             return navigate(location.pathname + '..')
         if (ev.metaKey || ev.ctrlKey || ev.altKey) return
         const { key } = ev
-        if (key === 'Tab' && focus) {
+        if (key === 'Tab' && focusIndex >= 0) { // tab key while we are already focusing will cycle over matching entries
             const go = ev.shiftKey ? -1 : 1
             setFocusSkip(was => {
                 if (go > 0 || was)
                     return was + go
                 endReached()
                 return was
-            }) // we always try to go forward, and skip more, and if no enough matching items are found, we adjust "focusSkip" back
+            }) // we always try to go forward and skip more, and if no enough matching items are found, we adjust "focusSkip" back
             renewTimeout()
             ev.preventDefault()
             return
         }
         if (key === ' ' && !focus) return
+        if ((ev.target as any)?.tagName?.match(/INPUT|TEXTAREA|SELECT/)) return
         if (key.length === 1 || key === 'Backspace')
             ev.preventDefault()
         setFocus(was => {
@@ -365,7 +367,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
         const special = isMac ? ev.shiftKey : ev.metaKey
         if (special && getShowComponent(entry))
             return fileShow(entry, { startPlaying: true })
-        openFileMenu(entry, ev, onlyTruthy([
+        void openFileMenu(entry, ev, onlyTruthy([
             file_menu_on_link && 'open',
             'delete',
             'show'
