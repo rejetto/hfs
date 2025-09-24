@@ -10,7 +10,7 @@ import { statSync } from 'fs'
 import { join, resolve } from 'path'
 import events from './events'
 import { copyFile, stat } from 'fs/promises'
-import produce, { setAutoFreeze } from 'immer'
+import { produce, setAutoFreeze } from 'immer'
 import { argv } from './argv'
 
 setAutoFreeze(false) // we still want to mess with objects later (eg: account.belongs)

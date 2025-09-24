@@ -8,7 +8,7 @@ import { Alert } from '@mui/material'
 import _ from 'lodash'
 import { state } from './state'
 import { Refresh } from '@mui/icons-material'
-import produce, { Draft } from 'immer'
+import { produce, Draft } from 'immer'
 import { ApiError, apiEvents, setDefaultApiCallOptions, useApi } from '@hfs/shared/api'
 export * from '@hfs/shared/api'
 

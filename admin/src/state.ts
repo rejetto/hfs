@@ -5,7 +5,7 @@ import { Dict } from './misc'
 import { VfsNode } from './VfsPage'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
-import produce from 'immer'
+import { produce } from 'immer'
 
 const STORAGE_KEY = 'admin_state'
 const INIT = {
