@@ -5,6 +5,7 @@ dist
 .DS_Store
 #produced by running
 tests/work
+tests/work2
 tests/config.yaml.bak
 
 # Playwright

@@ -289,3 +289,59 @@ async function screenshot(page: Page, selectorForMask='') {
   await wait(1000) // this accounts especially for our DataTable component which takes time to set the layout
   return expect(page).toHaveScreenshot({ fullPage: true, mask: [page.locator(`.maskInTests${selectorForMask}`)] });
 }
+
+test('anew', async ({ page, browserName }) => {
+    if (page.viewportSize()?.width! < 1000 || browserName !== 'chromium') return // test only for desktop chromium
+    await fs.promises.writeFile('tests/work2/config.yaml', "port: 82\nopen_browser_at_start: false"); // reset config
+    await wait(500) // ensure new config is aplied
+    await page.goto('http://localhost:82/');
+    await expect(page.getByText('Nothing here')).toBeVisible();
+    await page.getByRole('button', { name: 'Options' }).click();
+    const page1Promise = page.waitForEvent('popup');
+    await page.getByRole('button', { name: 'Admin-panel' }).click();
+    const page1 = await page1Promise;
+    await page1.getByRole('link', { name: 'add some' }).click();
+    await page1.getByRole('button', { name: 'Add' }).click();
+    await page1.getByRole('menuitem', { name: 'from disk' }).click();
+    await page1.getByRole('textbox', { name: /Filter results/ }).fill('data');
+    await expect(page1.getByText('Filter results (1/')).toBeVisible();
+    await page1.getByRole('checkbox').check();
+    await page1.getByText('data.kv').click();
+    await page1.getByRole('button', { name: 'Add' }).click();
+    await page1.getByRole('menuitem', { name: 'from disk' }).click();
+    await page1.getByRole('button', { name: 'Select this folder' }).click();
+    await page1.getByRole('button', { name: 'Add' }).click();
+    await page1.getByRole('menuitem', { name: 'virtual folder' }).click();
+    await page1.getByRole('textbox').fill('folder1');
+    await page1.getByRole('textbox').press('Enter');
+    await page1.getByRole('dialog').locator('div').nth(1).click();
+    await page1.locator('.MuiDialog-container').press('Escape')
+    await page1.locator('#vfs').click();
+    await page1.getByText('folder1', { exact: true }).click();
+    await page1.getByRole('treeitem', { name: 'folder1' }).locator('path').first().click();
+    await page1.getByText('folder1', { exact: true }).click();
+    await page1.getByRole('button', { name: 'Cut' }).click();
+    await page1.locator('div').filter({ hasText: 'InfoNow that this is marked' }).nth(1).click();
+    await page1.getByRole('button', { name: '(Close)' }).click();
+    await page1.getByText('Home folder').click();
+    await page1.getByRole('button', { name: '(/work2/folder1/)' }).click();
+    await page1.getByText('/Users/rejetto/code/hfs/tests/work2/data.kv').click();
+    await page1.getByRole('button', { name: 'Cut' }).click();
+    await page1.getByRole('button', { name: '(Close)' }).click();
+    await page1.getByText('folder1').click();
+    await page1.getByRole('button', { name: '(/data.kv)' }).click();
+    await page1.locator('[id="vfs-/"] div').filter({ hasText: /work2\/data\.kv$/ }).nth(4).click();
+    await page.getByRole('button', { name: 'Close' }).click();
+    await page.getByRole('link', { name: 'home' }).click();
+    await page.getByRole('link', { name: 'Reload' }).click();
+    await page.getByRole('link', { name: 'folder1, Folder' }).click();
+    await page.getByRole('link', { name: 'data.kv' }).click();
+    await page.getByRole('button', { name: 'Close' }).click();
+    await page.locator('.list-wrapper > div').press('Control+Backspace');
+    await page.getByRole('link', { name: 'work2, Folder' }).click();
+    await page.getByRole('link', { name: 'config.yaml', exact: true }).click();
+    const page2Promise = page.waitForEvent('popup');
+    await page.getByRole('link', { name: 'Open' }).click();
+    const page2 = await page2Promise;
+    await page2.getByText(/folder1/).click();
+});

@@ -92,9 +92,13 @@ export default defineConfig({
     },
   },
   /* Run your local dev server before starting the tests */
-   webServer: {
+   webServer: [{
      command: 'npm run server-for-test',
      url: 'http://127.0.0.1:81',
      reuseExistingServer: !process.env.CI,
-   },
+   }, {
+       command: 'rm -rf tests/work2 && node dist/src --cwd tests/work2 --debug --port 82 --open_browser_at_start false',
+       url: 'http://127.0.0.1:82',
+       reuseExistingServer: !process.env.CI,
+   }]
 });
