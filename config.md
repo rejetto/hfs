@@ -30,11 +30,12 @@ Configuration can be done in several ways
 - accessing the Admin-panel with your browser
     - it will automatically open when you start HFS. Bookmark it.
       If your port is 8000 the address will be http://localhost:8000/~/admin
-- passing via command line at start in the form `--NAME VALUE`
-- using envs in the form `HFS_<uppercase property name>`, like `HFS_PORT=80` if you want to change the config `port`, but same applies to any other config available,
-- directly editing the `config.yaml` file. As soon as you save it is reloaded and changes are applied
-  - if you don't want to use an editor, consider typing this (example) command inside the folder where the config file is:
-    `echo "port: 1080" >> config.yaml` 
+- directly editing the `config.yaml` file. As soon as you save, it is reloaded and changes are applied
+    - if you don't want to use an editor, consider typing this (example) command inside the folder where the config file is:
+      `echo "port: 1080" >> config.yaml`
+- passing via command line at start in the form `--NAME VALUE`. Values can use JSON syntax.
+- using envs in the form `HFS_<uppercase property name>`, like `HFS_PORT=80` if you want to change the config `port`, 
+  but the same applies to any other config available. Values can use JSON syntax.
 - after HFS has started you can enter console command in the form `config NAME VALUE`
 - setting special env `HFS_ENV_BOOTSTRAP=true` will disable other envs when file config.yaml already exists. 
 - env `DISABLE_UPDATE` (designed for containers) will disable updating, but check-for-update will still be possible.  
