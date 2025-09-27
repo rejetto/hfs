@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "0.57.19",
+  "version": "0.57.20",
   "description": "HTTP File Server",
   "keywords": ["file server", "http server"],
   "homepage": "https://rejetto.com/hfs",
@@ -97,7 +97,7 @@
     "picomatch": "^4.0.3",
     "tssrp6a": "^3.0.0",
     "unzip-stream": "^0.3.4",
-    "valtio": "^2.1.7",
+    "valtio": "^1.13.2",
     "xxhashjs": "^0.2.2",
     "yaml": "^2.8.1"
   },
