@@ -153,19 +153,20 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
             }
         },
         fields: [
-            isRoot ? h(Alert, { severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
+            isRoot ? h(Alert, { severity: 'info' }, "This is the Home folder, the root of your shared files. Options set here will be applied to all files.")
                 : isDir && hasSource && h(Alert, { severity: 'info' }, `To set permissions on individual items in folder, add them by clicking Add button, and then "from disk"`),
-            !isRoot && {
+            {
                 k: 'name', required: true, xl: true, helperText: hasSource && "You can decide a name that's different from the one on your disk",
+                ...isRoot && { disabled: true, value: "Home folder" },
                 end: nameFromSource && !nameIsDerivedFromSource && h(Btn, {
                     icon: RestartAlt, title: "Reset to same name on disk",
                     onClick: () => setValues({ ...values, name: nameFromSource })
                 }),
             },
-            isLink ? { k: 'url', label: "URL", lg: 12, required: true }
+            isLink ? { k: 'url', label: "URL", lg: 12, xl: 8, required: true }
                 : { k: 'source', label: "Disk source", xl: true, comp: FileField, files: isUnknown || !isDir, folders: isUnknown || isDir,
                     placeholder: "none",
-                    helperText: !values.source ? "This field is currently empty, and thus this element is a virtual-folder, no upload or delete is possible here."
+                    helperText: !values.source ? "If you enter a path here, its content will be listed. Leaving this empty, makes this folder fully virtual."
                         : isDir ? "Content from this path on disk will be listed, but you can also add more" : undefined,
             },
             { k: 'id', comp: LinkField, statusApi, xs: 12 },
