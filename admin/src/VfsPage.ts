@@ -39,11 +39,10 @@ export default function VfsPage({ setTitleSide }: PageProps) {
             ret.unshift(b)
         return ret
     }, [status, config])
-    const single = selectedFiles?.length < 2 && (selectedFiles[0] as VfsNode || vfs)
     const accountsApi = useApiEx<{ list: Account[] }>('get_accounts') // load accounts once and for all, or !isSideBreakpoint will cause a call for each selection
     const accounts = useMemo(() => _.sortBy(accountsApi?.data?.list, 'username'), [accountsApi.data])
 
-    // this will take care of closing the dialog, for user's convenience, after "cut" button is pressed
+    // this will take care of closing the dialog, for the user's convenience, after "cut" button is pressed
     const closeDialogRef = useRef(_.noop)
     useEffect(() => {
         if (movingFile === selectedFiles[0]?.id)
@@ -68,7 +67,8 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         hintElement,
     ), [hintElement]))
 
-    const sideContent = accountsApi.element || !vfs ? null
+    const single = selectedFiles?.length < 2 && selectedFiles[0] as VfsNode
+    const sideContent = accountsApi.element || !vfs || !selectedFiles.length ? null
         : single ? h(FileForm, {
             key: single.id,
             isSideBreakpoint,
@@ -76,7 +76,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
             statusApi,
             saved: () => closeDialogRef.current(),
             accounts: accounts ?? [],
-            file: single  // it's actually Snapshot<VfsNode> but it's easier this way
+            file: single
         })
         : h(Fragment, {},
             h(Flex, {},
