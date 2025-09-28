@@ -1,18 +1,17 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { MouseEvent, createElement as h, Fragment, useCallback, useId, useState } from 'react'
-import { Button, ButtonProps, Menu, MenuItem } from '@mui/material'
+import { Menu, MenuItem } from '@mui/material'
+import { Btn, BtnProps } from './mui'
 
-interface Props extends ButtonProps { items: any[] }
-
-export default function MenuButton({ items, ...rest }: Props) {
+export default function MenuButton({ items, ...rest }: BtnProps & { items: any[] }) {
     const [anchorEl, setAnchorEl] = useState<HTMLElement>()
     const open = Boolean(anchorEl)
     const onClose = useCallback(() => setAnchorEl(undefined), [])
     const id = useId()
     const menuId = useId()
     return h(Fragment, {},
-        h(Button, {
+        h(Btn, {
             id,
             'aria-controls': open ? menuId : undefined,
             'aria-haspopup': true,

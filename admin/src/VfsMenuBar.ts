@@ -1,8 +1,10 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, ReactNode } from 'react'
-import { Alert, Box, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
-import { Storage } from '@mui/icons-material'
+import { Alert, Box, ButtonProps, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
+import { Add, Storage } from '@mui/icons-material'
+import addFiles, { addLink, addVirtual } from './addFiles'
+import MenuButton from './MenuButton'
 import { osIcon } from './LogsPage'
 import { reloadVfs } from './VfsPage'
 import { prefix } from './misc'
@@ -16,9 +18,11 @@ import { getDiskSpaces } from '../../src/util-os'
 export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusApi: ApiObject }) {
     return h(Flex, {
         zIndex: 2,
+        gap: 1,
         backgroundColor: 'background.paper',
         width: 'fit-content',
     },
+        h(AddVfsBtn),
         reloadBtn(() => reloadVfs()),
         h(Btn, {
             icon: Storage,
@@ -38,6 +42,19 @@ export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusA
         add,
         h(SystemIntegrationButton, statusApi.data)
     )
+}
+
+export function AddVfsBtn(props: Partial<ButtonProps>) {
+    return h(MenuButton, {
+        variant: 'contained',
+        icon: Add,
+        ...props,
+        items: [
+            { children: "virtual folder", onClick: addVirtual },
+            { children: "file or folder from disk", onClick: addFiles },
+            { children: "web-link", onClick: addLink  },
+        ]
+    })
 }
 
 function SystemIntegrationButton({ platform }: { platform: string | undefined }) {

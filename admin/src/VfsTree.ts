@@ -109,22 +109,22 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
     const [expandAll, toggleBtn] = useToggleButton("Collapse all", "Expand all", exp => ({
         icon: exp ? UnfoldLess : UnfoldMore,
         sx: { rotate: exp ? 0 : '180deg' },
-    }))
+    }), expanded.length === id2node.size)
     useEffectOnce(() => { // this is also resetting the state at each mount
         state.expanded = expandAll ? Array.from(id2node.keys())
-            : state.expanded.length ? state.expanded // keep previous state
+            : state.expanded.length ? state.expanded // keep the previous state
                 :  ['/', ...vfs?.children?.length === 1 ? [vfs.children[0].id] : []] // in case there's only one child, expand that too
-    }, [expandAll, Boolean(vfs)]) // vfs is undefined on first render, we want to be called again as soon as it is loaded first time and not at reloads
+    }, [expandAll, Boolean(vfs)]) // vfs is undefined on the first render, we want to be called again as soon as it is loaded first time and not at reloads
     useEffect(() => {
         state.expanded = _.uniq(state.expanded.concat(state.selectedFiles.map(x => x.parent?.id || '')))
     }, [state.vfs])
-    // be sure selected element is visible
+    // be sure the selected element is visible
     const treeId = 'vfs'
     const first = selectedFiles[0]
     useEffect(() => document.getElementById(`${treeId}-${first?.id}`)?.scrollIntoView({ block: 'center', behavior: 'instant' as any }),
         [first])
     return h(Flex, { flexDirection: 'column', alignItems: 'stretch', flex: 1 },
-        h(Flex, { mb: 1, flexWrap: 'wrap', gap: [0, 2] },
+        h(Flex, { mb: 1, flexWrap: 'wrap', gap: [1, 2] },
             h(Typography, { variant: 'h6' }, "Virtual File System"),
             h(VfsMenuBar, { statusApi, add: toggleBtn }),
         ),

@@ -20,12 +20,11 @@ import FileField from './FileField'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
 import yaml from 'yaml'
 import {
-    Add, Check, ContentCopy, ContentCut, ContentPaste, Delete, Edit, QrCode2, Save, RestartAlt
+    Check, ContentCopy, ContentCut, ContentPaste, Delete, Edit, QrCode2, Save, RestartAlt
 } from '@mui/icons-material'
 import { moveVfs } from './VfsTree'
 import QrCreator from 'qr-creator';
-import MenuButton from './MenuButton'
-import addFiles, { addLink, addVirtual } from './addFiles'
+import { AddVfsBtn } from './VfsMenuBar'
 import { SYS_ICONS } from '@hfs/frontend/src/sysIcons'
 import { hIcon } from '@hfs/frontend/src/misc'
 import { TextEditorField } from './TextEditor'
@@ -39,8 +38,9 @@ interface FileFormProps {
     statusApi: UseApi
     accounts: Account[]
     saved: Callback
+    isSideBreakpoint: boolean
 }
-export default function FileForm({ file, addToBar, statusApi, accounts, saved }: FileFormProps) {
+export default function FileForm({ file, addToBar, statusApi, accounts, saved, isSideBreakpoint }: FileFormProps) {
     const { parent, children, isRoot, byMasks, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
@@ -95,15 +95,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
         barSx: { gap: 2, width: '100%', ...barColors },
         stickyBar: true,
         addToBar: [
-            h(MenuButton, {
-                variant: 'outlined',
-                startIcon: h(Add),
-                items: [
-                    { children: "from disk", onClick: addFiles },
-                    { children: "virtual folder", onClick: addVirtual },
-                    { children: "web-link", onClick: addLink  },
-                ]
-            }, "Add"),
+            isDir && !isSideBreakpoint && h(AddVfsBtn, { variant: 'outlined' }, "Add"),
             h(IconBtn, {
                 icon: ContentCut,
                 disabled: isRoot || movingFile === file.id,

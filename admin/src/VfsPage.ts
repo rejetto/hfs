@@ -9,10 +9,9 @@ import { CFG, matches, newDialog, normalizeHost, onlyTruthy, pathEncode, prefix,
 import { Flex, useBreakpoint } from './mui'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
-import { AlertProps } from '@mui/material/Alert/Alert'
 import { Account } from './AccountsPage'
 import FileForm from './FileForm'
-import { Delete } from '@mui/icons-material'
+import { Add, Delete } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
 import { PageProps } from './App'
 
@@ -51,27 +50,28 @@ export default function VfsPage({ setTitleSide }: PageProps) {
             closeDialogRef.current()
     }, [movingFile])
 
-    const anythingShared = !data?.root?.children?.length && !data?.root?.source
-    const alert: AlertProps | false = useMemo(() => anythingShared ? {
+    const nothingShared = !data?.root?.children?.length && !data?.root?.source
+    const hintElement = useMemo(() => nothingShared ? h(Alert, {
         severity: 'warning',
-        children: "Add something to your shared files — click Add"
-    } : urls?.length > 0 && {
+        children: h(Fragment, {}, "Add something to your virtual file system — click the ", h(Add), "button, or set a source for the Home folder"),
+    }) : urls?.length > 0 && h(Alert, {
         severity: 'info',
         children: [
             "Your shared files can be browsed from ",
             h('span', { className: 'hideInTests', key: 0 },
                 reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href, target: 'frontend' }, href))) )
         ]
-    }, [anythingShared, urls])
+    }), [nothingShared, urls])
 
     setTitleSide(useMemo(() => h(Box, { sx: { display: { xs: 'none', md: 'block' }  } },
         h(Alert, { severity: 'info' }, "If you rename or delete here, it's virtual, and only affects what is presented to the users"),
-        alert && h(Alert, alert),
-    ), [alert]))
+        hintElement,
+    ), [hintElement]))
 
     const sideContent = accountsApi.element || !vfs ? null
         : single ? h(FileForm, {
             key: single.id,
+            isSideBreakpoint,
             addToBar: isSideBreakpoint && h(Box, { flex: 1, textAlign: 'right', mr: 1, color: '#8883' }, vfsNodeIcon(single)),
             statusApi,
             saved: () => closeDialogRef.current(),
