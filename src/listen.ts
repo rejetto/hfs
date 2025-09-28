@@ -22,6 +22,7 @@ import { isIPv6 } from 'net'
 import { defaultBaseUrl } from './nat'
 import { storedMap } from './persistence'
 import { argv } from './argv'
+import { consoleHint } from './consoleLog'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
@@ -55,7 +56,7 @@ const considerHttp = debounceAsync(async () => {
     if (port === PORT_DISABLED) return
     if (!await startServer(httpSrv, { port, host }))
         if (port !== 80)
-            return console.log(`HINT: try specifying a different port, enter this command: config ${portCfg.key()} 1080`)
+            return consoleHint(`try specifying a different port, enter this command: config ${portCfg.key()} 1080`)
         else if (!await startServer(httpSrv, { port: 8080, host }))
             return
     httpSrv.on('connection', newConnection)
@@ -81,7 +82,7 @@ export function openAdmin() {
             console.warn("cannot launch browser on this machine >PLEASE< open your browser and reach one of these (you may need a different address)",
                 ...Object.values(await getUrls()).flat().map(x => '\n - ' + x + ADMIN_URI))
             if (! anyAccountCanLoginAdmin())
-                console.log(`HINT: you can enter command: create-admin YOUR_PASSWORD`)
+                consoleHint(`you can enter this command: create-admin YOUR_PASSWORD`)
         })
         return true
     }

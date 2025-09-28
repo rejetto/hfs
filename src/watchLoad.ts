@@ -2,7 +2,7 @@
 
 import { FSWatcher, watch } from 'fs'
 import fs from 'fs/promises'
-import { readFileBusy } from './misc'
+import { readFileBusy } from './util-files'
 import { debounceAsync } from './debounceAsync'
 import { BetterEventEmitter } from './events'
 

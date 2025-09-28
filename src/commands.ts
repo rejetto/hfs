@@ -7,29 +7,69 @@ import { getUpdates, update } from './update'
 import { openAdmin } from './listen'
 import yaml from 'yaml'
 import { BUILD_TIMESTAMP, VERSION } from './const'
-import { createInterface } from 'readline'
+import { createInterface, cursorTo } from 'node:readline'
+import { quitting } from './first'
 import { getAvailablePlugins, mapPlugins, startPlugin, stopPlugin } from './plugins'
 import { purgeFileAttr } from './fileAttr'
 import { downloadPlugin } from './github'
 import { Dict, formatBytes, formatSpeed, formatTimestamp, makeMatcher } from './cross'
 import apiMonitor from './api.monitor'
 import { argv } from './argv'
+import { consoleHint } from './consoleLog'
+import { debounceAsync } from './debounceAsync'
 
-if (!argv.updating && !showHelp)
+if (!argv.updating && !showHelp) {
     try {
-        /*
-        is this try-block useful in case the stdin is unavailable?
-        Not sure, but someone reported a problem using nohup https://github.com/rejetto/hfs/issues/74
-        and I've found this example try-catching https://github.com/DefinitelyTyped/DefinitelyTyped/blob/dda83a906914489e09ca28afea12948529015d4a/types/node/readline.d.ts#L489
-        */
-        createInterface({ input: process.stdin }).on('line', parseCommandLine)
-        console.log(`HINT: type "help" for help`)
+        // Not sure if the try is necessary for when stdin is unavailable, but someone reported a problem using nohup https://github.com/rejetto/hfs/issues/74 and I've found this example try-catching https://github.com/DefinitelyTyped/DefinitelyTyped/blob/dda83a906914489e09ca28afea12948529015d4a/types/node/readline.d.ts#L489
+        const tty = process.stdin.isTTY && process.stdout.isTTY || undefined
+        const prompter = createInterface({ input: process.stdin, output: process.stdout, prompt: tty && 'command> ' })
+                .on('line', x => parseCommandLine(x).then(showPrompt))
+
+        let isClean = true
+        let cleaning: undefined | Promise<void>
+        const showPrompt = tty && debounceAsync(async () => {
+            await cleaning
+            if (quitting || !tty) return
+            prompter.prompt(true)
+            isClean = false
+        }, { wait: 100 })
+        function clean() {
+            if (isClean) return
+            return cleaning ||= new Promise(resolve => {
+                cursorTo(process.stdout, 0, undefined, () => {// we don't need to clean as long as the prompt is never longer then the printed line
+                    resolve()
+                    cleaning = undefined
+                    isClean = true
+                })
+            })
+        }
+
+        showPrompt?.()
+        // print this hint when we have not been printing anything else for a while, to not get mixed too much
+        let printHintOnce = tty && _.debounce(() => {
+            consoleHint("this is an interactive console, you can enter commands")
+            printHintOnce = undefined as any // never more
+        }, 2000)
+        _.each(console, (v: any, k) => {
+            if (!_.isFunction(v)) return
+            ;(console as any)[k] = async (...args: any[]) =>  {
+                if (!quitting && tty)
+                    await clean()
+                try { v(...args) }
+                finally {
+                    showPrompt?.()
+                    printHintOnce?.()
+                }
+            }
+        })
+
     }
     catch {
         console.log("console commands not available")
     }
+}
 
-function parseCommandLine(line: string) {
+async function parseCommandLine(line: string) {
     if (!line) return
     let [name, ...params] = line.trim().split(/ +/)
     name = aliases[name!] || name
@@ -37,15 +77,18 @@ function parseCommandLine(line: string) {
     if (cmd?.alias)
         cmd = (commands as any)[cmd.alias]
     if (!cmd)
-        return console.error("cannot understand entered command, try 'help'")
+        return console.error("invalid command, try 'help'")
     if (cmd.cb.length > params.length)
         return console.error("insufficient parameters, expected: " + cmd.params)
-    Promise.resolve(cmd.cb(...params)).then(() => console.log("+++ command executed"),
-        (err: any) => {
-            if (typeof err !== 'string' && !err?.message)
-                throw err
-            console.error("command failed:", err.message || err)
-        })
+    try {
+        await cmd.cb(...params)
+        console.log("+++ command executed")
+    }
+    catch(err: any) {
+        if (typeof err !== 'string' && !err?.message)
+            throw err
+        console.error("command failed:", err.message || err)
+    }
 }
 
 const aliases: Dict<string> = { ver: 'version', exit: 'quit' }
@@ -54,7 +97,7 @@ const commands = {
     help: {
         params: '',
         cb() {
-            console.log("supported commands:",
+            console.log("available commands:",
                 ..._.map(commands, ({ params }, name) =>
                     '\n - ' + name + ' ' + params))
         }

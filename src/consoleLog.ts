@@ -38,3 +38,7 @@ function safeJoin(a: unknown[]): string {
         }).join(' ')
     }
 }
+
+export function consoleHint(msg: string) {
+    console.log("HINT: "+ msg)
+}

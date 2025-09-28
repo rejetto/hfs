@@ -163,15 +163,15 @@ export function addAccount(username: string, props: Partial<Account>, updateExis
     if (account && !updateExisting) return
     account = setHidden(account || {}, { username })  // hidden so that stringification won't include it
     Object.assign(account, _.pickBy(props, Boolean))
-    accounts.set(accounts =>
-        Object.assign(accounts, { [username]: account }))
+    accounts.set(was =>
+        Object.assign(was, { [username]: account }))
     return updateAccount(account, account).then(() => account!)
 }
 
 export function delAccount(username: string) {
     if (!getAccount(username))
         return false
-    accounts.set(x => _.omit(x, normalizeUsername(username)) )
+    accounts.set(was => _.omit(was, normalizeUsername(username)) )
     saveAccountsAsap()
     return true
 }

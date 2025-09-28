@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { access, mkdir, readFile, stat } from 'fs/promises'
-import { Promisable, try_, wait, isWindowsDrive } from './misc'
+import { Promisable, try_, wait, isWindowsDrive } from './cross'
 import { createWriteStream, mkdirSync, watch, ftruncate } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'

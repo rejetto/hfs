@@ -7,9 +7,15 @@ export function onProcessExit(cb: ProcessExitHandler) {
     cbs.add(cb)
     return () => cbs.delete(cb)
 }
+
+export let quitting = false
+onProcessExit(() => quitting = true)
+
 onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT', 'SIGHUP'], signal =>
-    Promise.allSettled(Array.from(cbs).map(cb => cb(signal))).then(() =>
-        process.exit(0)))
+    Promise.allSettled(Array.from(cbs).map(cb => cb(signal))).then(() => {
+        console.log('quitting')
+        process.exit(0)
+    }))
 
 export function onFirstEvent(emitter:EventEmitter, events: string[], cb: (...args:any[])=> void) {
     let already = false
