@@ -159,7 +159,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
     return h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
         h(Grid, { item: true, xs: 12, [sideBreakpoint]: 5, lg: 6, xl: 5, ...scrollProps  },
-            h(VfsTree, { id2node, statusApi }) ),
+            id2node.size > 0 && h(VfsTree, { id2node, statusApi }) ),
         isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth: '100%', ...scrollProps },
             h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
                 h(CardContent, {}, sideContent)) )
@@ -181,7 +181,7 @@ export async function deleteFiles() {
             && _.findLastIndex(uris, y => x.startsWith(y), i - 1) !== -1) // search backward among previous elements, as they array is sorted
         _.pull(uris, '/')
         const { errors } = await apiCall('del_vfs', { uris })
-        const urisThatFailed = uris.filter((uri, idx) => errors[idx])
+        const urisThatFailed = uris.filter((_uri, idx) => errors[idx])
         if (urisThatFailed.length)
             return alertDialog("Following elements couldn't be deleted: " + urisThatFailed.join(', '), 'error')
         reloadVfs()

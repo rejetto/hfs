@@ -9,7 +9,7 @@ import {
 } from '@mui/icons-material'
 import { Box, Typography } from '@mui/material'
 import { reloadVfs, VfsNode } from './VfsPage'
-import { onlyTruthy, toMutable, useEffectOnce, Who, with_ } from './misc'
+import { onlyTruthy, toMutable, Who, with_ } from './misc'
 import { Flex, iconTooltip, useToggleButton } from './mui'
 import VfsMenuBar from './VfsMenuBar'
 import { apiCall, ApiObject } from './api'
@@ -18,6 +18,8 @@ import _ from 'lodash'
 
 export const FolderIcon = Folder
 export const FileIcon = InsertDriveFileOutlined
+
+let once = true
 
 export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, VfsNode>, statusApi: ApiObject }) {
     const { vfs, selectedFiles, expanded } = useSnapState()
@@ -106,15 +108,19 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
         }
     }, [statusApi.data])
     const ref = useRef<HTMLUListElement>(null)
-    const [expandAll, toggleBtn] = useToggleButton("Collapse all", "Expand all", exp => ({
+    const allExpanded = expanded.length === id2node.size
+    const initialExpansion = ['/', ...vfs?.children?.length === 1 ? [vfs.children[0].id] : []] // in case there's only one child, expand that too
+    if (once) {
+        once = false
+        state.expanded = initialExpansion
+    }
+    const [_expandAll, toggleBtn] = useToggleButton("Collapse all", "Expand all", exp => ({
         icon: exp ? UnfoldLess : UnfoldMore,
         sx: { rotate: exp ? 0 : '180deg' },
-    }), expanded.length === id2node.size)
-    useEffectOnce(() => { // this is also resetting the state at each mount
-        state.expanded = expandAll ? Array.from(id2node.keys())
-            : state.expanded.length ? state.expanded // keep the previous state
-                :  ['/', ...vfs?.children?.length === 1 ? [vfs.children[0].id] : []] // in case there's only one child, expand that too
-    }, [expandAll, Boolean(vfs)]) // vfs is undefined on the first render, we want to be called again as soon as it is loaded first time and not at reloads
+        onClick() {
+            state.expanded = allExpanded ? initialExpansion : Array.from(id2node.keys())
+        }
+    }), allExpanded)
     useEffect(() => {
         state.expanded = _.uniq(state.expanded.concat(state.selectedFiles.map(x => x.parent?.id || '')))
     }, [state.vfs])
@@ -140,7 +146,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                 maxWidth: ref.current && `calc(100vw - ${16 + ref.current.offsetLeft}px)`, // limit possible horizontal scrolling to this element
                 '& ul': { borderLeft: '1px dashed #444', marginLeft: '15px', paddingLeft: '15px' },
             },
-            onNodeSelect(ev, ids) {
+            onNodeSelect(_ev, ids) {
                 if (typeof ids === 'string') return // shut up ts
                 state.selectedFiles = onlyTruthy(ids.map(id => id2node.get(id)))
             }
