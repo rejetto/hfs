@@ -3,9 +3,9 @@
 import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { apiCall, useApiList } from './api'
 import _ from 'lodash'
-import { Alert, Box, Button, Checkbox, ListItemIcon, ListItemText, MenuItem, TextField, Typography } from '@mui/material'
+import { Alert, Box, Checkbox, ListItemIcon, ListItemText, MenuItem, TextField, Typography } from '@mui/material'
 import { enforceFinal, formatBytes, isWindowsDrive, err2msg, basename, formatPerc } from './misc'
-import { spinner, Center, IconBtn, Flex, IconProgress, useBreakpoint } from './mui'
+import { spinner, Center, IconBtn, Flex, IconProgress, useBreakpoint, Btn } from './mui'
 import { ArrowUpward, CreateNewFolder, Storage, VerticalAlignTop } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { FileIcon, FolderIcon } from './VfsTree'
@@ -141,15 +141,26 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                             }
                         })
                 ),
-                h(Flex, { alignItems: 'stretch' },
-                    (multiple || folders || !files) && h(Button, {
-                        variant: 'contained',
+                h(Flex, { alignItems: 'center' },
+                    (multiple || folders || !files) && h(Btn, {
                         disabled: !sel.length && (!cwd || !folders && files), // !cwd is the drive selection on Windows, which is not a path
                         sx: { minWidth: 'max-content' },
                         onClick() {
                             onSelect(sel.length ? sel.map(x => cwdDelimiter + x) : [cwd])
                         }
                     }, files && (sel.length || !folders) ? `Select (${sel.length})` : sm ? "Select this folder" : "This folder"),
+                    folders && h(Btn, {
+                        icon: CreateNewFolder,
+                        variant: 'outlined',
+                        doneMessage: true,
+                        labelIf: 'sm',
+                        async onClick() {
+                            const s = await promptDialog("New folder name")
+                            if (!s) return false
+                            await apiCall('mkdir', { path: `${cwd}/${s}` })
+                            reload()
+                        }
+                    }, "New folder"),
                     h(TextField, {
                         size: 'small',
                         value: filter,
@@ -158,18 +169,6 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                             setFilterBounced(ev.target.value)
                         },
                         sx: { flex: 1 },
-                    }),
-                    h(IconBtn, {
-                        icon: CreateNewFolder,
-                        doneMessage: true,
-                        title: "Create folder",
-                        sx: { mt: '5px' },
-                        async onClick() {
-                            const s = await promptDialog("New folder name")
-                            if (!s) return false
-                            await apiCall('mkdir', { path: `${cwd}/${s}` })
-                            reload()
-                        }
                     }),
                     props?.total > 0 && h(IconProgress, {
                         icon: Storage,
