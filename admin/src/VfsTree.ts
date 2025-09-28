@@ -127,7 +127,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
     // be sure the selected element is visible
     const treeId = 'vfs'
     const first = selectedFiles[0]
-    useEffect(() => document.getElementById(`${treeId}-${first?.id}`)?.scrollIntoView({ block: 'center', behavior: 'instant' as any }),
+    useEffect(() => document.getElementById(`${treeId}-${first?.id}`)?.scrollIntoView({ block: 'nearest', behavior: 'instant' as any }),
         [first])
     return h(Flex, { flexDirection: 'column', alignItems: 'stretch', flex: 1 },
         h(Flex, { mb: 1, flexWrap: 'wrap', gap: [1, 2] },
