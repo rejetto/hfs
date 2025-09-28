@@ -62,11 +62,13 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                 },
                 h(Box, { display: 'flex', flex: 0, },
                     vfsNodeIcon(node),
-                    // attributes
-                    h(Box, { sx: {
-                                flex: 0, ml: '2px', my: '2px', '&>*': { fontSize: '87%', opacity: .6, mt: '-2px' },
-                                display: 'grid', gridAutoFlow: 'column', gridTemplateRows: 'auto auto', height: '1em',
-                            } },
+                    // attributes, as icons
+                    h(Box, {
+                        sx: {
+                            flex: 0, ml: '2px', my: '2px', '&>*': { fontSize: '87%', opacity: .6, mt: '-2px' },
+                            display: 'grid', gridAutoFlow: 'column', gridTemplateRows: 'auto auto', height: '1em',
+                        }
+                    },
                         node.can_delete !== undefined && iconTooltip(Delete, "Delete permission"),
                         node.can_upload !== undefined && iconTooltip(Upload, "Upload permission"),
                         !isRoot && !node.source && !node.url && iconTooltip(Cloud, "Virtual (no source)"),
@@ -79,16 +81,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                             host && iconTooltip(Home, `home for ${host}`))
                     ),
                 ),
-                isRoot ? "Home folder" : (() => { // special rendering if the whole source is not too long, and the name was not customized
-                    const ps = node.parent?.source
-                    const { source } = node
-                    const rel = ps && source?.startsWith(ps) && source > ps ? '.' + source.slice(ps.length) : source
-                    return !rel || !source?.endsWith(name) || rel.length > 45 ? name
-                        : h('span', {},
-                            h('span', { style: { opacity: .4, fontSize: 'small' } }, rel.slice(0,-name.length)),
-                            rel.slice(-name.length),
-                        )
-                })()
+                isRoot ? "Home folder" : name
             ),
             collapseIcon: h(ExpandMore, { onClick: toggle }),
             expandIcon: h(ChevronRight, { onClick: toggle }),
