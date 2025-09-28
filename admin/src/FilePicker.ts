@@ -21,8 +21,10 @@ interface FilePickerProps {
     files?: boolean
     fileMask?: string
 }
-export default function FilePicker({ onSelect, multiple=true, files=true, folders=true, fileMask, from='' }: FilePickerProps) {
+let lastPath = ''
+export default function FilePicker({ onSelect, multiple=true, files=true, folders=true, fileMask, from=lastPath }: FilePickerProps) {
     const [cwd, setCwd] = useState(from)
+    lastPath = cwd
     const [ready, setReady] = useState(false)
     const isWindows = useRef(false)
     useEffect(() => {
