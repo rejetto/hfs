@@ -179,7 +179,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         const { https } = status.data ||{}
         const disabled = https?.port === PORT_DISABLED
         const error = https?.error
-        return nat.element || status.element || h(TitleCard, { title: "HTTPS", icon: Lock, color: https?.listening && !error ? 'success' : 'warning' },
+        return status.element || h(TitleCard, { title: "HTTPS", icon: Lock, color: https?.listening && !error ? 'success' : 'warning' },
             error ? h(Alert, { severity: 'warning' }, error) :
                 (disabled && h(LinkBtn, { onClick: notEnabled }, "Not enabled")),
             cert.element || with_(cert.data, c => c.none ? h(LinkBtn, { onClick: () => suggestMakingCert().then(cert.reload) }, "No certificate configured") : h(Box, {},
@@ -322,11 +322,12 @@ export default function InternetPage({ setTitleSide }: PageProps) {
             h(DataLine),
             h(Device, { name: "Internet", icon: PublicTwoTone, ip: publicIps,
                 color: checkResult ? 'success' : checkResult === false ? 'error' : doubleNat ? 'warning' : undefined,
-                below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : h(Box, { fontSize: 'smaller' },
+                below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : h(Box, { fontSize: 'smaller', className: HIDE_IN_TESTS },
                     doubleNat && h(LinkBtn, { display: 'block', onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
                     checkResult ? "Working!" : checkResult === false ? "Failed!" : '',
                     ' ',
                     (baseUrl > '' || publicIps.length > 0) && data.internalPort && h(LinkBtn, { onClick: () => verify() }, "Verify")
+                        || ' ' // steadier layout, mainly for testing
                 )
             }),
         )

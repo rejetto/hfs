@@ -17,7 +17,7 @@ import LogoutPage from './LogoutPage';
 import LangPage from './LangPage'
 import LogsPage from './LogsPage';
 import PluginsPage from './PluginsPage';
-import { getHFS, replaceStringToReact, WEBSITE } from '@hfs/shared'
+import { getHFS, HIDE_IN_TESTS, replaceStringToReact, WEBSITE } from '@hfs/shared'
 import CustomHtmlPage from './CustomHtmlPage';
 import InternetPage from './InternetPage'
 import { useWindowSize } from 'usehooks-ts'
@@ -64,7 +64,7 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
             h(Box, { id: 'hfs-name', display: 'flex', px: 2, py: .5, gap: 2, alignItems: 'center' },
                 h('a', { href: WEBSITE, target: 'website', style: { textDecoration: 'none' } },
                     h(Box, { color: 'primary.contrastText', fontSize: 'min(3rem, max(5vw, 4vh))' }, 'HFS')),
-                h(Box, { fontSize: 'small', className: 'hideInTests' }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
+                h(Box, { fontSize: 'small', className: HIDE_IN_TESTS }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
                 short && h('img', { src: logo, style: { height: '2.5em' } }),
             ),
             mainMenu.map((it, idx) => hTooltip( itemTitle(idx), getMenuLabel(it) + ' ' + itemTitle(idx),

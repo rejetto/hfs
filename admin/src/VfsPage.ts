@@ -5,7 +5,9 @@ import { apiCall, useApiEx } from './api'
 import { Alert, Box, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { state, useSnapState } from './state'
 import VfsTree, { vfsNodeIcon } from './VfsTree'
-import { CFG, matches, newDialog, normalizeHost, onlyTruthy, pathEncode, prefix, VfsNodeAdminSend } from './misc'
+import {
+    CFG, matches, newDialog, normalizeHost, onlyTruthy, pathEncode, prefix, VfsNodeAdminSend, HIDE_IN_TESTS
+} from './misc'
 import { Flex, useBreakpoint } from './mui'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
@@ -57,7 +59,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         severity: 'info',
         children: [
             "Your shared files can be browsed from ",
-            h('span', { className: 'hideInTests', key: 0 },
+            h('span', { className: HIDE_IN_TESTS, key: 0 },
                 reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href, target: 'frontend' }, href))) )
         ]
     }), [nothingShared, urls])
