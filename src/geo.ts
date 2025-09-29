@@ -41,20 +41,25 @@ async function checkFiles() {
     const LOCAL_FILE = 'geo_ip.bin'
     const TEMP = LOCAL_FILE + '.downloading'
     const { mtime=0 } = await stat(LOCAL_FILE).catch(() => ({ mtime: 0 }))
+    const name = 'geo-ip db'
     const now = Date.now()
-    if (+mtime < now - 31 * DAY) { // month-old or non-existing
-        console.log('downloading geo-ip db')
-        await unzip(await httpStream(URL), path =>
-            path.toUpperCase().endsWith(ZIP_FILE) && TEMP)
-        if (await stat(TEMP))
-        if (isOpen())
-            ip2location.close()
-        await unlink(LOCAL_FILE).catch(() => {})
-        await rename(TEMP, LOCAL_FILE)
-        ip2country.cache.clear?.()
-        console.log('download geo-ip db completed')
-    }
+    if (+mtime < now - 31 * DAY) // month-old or non-existing
+        try {
+            const req = await httpStream(URL)
+            console.log(`downloading ${name}`)
+            await unzip(req, path => path.toUpperCase().endsWith(ZIP_FILE) && TEMP)
+            await stat(TEMP) // check existence
+            if (isOpen())
+                ip2location.close()
+            await unlink(LOCAL_FILE).catch(() => {})
+            await rename(TEMP, LOCAL_FILE)
+            ip2country.cache.clear?.()
+            console.log(`${name} download completed`)
+        }
+        catch (e: any) {
+            console.error(`Failed to download ${name}${mtime ? ", falling back on old data" : ''}:`, e?.message || String(e))
+        }
     else if (isOpen()) return
-    console.debug('loading geo-ip db')
+    console.debug(`loading ${name}`)
     ip2location.open(LOCAL_FILE) // using openAsync causes a DEP0137 error within 10 seconds
 }

@@ -32,7 +32,7 @@ export interface XRequestOptions extends https.RequestOptions {
 }
 
 export declare namespace httpStream { let defaultProxy: string | undefined }
-export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThrow, ...options }: XRequestOptions ={}) {
+export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThrow=true, ...options }: XRequestOptions ={}) {
     const controller = new AbortController()
     options.signal ??= controller.signal
     return Object.assign(new Promise<IncomingMessage>(async (resolve, reject) => {
@@ -78,7 +78,7 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
                 if (v) jar[k] = v
                 else delete jar[k]
             }
-            if (!res.statusCode || (httpThrow ?? true) && res.statusCode >= 400)
+            if (!res.statusCode || httpThrow && res.statusCode >= 400)
                 return reject(new Error(String(res.statusCode), { cause: res }))
             let r = res.headers.location
             if (r && !noRedirect) {
