@@ -10,7 +10,7 @@ import { apiCall, UseApi } from './api'
 import {
     basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, objSameKeys,
     onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate, md, Callback,
-    useRequestRender, splitAt, IMAGE_FILEMASK, copyTextToClipboard, normalizeHost, CFG
+    useRequestRender, splitAt, IMAGE_FILEMASK, copyTextToClipboard, normalizeHost, CFG, try_
 } from './misc'
 import { isModifiedConfig } from './AccountForm'
 import { Btn, Flex, IconBtn, LinkBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'
@@ -339,9 +339,9 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
     useEffect(() => statusApi.sub(requestRender), [])
     const data = statusApi.getData()
 
-    const urls: string[] = data?.urls.https || data?.urls.http
-    const baseHost = data?.baseUrl && normalizeHost(new URL(data.baseUrl).host)
-    const root = useMemo(() => baseHost && _.find(data.roots, (root, host) => matches(baseHost, host)),
+    const urls: string[] = data && (data.urls.https || data.urls.http || [data.base_url])
+    const baseHost = try_(() => normalizeHost(new URL(data?.baseUrl).host)) // URL can throw on malformed data
+    const root = useMemo(() => baseHost && _.find(data.roots, (_root, host) => matches(baseHost, host)),
         [data])
     if (root)
         value &&= value.indexOf(root) === 1 ? value.slice(root.length) : undefined
@@ -356,7 +356,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
         }, link)
     ), [link])
     return h(Box, { display: 'flex' },
-        !urls ? 'error' : // check data is ok
+        !baseHost ? "Invalid baseUrl" : !urls ? 'error' : // check data is ok
         h(DisplayField, {
             label: "Link",
             className: 'maskInTests',

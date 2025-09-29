@@ -21,7 +21,8 @@ export const defaultBaseUrl = proxy({
         const defPort = this.proto === 'https' ? 443 : 80
         const status = await getServerStatus()
         const port = this.port || (this.proto === 'https' ? status.https.port : status.http.port)
-        return `${this.proto}://${ipForUrl(this.publicIps[0] || this.externalIp || this.localIp)}${!port || port === defPort ? '' : ':' + port}`
+        const ip = this.publicIps[0] || this.externalIp || this.localIp
+        return `${this.proto}://${ipForUrl(ip || 'localhost')}${!port || port === defPort ? '' : ':' + port}`
     }
 })
 
