@@ -69,8 +69,7 @@ interface SelectProps<T> extends Omit<SelectHTMLAttributes<HTMLSelectElement>, '
 }
 export function Select<T extends string>({ onChange, value, options, ...props }: SelectProps<T>) {
     return h('select', {
-        onChange: ev =>
-            onChange?.((ev.target as any).value),
+        onChange: ev => onChange?.((ev.target as any).value),
         value,
         ...props,
     }, options.map(({ value, label }) => h('option', { key: value, value }, label)))

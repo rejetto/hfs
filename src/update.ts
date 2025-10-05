@@ -121,7 +121,7 @@ export async function update(tagOrUrl: string='') {
                 else throw e
             }) as Release | undefined
         if (!update)
-            throw "Update not found"
+            throw "No update has been found"
         const plat = '-' + xlate(process.platform, { win32: 'windows', darwin: 'mac' })
         const assetSearch = `${plat}-${process.arch}`
         const legacyAssetSearch = `${plat}${prefix('-', xlate(process.arch, { x64: '', arm64: 'arm' }))}.zip` // legacy pre-0.53.0-rc16

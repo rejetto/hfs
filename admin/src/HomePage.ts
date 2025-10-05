@@ -68,9 +68,11 @@ export default function HomePage() {
     return h(Box, {},
         h(RandomPlugin),
         h(Box, { display:'flex', gap: 2, flexDirection:'column', alignItems: 'flex-start', height: '100%' },
+            entry('', md("This is the *Admin-panel*, where you manage your server. Access your files on the [Front-end](../..).")),
+            !vfs ? h(LinearProgress) : !vfs.root?.children?.length && !vfs.root?.source ? entry('warning', "You have no shared files", SOLUTION_SEP, fsLink("add some")) : null,
             account?.adminActualAccess ? entry('', "Welcome, "+username)
-                : entry('', md("On <u>localhost</u> you don't need to login"),
-                    SOLUTION_SEP, "to access Admin-panel from another computer ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission")) ),
+                : entry('', md("You're accessing the Admin-panel without an account because you are on localhost"),
+                    SOLUTION_SEP, "to access from another computer, you must ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission")) ),
             dontBotherWithKeys(status.alerts?.map(x => entry('warning', md(x, { html: false })))),
             errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
                 : entry('success', "Server is working"),
@@ -85,11 +87,6 @@ export default function HomePage() {
                 && entry('warning', `${x} plugin(s) failing`, SOLUTION_SEP, h(InLink, { to:'plugins' }, "check now"))),
             !cfg.data?.split_uploads && (Date.now() - Number(status.cloudflareDetected || 0)) < DAY
                 && entry('', wikiLink('Reverse-proxy#cloudflare', "Cloudflare detected, read our guide")),
-            !vfs ? h(LinearProgress)
-                : !vfs.root?.children?.length && !vfs.root?.source ? entry('warning', "You have no files shared", SOLUTION_SEP, fsLink("add some"))
-                    : entry('', md("This is the Admin-panel, where you manage your server. Access your files on "),
-                        h(Link, { target:'frontend', href: '../..' }, "Front-end", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
-
             with_(proxyWarning(cfg.data, status), x => x && entry('warning', x,
                     SOLUTION_SEP, cfgLink("set the number of proxies"),
                     SOLUTION_SEP, "unless you are sure and you can ", h(Btn, {
