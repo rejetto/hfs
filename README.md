@@ -7,14 +7,15 @@
 Access via web your files directly from your disk.
 
 - Be your own server, share files **fresh from your disk**, with **unlimited** space and bandwidth.
-- **Fast!** Try zipping 100GB, download starts immediately!
-- **Smart**. HFS tries to detect problems and suggest solutions.
-- Share **even a single file** with our *virtual file system*, even with a different name, all without touching the real file. Present things the way you want!
+- **Fast:** try zipping 100GB, download starts immediately.
+- **Smart:** HFS tries to detect problems and suggest solutions.
+- Present things the way you want: share **even a single file**, even with a different name, with our *virtual file system*.
 - **Monitor** all activities in real-time.
-- **Bandwidth throttling**, decide how much to give.
-- **Direct transfers**, share large files with friends without having to upload them first.
+- **Bandwidth throttling**: decide how much to give.
+- **Direct transfers**: share large files with friends without having to upload them first.
+- **Expandable**: find the right plugin, or create you own
 
-This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
+Runs on: Windows, Linux, macOS, FreeBSD, Android
 
 ## How does it work
 
