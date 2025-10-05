@@ -176,7 +176,7 @@ defineConfig('vfs', vfs).sub(reviewVfs)
 async function reviewVfs(data=vfs) {
     await (async function recur(node) {
         if (node.source && !node.children?.length && node.isFolder === undefined) {
-            const isFolder = /[\\/]$/.test(node.source) || (await nodeStats(node))?.isDirectory()
+            const isFolder = /[\\/]$/.test(node.source) || (await nodeStats(node).catch(() => {}))?.isDirectory()
             setHidden(node, { isFolder })
         }
         if (node.children)
