@@ -173,7 +173,7 @@ export function reloadVfs(pleaseSelect?: string[]) {
     state.vfs = undefined
 }
 
-export async function deleteFiles() {
+async function deleteFiles() {
     const f = state.selectedFiles
     if (!f.length) return
     if (!await confirmDialog(`Delete ${f.length} item(s)?`)) return

@@ -8,14 +8,6 @@ export * from '@hfs/shared'
 
 ;(MD_TAGS as any).a = Link
 
-export async function manipulateConfig(k: string, work:(data:any) => any) {
-    const cfg = await apiCall('get_config', { only: [k] })
-    const was = cfg[k]
-    const will = await work(was)
-    if (JSON.stringify(was) !== JSON.stringify(will))
-        await apiCall('set_config', { values: { [k]: will } })
-}
-
 export function err2msg(code: string | number) {
     const permPath = typeof code === 'string' && code.split("Error: EPERM: operation not permitted, access ")[1]?.split('\n')[0]
     if (permPath)

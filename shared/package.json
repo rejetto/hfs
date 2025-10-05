@@ -3,7 +3,7 @@
   "main": "index.ts",
   "dependencies": {
     "js-sha512": "^0.8.0",
-    "tssrp6a": "^3.0.0"
+    "usehooks-ts": "*"
   },
   "devDependencies": {
     "react": "*",

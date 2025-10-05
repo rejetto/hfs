@@ -30,9 +30,7 @@
     "tssrp6a": "^3.0.0",
     "valtio": "^1.13.0",
     "immer": "*",
-    "usehooks-ts": "^2.9.5",
-    "watch-size": "^2.0.0",
-    "web-vitals": "^2.1.4"
+    "usehooks-ts": "^2.9.5"
   },
   "devDependencies": {
     "@types/prismjs": "^1.26.5",

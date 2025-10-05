@@ -41,5 +41,5 @@ exports.init = api => {
             if (ctx.state.account)
                 delete byIp[ctx.ip] // reset if login was successful
         }
-        })
+    })
 }
