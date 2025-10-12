@@ -103,14 +103,14 @@ export function setPluginConfig(id: string, changes: Dict | null) {
 
 export function getPluginInfo(id: string) {
     const running = plugins.get(id)
-    return running && { ...running.getData(), ...running } || availablePlugins[id]
+    return running && { ...running.getData(), ...running } || inactivePlugins[id]
 }
 
 export function findPluginByRepo<T>(repo: string) {
     for (const pl of plugins.values())
         if (match(pl.getData()))
             return pl
-    return _.find(availablePlugins, match)
+    return _.find(inactivePlugins, match)
 
     function match(rec: any) {
         return repo === (rec?.repo?.main ?? rec?.repo)
@@ -385,16 +385,16 @@ export interface CommonPluginInterface {
     preview?: string | string[]
     changelog?: unknown
 }
-export interface AvailablePlugin extends CommonPluginInterface {
+export interface InactivePlugin extends CommonPluginInterface {
     branch?: string
     badApi?: string
     error?: string
 }
 
-let availablePlugins: Record<string, AvailablePlugin> = {}
+let inactivePlugins: Record<string, InactivePlugin> = {}
 
-export function getAvailablePlugins() {
-    return Object.values(availablePlugins)
+export function getInactivePlugins() {
+    return Object.values(inactivePlugins)
 }
 
 const rescanAsap = debounceAsync(rescan, { wait: 1000 })
@@ -447,14 +447,14 @@ function watchPlugin(id: string, path: string) {
         stop()
     }, [enablePlugins, suspendPlugins])
     const { unwatch } = watchLoad(module, async source => {
-        const notRunning = availablePlugins[id]
+        const notRunning = inactivePlugins[id]
         if (!source)
             return onUninstalled()
         if (isPluginEnabled(id, true))
             return start()
         const p = parsePluginSource(id, source)
         if (same(notRunning, p)) return
-        availablePlugins[id] = p
+        inactivePlugins[id] = p
         events.emit(notRunning ? 'pluginUpdated' : 'pluginInstalled', p)
     })
     return () => {
@@ -467,13 +467,13 @@ function watchPlugin(id: string, path: string) {
     async function onUninstalled() {
         await stop()
         if (!getPluginInfo(id)) return // already missing
-        delete availablePlugins[id]
+        delete inactivePlugins[id]
         events.emit('pluginUninstalled', id)
     }
 
-    async function markItAvailable() {
+    async function markItInactive() {
         plugins.delete(id)
-        availablePlugins[id] = await parsePlugin()
+        inactivePlugins[id] = await parsePlugin()
     }
 
     async function parsePlugin() {
@@ -485,7 +485,7 @@ function watchPlugin(id: string, path: string) {
         const p = plugins.get(id)
         if (!p) return
         await p.unload()
-        await markItAvailable().catch(() =>
+        await markItInactive().catch(() =>
             events.emit('pluginUninstalled', id)) // when a running plugin is deleted, avoid error and report
         events.emit('pluginStopped', p)
     }
@@ -583,14 +583,14 @@ function watchPlugin(id: string, path: string) {
             if (alreadyRunning)
                 events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
             else {
-                const wasInstalled = availablePlugins[id]
+                const wasInstalled = inactivePlugins[id]
                 if (wasInstalled)
-                    delete availablePlugins[id]
+                    delete inactivePlugins[id]
                 events.emit(wasInstalled ? 'pluginStarted' : 'pluginInstalled', plugin)
             }
             events.emit('pluginStarted:'+id)
         } catch (e: any) {
-            await markItAvailable()
+            await markItInactive()
             const parsed = e.stack?.split('\n\n') // this form is used by syntax-errors inside the plugin, which is useful to show
             const where = parsed?.length > 1 ? `\n${parsed[0]}` : ''
             e = prefix('', e.message, where) || String(e)
@@ -648,7 +648,7 @@ onProcessExit(() =>
     Promise.allSettled(mapPlugins(pl => pl.unload())))
 
 export function parsePluginSource(id: string, source: string) {
-    const pl: AvailablePlugin = { id }
+    const pl: InactivePlugin = { id }
     pl.description = tryJson(/exports.description\s*=\s*(".*")/.exec(source)?.[1])
     pl.repo = tryJson(/exports.repo\s*=\s*(\S*)/.exec(source)?.[1])
     pl.version = Number(/exports.version\s*=\s*(\d*\.?\d+)/.exec(source)?.[1]) ?? undefined
@@ -665,7 +665,7 @@ export function parsePluginSource(id: string, source: string) {
     return pl
 }
 
-function calculateBadApi(data: AvailablePlugin) {
+function calculateBadApi(data: InactivePlugin) {
     const r = data.apiRequired
     const [min, max] = Array.isArray(r) ? r : [r, r] // normalize data type
     data.badApi = min! > API_VERSION ? "may not work correctly as it is designed for a newer version of HFS - check for updates"

@@ -5,7 +5,7 @@ import {
     httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, wait, popKey, onlyTruthy, HOUR
 } from './misc'
 import {
-    DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getAvailablePlugins, getPluginInfo, isPluginRunning, mapPlugins,
+    DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getInactivePlugins, getPluginInfo, isPluginRunning, mapPlugins,
     parsePluginSource, PATH as PLUGINS_PATH, Repo, startPlugin, stopPlugin, STORAGE_FOLDER, DELETE_ME_SUFFIX,
     PLUGIN_MAIN_FILE
 } from './plugins'
@@ -190,7 +190,7 @@ export async function readOnlineCompatiblePlugin(repo: Repo, branch='') {
 }
 
 export function getFolder2repo() {
-    const ret = Object.fromEntries(getAvailablePlugins().map(x => [x.id, x.repo]))
+    const ret = Object.fromEntries(getInactivePlugins().map(x => [x.id, x.repo]))
     Object.assign(ret, Object.fromEntries(mapPlugins(x => [x.id, x.getData().repo])))
     return ret
 }

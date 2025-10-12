@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    AvailablePlugin, enablePlugins, getAvailablePlugins, getPluginConfigFields, mapPlugins, Plugin, pluginsConfig,
+    InactivePlugin, enablePlugins, getInactivePlugins, getPluginConfigFields, mapPlugins, Plugin, pluginsConfig,
     PATH as PLUGINS_PATH, enablePlugin, getPluginInfo, setPluginConfig, isPluginRunning,
     stopPlugin, startPlugin, CommonPluginInterface, getMissingDependencies, findPluginByRepo, suspendPlugins,
 } from './plugins'
@@ -19,7 +19,7 @@ import { SendListReadable } from './SendList'
 const apis: ApiHandlers = {
 
     get_plugins({}, ctx) {
-        const list = new SendListReadable({ addAtStart: [ ...mapPlugins(serialize, false), ...getAvailablePlugins().map(serialize) ] })
+        const list = new SendListReadable({ addAtStart: [ ...mapPlugins(serialize, false), ...getInactivePlugins().map(serialize) ] })
         return list.events(ctx, {
             pluginInstalled: p => list.add(serialize(p)),
             'pluginStarted pluginStopped pluginUpdated': p => {
@@ -185,7 +185,7 @@ const apis: ApiHandlers = {
 
 export default apis
 
-function serialize(p: Readonly<Plugin> | AvailablePlugin) {
+function serialize(p: Readonly<Plugin> | InactivePlugin) {
     let o = 'getData' in p ? Object.assign(_.pick(p, ['id','started']), p.getData())
         : { ...p } // _.defaults mutates object, and we don't want that
     if (typeof o.repo === 'object') // custom repo

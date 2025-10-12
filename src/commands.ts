@@ -9,7 +9,7 @@ import yaml from 'yaml'
 import { BUILD_TIMESTAMP, VERSION } from './const'
 import { createInterface, cursorTo } from 'node:readline'
 import { quitting } from './first'
-import { getAvailablePlugins, mapPlugins, startPlugin, stopPlugin } from './plugins'
+import { getInactivePlugins, mapPlugins, startPlugin, stopPlugin } from './plugins'
 import { purgeFileAttr } from './fileAttr'
 import { downloadPlugin } from './github'
 import { Dict, formatBytes, formatSpeed, formatTimestamp, makeMatcher } from './cross'
@@ -181,7 +181,7 @@ const commands = {
         params: '',
         cb() {
             mapPlugins(p => console.log('ON:', p.id), false)
-            getAvailablePlugins().map(p => console.log('OFF:', p.id))
+            getInactivePlugins().map(p => console.log('OFF:', p.id))
         }
     },
     'purge-file-attr': {
