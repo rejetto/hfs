@@ -34,6 +34,7 @@ interface QuickZipEntry {
     version: number,
     extAttr: number,
 }
+// the point of this class is the method applyRange, which allows seeking forward in the zip file quickly (useful to resume downloads)
 export class QuickZipStream extends Readable {
     private workingFile: Readable | undefined
     private finished = false
@@ -93,22 +94,22 @@ export class QuickZipStream extends Readable {
 
     async calculateSize(howLong:number = 1000) {
         const endBy = Date.now() + howLong
-        while (1) {
+        for await (const value of this.walker) { // getting the entries is the slow part
             if (Date.now() >= endBy)
                 return NaN
-            const { value } = await this.walker.next()
-            if (!value) break
-            this.consumedCalculating.push(value) // we keep same shape of the generator, so
+            this.consumedCalculating.push(value) // keep the same shape of the generator, so
         }
         // if we reach here, then we were able to consume all entries of the walker (in time)
         let offset = 0
         let centralDirSize = 0
         for (const file of this.consumedCalculating) {
             const pathSize = Buffer.from(file.path, 'utf8').length
-            const { size=0 } = file
+            const { size=0, getData } = file
             const extraLength = (size > ZIP64_SIZE_LIMIT ? 2 : 0) + (offset > ZIP64_SIZE_LIMIT ? 1 : 0)
             const extraDataSize = extraLength && (2+2 + extraLength*8)
             offset += 4+2+2+2+ 4+4+4+4+ 2+2+ pathSize + size
+            if (getData)
+                offset += 4+4+2*(size > ZIP64_SIZE_LIMIT ? 8 : 4)
             centralDirSize += 4+2+2+2+2+ 4+4+4+4+ 2+2+2+2+2+ 4+4 + pathSize + extraDataSize
         }
         const n = this.consumedCalculating.length
@@ -139,11 +140,12 @@ export class QuickZipStream extends Readable {
             2, FLAGS,
             2, 0, // compression = store
             ...ts2buf(ts || this.now),
+            // in our mode, crc and sizes are zero in local file header, and written in the data-descriptor after the file data, and in the central directory
             4, 0, // crc
-            4, 0, // size
-            4, 0, // size
+            4, 0, // compressed size
+            4, 0, // uncompressed size
             2, pathAsBuffer.length,
-            2, 0, // extra length
+            2, 0, // length of the extra field
         ])
         this.controlledPush(pathAsBuffer)
         if (this.finished) return
@@ -153,43 +155,50 @@ export class QuickZipStream extends Readable {
         let crc = cacheHit ? cache!.crc : getData ? crc32function('') : 0
         const extAttr = !mode ? 0 : (mode | 0x8000) * 0x10000 // it's like <<16 but doesn't overflow so easily
         const entry = { size, crc, pathAsBuffer, ts, offset, version, extAttr }
-        if (this.skip >= size && cacheHit) {
-            this.skip -= size
-            this.dataWritten += size
-            this.entries.push(entry)
-            return this.continuePiping()
-        }
         if (!getData) {
             this.entries.push(entry)
             return this.continuePiping()
         }
-        const data = getData()
-        data.on('error', (err) => {
-            if ((err as any)?.code !== 'EACCES')
-                console.error('zipping:', String(err))
-            data.destroy(err)
-            this.workingFile = undefined
-            this.continuePiping()
-        })
-        data.on('end', ()=>{
-            entry.crc = crc
-            if (sourcePath)
-                crcCache[sourcePath] = { ts, crc }
+        if (this.skip >= size && cacheHit) {
+            this.skip -= size
+            this.dataWritten += size
             this.entries.push(entry)
-            this.workingFile = undefined
+        }
+        else await new Promise<void>(resolve => {
+            const data = this.workingFile = getData()
+            data.on('error', (err) => {
+                if ((err as any)?.code !== 'EACCES')
+                    console.error('zipping:', String(err))
+                data.destroy(err)
+                resolve()
+            })
+            data.on('end', ()=>{
+                entry.crc = crc
+                if (sourcePath)
+                    crcCache[sourcePath] = { ts, crc }
+                this.entries.push(entry)
+                resolve()
+            })
+            data.on('data', chunk => {
+                if (this.destroyed)
+                    return data.destroy()
+                if (!this.controlledPush(chunk)) // destination buffer full
+                    data.pause() // slow down
+                if (!cacheHit)
+                    crc = crc32function(chunk, crc)
+                if (this.finished)
+                    return data.destroy()
+            })
+        })
+        this.workingFile = undefined
+        const sizeForSize = size > ZIP64_SIZE_LIMIT ? 8 : 4
+        if (this.controlledPush([
+            4, 0x08074b50,
+            4, entry.crc,
+            sizeForSize, size,
+            sizeForSize, size,
+        ]))
             this.continuePiping()
-        })
-        this.workingFile = data
-        data.on('data', chunk => {
-            if (this.destroyed)
-                return data.destroy()
-            if (!this.controlledPush(chunk)) // destination buffer full
-                data.pause() // slow down
-            if (!cacheHit)
-                crc = crc32function(chunk, crc)
-            if (this.finished)
-                return data.destroy()
-        })
     }
 
     closeArchive() {
