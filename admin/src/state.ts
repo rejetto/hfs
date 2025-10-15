@@ -2,7 +2,7 @@
 
 import { proxy, useSnapshot } from 'valtio'
 import { Dict } from './misc'
-import { VfsNode } from './VfsPage'
+import { VfsNodeAdmin } from './VfsPage'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { produce } from 'immer'
@@ -11,10 +11,10 @@ const STORAGE_KEY = 'admin_state'
 const INIT = {
     title: '',
     config: {} as Dict,
-    selectedFiles: [] as VfsNode[],
+    selectedFiles: [] as VfsNodeAdmin[],
     accountsAsTree: false,
     movingFile: '',
-    vfs: undefined as VfsNode | undefined,
+    vfs: undefined as VfsNodeAdmin | undefined,
     expanded: [] as string[],
     loginRequired: false as boolean | number,
     username: '',
