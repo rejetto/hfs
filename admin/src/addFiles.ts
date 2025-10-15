@@ -3,11 +3,11 @@
 import { alertDialog, newDialog, promptDialog, toast } from './dialog'
 import { createElement as h, Fragment } from 'react'
 import { Box } from '@mui/material'
-import { reloadVfs } from './VfsPage'
+import { id2node, VfsNodeAdmin } from './VfsPage'
 import { state } from './state'
 import { apiCall } from './api'
 import FilePicker from './FilePicker'
-import { focusSelector, pathEncode } from '@hfs/shared'
+import { basename, focusSelector, pathEncode } from '@hfs/shared'
 
 let lastFolder: undefined | string
 export default function addFiles() {
@@ -24,20 +24,8 @@ export default function addFiles() {
                 h(FilePicker, {
                     from: lastFolder ?? parent.source,
                     async onSelect(sel) {
-                        const res = await Promise.all(sel.map(source =>
-                            apiCall('add_vfs', { parent: parent.id, source }).then(r => r, e => [source, e.message])))
+                        addNodes(parent, sel.map(source => ({ source, name: basename(source), id: '' })))
                         lastFolder = sel[0].slice(0, sel[0].lastIndexOf('/'))
-                        const errs = res.filter(Array.isArray)
-                        if (errs.length)
-                            await alertDialog(h(Box, {},
-                                "Some elements have been rejected",
-                                h('ul', {},
-                                    errs.map(([file, err]) =>
-                                        h('li', { key: file }, file, ': ', err))
-                                )
-                            ), 'error')
-                        const ids = res.filter(x => x.name).map(x => parent.id + pathEncode(x.name) + (x.link.endsWith('/') ? '/' : ''))
-                        reloadVfs(ids)
                         close()
                     }
                 })
@@ -46,14 +34,29 @@ export default function addFiles() {
     })
 }
 
+function addNodes(parent: VfsNodeAdmin, nodes: VfsNodeAdmin[]) {
+    for (const n of nodes) {
+        n.id ||= parent.id + pathEncode(n.name)
+        id2node.set(n.id, n)
+        n.parent = parent
+        if (!n.source && !n.url)
+            n.type = 'folder'
+    }
+    ;(parent.children ||= []).push(...nodes)
+    state.vfs = { ...state.vfs! } // trigger refresh
+    state.selectedFiles = nodes
+}
+
 export async function addVirtual() {
     try {
-        const name = await promptDialog("Enter folder name")
+        let name = await promptDialog("Enter folder name")
         if (!name) return
-        const { id: parent } = getFolderFromSelected()
-        const res = await apiCall('add_vfs', { parent, name })
-        toast(`Folder "${res.name}" created`, 'success') // the name may have a number appended
-        reloadVfs([ parent + pathEncode(res.name) + '/' ])
+        const parent = getFolderFromSelected()
+        const res = await apiCall('get_free_name', { parent: parent.id, name })
+        name = res?.name
+        if (!name) return
+        addNodes(parent, [{ name, id: '' }])
+        toast(`Folder "${name}" created`, 'success') // the name may have a number appended
     }
     catch(e) {
         await alertDialog(e as Error)
@@ -62,9 +65,12 @@ export async function addVirtual() {
 
 export async function addLink() {
     try {
-        const { id: parent } = getFolderFromSelected()
-        const res = await apiCall('add_vfs', { parent, name: 'new link', url: 'https://example.com' })
-        reloadVfs([ parent + pathEncode(res.name) ])
+        const parent = getFolderFromSelected()
+        let name = 'new link'
+        const res = await apiCall('get_free_name', { parent: parent.id, name })
+        name = res?.name
+        if (!name) return
+        addNodes(parent, [{ name, url: 'https://example.com', id: '' }])
         toast("Link created", 'success', {
             onClose: () => focusSelector('input[name=url]')
         })
