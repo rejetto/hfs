@@ -31,8 +31,7 @@ vfs:
         - name: pic
           mime: png
           source: ../page/gpl.png
-        - name: page
-          source: ../page
+        - source: ../page
           default: index.html
         - name: protected
           source: ../page/gpl.png
@@ -51,11 +50,9 @@ vfs:
           can_delete:
             - admins
           children:
-            - name: no-upload
-              source: ../tmp/no-upload
+            - source: ../tmp/no-upload
               can_upload: false
-        - name: cant-overwrite
-          source: ../work/cant-overwrite
+        - source: ../work/cant-overwrite
           can_upload:
             - admins
           can_delete: false

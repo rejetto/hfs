@@ -1,10 +1,11 @@
 import { test, expect, Page } from '@playwright/test'
 import fs from 'fs'
 import { wait } from '../src/cross'
-import { password, resetTimestamp, URL, username } from './common'
+import { clickAdminMenu, forwardConsole, password, resetTimestamp, URL, username } from './common'
 
 // a generic test touch several parts
 test('around1', async ({ page }) => {
+    forwardConsole(page)
     resetTimestamp()
     await page.goto(URL)
     await expect(page).toHaveTitle(/File server/)
@@ -390,13 +391,6 @@ async function loginAdmin(page: Page) {
     return isPhone
 }
 
-async function clickAdminMenu(page: Page, text: string) {
-    if ((page as AdminPage).isPhone)
-        await page.getByRole('button', { name: 'menu' }).nth(0).click() // on phones the menu is popup
-    await page.getByRole('link', { name: text }).click()
-    await page.waitForTimeout(100)
-}
-
 async function closeAdminPhoneDialog(page: Page, isPhone: boolean) {
     // On phones, detail pages are shown in dialogs and block the menu behind them.
     if (isPhone)
@@ -416,6 +410,7 @@ async function screenshot(page: Page, selectorForMask = '') {
 }
 
 test('anew', async ({ page, browserName }) => {
+    forwardConsole(page)
     if (page.viewportSize()?.width! < 1000 || browserName !== 'chromium') return // test only for desktop chromium
     // reset config so each run starts from the same default workspace state
     const port = 8082
@@ -453,13 +448,15 @@ test('anew', async ({ page, browserName }) => {
     await adminPage.getByRole('button', { name: 'Cut' }).click()
     await adminPage.locator('div').filter({ hasText: 'InfoNow that this is marked' }).nth(1).click()
     await adminPage.getByRole('button', { name: 'Close' }).click()
-    await adminPage.getByText('Home folder').click()
+    await adminPage.getByRole('treeitem', { name: 'Home folder', exact: true })
+        .getByText('Home folder', { exact: true }).click()
     await adminPage.getByRole('button', { name: '(/work2/folder1/)' }).click() // paste button
     await adminPage.getByText('data.kv').click()
     await adminPage.getByRole('button', { name: 'Cut' }).click()
     await adminPage.getByRole('button', { name: 'Close' }).click()
     await adminPage.getByText('folder1').click()
     await adminPage.getByRole('button', { name: '(/data.kv)' }).click() // paste
+    await adminPage.getByRole('button', { name: 'Save' }).click()
     await page.getByRole('button', { name: 'Close' }).click()
     await page.getByRole('link', { name: 'home' }).click()
     await page.getByRole('link', { name: 'Reload' }).click()

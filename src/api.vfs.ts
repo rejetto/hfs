@@ -2,7 +2,7 @@
 
 import {
     getNodeName, isSameFilenameAs, nodeIsFolder, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
-    permsFromParent, VfsNodeStored, isRoot, nodeStats
+    permsFromParent, isRoot, nodeStats
 } from './vfs'
 import _ from 'lodash'
 import { mkdir } from 'fs/promises'
@@ -10,7 +10,7 @@ import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
 import {
     enforceFinal, enforceStarting, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, PERM_KEYS,
-    statWithTimeout, VfsNodeAdminSend
+    VFS_STORED_KEYS, statWithTimeout, VfsNodeAdminSend
 } from './misc'
 import {
     IS_WINDOWS, HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE,
@@ -26,9 +26,6 @@ async function urlToNodeOriginal(uri: string) {
     const n = await urlToNode(uri)
     return n?.isTemp ? n.original : n
 }
-
-const ALLOWED_KEYS: (keyof VfsNodeStored)[] = ['name', 'source', 'masks', 'default', 'accept', 'rename', 'mime', 'url',
-    'target', 'comment', 'icon', 'order', ...PERM_KEYS]
 
 export interface LsEntry { n:string, s?:number, m?:string, c?:string, k?:'d' }
 
@@ -66,6 +63,25 @@ export default {
         }
     },
 
+    async set_vfs({ uri, props }) {
+        const n = uri && await urlToNodeOriginal(uri)
+        if (!n)
+            return new ApiError(HTTP_NOT_FOUND, 'path not found')
+        if (props.name && props.name !== getNodeName(n)) {
+            if (!isValidFileName(props.name))
+                return new ApiError(HTTP_BAD_REQUEST, 'bad name')
+            const parent = await urlToNodeOriginal(dirname(uri))
+            if (parent?.children?.find(x => getNodeName(x) === props.name))
+                return new ApiError(HTTP_CONFLICT, 'name already present')
+        }
+        Object.assign(n, sanitizeVfsProps(props))
+        simplifyName(n)
+        n.isFolder = undefined // reset field, it will be set by saveVfs
+        await saveVfs()
+        return n
+    },
+
+    // legacy – not currently used by the UI
     async move_vfs({ from, parent }) {
         if (!from || !parent)
             return new ApiError(HTTP_BAD_REQUEST)
@@ -84,33 +100,15 @@ export default {
             return new ApiError(HTTP_CONFLICT, 'item with same name already present in destination')
         const oldParent = await urlToNodeOriginal(dirname(from))
         _.pull(oldParent!.children!, fromNode)
-        if (_.isEmpty(oldParent!.children))
+        if (_.isEmpty(oldParent!.children)) {
             delete oldParent!.children
+        }
         ;(parentNode.children ||= []).push(fromNode)
         await saveVfs()
         return {}
     },
 
-    async set_vfs({ uri, props }) {
-        const n = await urlToNodeOriginal(uri)
-        if (!n)
-            return new ApiError(HTTP_NOT_FOUND, 'path not found')
-        if (props.name && props.name !== getNodeName(n)) {
-            if (!isValidFileName(props.name))
-                return new ApiError(HTTP_BAD_REQUEST, 'bad name')
-            const parent = await urlToNodeOriginal(dirname(uri))
-            if (parent?.children?.find(x => getNodeName(x) === props.name))
-                return new ApiError(HTTP_CONFLICT, 'name already present')
-        }
-        if (props.masks && typeof props.masks !== 'object')
-            delete props.masks
-        Object.assign(n, pickProps(props, ALLOWED_KEYS))
-        simplifyName(n)
-        n.isFolder = undefined // reset field, it will be set by saveVfs
-        await saveVfs()
-        return n
-    },
-
+    // legacy – not currently used by the UI
     async add_vfs({ parent, source, name, ...rest }) {
         if (!source && !name)
             return new ApiError(HTTP_BAD_REQUEST, 'name or source required')
@@ -126,7 +124,7 @@ export default {
         const isFolder = source && await isDirectory(source)
         if (source && isFolder === undefined)
             return new ApiError(HTTP_NOT_FOUND, 'source not found')
-        const child = { source, name, ...pickProps(rest, ALLOWED_KEYS) }
+        const child = { source, name, ...sanitizeVfsProps(rest) }
         name = getNodeName(child) // could be not given as input
         const ext = extname(name)
         const noExt = ext ? name.slice(0, -ext.length) : name
@@ -144,6 +142,7 @@ export default {
         return { name, link }
     },
 
+    // legacy – not currently used by the UI
     async del_vfs({ uris }) {
         if (!uris || !Array.isArray(uris))
             return new ApiError(HTTP_BAD_REQUEST, 'bad uris')
@@ -276,9 +275,21 @@ export default {
 export function pickProps(o: any, keys: string[]) {
     const ret: any = {}
     if (o && typeof o === 'object')
-        for (const k of keys)
-            if (k in o)
+        for (const k in o)
+            if (keys.includes(k))
                 ret[k] = o[k] === null || o[k] === '' ? undefined : o[k]
+    return ret
+}
+
+function sanitizeVfsProps(props: any) {
+    const ret = pickProps(props, VFS_STORED_KEYS)
+    if (ret.masks && typeof ret.masks !== 'object')
+        ret.masks = undefined
+    if (props?.children === null)
+        delete ret.children
+    else if (Array.isArray(props?.children))
+        ret.children = !props.children.length ? undefined
+            : props.children.map(sanitizeVfsProps)
     return ret
 }
 

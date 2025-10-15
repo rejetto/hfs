@@ -129,7 +129,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                                         checked: sel.includes(it.n),
                                         disabled: !folders && isFolder,
                                         onClick(ev) {
-                                            const id = it.n
+                                            const id = it.n + (it.k ? '/' : '')
                                             const removed = sel.filter(x => x !== id)
                                             setSel(removed.length < sel.length ? removed : [...sel, id])
                                             ev.stopPropagation()
@@ -151,7 +151,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                         disabled: !sel.length && (!cwd || !folders && files), // !cwd is the drive selection on Windows, which is not a path
                         sx: { minWidth: 'max-content' },
                         onClick() {
-                            onSelect(sel.length ? sel.map(x => cwdDelimiter + x) : [cwd])
+                            onSelect(sel.length ? sel.map(x => cwdDelimiter + x) : [cwd + '/'])
                         }
                     }, files && (sel.length || !folders) ? `Select (${sel.length})` : sm ? "Select this folder" : "This folder"),
                     folders && h(Btn, {

@@ -3,11 +3,10 @@ import { DirList, state, useSnapState } from './state'
 import { Btn } from './components'
 import { alertDialog, toast } from './dialog'
 import { useNavigate } from 'react-router-dom'
-import { dirname, HTTP_MESSAGES, xlate } from '../../src/cross'
 import { apiCall } from '@hfs/shared/api'
 import { reloadList, usePath } from './useFetchList'
 import _ from 'lodash'
-import { hfsEvent } from './misc'
+import { HTTP_MESSAGES, xlate, dirname, hfsEvent } from './misc'
 import i18n from './i18n'
 const { t, useI18N } = i18n
 

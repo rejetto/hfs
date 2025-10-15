@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { state, useSnapState } from './state'
+import { markVfsModified, state, useSnapState } from './state'
 import { createElement as h, forwardRef, ReactElement, ReactNode, useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList, useTheme } from '@mui/material'
 import {
@@ -9,12 +9,13 @@ import {
 import { apiCall, UseApi } from './api'
 import {
     basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, objSameKeys,
-    onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate, md, Callback,
-    useRequestRender, splitAt, IMAGE_FILEMASK, copyTextToClipboard, normalizeHost, CFG, try_
+    onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, xlate, md, Callback,
+    useRequestRender, splitAt, IMAGE_FILEMASK, copyTextToClipboard, normalizeHost, CFG, try_,
+    WHO_ANY_ACCOUNT
 } from './misc'
 import { isModifiedConfig } from './AccountForm'
 import { Btn, Flex, IconBtn, LinkBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'
-import { reloadVfs, VfsNode } from './VfsPage'
+import { deleteVfs, id2node, reindexVfs, VfsNodeAdmin } from './VfsPage'
 import _ from 'lodash'
 import FileField from './FileField'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
@@ -33,7 +34,7 @@ import { Account, account2icon } from './AccountsPage'
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
 
 interface FileFormProps {
-    file: VfsNode
+    file: VfsNodeAdmin
     addToBar?: ReactNode
     statusApi: UseApi
     accounts: Account[]
@@ -112,9 +113,9 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
                     || file.id.startsWith(movingFile) // can't move below myself
                     || file.id === movingFile.replace(/[^/]+\/?$/,''), // can't move to the same parent
                 title: movingFile,
-                onClick() {
-                    state.movingFile = ''
-                    return moveVfs(movingFile, file.id)
+                async onClick() {
+                    if (await moveVfs(movingFile, file.id))
+                        state.movingFile = ''
                 },
             }),
             h(IconBtn, {
@@ -122,25 +123,30 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
                 title: "Delete",
                 confirm: `Delete ${file.name}?`,
                 disabled: isRoot,
-                onClick: () => apiCall('del_vfs', { uris: [file.id] }).then(({ errors: [err] }) => {
-                    if (err)
-                        alertDialog(xlate(err, HTTP_MESSAGES), 'error')
-                    else
-                        reloadVfs([])
-                }),
+                onClick() {
+                    deleteVfs([file.id])
+                    saved()
+                },
             }),
             ...wantArray(addToBar)
         ],
         onError: alertDialog,
         save: {
             ...propsForModifiedValues(isModifiedConfig(values, rest)),
+            children: "Apply",
+            startIcon: h(Check),
             async onClick() {
+                const node = state.selectedFiles[0] || id2node.get(values.id)
+                if (!node)
+                    throw Error("Selected node not found")
                 const props = _.omit(values, ['birthtime','mtime','size','id'])
-                ;(props as any).masks ||= null // undefined cannot be serialized
-                await apiCall('set_vfs', { uri: values.id, props })
-                if (props.name !== file.name) // when the name changes, the id of the selected file is changing too, and we have to update it in the state if we want it to be correctly re-selected after reload
-                    state.selectedFiles[0].id = file.parent!.id + props.name + (isDir ? '/' : '')
-                reloadVfs()
+                const wasId = node.id
+                Object.assign(node, props)
+                if (props.name !== undefined)
+                    reindexVfs({ node, clearMap: false, select: [node] })
+                if (node.id !== wasId)
+                    setValues(v => ({ ...v, id: node.id }))
+                markVfsModified()
                 saved()
             }
         },
@@ -220,9 +226,13 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
         if (!show[perm]) return null
         const dontShow = [perm, ...onlyTruthy(_.map(show, (v,k) => !v && k))]
         const others = _.difference(Object.keys(defaultPerms), dontShow)
-        let inherit = file.inherited?.[perm] ?? defaultPerms[perm]
-        while (typeof inherit === 'string' && _.get(show, inherit) === false) // is 'inherit' referring another permission that is not displayed?
-            inherit = _.get(values, inherit) ?? _.get(file.inherited, inherit) ?? _.get(defaultPerms, inherit)! // then show its value instead
+        // a freshly created node can be selected before `inherited` is filled by a server roundtrip
+        let inherit = file.inherited?.[perm] ?? getParentInheritedPerm(perm) ?? defaultPerms[perm]
+        while (typeof inherit === 'string' && _.get(show, inherit) === false) // is 'inherit' referring to another permission that is not displayed?
+            inherit = _.get(values, inherit)
+                // non-permission who values (like WHO_ANY_ACCOUNT) are not valid keys for inherited lookup
+                ?? (inherit !== WHO_ANY_ACCOUNT ? getParentInheritedPerm(inherit) : undefined)
+                ?? _.get(defaultPerms, inherit)! // then show its value instead
         return {
             comp: WhoField,
             k: perm, sm: 6, lg: 12, xl: 4,
@@ -233,6 +243,21 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
             byMasks: byMasks?.[perm],
             fromField: (v?: Who) => v ?? null,
             ...props
+        }
+    }
+
+    function getParentInheritedPerm(perm: keyof VfsPerms): Who | undefined {
+        if (file[perm] !== undefined)
+            return
+        let cursor = file.parent
+        while (cursor) {
+            let inheritedPerm = cursor[perm]
+            if (!isWhoObject(inheritedPerm))
+                return inheritedPerm
+            inheritedPerm = inheritedPerm.children
+            if (inheritedPerm !== undefined)
+                return inheritedPerm
+            cursor = cursor.parent
         }
     }
 
