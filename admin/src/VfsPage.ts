@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { createElement as h, Fragment, useEffect, useMemo, useRef } from 'react'
 import { apiCall, useApiEx } from './api'
 import { Alert, Box, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { state, useSnapState } from './state'
@@ -19,9 +19,9 @@ import { PageProps } from './App'
 
 let selectOnReload: string[] | undefined
 let exposeVfsLoading: Promise<unknown> | undefined
+export const id2node = new Map<string, VfsNodeAdmin>()
 
 export default function VfsPage({ setTitleSide }: PageProps) {
-    const [id2node] = useState(() => new Map<string, VfsNode>())
     const { vfs, selectedFiles, movingFile } = useSnapState()
     const { data, reload, element, loading } = useApiEx('get_vfs')
     exposeVfsLoading = loading
@@ -74,7 +74,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         hintElement,
     ), [hintElement]))
 
-    const single = selectedFiles?.length < 2 && selectedFiles[0] as VfsNode
+    const single = selectedFiles?.length < 2 && selectedFiles[0] as VfsNodeAdmin
     const sideContent = accountsApi.element || !vfs || !selectedFiles.length ? null
         : single ? h(FileForm, {
             key: single.id,
@@ -109,7 +109,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         const { close } = newDialog({
             title: selectedFiles.length > 1 ? "Multiple selection" :
                 h(Flex, {},
-                    vfsNodeIcon(selectedFiles[0] as VfsNode),
+                    vfsNodeIcon(selectedFiles[0] as VfsNodeAdmin),
                     h(Flex, { flexWrap: 'wrap', gap: '0 0.5em' },
                         selectedFiles[0].name || "Home",
                         h(Box, { component: 'span', color: 'text.secondary' }, ancestors.join(' /'))
@@ -126,8 +126,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     }, [isSideBreakpoint, _.last(selectedFiles)?.id])
 
     useEffect(() => {
-        state.vfs = undefined
-        if (!data) return
+        if (state.vfs || !data) return
         // rebuild id2node
         id2node.clear()
         const { root } = data
@@ -148,7 +147,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         }
 
         // calculate id and parent fields, and builds the map id2node
-        function recur(node: VfsNode, pre='/', parent: VfsNode|undefined=undefined) {
+        function recur(node: VfsNodeAdmin, pre='/', parent: VfsNodeAdmin|undefined=undefined) {
             node.parent = parent
             node.id = node.isRoot ? '/' : prefix(pre, pathEncode(node.name), node.type === 'folder' ? '/' : '')
             id2node.set(node.id, node)
@@ -158,7 +157,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
                 recur(n, node.id, node)
         }
 
-    }, [data, id2node])
+    }, [data])
     if (element) {
         id2node.clear()
         return element
@@ -166,7 +165,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
     return h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
         h(Grid, { item: true, xs: 12, [sideBreakpoint]: 5, lg: 6, xl: 5, ...scrollProps  },
-            id2node.size > 0 && h(VfsTree, { id2node, statusApi }) ),
+            h(VfsTree, { statusApi }) ),
         isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth: '100%', ...scrollProps },
             h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
                 h(CardContent, {}, sideContent)) )
@@ -199,12 +198,12 @@ async function deleteFiles() {
     }
 }
 
-export interface VfsNode extends Omit<VfsNodeAdminSend, 'birthtime' | 'mtime' | 'children'> {
+export interface VfsNodeAdmin extends Omit<VfsNodeAdminSend, 'birthtime' | 'mtime' | 'children'> {
     id: string
     birthtime?: string
     mtime?: string
     default?: string
-    children?: VfsNode[]
-    parent?: VfsNode
+    children?: VfsNodeAdmin[]
+    parent?: VfsNodeAdmin
     isRoot?: true
 }
