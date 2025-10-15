@@ -10,6 +10,7 @@ import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
 import {
     enforceFinal, enforceStarting, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, PERM_KEYS,
+    VFS_STORED_KEYS,
     VfsNodeAdminSend
 } from './misc'
 import {
@@ -26,9 +27,6 @@ async function urlToNodeOriginal(uri: string) {
     const n = await urlToNode(uri)
     return n?.isTemp ? n.original : n
 }
-
-const ALLOWED_KEYS: (keyof VfsNodeStored)[] = ['name', 'source', 'masks', 'default', 'accept', 'rename', 'mime', 'url',
-    'target', 'comment', 'icon', 'order', ...PERM_KEYS]
 
 export interface LsEntry { n:string, s?:number, m?:string, c?:string, k?:'d' }
 
@@ -92,7 +90,7 @@ const apis: ApiHandlers = {
     },
 
     async set_vfs({ uri, props }) {
-        const n = await urlToNodeOriginal(uri)
+        const n = uri && await urlToNodeOriginal(uri)
         if (!n)
             return new ApiError(HTTP_NOT_FOUND, 'path not found')
         if (props.name && props.name !== getNodeName(n)) {
@@ -104,7 +102,7 @@ const apis: ApiHandlers = {
         }
         if (props.masks && typeof props.masks !== 'object')
             delete props.masks
-        Object.assign(n, pickProps(props, ALLOWED_KEYS))
+        Object.assign(n, pickProps(props, VFS_STORED_KEYS))
         simplifyName(n)
         n.isFolder = undefined // reset field, it will be set by saveVfs
         await saveVfs()
@@ -126,7 +124,7 @@ const apis: ApiHandlers = {
         const isFolder = source && await isDirectory(source)
         if (source && isFolder === undefined)
             return new ApiError(HTTP_NOT_FOUND, 'source not found')
-        const child = { source, name, ...pickProps(rest, ALLOWED_KEYS) }
+        const child = { source, name, ...pickProps(rest, VFS_STORED_KEYS) }
         name = getNodeName(child) // could be not given as input
         const ext = extname(name)
         const noExt = ext ? name.slice(0, -ext.length) : name
@@ -142,6 +140,18 @@ const apis: ApiHandlers = {
             + encodeURIComponent(getNodeName(child))
             + (isFolder ? '/' : '')
         return { name, link }
+    },
+
+    async get_free_name({ parent, name }) {
+        const parentNode = parent ? await urlToNodeOriginal(parent) : vfs
+        if (!parentNode)
+            return new ApiError(HTTP_NOT_FOUND, 'parent not found')
+        const ext = extname(name)
+        const noExt = ext ? name.slice(0, -ext.length) : name
+        let idx = 2
+        while (parentNode.children?.find(isSameFilenameAs(name)))
+            name = `${noExt} ${idx++}${ext}`
+        return { name }
     },
 
     async del_vfs({ uris }) {

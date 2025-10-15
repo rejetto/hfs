@@ -14,7 +14,7 @@ import {
 import { state, useSnapState } from './state'
 import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
 import { isCertError, isKeyError, suggestMakingCert } from './OptionsPage'
-import { VfsNode } from './VfsPage'
+import { VfsNodeAdmin } from './VfsPage'
 import { Account } from './AccountsPage'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
@@ -29,7 +29,7 @@ export default function HomePage() {
     const SOLUTION_SEP = " — "
     const { username } = useSnapState()
     const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<typeof adminApis.get_status>('get_status')
-    const { data: vfs } = useApiEx<{ root?: VfsNode }>('get_vfs')
+    const { data: vfs } = useApiEx<{ root?: VfsNodeAdmin }>('get_vfs')
     const { data: account } = useApiEx<Account>(username && 'get_account')
     const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'ignore_proxies'] })
     const { list: plugins } = useApiList('get_plugins')

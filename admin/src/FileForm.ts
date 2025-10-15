@@ -14,7 +14,7 @@ import {
 } from './misc'
 import { isModifiedConfig } from './AccountForm'
 import { Btn, Flex, IconBtn, LinkBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'
-import { reloadVfs, VfsNode } from './VfsPage'
+import { reloadVfs, VfsNodeAdmin } from './VfsPage'
 import _ from 'lodash'
 import FileField from './FileField'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
@@ -33,7 +33,7 @@ import { Account, account2icon } from './AccountsPage'
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
 
 interface FileFormProps {
-    file: VfsNode
+    file: VfsNodeAdmin
     addToBar?: ReactNode
     statusApi: UseApi
     accounts: Account[]

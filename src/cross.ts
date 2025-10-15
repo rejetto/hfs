@@ -89,6 +89,9 @@ export type VfsNodeAdminSend = {
 
 export const PERM_KEYS = typedKeys(defaultPerms)
 
+export const VFS_STORED_KEYS: (keyof VfsNodeStored)[] = ['name', 'source', 'masks', 'default', 'accept', 'rename',
+    'mime', 'url', 'target', 'comment', 'icon', 'order', ...PERM_KEYS]
+
 function constMap<T extends string>(a: T[]): { [K in T]: K } {
     return Object.fromEntries(a.map(x => [x, x])) as { [K in T]: K };
 }
