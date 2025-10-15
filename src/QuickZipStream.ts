@@ -1,19 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { Readable } from 'stream'
-import bufferCrc32 from 'buffer-crc32'
-const { unsigned } = bufferCrc32
 import assert from 'assert'
-import { try_ } from './misc'
+import { buf as crc32 } from 'crc-32'
 
 const ZIP64_SIZE_LIMIT = 0xffffffff
 const ZIP64_NUMBER_LIMIT = 0xffff
-
-type Crc32Function = (input: string | Buffer, initialState?: number | undefined) => number
-const crc32function: Crc32Function = try_(() => require('@node-rs/crc32').crc32 satisfies Crc32Function, () => {
-    console.warn('using generic lib for crc32')
-    return unsigned satisfies Crc32Function
-})
 
 const FLAGS = 0x0808 // bit3 = no crc in local header + bit11 = utf8
 
@@ -152,7 +144,7 @@ export class QuickZipStream extends Readable {
 
         const cache = sourcePath ? crcCache[sourcePath] : undefined
         const cacheHit = Number(cache?.ts) === Number(ts)
-        let crc = cacheHit ? cache!.crc : getData ? crc32function('') : 0
+        let crc = cacheHit ? cache!.crc : getData ? crc32([]) : 0
         const extAttr = !mode ? 0 : (mode | 0x8000) * 0x10000 // it's like <<16 but doesn't overflow so easily
         const entry = { size, crc, pathAsBuffer, ts, offset, version, extAttr }
         if (!getData) {
@@ -185,7 +177,7 @@ export class QuickZipStream extends Readable {
                 if (!this.controlledPush(chunk)) // destination buffer full
                     data.pause() // slow down
                 if (!cacheHit)
-                    crc = crc32function(chunk, crc)
+                    crc = crc32(chunk, crc)
                 if (this.finished)
                     return data.destroy()
             })
@@ -295,7 +287,10 @@ function buffer(pairs: number[]) {
         else if (size === 2)
             ret.writeUInt16LE(data, offset)
         else if (size === 4)
-            ret.writeUInt32LE(data, offset)
+            if (data < 0) // needed for crc32
+                ret.writeInt32LE(data, offset)
+            else
+                ret.writeUInt32LE(data, offset)
         else if (size === 8)
             ret.writeBigUInt64LE(BigInt(data), offset)
         else
