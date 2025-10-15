@@ -2,12 +2,14 @@
 
 import { createElement as h, ReactNode } from 'react'
 import { Alert, Box, ButtonProps, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
-import { Add, Storage } from '@mui/icons-material'
+import { Add, Save, Storage } from '@mui/icons-material'
 import addFiles, { addLink, addVirtual } from './addFiles'
 import MenuButton from './MenuButton'
 import { osIcon } from './LogsPage'
 import { reloadVfs } from './VfsPage'
-import { prefix } from './misc'
+import { prefix, VFS_STORED_KEYS } from './misc'
+import { state } from './state'
+import _ from 'lodash'
 import { Btn, Flex, reloadBtn, useBreakpoint } from './mui'
 import { apiCall, ApiObject, useApi } from './api'
 import VfsPathField from './VfsPathField'
@@ -24,6 +26,11 @@ export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusA
         width: 'fit-content',
     },
         h(AddVfsBtn),
+        h(Btn, {
+            icon: Save,
+            title: "Save changes",
+            onClick: saveVfs
+        }),
         reloadBtn(() => reloadVfs()),
         h(Btn, {
             icon: Storage,
@@ -87,4 +94,14 @@ function SystemIntegrationButton({ platform }: { platform: string | undefined })
             onClick: () => apiCall('windows_remove').then(reload),
         })
     })
+}
+
+function saveVfs() {
+    apiCall('set_vfs', { uri: '/', props: recur() })
+        //.then(() => toast("Changes saved"))
+    function recur(n=state.vfs) {
+        const ret = _.pick(n, VFS_STORED_KEYS)
+        ret.children = n?.children?.map(recur)
+        return ret
+    }
 }

@@ -8,7 +8,7 @@ import {
     RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff, UnfoldMore, UnfoldLess
 } from '@mui/icons-material'
 import { Box, Typography } from '@mui/material'
-import { reloadVfs, VfsNode } from './VfsPage'
+import { id2node, reloadVfs, VfsNodeAdmin } from './VfsPage'
 import { onlyTruthy, toMutable, Who, with_ } from './misc'
 import { Flex, iconTooltip, useToggleButton } from './mui'
 import VfsMenuBar from './VfsMenuBar'
@@ -21,10 +21,10 @@ export const FileIcon = InsertDriveFileOutlined
 
 let once = true
 
-export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, VfsNode>, statusApi: ApiObject }) {
+export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
     const { vfs, selectedFiles, expanded } = useSnapState()
     const dragging = useRef<string>()
-    const Branch = useCallback(function({ node }: { node: Readonly<VfsNode> }): ReactElement {
+    const Branch = useCallback(function({ node }: { node: Readonly<VfsNodeAdmin> }): ReactElement {
         let { id, name, isRoot } = node
         const folder = node.type === 'folder'
         const ref = useRef<HTMLLIElement | null>()
@@ -143,7 +143,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                 if (typeof ids === 'string') return // shut up ts
                 state.selectedFiles = onlyTruthy(ids.map(id => id2node.get(id)))
             }
-        }, h(Branch, { node: vfs as Readonly<VfsNode> }))
+        }, h(Branch, { node: vfs as Readonly<VfsNodeAdmin> }))
     )
 }
 
@@ -154,7 +154,7 @@ export function moveVfs(from: string, to: string) {
     }, alertDialog)
 }
 
-export function vfsNodeIcon(node: VfsNode) {
+export function vfsNodeIcon(node: VfsNodeAdmin) {
     return node.isRoot ? iconTooltip(Home, "home, or root if you like")
         : node.type === 'folder' ? iconTooltip(FolderIcon, "Folder")
             : node.url ? iconTooltip(Link, "Web-link")
