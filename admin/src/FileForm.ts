@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { state, useSnapState } from './state'
+import { markVfsModified, state, useSnapState } from './state'
 import { createElement as h, forwardRef, ReactElement, ReactNode, useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList, useTheme } from '@mui/material'
 import {
@@ -9,12 +9,12 @@ import {
 import { apiCall, UseApi } from './api'
 import {
     basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, objSameKeys,
-    onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate, md, Callback,
+    onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, xlate, md, Callback,
     useRequestRender, splitAt, IMAGE_FILEMASK, copyTextToClipboard, normalizeHost, CFG, try_
 } from './misc'
 import { isModifiedConfig } from './AccountForm'
 import { Btn, Flex, IconBtn, LinkBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'
-import { reloadVfs, VfsNode } from './VfsPage'
+import { deleteVfs, id2node, reindexVfs, VfsNodeAdmin } from './VfsPage'
 import _ from 'lodash'
 import FileField from './FileField'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
@@ -33,7 +33,7 @@ import { Account, account2icon } from './AccountsPage'
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
 
 interface FileFormProps {
-    file: VfsNode
+    file: VfsNodeAdmin
     addToBar?: ReactNode
     statusApi: UseApi
     accounts: Account[]
@@ -112,9 +112,9 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
                     || file.id.startsWith(movingFile) // can't move below myself
                     || file.id === movingFile.replace(/[^/]+\/?$/,''), // can't move to the same parent
                 title: movingFile,
-                onClick() {
-                    state.movingFile = ''
-                    return moveVfs(movingFile, file.id)
+                async onClick() {
+                    if (await moveVfs(movingFile, file.id))
+                        state.movingFile = ''
                 },
             }),
             h(IconBtn, {
@@ -122,25 +122,30 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
                 title: "Delete",
                 confirm: `Delete ${file.name}?`,
                 disabled: isRoot,
-                onClick: () => apiCall('del_vfs', { uris: [file.id] }).then(({ errors: [err] }) => {
-                    if (err)
-                        alertDialog(xlate(err, HTTP_MESSAGES), 'error')
-                    else
-                        reloadVfs([])
-                }),
+                onClick() {
+                    deleteVfs([file.id])
+                    saved()
+                },
             }),
             ...wantArray(addToBar)
         ],
         onError: alertDialog,
         save: {
             ...propsForModifiedValues(isModifiedConfig(values, rest)),
+            children: "Apply",
+            startIcon: h(Check),
             async onClick() {
+                const node = state.selectedFiles[0] || id2node.get(values.id)
+                if (!node)
+                    throw Error("Selected node not found")
                 const props = _.omit(values, ['birthtime','mtime','size','id'])
-                ;(props as any).masks ||= null // undefined cannot be serialized
-                await apiCall('set_vfs', { uri: values.id, props })
-                if (props.name !== file.name) // when the name changes, the id of the selected file is changing too, and we have to update it in the state if we want it to be correctly re-selected after reload
-                    state.selectedFiles[0].id = file.parent!.id + props.name + (isDir ? '/' : '')
-                reloadVfs()
+                const wasId = node.id
+                Object.assign(node, props)
+                if (props.name !== undefined)
+                    reindexVfs({ node, clearMap: false, select: [node] })
+                if (node.id !== wasId)
+                    setValues(v => ({ ...v, id: node.id }))
+                markVfsModified()
                 saved()
             }
         },

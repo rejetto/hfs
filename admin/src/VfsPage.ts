@@ -1,9 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { apiCall, useApiEx } from './api'
+import { createElement as h, Fragment, useEffect, useMemo, useRef } from 'react'
+import { useApiEx } from './api'
 import { Alert, Box, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
-import { state, useSnapState } from './state'
+import { markVfsModified, state, useSnapState } from './state'
 import VfsTree, { vfsNodeIcon } from './VfsTree'
 import {
     CFG, matches, newDialog, normalizeHost, onlyTruthy, pathEncode, prefix, VfsNodeAdminSend, HIDE_IN_TESTS, wait
@@ -19,9 +19,9 @@ import { PageProps } from './App'
 
 let selectOnReload: string[] | undefined
 let exposeVfsLoading: Promise<unknown> | undefined
+export const id2node = new Map<string, VfsNodeAdmin>()
 
 export default function VfsPage({ setTitleSide }: PageProps) {
-    const [id2node] = useState(() => new Map<string, VfsNode>())
     const { vfs, selectedFiles, movingFile } = useSnapState()
     const { data, reload, element, loading } = useApiEx('get_vfs')
     exposeVfsLoading = loading
@@ -74,7 +74,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         hintElement,
     ), [hintElement]))
 
-    const single = selectedFiles?.length < 2 && selectedFiles[0] as VfsNode
+    const single = selectedFiles?.length < 2 && selectedFiles[0] as VfsNodeAdmin
     const sideContent = accountsApi.element || !vfs || !selectedFiles.length ? null
         : single ? h(FileForm, {
             key: single.id,
@@ -109,7 +109,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         const { close } = newDialog({
             title: selectedFiles.length > 1 ? "Multiple selection" :
                 h(Flex, {},
-                    vfsNodeIcon(selectedFiles[0] as VfsNode),
+                    vfsNodeIcon(selectedFiles[0] as VfsNodeAdmin),
                     h(Flex, { flexWrap: 'wrap', gap: '0 0.5em' },
                         selectedFiles[0].name || "Home",
                         h(Box, { component: 'span', color: 'text.secondary' }, ancestors.join(' /'))
@@ -126,39 +126,23 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     }, [isSideBreakpoint, _.last(selectedFiles)?.id])
 
     useEffect(() => {
-        state.vfs = undefined
-        if (!data) return
-        // rebuild id2node
-        id2node.clear()
+        if (state.vfs || !data) return
         const { root } = data
         if (!root) return
         root.isRoot = true
-        recur(root) // this must be done before state change that would cause Tree to render and expecting id2node
         state.vfs = root
-        // refresh objects of selectedFiles
-        state.selectedFiles = consumeSelectOnReload()
-            || onlyTruthy(state.selectedFiles.map(x => id2node.get(x.id))) // refresh with new objects
+        reindexVfs({ sortChildren: true, select: consumeSelectOnReload() })
+        state.vfsModified = false
 
         function consumeSelectOnReload() {
-            if (selectOnReload)
-                closeDialogRef.current() // this is noop when side-paneling
-            const ret = selectOnReload && onlyTruthy(selectOnReload.map(id => id2node.get(id)))
+            if (!selectOnReload) return
+            closeDialogRef.current() // this is noop when side-paneling
+            const ret = selectOnReload
             selectOnReload = undefined
             return ret
         }
 
-        // calculate id and parent fields, and builds the map id2node
-        function recur(node: VfsNode, pre='/', parent: VfsNode|undefined=undefined) {
-            node.parent = parent
-            node.id = node.isRoot ? '/' : prefix(pre, pathEncode(node.name), node.type === 'folder' ? '/' : '')
-            id2node.set(node.id, node)
-            if (!node.children) return
-            node.children = _.sortBy(node.children, ['type', x => x.name?.toLocaleLowerCase()])
-            for (const n of node.children)
-                recur(n, node.id, node)
-        }
-
-    }, [data, id2node])
+    }, [data])
     if (element) {
         id2node.clear()
         return element
@@ -166,11 +150,46 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
     return h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
         h(Grid, { item: true, xs: 12, [sideBreakpoint]: 5, lg: 6, xl: 5, ...scrollProps  },
-            id2node.size > 0 && h(VfsTree, { id2node, statusApi }) ),
+            h(VfsTree, { statusApi }) ),
         isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth: '100%', ...scrollProps },
             h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
                 h(CardContent, {}, sideContent)) )
     )
+}
+
+export function reindexVfs({
+    node=state.vfs,
+    clearMap=true,
+    sortChildren=false,
+    select=state.selectedFiles,
+}: {
+    node?: VfsNodeAdmin
+    clearMap?: boolean
+    sortChildren?: boolean
+    select?: VfsNodeAdmin[] | string[]
+} = {}) {
+    if (!node) return
+    if (clearMap)
+        id2node.clear()
+    recur(node, node.parent?.id || '/', node.parent)
+    // Reindex can update ids/references; remap caller-provided selections to canonical nodes from id2node.
+    if (select)
+        state.selectedFiles = onlyTruthy(select.map(x => id2node.get(typeof x === 'string' ? x : x.id)))
+
+    function recur(node: VfsNodeAdmin, pre: string, parent: VfsNodeAdmin | undefined) {
+        const oldId = node.id
+        node.parent = parent
+        const newId = node.isRoot ? '/' : prefix(pre, pathEncode(node.name), node.type === 'folder' ? '/' : '')
+        if (oldId && oldId !== newId)
+            id2node.delete(oldId)
+        node.id = newId
+        id2node.set(newId, node)
+        if (!node.children) return
+        if (sortChildren)
+            node.children = _.sortBy(node.children, ['type', x => x.name?.toLocaleLowerCase()])
+        for (const child of node.children)
+            recur(child, node.id, node)
+    }
 }
 
 export function reloadVfs(pleaseSelect?: string[]) {
@@ -183,28 +202,36 @@ async function deleteFiles() {
     const f = state.selectedFiles
     if (!f.length) return
     if (!await confirmDialog(`Delete ${f.length} item(s)?`)) return
-    try {
-        const uris = f.map(x => x.id).sort()
-        _.remove(uris, (x, i) => i // exclude first, but remove descendants as they are both redundant and would cause errors
-            && _.findLastIndex(uris, y => x.startsWith(y), i - 1) !== -1) // search backward among previous elements, as they array is sorted
-        _.pull(uris, '/')
-        const { errors } = await apiCall('del_vfs', { uris })
-        const urisThatFailed = uris.filter((_uri, idx) => errors[idx])
-        if (urisThatFailed.length)
-            return alertDialog("Following elements couldn't be deleted: " + urisThatFailed.join(', '), 'error')
-        reloadVfs()
-    }
-    catch(e) {
-        await alertDialog(e as Error)
-    }
+    deleteVfs(f.map(x => x.id))
 }
 
-export interface VfsNode extends Omit<VfsNodeAdminSend, 'birthtime' | 'mtime' | 'children'> {
+export function deleteVfs(uris: string[]) {
+    const sorted = _.uniq(uris).sort()
+    const topLevelUris = sorted.filter((uri, idx) => uri !== '/'
+        && (idx === 0 || _.findLastIndex(sorted, parentUri => isDescendantUri(uri, parentUri), idx - 1) < 0))
+    if (!topLevelUris.length) return
+    for (const uri of topLevelUris) {
+        const node = id2node.get(uri)!
+        const siblings = node.parent!.children!
+        _.remove(siblings, { id: node.id })
+        if (!siblings.length)
+            node.parent!.children = undefined
+    }
+    if (state.movingFile && topLevelUris.some(uri => state.movingFile === uri || isDescendantUri(state.movingFile, uri)))
+        state.movingFile = ''
+    markVfsModified()
+}
+
+export function isDescendantUri(childUri: string, parentUri: string) {
+    return parentUri.endsWith('/') && childUri.startsWith(parentUri)
+}
+
+export interface VfsNodeAdmin extends Omit<VfsNodeAdminSend, 'birthtime' | 'mtime' | 'children'> {
     id: string
     birthtime?: string
     mtime?: string
     default?: string
-    children?: VfsNode[]
-    parent?: VfsNode
+    children?: VfsNodeAdmin[]
+    parent?: VfsNodeAdmin
     isRoot?: true
 }

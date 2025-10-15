@@ -1,10 +1,11 @@
 import { test, expect, Page } from '@playwright/test'
 import fs from 'fs'
 import { wait } from '../src/cross'
-import { password, resetTimestamp, URL, username } from './common'
+import { forwardConsole, password, resetTimestamp, URL, username } from './common'
 
 // a generic test touch several parts
 test('around1', async ({ page }) => {
+    forwardConsole(page)
     resetTimestamp()
     await page.goto(URL)
     await expect(page).toHaveTitle(/File server/)
@@ -305,6 +306,7 @@ async function screenshot(page: Page, selectorForMask = '') {
 }
 
 test('anew', async ({ page, browserName }) => {
+    forwardConsole(page)
     if (page.viewportSize()?.width! < 1000 || browserName !== 'chromium') return // test only for desktop chromium
     await page.goto('http://localhost:82/')
     await expect(page.getByText('Nothing here')).toBeVisible()
@@ -336,13 +338,15 @@ test('anew', async ({ page, browserName }) => {
     await adminPage.getByRole('button', { name: 'Cut' }).click()
     await adminPage.locator('div').filter({ hasText: 'InfoNow that this is marked' }).nth(1).click()
     await adminPage.getByRole('button', { name: '(Close)' }).click()
-    await adminPage.getByText('Home folder').click()
+    await adminPage.getByRole('treeitem', { name: 'Home folder', exact: true })
+        .getByText('Home folder', { exact: true }).click()
     await adminPage.getByRole('button', { name: '(/work2/folder1/)' }).click() // paste button
     await adminPage.getByText('data.kv').click()
     await adminPage.getByRole('button', { name: 'Cut' }).click()
     await adminPage.getByRole('button', { name: '(Close)' }).click()
     await adminPage.getByText('folder1').click()
     await adminPage.getByRole('button', { name: '(/data.kv)' }).click() // paste
+    await adminPage.getByRole('button', { name: 'Save' }).click()
     await page.getByRole('button', { name: 'Close' }).click()
     await page.getByRole('link', { name: 'home' }).click()
     await page.getByRole('link', { name: 'Reload' }).click()

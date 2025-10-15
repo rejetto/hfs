@@ -7,7 +7,7 @@ import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONT
 import { getNodeName, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
 import { defineConfig } from './config'
-import { CFG, Dict, makeMatcher, matches, throw_, try_, with_, xlate } from './misc'
+import { CFG, Dict, makeMatcher, matches, try_, with_ } from './misc'
 import _ from 'lodash'
 import { basename } from 'path'
 import { promisify } from 'util'
@@ -32,7 +32,7 @@ export function forceDownload(ctx: Koa.Context, name: string) {
 }
 
 export function disposition(ctx: Koa.Context, name: string, forceDownload=false) {
-    // ctx.attachment is not working well on Windows. Eg: for file "èÖ.txt" it is producing `Content-Disposition: attachment; filename="??.txt"`. Koa uses module content-disposition, that actually produces a better result anyway: ``
+    // ctx.attachment is not working well on Windows. Eg: for the file "èÖ.txt" it is producing `Content-Disposition: attachment; filename="??.txt"`. Koa uses module content-disposition, that actually produces a better result anyway: ``
     ctx.set('Content-Disposition', (forceDownload ? 'attachment; ' : '')
         + `filename="${toAsciiEquivalent(name)}"; filename*=UTF-8''${encodeURIComponent(name)}`)
 }
@@ -41,10 +41,10 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     const { source, mime } = node
     const name = getNodeName(node)
     const mimeString = typeof mime === 'string' ? mime
-        : _.find(mime, (val,mask) => matches(name, mask))
+        : _.find(mime, (_val,mask) => matches(name, mask))
     if (allowedReferer.get()) {
         const ref = try_(() => new URL(ctx.get('referer')||'').host)
-        if (ref && ref !== ctx.host // automatically accept if referer is basically the hosting domain
+        if (ref && ref !== ctx.host // automatically accept if the referer is basically the hosting domain
         && !matches(ref, allowedReferer.get()))
             return ctx.status = HTTP_FORBIDDEN
     }

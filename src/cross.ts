@@ -89,6 +89,9 @@ export type VfsNodeAdminSend = {
 
 export const PERM_KEYS = typedKeys(defaultPerms)
 
+export const VFS_STORED_KEYS: (keyof VfsNodeStored)[] = ['name', 'source', 'masks', 'default', 'accept', 'rename',
+    'mime', 'url', 'target', 'comment', 'icon', 'order', 'children', ...PERM_KEYS]
+
 function constMap<T extends string>(a: T[]): { [K in T]: K } {
     return Object.fromEntries(a.map(x => [x, x])) as { [K in T]: K };
 }
@@ -231,14 +234,6 @@ export function pendingPromise<T>() {
     const ret = new Promise<T>((resolve, reject) =>
         takeOut = { resolve, reject })
     return Object.assign(ret, takeOut) as PendingPromise<T>
-}
-
-export function basename(path: string) {
-    return path.match(/([^\\/]+)[\\/]*$/)?.[1] || ''
-}
-
-export function dirname(path: string) {
-    return path.slice(0, Math.max(0, path.lastIndexOf('/', path.length - 1)))
 }
 
 export function tryJson(s?: string, except?: (s?: string) => unknown) {

@@ -227,6 +227,6 @@ export async function changeSrpHelper(account: Account, salt: string, verifier: 
 
 declare module "koa" {
     interface DefaultState {
-        usernames?: string[]
+        usernames?: Set<string>
     }
 }

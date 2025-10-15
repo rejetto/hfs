@@ -179,6 +179,20 @@ export function fallbackToBasicAuth() {
     return BigInt === Number
 }
 
+export function basename(path: string) {
+    return path.match(/([^\\/]+)[\\/]*$/)?.[1] || ''
+}
+
+export function extname(path: string) {
+    const name = basename(path)
+    const i = name.lastIndexOf('.')
+    return i <= 0 ? '' : name.slice(i)
+}
+
+export function dirname(path: string) {
+    return path.slice(0, Math.max(0, path.lastIndexOf('/', path.length - 1)))
+}
+
 type DurationUnit = 'day' | 'hour' | 'minute' | 'second'
 export function createDurationFormatter({ locale=undefined, unitDisplay='narrow', largest='day', smallest='second', maxTokens, skipZeroes }:
             { skipZeroes?: boolean, largest?: DurationUnit, smallest?: DurationUnit, locale?: string, unitDisplay?: 'long' | 'short' | 'narrow', maxTokens?: 1 | 2 | 3 }={}) {

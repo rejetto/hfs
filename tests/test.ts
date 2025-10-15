@@ -547,6 +547,31 @@ describe('admin', () => {
             await reqApi('del_vfs', { uris: ['/'+name] }, data => data?.errors?.[0] === 0, { auth })() // remove
         }
     })
+    test('set_vfs.rename and props', async () => {
+        const name = `set-vfs-${randomId(6)}`
+        const renamed = `${name}-renamed`
+        const uri = '/' + name
+        const renamedUri = '/' + renamed
+        try {
+            await reqApi('add_vfs', { source: '.', name }, 200, { auth })()
+            await reqApi('set_vfs', { uri, props: { name: renamed, comment: 'test note', can_list: false } }, 200, { auth })()
+            await reqApi('get_vfs', {}, res => {
+                const children = res?.root?.children || []
+                const oldNode = _.find(children, { name })
+                const renamedNode = _.find(children, { name: renamed })
+                throwIf(oldNode ? 'old node still present'
+                    : !renamedNode ? 'renamed node missing'
+                        : renamedNode.comment !== 'test note' ? 'comment not updated'
+                            : renamedNode.can_list !== false ? 'can_list not updated' : '')
+            }, { auth })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [renamedUri] }, data =>
+                [0, 404].includes(data?.errors?.[0]), { auth })().catch(() => {})
+            await reqApi('del_vfs', { uris: [uri] }, data =>
+                [0, 404].includes(data?.errors?.[0]), { auth })().catch(() => {})
+        }
+    })
     test('del_vfs.bad uris', reqApi('del_vfs', { uris: ['', '/', '//'] }, (res: any) =>
         throwIf(res?.errors.some((x: any) => x === 406) ? '' : res?.errors || 'missing'), { auth }))
     test('plugins.missing', reqApi('set_plugin', { id: 'missing-plugin', enabled: true }, { status: 400, re: /miss/ }, { auth }))

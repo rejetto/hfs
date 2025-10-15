@@ -2,7 +2,7 @@
 
 import { proxy, useSnapshot } from 'valtio'
 import { Dict } from './misc'
-import { VfsNode } from './VfsPage'
+import { reindexVfs, VfsNodeAdmin } from './VfsPage'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { produce } from 'immer'
@@ -11,10 +11,11 @@ const STORAGE_KEY = 'admin_state'
 const INIT = {
     title: '',
     config: {} as Dict,
-    selectedFiles: [] as VfsNode[],
+    selectedFiles: [] as VfsNodeAdmin[],
     accountsAsTree: false,
     movingFile: '',
-    vfs: undefined as VfsNode | undefined,
+    vfs: undefined as VfsNodeAdmin | undefined,
+    vfsModified: false,
     expanded: [] as string[],
     loginRequired: false as boolean | number,
     username: '',
@@ -43,6 +44,12 @@ for (const k of SETTINGS_TO_STORE)
 
 export function useSnapState() {
     return useSnapshot(state)
+}
+
+export function markVfsModified() {
+    state.vfs = { ...state.vfs! }
+    state.vfsModified = true
+    reindexVfs()
 }
 
 // use this to reflect a deep change in an object to its root, so that valtio is triggered
