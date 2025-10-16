@@ -42,10 +42,6 @@ export function BrowseFiles() {
 
     const propsDropFiles = useMemo(() => ({
         id: 'files-dropper',
-        ...acceptDropFiles((files, to) =>
-            props?.can_upload ? enqueueUpload(files.map(file => ({ file, path: getFilePath(file) })), location.pathname + to)
-                : alertDialog(t("Upload not available"), 'warning')
-        ),
     }), [props])
     if (!useAuthorized())
         return h(CustomCode, { name: 'unauthorized' }, h('h1', { className: 'unauthorized' }, t`Unauthorized`) )

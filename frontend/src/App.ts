@@ -3,11 +3,14 @@
 import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom"
 import { createElement as h, Fragment } from 'react'
 import { BrowseFiles } from "./BrowseFiles"
-import { Dialogs } from './dialog'
+import { alertDialog, Dialogs } from './dialog'
 import useTheme from "./useTheme"
-import { useSnapState } from './state'
+import { state, useSnapState } from './state'
+import { acceptDropFiles } from './upload'
+import { enqueueUpload, getFilePath, uploadState } from './uploadQueue'
 import i18n from './i18n'
-import { proxy, useSnapshot } from "valtio"
+const { t } = i18n
+import { proxy, ref, useSnapshot } from "valtio"
 import { Spinner } from "./components"
 import { enforceStarting, getHFS, getPrefixUrl, loadScript } from '@hfs/shared'
 import { Toasts } from './toasts'
@@ -23,7 +26,16 @@ function App() {
     if (!ready)
         return h(Spinner, { style: { margin: 'auto' } })
     installScript()
-    return h('div', i18nWrapperProps(),
+    return h('div', {
+        ...i18nWrapperProps(),
+        ...acceptDropFiles((files, to) => {
+            if (uploadState.uploadDialogIsOpen) // in this case the upload is not started until confirmed
+                uploadState.adding.push(...files.map(f => ({ file: ref(f), path: getFilePath(f), to })))
+            else
+                state.props?.can_upload ? enqueueUpload(files.map(file => ({ file, path: getFilePath(file) })), location.pathname + to)
+                    : alertDialog(t("Upload not available"), 'warning')
+        })
+    },
         h(BrowserRouter, {},
             h(NavigationExtractor, {},
                 h(Toasts),

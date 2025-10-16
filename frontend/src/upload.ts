@@ -52,11 +52,7 @@ export function showUpload() {
         const size = formatBytes(adding.reduce((a, x) => a + x.file.size, 0))
         const isMobile = useIsMobile()
 
-        return h(FlexV, {
-            gap: '.5em',
-            props: acceptDropFiles( (files, to) =>
-                uploadState.adding.push(...files.map(f => ({ file: ref(f), path: getFilePath(f), to }))) )
-        },
+        return h(FlexV, { gap: '.5em' },
             h(FlexV, { className: 'upload-toolbar' },
                 props && !props.can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(FlexV, {},
