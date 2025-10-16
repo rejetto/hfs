@@ -168,7 +168,7 @@ export function reloadList() {
     state.listReloader = Date.now()
 }
 
-getHFS().textSortCompare = new Intl.Collator(navigator.language).compare // expose it, so that it can be overridden
+getHFS().textSortCompare = new Intl.Collator(navigator.language, { sensitivity: 'base' }).compare // expose it, so that it can be overridden
 
 function sort(list: DirList) {
     const { sort_by, folders_first, sort_numerics } = state
