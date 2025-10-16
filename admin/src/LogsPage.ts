@@ -249,7 +249,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 valueGetter: ({ value }) => _.find(COUNTRIES, { code: value })?.name || value,
                 renderCell: ({ row }) => h(Country, { code: row.country, long: true, def: '-' }),
             },
-            {
+            !isIps && {
                 field: 'msg',
                 headerName: "Message",
                 flex: 4,

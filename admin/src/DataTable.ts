@@ -2,7 +2,7 @@ import { DataGrid, DataGridProps, enUS, getGridStringOperators, GridColDef, Grid
     GridValidRowModel, useGridApiRef, GridRenderCellParams } from '@mui/x-data-grid'
 import { Alert, Box, BoxProps, Breakpoint, LinearProgress, useTheme } from '@mui/material'
 import { createElement as h, Fragment, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { callable, Callback, newDialog, onlyTruthy, useGetSize } from '@hfs/shared'
+import { callable, Callback, Falsy, newDialog, onlyTruthy, useGetSize } from '@hfs/shared'
 import _ from 'lodash'
 import { Center, Flex } from './mui'
 import { SxProps } from '@mui/system'
@@ -19,7 +19,7 @@ export type DataTableColumn<R extends GridValidRowModel=any> = GridColDef<R> & {
     mergeRenderSx?: SxProps
 }
 export interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridProps<R>, 'columns'> {
-    columns: Array<DataTableColumn<R>>
+    columns: Array<DataTableColumn<R> | Falsy>
     actions?: ({ row, id }: any) => ReactNode[]
     actionsProps?: Partial<GridColDef<R>> & { hideUnder?: Breakpoint | number }
     initializing?: boolean
@@ -38,7 +38,8 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
     const [merged, setMerged] = useState(0)
     const manipulatedColumns = useMemo(() => {
         const { localeText } = enUS.components.MuiDataGrid.defaultProps as any
-        const ret = columns.map(col => {
+        const ret = onlyTruthy(columns.map(col => {
+            if (!col) return
             const { type, sx } = col
             if (!type || type === 'string') // offer negated version of default string operators
                 col.filterOperators ??= getGridStringOperators().flatMap(op => op.value.includes('Empty') ? op : [ // isEmpty already has isNotEmpty
@@ -76,7 +77,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                     )
                 }
             }
-        })
+        }))
         if (actions)
             ret.unshift({
                 field: ACTIONS,
@@ -104,7 +105,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         const o = Object.fromEntries(fields.map(x => [x, false]))
         _.merge(initialState, { columns: { columnVisibilityModel: o } })
         // count the hidden columns that are merged into visible columns
-        setMerged(_.sumBy(fields, k => _.find(columns, col => !fields.includes(col.field) && col.mergeRender?.[k]) ? 1 : 0))
+        setMerged(_.sumBy(fields, k => _.find(columns, col => col && !fields.includes(col.field) && col.mergeRender?.[k]) ? 1 : 0))
         return fields
     }, [manipulatedColumns, width])
     const [vis, setVis] = useState(persist && state.dataTablePersistence[persist]?.columnVisibility || {})
