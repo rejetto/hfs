@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "0.57.21",
+  "version": "0.57.22",
   "description": "HTTP File Server",
   "keywords": ["file server", "http server"],
   "homepage": "https://rejetto.com/hfs",
