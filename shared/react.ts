@@ -5,7 +5,7 @@ import {
     useCallback, useEffect, useMemo, useRef, useState
 } from 'react'
 import { useIsMounted, useWindowSize, useMediaQuery } from 'usehooks-ts'
-import { Callback, domOn, Falsy } from '.'
+import { Callback, domOn, Falsy, repeat } from '.'
 import _ from 'lodash'
 
 export function useStateMounted<T>(init: T) {
@@ -128,39 +128,54 @@ export function useIsMobile() {
 
 // workaround for the usability problem caused by sticky headers/footers. Just assign the returned value as ref prop of your sticky element.
 export function useFixSticky() {
-    return useOnResize((_w, h, _el, style) => {
+    return useOnResize(useCallback((_w, h, _el, style) => {
         Object.assign(document.documentElement.style, {
             scrollPaddingTop: `${h + (parseFloat(style.top) || 0)}px`,
             scrollPaddingBottom: `${h + (parseFloat(style.bottom) || 0)}px`,
         })
-    }).refToPass
+    }, [])).refToPass
 }
 
 // returns props to assign to your component, and a copy of the ref; calls back with [width, height]
 export function useOnResize(cb: (width: number, height: number, target: HTMLElement, style: CSSStyleDeclaration) => any) {
-    const observer = useMemo(() =>
-        new ResizeObserver(_.debounce(([{ contentRect: r, target }]) => {
-            const style = getComputedStyle(target)
-            const pw = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
-            const ph = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
-            cb(r.width + pw, r.height + ph, target, style)
-        }, 10)),
-        [])
-    const ref = useRef<HTMLElement>()
-    return {
-        ref,
-        refToPass: useCallback((el: any) => {
-            observer.disconnect()
-            if (el)
-                observer.observe(el)
-            ref.current = el
-        }, [observer])
-    }
+    const ref = useRef<HTMLElement | null>(null)
+    const cleanupRef = useRef(_.noop)
+    return useMemo(() => {
+        let lastW = -1
+        let lastH = -1
+
+        function measure(el: HTMLElement) {
+            const style = getComputedStyle(el)
+            const w = (el.clientWidth || el.getBoundingClientRect().width)
+                + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
+                + parseFloat(style.borderRightWidth) - parseFloat(style.borderLeftWidth)
+            const h = (el.clientHeight || el.getBoundingClientRect().height)
+                + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
+                + parseFloat(style.borderBottomWidth) - parseFloat(style.borderTopWidth)
+            if (w !== lastW || h !== lastH)
+                cb(lastW = w, lastH = h, el, style)
+        }
+
+        return {
+            ref,
+            refToPass(el: HTMLElement | null) {
+                ref.current = el
+                cleanupRef.current()
+                cleanupRef.current = _.noop
+                if (!el) return
+                if (!window.ResizeObserver)
+                    return cleanupRef.current = repeat(500, () => measure(el))
+                const ro = new ResizeObserver(_.debounce(entries => measure(entries[0].target), 10))
+                ro.observe(el)
+                cleanupRef.current = () => ro.disconnect()
+            }
+        }
+    }, [cb])
 }
 
 export function useGetSize() {
     const [size, setSize] = useState<[number,number]>()
-    const { refToPass, ref } = useOnResize((w, h) => setSize([w, h]))
+    const { refToPass, ref } = useOnResize(useCallback((w, h) => setSize([w, h]), []))
     return useMemo(() => ({
         w: size?.[0],
         h: size?.[1],
