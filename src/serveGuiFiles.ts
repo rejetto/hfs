@@ -12,7 +12,7 @@ import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
 import {
     CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, objSameKeys, onlyTruthy, parseFile,
-    enforceStarting, statWithTimeout
+    enforceStarting, statWithTimeout, shortenAgent
 } from './misc'
 import { favicon, title } from './adminApis'
 import { getAllSections, getSection } from './customHtml'
@@ -118,6 +118,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         lang
                     }, null, 4).replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
                     document.documentElement.setAttribute('ver', HFS.VERSION.split('-')[0])
+                    document.documentElement.setAttribute('browser', ${JSON.stringify(shortenAgent(ctx.get('user-agent')))})
                     </script>
                     ${isFrontend && `
                         <title>${title.get()}</title>
