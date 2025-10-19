@@ -39,6 +39,7 @@ export function getCurrentUsername(ctx: Context): string {
 }
 
 export async function clearTextLogin(ctx: Context, u: string, p: string, via: string) {
+    if (!p) return
     if ((await events.emitAsync('attemptingLogin', { ctx, username: u, via }))?.isDefaultPrevented()) return
     const plugins = await events.emitAsync('clearTextLogin', { ctx, username: u, password: p, via }) // provide clear password to plugins
     const a = plugins?.some(x => x === true) ? getAccount(u) : await srpCheck(u, p)
