@@ -404,6 +404,7 @@ ul.dir {
         &:last-child { margin-right: 0 }
     }
     button {
+        padding: 0.5em 0; // fallback
         padding: min(1vh, 0.5em) 0; // avoid wasting too much vertical space, and no need for horizontal padding as we are using flex to grow
     }
 }
@@ -753,6 +754,7 @@ form label+input { margin-top: .2em; }
         }
     }
     .showing {
+        max-width: calc(100% - 4vw); // fallback
         max-width: calc(100% - min(4vw, var(--nav-size)) * 2); // avoid overlapping of controls and nav buttons
         max-height: 100%;
     }
@@ -800,6 +802,7 @@ form label+input { margin-top: .2em; }
         &.nav-hidden:not(:hover) { opacity: .3 }
     }
     .bar {
+        padding: .5em; // fallback
         padding: .5em min(2vw, 1em);
         background: var(--bg);
         opacity: .8;

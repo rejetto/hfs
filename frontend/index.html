@@ -11,12 +11,15 @@
     <div id="root">Wait for loading or <a href="?get=basic">use basic interface now</a></div>
     <script>
       function isModernBrowser() { // support BigInt
-        const ua = navigator.userAgent
-        return /Chrome\/(\d+)/.exec(ua)?.[1] >= 67 ||
-                /Edg\/(\d+)/.exec(ua)?.[1] >= 79 ||
-                /Firefox\/(\d+)/.exec(ua)?.[1] >= 68 ||
-                /OPR\/(\d+)/.exec(ua)?.[1] >= 54 ||
-                /Version\/(\d+).+Safari/.exec(ua)?.[1] >= 14
+        return getUAversion(/Chrome\/(\d+)/) >= 67 ||
+            getUAversion(/Edg\/(\d+)/) >= 79 ||
+            getUAversion(/Firefox\/(\d+)/) >= 68 ||
+            getUAversion(/OPR\/(\d+)/) >= 54 ||
+            getUAversion(/Version\/(\d+).+Safari/) >= 14
+      }
+      function getUAversion(re) {
+          const res = re.exec(navigator.userAgent)
+          return res && res[1] || NaN
       }
       if (isModernBrowser())
         document.getElementById('root').innerHTML = 'Loading...'

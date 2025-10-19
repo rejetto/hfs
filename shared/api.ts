@@ -34,11 +34,11 @@ export function setDefaultApiCallOptions(options: Partial<ApiCallOptions>) {
 export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptions={}) {
     _.defaults(options, defaultApiCallOptions)
     const stop = options.modal?.(cmd, params)
-    const controller = new AbortController()
+    const controller = window.AbortController ? new AbortController() : undefined
     let aborted = ''
     const ms = 1000 * (timeoutByApi[cmd] ?? options.timeout ?? 10)
     const timeout = ms && setTimeout(() => {
-        controller.abort(aborted = 'timeout')
+        controller?.abort(aborted = 'timeout')
         console.debug('API TIMEOUT', cmd, params??'')
     }, ms)
     const asRest = options.restUri
@@ -47,7 +47,7 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
     return Object.assign(fetch(`${location.origin}${asRest || (getPrefixUrl() + API_URL + cmd)}`, {
         method: asRest ? cmd : (options.method || 'POST'),
         headers: { 'content-type': 'application/json', 'x-hfs-anti-csrf': '1' },
-        signal: controller.signal,
+        signal: controller?.signal,
         body: params && JSON.stringify(params),
     }).then(async res => {
         stop?.()
@@ -70,9 +70,9 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         throw aborted || err
     }).finally(() => clearTimeout(timeout)), {
         abort() {
-            controller.abort(aborted='cancel')
+            controller?.abort(aborted='cancel')
         },
-        aborted: () => controller.signal.aborted
+        aborted: () => controller?.signal.aborted
     })
 }
 
