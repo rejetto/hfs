@@ -25,7 +25,7 @@ function App() {
         return h('h1', { style: { textAlign: 'center'} }, messageOnly)
     if (!ready)
         return h(Spinner, { style: { margin: 'auto' } })
-    installScript()
+    installScript() // do this only after react has started working
     return h('div', {
         ...i18nWrapperProps(),
         ...acceptDropFiles((files, to) => {
@@ -51,11 +51,10 @@ function App() {
 
 let scriptAdded = false
 function installScript() {
-    if (scriptAdded) return
+    if (scriptAdded) return // only once
     scriptAdded = true
     const s = getHFS().customHtml?.script // we don't need frontend-event-generated code, i guess
     if (!s) return
-    // it's important that this rendered only once, so we don't even render it, but manipulate dom
     const el = document.createElement('script')
     el.type = 'text/javascript'
     el.text = s

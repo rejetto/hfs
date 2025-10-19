@@ -87,7 +87,7 @@ input[type=range] {
 }
 input[type=checkbox] {
     transform: scale(1.7);
-    accent-color: var(--button-bg);
+    accent-color: var(--link); // don't use a dark color here, or chrome on android will fail at using a contrasty color for the checkmark
 }
 textarea { font-size: 14pt }
 label input[type=checkbox] {
