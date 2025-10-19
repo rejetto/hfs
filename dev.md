@@ -4,12 +4,11 @@ This file is mostly aimed to developers.
 
 0. Install [Node.js](https://nodejs.org/) 18.15+
    - 18.15 is required for statfs function 
-1. Install Typescript: launch `npm -g i typescript`
-3. Launch `npm run build-all` in the root
+1. Launch `npm run build-all` in the root
 
 At this stage you have a javascript output. For binary files you'll also have to `npm run dist-bin`.
 
-You could instead run *dist* to run both *build-all* & *dist-bin*.
+You could instead run `npm run dist` to run both *build-all* & *dist-bin*.
 
 ## Troubleshooting
 
