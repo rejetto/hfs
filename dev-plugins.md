@@ -477,7 +477,7 @@ Some frontend events can return HTML, which can be expressed in several ways:
 So when referring to type `Html`, below, we are actually meaning `Promisable<string | Element | ReactNode | ReactNode[]>`.
 
 These events will receive, in addition event's specific properties, a `def` property
-with the *default* content that will be displayed if no callback return a valid output.
+with the *default* content that will be displayed if no callback returns a valid output.
 It is useful if you want to embed such default content inside your content.
 Most events have this `def` undefined as they have no default content and are designed for custom insertions,
 but when this is not the case, you can replace the default content with nothing by returning `null`.
@@ -487,9 +487,15 @@ You can produce output for such events also by adding sections (with same name a
 
 This is an advanced topic, rarely needed.
 The "extra" object is the second parameter of your callback, and has the following properties:
-- `output: any[]` array of values returned by all plugin/callbacks.
+- `output: any[]` array of values returned by all plugin/callbacks (so far).
 - `setOrder(order: number)` if you need to prioritize your output (and see it before) with respect to other plugins, 
-  you can specify a negative number. Use a positive number to get the opposite. 
+  you can specify a negative number. Use a positive number to get the opposite.
+  
+#### Execution order
+
+Callbacks configured by all plugins are executed in the order onEvent was called. 
+You can require executing your callback after others by appending `:after` to the event name.
+E.g. HFS.onEvent("entryIcon:after", ...)
 
 #### List of frontend events
 
@@ -1070,3 +1076,5 @@ If you want to override a text regardless of the language, use the special langu
 - 12.93 (v0.57.17)
   - uploadStart now gets fullPath, tempName, resume, fullSize
   - ctx.disconnect(logMessage)
+- 12.94 (v0.57.24)
+  - HFS.onEvent now supports :after

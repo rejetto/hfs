@@ -56,8 +56,13 @@ export function working() {
 export function hfsEvent(name: string, params?:Dict) {
     const output: any[] = []
     const order: number[] = []
-    const ev = new CustomEvent('hfs.'+name, { cancelable: true, detail: { params, output, order } })
+    const detail = { params, output, order }
+    let ev = new CustomEvent('hfs.'+name, { detail, cancelable: true })
     document.dispatchEvent(ev)
+    if (!ev.defaultPrevented) {
+        ev = new CustomEvent('hfs.'+name+':after', { detail, cancelable: true })
+        document.dispatchEvent(ev)
+    }
     const sortedOutput = order.length && _.sortBy(output.map((x, i) => [order[i] || 0, x]), '0').map(x => x[1])
     return Object.assign(sortedOutput || output, {
         isDefaultPrevented: () => ev.defaultPrevented,
