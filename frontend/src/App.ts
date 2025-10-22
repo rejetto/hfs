@@ -76,6 +76,8 @@ document.addEventListener('readystatechange', () => {
 })
 
 // load plugins' now, as vite-legacy delayed app's loading
-for (const [plugin, files] of Object.entries(getHFS().loadScripts))
-    if (Array.isArray(files)) for (const f of files)
-        loadScript(f, { plugin })
+;(async () => { // without this wrapper I see a longer delay
+    for (const [plugin, files] of Object.entries(getHFS().loadScripts))
+        if (Array.isArray(files)) for (const f of files)
+            await loadScript(f, { plugin })
+})()
