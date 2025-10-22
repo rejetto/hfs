@@ -268,12 +268,13 @@ export class Plugin implements CommonPluginInterface {
 
         const keys = Array.from(plugins.keys())
         const idx = keys.indexOf(id)
+        // initialize moveDown with existing plugins that want to be after this
         const moveDown = onlyTruthy(mapPlugins(((pl, plId, plIdx) => pl.afterPlugin === id && plIdx < idx && plId)))
-        const {beforePlugin, afterPlugin} = data // or this plugin that wants to be considered before another
+        const {beforePlugin, afterPlugin} = data // then consider what this plugin wants
         if (afterPlugin && keys.indexOf(afterPlugin) > idx)
-            moveDown.push(id)
+            moveDown.push(id) // move down this plugin
         if (beforePlugin && keys.indexOf(beforePlugin) < idx)
-            moveDown.push(beforePlugin)
+            moveDown.push(beforePlugin) // move down the other plugin
         for (const k of moveDown) {
             const temp = plugins.get(k)
             if (!temp) continue

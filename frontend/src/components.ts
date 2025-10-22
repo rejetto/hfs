@@ -89,19 +89,17 @@ export function CustomCode({ name, children, render, ...props }: {
         if (raw.isDefaultPrevented() || raw.some(x => x === null)) // null means skip this
             return setOut(null)
         const worked: ReactNode[] = raw.map(toElement)
-        setOut(onlyTruthy(worked))
         raw.forEach((x, i) => {
-            if (typeof x?.then === 'function') // thenable
+            if (typeof x?.then === 'function') // then-able
                 x.then((resolved: any) => {
                     worked[i] = toElement(resolved, i)
                     setOut(onlyTruthy(worked))
                 }, () => {})
         })
         const html = getHFS().customHtml?.[name]
-        if (html?.trim?.()) {
+        if (html?.trim?.())
             worked.push(toElement(html, -1))
-            setOut(onlyTruthy(worked))
-        }
+        setOut(onlyTruthy(worked))
 
         function toElement(x: unknown, key: number) {
             return isValidElement(x) ? h(Fragment, { key }, x) // wrap to avoid console warnings
