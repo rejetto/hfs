@@ -12,7 +12,9 @@ export * from '../src/cross'
 
 ;(window as any)._ = _
 
-document.querySelectorAll('.removeAtBoot').forEach(e => e.remove())
+setTimeout(() => { // give some time for react to have started rendering
+    document.querySelectorAll('.removeAtBoot').forEach(e => e.remove())
+}, 500)
 
 // roughly 0.7 on m1 max
 export const cpuSpeedIndex = (() => {
