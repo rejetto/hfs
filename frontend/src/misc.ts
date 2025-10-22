@@ -69,7 +69,7 @@ export function hfsEvent(name: string, params?:Dict) {
     })
 }
 
-export function onHfsEvent(name: string, cb: (params:any, extra: { output: any[], setOrder: Callback<number>, preventDefault: Callback }, output: any[]) => any, options?: { once?: boolean }) {
+export function onHfsEvent(name: string, cb: (params:any, extra: { output: any[], setOrder: Callback<number>, preventDefault: Callback }) => any, options?: { once?: boolean }) {
     const key = 'hfs.' + name
     document.addEventListener(key, wrapper, options)
     return () => document.removeEventListener(key, wrapper)
@@ -81,7 +81,7 @@ export function onHfsEvent(name: string, cb: (params:any, extra: { output: any[]
             output,
             setOrder(x) { thisOrder = x },
             preventDefault: () => ev.preventDefault()
-        }, output) // legacy pre-0.54, third parameter used by file-icons plugin
+        })
         if (res !== undefined && Array.isArray(output)) {
             output.push(res)
             if (thisOrder)

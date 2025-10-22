@@ -18,7 +18,7 @@ import { DirEntry } from './api.get_file_list'
 import { VfsNode } from './vfs'
 import { serveFile } from './serveFile'
 import events from './events'
-import { mkdir, readdir, readFile, rename, rm } from 'fs/promises'
+import { mkdir, readdir, readFile, rm } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
 import { getConnections } from './connections'
 import { dirname, join, resolve } from 'path'
@@ -194,10 +194,6 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
             }
             if (ctx.isAborted())
                 ctx.stop()
-            if (res === true && !ctx.isStopped) { //legacy pre-0.53
-                ctx.stop()
-                warnOnce(`plugin ${id} is using deprecated API (return true on middleware) and may not work with future versions (check for an update to "${id}")`)
-            }
             // don't just check ctx.isStopped, as the async plugin that called ctx.stop will reach here after sync ones
             if (ctx.isStopped && !ctx.pluginBlockedRequest)
                 console.debug("plugin blocked request", ctx.pluginBlockedRequest = id)
@@ -511,8 +507,6 @@ function watchPlugin(id: string, path: string) {
             await alreadyRunning?.unload(true)
             console.debug("starting plugin", id)
             const storageDir = resolve(PATH, id, STORAGE_FOLDER) + (IS_WINDOWS ? '\\' : '/')
-            if (!module.startsWith(process.cwd())) //legacy pre-0.53.0, bundled plugins' storageDir was not under cwd
-                await rename(resolve(module, '..', STORAGE_FOLDER), storageDir).catch(() => {})
             await mkdir(storageDir, { recursive: true })
             const openDbs: KvStorage[] = []
             const subbedConfigs: Callback[] = []
