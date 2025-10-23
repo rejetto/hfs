@@ -9,7 +9,7 @@ import {
 } from '@mui/icons-material'
 import {
     CFG, Html, HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate, formatTime, formatDate, replaceStringToReact,
-    callable, tryJson, useAutoScroll, NBSP
+    callable, tryJson, useAutoScroll, NBSP, isPrimitive
 } from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
@@ -41,7 +41,8 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
     })
     const theme = useTheme()
     return h(DataTable, {
-        error: xlate(error, PLUGIN_ERRORS),
+        error: isPrimitive(error) ? xlate(error, PLUGIN_ERRORS)
+            : _.map(error, (v, k) => `Error ${k} for: ${v.join(', ')}`).join('; '), // complex error for updates
         rows: list.length ? list : [], // workaround for DataGrid's bug causing 'no rows' message to be not displayed after 'loading' was also used
         fillFlex: true,
         initializing,

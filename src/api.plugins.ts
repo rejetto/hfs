@@ -34,7 +34,7 @@ const apis: ApiHandlers = {
     async get_plugin_updates({}, ctx) {
         return new SendListReadable({
             async doAtStart(list) {
-                const errs: string[] = []
+                const errs: any = {}
                 list.events(ctx, {
                     pluginDownload({ repo, status }) {
                         list.update({ id: findPluginByRepo(repo)?.id }, { downloading: status ?? null })
@@ -60,11 +60,11 @@ const apis: ApiHandlers = {
                         }))
                     } catch (err: any) {
                         if (err.message !== '404') // the plugin is declaring a wrong repo
-                            errs.push(err.code || err.message)
+                            (errs[err.code || err.message] ||= []).push(repo)
                     }
                 }))
-                for (const x of _.uniq(errs))
-                    list.error(x)
+                if (!_.isEmpty(errs))
+                    list.error(errs)
                 list.ready()
             }
         })
