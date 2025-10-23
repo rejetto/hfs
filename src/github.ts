@@ -2,7 +2,7 @@
 
 import events from './events'
 import {
-    httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, wait, popKey, onlyTruthy, HOUR, DAY
+    httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, retry, popKey, onlyTruthy, HOUR, DAY
 } from './misc'
 import {
     DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getInactivePlugins, getPluginInfo, isPluginRunning, mapPlugins,
@@ -83,7 +83,7 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
 
         async function go(url: string, folder: string, zipRoot: string) {
             const installPath = PLUGINS_PATH + '/' + folder
-            await access(installPath, fs.constants.W_OK) // early check for permission: access if it exists, mkdir if it doesn't
+            await access(installPath, fs.constants.W_OK) // early check for permission: access if it exists, mkdir+rmdir if it doesn't
                 .catch(() => mkdir(installPath, { recursive: true }).then(() => rmdir(installPath)))
             const tempInstallPath = installPath + '-installing' + DISABLING_SUFFIX
             const foldersToCopy = [ // from longer to shorter, so we first test the longer
@@ -120,16 +120,18 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
             const wasRunning = isPluginRunning(folder)
             if (wasRunning)
                 await stopPlugin(folder) // stop old
-            let retry = 3
-            while (retry--) { // move data, and consider late release of the resource, up to a few seconds
-                const res = rename(join(installPath, STORAGE_FOLDER), join(tempInstallPath, STORAGE_FOLDER))
-                if (await res.then(() => true, e => e.code === 'ENOENT')) break
-                await wait(1000)
-            }
-            // delete old folder, but it may fail in the presence of .node files, so we rename it first as a precaution (clearing require.cache doesn't help)
+            // move data, and consider late release of the resource, up to a few seconds
+            await retry(() => rename(join(installPath, STORAGE_FOLDER), join(tempInstallPath, STORAGE_FOLDER))
+                .then(() => 1, e => e.code === 'ENOENT'))
+            // delete old folder (if any), but it may fail in the presence of .node files, so we rename it first as a precaution (clearing require.cache doesn't help). Especially on Windows, it may be impossible to delete dll files until our process is terminated (in which case, retrying is useless).
             const deleteMe = installPath + DELETE_ME_SUFFIX
-            await rename(installPath, deleteMe).catch(() => {})
-            await rm(deleteMe, { recursive: true, force: true }).catch(e => console.warn(String(e)))
+            await retry(() => rename(installPath, deleteMe).then(() => 1, (e: any) => {
+                if (e.code === 'ENOENT') return 1 // nothing to do
+                console.warn("error renaming old plugin folder:", String(e))
+            }))
+            await retry(() => rm(deleteMe, { recursive: true, force: true /*ignore ENOENT*/ }).then(() => 1, e => {
+                console.warn("error deleting old plugin folder:", String(e))
+            }))
             // final replace
             await rename(tempInstallPath, installPath)
                 .catch(e => { throw e.code !== 'ENOENT' ? e : new ApiError(HTTP_NOT_ACCEPTABLE, "missing main file") })
