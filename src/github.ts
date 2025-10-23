@@ -2,7 +2,7 @@
 
 import events from './events'
 import {
-    httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, wait, popKey, onlyTruthy, HOUR
+    httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, wait, popKey, onlyTruthy, HOUR, DAY
 } from './misc'
 import {
     DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getInactivePlugins, getPluginInfo, isPluginRunning, mapPlugins,
@@ -20,6 +20,7 @@ import { join } from 'path'
 import fs from 'fs'
 import { storedMap } from './persistence'
 import { argv } from './argv'
+import { expiringCache } from './expiringCache'
 
 const DIST_ROOT = 'dist'
 
@@ -34,16 +35,16 @@ function downloadProgress(repo: string, status: DownloadStatus) {
     events.emit('pluginDownload', { repo, status })
 }
 
-// determine default branch, possibly without consuming api quota
-async function getGithubDefaultBranch(repo: string) {
+const branchCache = expiringCache<Promise<string>>(DAY)
+function getGithubDefaultBranch(repo: string) {
     if (!repo.includes('/'))
         throw 'malformed repo'
-    const test = await httpString(`https://github.com/${repo}/archive/refs/heads/main.zip`, { method: 'HEAD' }).then(() => 1, (err) => {
-        if (err?.cause?.statusCode !== 404)
-            throw err
-        return 0
+    return branchCache.try(repo, async () => {
+        for (const b of ['main', 'master']) // try to not consume api quota
+            if (await httpString(`https://github.com/${repo}/raw/refs/heads/${b}/dist/plugin.js`, { method: 'HEAD', noRedirect: true }).then(() => 1, () => 0))
+                return b
+        return (await getRepoInfo(repo))?.default_branch as string
     })
-    return test ? 'main' : (await getRepoInfo(repo))?.default_branch as string
 }
 
 export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }={}) {
