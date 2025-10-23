@@ -2,7 +2,8 @@
 
 import events from './events'
 import {
-    httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, retry, popKey, onlyTruthy, HOUR, DAY
+    httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, retry, popKey, onlyTruthy, waitFor,
+    HOUR, DAY
 } from './misc'
 import {
     DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getInactivePlugins, getPluginInfo, isPluginRunning, mapPlugins,
@@ -136,8 +137,9 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
             await rename(tempInstallPath, installPath)
                 .catch(e => { throw e.code !== 'ENOENT' ? e : new ApiError(HTTP_NOT_ACCEPTABLE, "missing main file") })
             if (wasRunning)
-                void startPlugin(folder) // don't wait, in case it fails to start. We still use startPlugin instead of enablePlugin, as it will take care of disabling other themes.
-                    .catch(() => {}) // it will possibly fail (with 'miss') because the plugin has probably not been loaded yet.
+                if (await waitFor(() => getPluginInfo(folder), { timeout: 10_000 }))
+                    void startPlugin(folder) // don't wait, in case it fails to start. We still use startPlugin instead of enablePlugin, as it will take care of disabling other themes.
+                        .catch(console.warn)
             events.emit('pluginDownloaded', { id: folder, repo })
             return folder
         }
