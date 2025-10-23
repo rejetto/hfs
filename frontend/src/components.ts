@@ -154,7 +154,7 @@ export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, 
                     setSuccess(true)
                     clearTimeout(t.current)
                     t.current = setTimeout(() => setSuccess(false), 1000)
-                })
+                }, () => {})
         },
         ...rest,
         ...asText ? { role: 'button', style: { cursor: 'pointer', ...rest.style } } : undefined,
