@@ -30,13 +30,13 @@ export interface Account {
 interface Accounts { [username:string]: Account }
 
 // provides the username and all other usernames it inherits based on the 'belongs' attribute. Useful to check permissions
-export function expandUsername(who: string): string[] {
-    const ret = []
+export function expandUsername(who: string) {
+    const ret = new Set<string>()
     const q = [who]
     for (const u of q) {
         const a = getAccount(u)
         if (!a || a.disabled) continue
-        ret.push(u)
+        ret.add(u)
         if (a.belongs)
             q.push(...a.belongs)
     }
@@ -45,8 +45,8 @@ export function expandUsername(who: string): string[] {
 
 // check if current username or any ancestor match the provided usernames
 export function ctxBelongsTo(ctx: Koa.Context, usernames: string[]) {
-    return (ctx.state.usernames ||= expandUsername(getCurrentUsername(ctx))) // cache ancestors' usernames inside context state
-        .some((u: string) => usernames.includes(u))
+    const s = ctx.state.usernames ||= expandUsername(getCurrentUsername(ctx))
+    return usernames.some(u => s.has(u)) // cache ancestors' usernames inside context state
 }
 
 export function getUsernames() {

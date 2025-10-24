@@ -111,7 +111,7 @@ export const refresh_session: ApiHandler = async ({}, ctx) => {
     const username = getCurrentUsername(ctx)
     return !ctx.session ? new ApiError(HTTP_SERVER_ERROR) : {
         username,
-        expandedUsername: expandUsername(username),
+        expandedUsername: Array.from(expandUsername(username)),
         adminUrl: ctxAdminAccess(ctx) ? ctx.state.revProxyPath + ADMIN_URI : undefined,
         canChangePassword: accountCanChangePassword(ctx.state.account),
         requireChangePassword: ctx.state.account?.require_password_change,
