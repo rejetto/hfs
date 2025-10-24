@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { apiCall } from './api'
-import { DAY, Dict, formatBytes, HOUR, MINUTE, objSameKeys, typedEntries } from '../src/cross'
+import { DAY, Dict, formatBytes, HOUR, MINUTE, objSameKeys, typedEntries, wantArray } from '../src/cross'
 export * from './react'
 export * from './dialogs'
 export * from './md'
@@ -32,7 +32,7 @@ Object.assign(HFS, {
     getPluginPublic: () => getScriptAttr('src')?.match(/^.*\//)?.[0],
     getPluginConfig: () => HFS.plugins[HFS.getPluginKey()] || {},
     loadScript: (uri: string) => loadScript(uri.includes('//') || uri.startsWith('/') ? uri : HFS.getPluginPublic() + uri),
-    userBelongsTo: (groupOrUser: string) => HFS.state.expandedUsername.includes(groupOrUser),
+    userBelongsTo: (username: string | string[]) => wantArray(username).some(x => HFS.state.expandedUsername.includes(x)),
     cpuSpeedIndex,
     copyTextToClipboard,
     urlParams,

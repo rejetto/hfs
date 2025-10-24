@@ -312,7 +312,8 @@ The `api` object you get as parameter of the `init` contains the following:
 - `i18n(ctx: Context): Promise<{ t }>` if you need to translate messages inside http body, without the GUI, use this function  
   to instantiate translation for the language of the browser. You can then use the `t` function as documented in [dedicated section](Internationalization-i18n).  
 
-- `ctxBelongsTo(ctx: Context, accounts: strings[]): boolean` check if the current username, or any group it belongs to, matches the provided accounts list.  
+- `ctxBelongsTo(ctx: Context, accounts: strings[]): boolean` check if the current username, or any group it belongs to,
+  matches the provided accounts list. Backend counterpart of `HFS.userBelongsTo`.
 
 - `setError(error: string)` set an error message that will be displayed in the admin-panel. Use an empty string to clear it.
 
@@ -432,8 +433,8 @@ In frontend you will have access to the `HFS` object of the global scope, which 
   For details please refer to `src/debounceAsync.ts`.
 - `loadScript(uri: string): Promise` load a js file. If uri is relative, it is based on the plugin's public folder.
 - `customRestCall(name: string, parameters?: object): Promise<any>` call backend functions exported with `customRest`.
-- `userBelongsTo(groupOrUsername: string): boolean` returns true if logged in account belongs to the specified group name. 
-  Returns true if the specified name is the one of the logged in account.
+- `userBelongsTo(groupOrUsername: string | string[]): boolean` returns true if the current account is or belongs to the name(s) specified. 
+  Frontend counterpart of `api.ctxBelongsTo`.
 - `DirEntry: class_constructor(n :string, otherProps?: DirEntry)` this is the class of the objects inside `HFS.state.list`;
   in case you need to add to the list, do it by instantiating this class. E.g. `new HFS.DirEntry(name)`
 - `fileShow(entry: DirEntry, options?: { startPlaying: true ): boolean` open file-show on the specified entry.
@@ -1078,3 +1079,4 @@ If you want to override a text regardless of the language, use the special langu
   - ctx.disconnect(logMessage)
 - 12.94 (v0.57.24)
   - HFS.onEvent now supports :after
+  - HFS.userBelongsTo now supports array of usernames
