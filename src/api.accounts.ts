@@ -83,7 +83,7 @@ export default  {
     del_account({ username }) {
         apiAssertTypes({ string_array: { username } })
         if (Array.isArray(username)) {
-            const errors = objFromKeys(username, u => delAccount(u) ? undefined : HTTP_NOT_FOUND)
+            const errors = _.pickBy(objFromKeys(username, u => delAccount(u) ? undefined : HTTP_NOT_FOUND))
             return _.isEmpty(errors) ? {} : { errors }
         }
         return delAccount(username) ? {} : new ApiError(HTTP_NOT_FOUND)

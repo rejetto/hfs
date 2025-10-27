@@ -178,6 +178,7 @@ describe('accounts', () => {
     const add = 'test-Add'
     test('accounts.add', reqApi('add_account', { username: add, overwrite: true }, res => res?.username === add.toLowerCase()))
     test('accounts.remove', reqApi('del_account', { username: add }, 200))
+    test('accounts.remove array', reqApi('del_account', { username: [add] }, x => x.errors[add] === 404))
 })
 
 describe('after-login', () => {
