@@ -156,7 +156,7 @@ export function applyRange(ctx: Koa.Context, totalSize=ctx.response.length) {
     // we don't support last-bytes without knowing max
     if (isNaN(end) && isNaN(max) || end > max || start > max) {
         ctx.status = HTTP_RANGE_NOT_SATISFIABLE
-        ctx.set('Content-Range', `bytes ${totalSize}`)
+        ctx.set('Content-Range', `bytes */${totalSize}`)
         ctx.body = 'Requested Range Not Satisfiable'
         return
     }
