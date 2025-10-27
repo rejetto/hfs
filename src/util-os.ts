@@ -1,12 +1,11 @@
 import { dirname } from 'path'
 import { existsSync, statfsSync } from 'fs'
 import { exec, execFile, ExecOptions } from 'child_process'
-import { isWindowsDrive, onlyTruthy, promiseBestEffort } from './misc'
+import { exists, isWindowsDrive, onlyTruthy, promiseBestEffort } from './misc'
 import Parser from '@gregoranders/csv';
 import { pid, ppid } from 'node:process'
 import { promisify } from 'util'
 import { IS_WINDOWS } from './const'
-import { access } from 'fs/promises'
 import { statfs } from 'node:fs/promises'
 
 const DF_TIMEOUT = 2000
@@ -27,7 +26,7 @@ export function cmdEscape(par: string) {
 }
 
 export async function getDiskSpace(path: string) {
-    while (path && !isWindowsDrive(path) && !access(path))
+    while (path && !isWindowsDrive(path) && !await exists(path))
         path = dirname(path)
     const res = await statfs(path)
     return { free: res.bavail * res.bsize, total: res.blocks * res.bsize, name: path }
