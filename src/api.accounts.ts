@@ -3,7 +3,7 @@
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import {
     Account, accountCanLoginAdmin, accountHasPassword, accounts, addAccount, delAccount, getAccount,
-    changeSrpHelper, updateAccount, accountCanLogin, accountCanChangePassword
+    changeSrpHelper, updateAccount, accountCanLogin, accountCanChangePassword, normalizeUsername
 } from './perm'
 import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
@@ -62,8 +62,8 @@ export default  {
         if (!acc)
             return new ApiError(HTTP_BAD_REQUEST)
         await updateAccount(acc, pickProps(changes, ALLOWED_KEYS))
-        if (changes.username && ctx.session?.username === username)
-            ctx.session!.username = changes.username
+        if (changes.username && ctx.session?.username === normalizeUsername(username))
+            ctx.session!.username = normalizeUsername(changes.username)
         return _.pick(acc, 'username')
     },
 
