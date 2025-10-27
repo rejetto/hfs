@@ -23,10 +23,10 @@ function prepareAccount(ac: Account | undefined) {
         invalidated: invalidateSessionBefore.get(ac.username),
         directMembers: Object.values(accounts.get()).filter(a => a.belongs?.includes(ac.username)).map(x => x.username),
         members: with_(Object.values(accounts.get()), accounts => {
-            const ret = []
+            const ret: string[] = []
             let news = [ac.username]
             while (news.length) {
-                news = accounts.filter(a => a.belongs?.some(x => news.includes(x))).map(x => x.username)
+                news = accounts.filter(a => !ret.includes(a.username) && a.belongs?.some(x => news.includes(x))).map(x => x.username)
                 ret.push(...news)
             }
             return _.uniq(ret).sort()
