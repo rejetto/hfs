@@ -59,8 +59,8 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
                 try { bl.addSubnet(address, Number(m[2])) }
                 catch { throw x }
             else if (m[3])
-                try { bl.addRange(address, parseAddress(m[2]!)) }
-                catch { throw m[2] }
+                try { bl.addRange(address, parseAddress(m[3]!)) }
+                catch { throw m[3] }
             else
                 bl.addAddress(address)
         }
