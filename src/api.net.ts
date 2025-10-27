@@ -17,7 +17,7 @@ const apis: ApiHandlers = {
     get_public_ips: getPublicIps,
 
     async check_domain({ domain }) {
-        apiAssertTypes({ string: domain })
+        apiAssertTypes({ string: { domain } })
         const resolver = new Resolver()
         const prjInfo = await getProjectInfo()
         resolver.setServers(prjInfo.dnsServers)
