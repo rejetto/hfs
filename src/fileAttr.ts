@@ -47,9 +47,11 @@ export async function loadFileAttr(path: string, k: string) {
 
 export async function purgeFileAttr() {
     let n = 0
-    await Promise.all(Array.from(fileAttrDb.keys()).map(k =>
-        access(k).catch(() =>
-            n++ && void fileAttrDb.del(k) )))
+    await Promise.all(Array.from(fileAttrDb.keys()).map(k => {
+        const [fn] = k.split('|')
+        return fn && access(fn).catch(() =>
+            n++ && void fileAttrDb.del(k))
+    }))
     if (n)
         await fileAttrDb.rewrite()
     console.log(`removed ${n} entrie(s)`)
