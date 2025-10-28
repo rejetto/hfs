@@ -62,7 +62,7 @@ export default  {
         if (!acc)
             return new ApiError(HTTP_BAD_REQUEST)
         await updateAccount(acc, pickProps(changes, ALLOWED_KEYS))
-        if (changes.username && ctx.session?.username === normalizeUsername(username))
+        if (changes.username && ctx.session?.username === normalizeUsername(username)) // update session if necessary
             ctx.session!.username = normalizeUsername(changes.username)
         return _.pick(acc, 'username')
     },
@@ -91,7 +91,7 @@ export default  {
 
     invalidate_sessions({ username }) {
         apiAssertTypes({ string: { username } })
-        invalidateSessionBefore.set(username, Date.now())
+        invalidateSessionBefore.set(normalizeUsername(username), Date.now())
         return {}
     },
 

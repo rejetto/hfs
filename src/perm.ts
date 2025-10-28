@@ -9,9 +9,9 @@ import { ApiError } from './apiMiddleware'
 import { getCurrentUsername } from './auth'
 import Koa from 'koa'
 
+// for all the Account fields, falsy values must be equivalent to undefined. If this changes in the future, please adjust addAccount and setAccount
 export interface Account {
-    // we consider all the following fields, when falsy, as equivalent to be missing. If this changes in the future, please adjust addAccount and setAccount
-    username: string, // we keep username property (hidden) so we don't need to pass it separately
+    username: string, // we keep username property for convenience, but hidden as we don't persist it inside the object, but as key of the accounts map
     password?: string
     srp?: string
     belongs?: string[]
@@ -84,8 +84,12 @@ export async function updateAccount(account: Account, change: Partial<Account> |
     const { username: usernameWas } = account
     if (typeof change === 'function')
         await change?.(account)
-    else
+    else {
+        const u = normalizeUsername(change.username || '')
+        if (u && u !== usernameWas && getAccount(u))
+            throw "username already exists"
         Object.assign(account, objSameKeys(change, x => x || undefined))
+    }
     for (const [k,v] of typedEntries(account))
         if (!v) delete account[k] // we consider all account fields, when falsy, as equivalent to be missing (so, default value applies)
     const { username, password } = account
