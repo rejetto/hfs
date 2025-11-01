@@ -154,7 +154,7 @@ export async function update(tagOrUrl: string='') {
             const { mode } = await stat(bin)
             await chmod(newBin, mode).catch(console.error)
         }
-        await rename(INSTALLED_FN, PREVIOUS_FN).catch(console.warn)
+        await rename(INSTALLED_FN, PREVIOUS_FN).catch(e => e?.code !== 'ENOENT' && console.warn(String(e)))
         await rename(LOCAL_UPDATE, INSTALLED_FN).catch(console.warn)
         onProcessExit(() => {
             const oldBinFile = 'old-' + binFile
@@ -189,7 +189,7 @@ if (argv.updating) { // we were launched with a temporary name, restore original
         onProcessExit(() =>
             launch(dest, ['--updated', '--cwd .']) ) // launch+sync here would cause old process to stay open, locking ports
     else {
-        /* open() is the only consistent way that i could find working on Mac that preserved console input/output over relaunching,
+        /* open() is the only consistent way that I could find working on macos preserving console input/output over relaunching,
          * but I couldn't find a way to pass parameters, at least on Linux. The workaround I'm using is to write them to a temp file, that's read and deleted at restart.
          * For the record, on mac you can: write "./hfs arg1 arg2" to /tmp/tmp.sh with 0o700, and then spawn "open -a Terminal /tmp/tmp.sh"
          */

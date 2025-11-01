@@ -11,7 +11,7 @@ import { DataTable, DataTableColumn } from './DataTable'
 
 type ArrayFieldProps<T> = FieldProps<T[] | Dict<T>> & {
     fields: Functionable<FieldDescriptor[] & {
-        $width?: number,
+        $width?: number, // 8 or more is px, less is flex
         $column?: Partial<DataTableColumn>,
         $type?: string
         $hideUnder?: DataTableColumn['hideUnder'],
