@@ -14,6 +14,7 @@ import VfsPathField from './VfsPathField'
 import { alertDialog, promptDialog } from './dialog'
 import { formatDiskSpace } from './FilePicker'
 import { getDiskSpaces } from '../../src/util-os'
+import { adminApis } from '../../src/adminApis'
 
 export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusApi: ApiObject }) {
     return h(Flex, {
@@ -59,7 +60,7 @@ export function AddVfsBtn(props: Partial<ButtonProps>) {
 
 function SystemIntegrationButton({ platform }: { platform: string | undefined }) {
     const isWindows = platform === 'win32'
-    const { data: integrated, reload } = useApi(isWindows && 'windows_integrated')
+    const { data: integrated, reload } = useApi<typeof adminApis.windows_integrated>(isWindows && 'windows_integrated')
     const sm = useBreakpoint('sm')
     return !isWindows ? null : h(Btn, {
         icon: osIcon('win'),

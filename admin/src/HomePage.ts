@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, ReactNode, useState } from 'react'
-import { Box, Card, CardContent, LinearProgress, Link } from '@mui/material'
+import { Box, Card, CardContent, Link } from '@mui/material'
 import { apiCall, useApiEx, useApiList } from './api'
 import {
     dontBotherWithKeys, objSameKeys, onlyTruthy, prefix, REPO_URL, md,
@@ -14,7 +14,6 @@ import {
 import { state, useSnapState } from './state'
 import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
 import { isCertError, isKeyError, suggestMakingCert } from './OptionsPage'
-import { Account } from './AccountsPage'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { SwitchThemeBtn } from './theme'
@@ -28,14 +27,14 @@ export default function HomePage() {
     const SOLUTION_SEP = " — "
     const { username } = useSnapState()
     const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<typeof adminApis.get_status>('get_status')
-    const { data: account } = useApiEx<Account>(username && 'get_account')
+    const { data: account } = useApiEx<typeof adminApis.get_account>(username && 'get_account')
     const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'ignore_proxies', 'vfs'] })
     const { list: plugins } = useApiList('get_plugins')
     const [checkPlugins, setCheckPlugins] = useState(false)
     const { list: pluginUpdates} = useApiList(checkPlugins && 'get_plugin_updates')
     const [updates, setUpdates] = useState<undefined | Release[]>()
     const [otherVersions, setOtherVersions] = useState<undefined | Release[]>()
-    if (statusEl || !status)
+    if (statusEl || !status) // !status here to shut up ts
         return statusEl
     const { http, https } = status
     const goSecure = !http?.listening && https?.listening ? 's' : ''

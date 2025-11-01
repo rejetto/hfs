@@ -6,6 +6,9 @@ import {
     Callback, Dict, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait, buildUrlQueryString, Jsonify, formatTime
 } from '.'
 import { BetterEventEmitter } from '../src/events'
+import { ApiHandler } from '../src/apiMiddleware'
+import type { ApiError as BackendApiError } from '../src/apiMiddleware'
+import type { Readable } from 'stream'
 
 export const API_URL = '/~/api/'
 
@@ -32,7 +35,10 @@ export function setDefaultApiCallOptions(options: Partial<ApiCallOptions>) {
     Object.assign(defaultApiCallOptions, options)
 }
 
-export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptions={}) {
+// shortcut: if it's a function, consider its return type (without ApiError which is thrown instead, and others similarly)
+type ApiData<FT> = Jsonify<FT extends (...args: any[]) => infer R ? SanitizeReturn<R> : SanitizeReturn<FT>>
+type SanitizeReturn<R> = Exclude<Awaited<R>, BackendApiError | Readable | AsyncGenerator<any>>
+export function apiCall<FT=any>(cmd: string, params?: Dict, options: ApiCallOptions={}) {
     _.defaults(options, defaultApiCallOptions)
     const stop = options.modal?.(cmd, params)
     const controller = window.AbortController ? new AbortController() : undefined
@@ -53,7 +59,7 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
     }).then(async res => {
         stop?.()
         let body: any = await res.text()
-        let data: any
+        let data: ApiData<FT>
         try { data = options.skipParse ? body : JSON.parse(body) }
         catch { data = body }
         if (!options?.skipLog)
@@ -61,7 +67,7 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         await options.onResponse?.(res, data)
         if (!res.ok)
             throw new ApiError(res.status, data === body ? body : `Failed API ${cmd}: ${res.statusText}`, data)
-        return data as Awaited<T extends (...args: any[]) => infer R ? Awaited<R> : T>
+        return data
     }, err => {
         stop?.()
         if (err?.message?.includes('fetch')) {
@@ -86,32 +92,46 @@ export class ApiError extends Error {
     }
 }
 
-export type UseApi<T=unknown> = ReturnType<typeof useApi<T>>
-export function useApi<T=any>(cmd: string | Falsy, params?: object, options: ApiCallOptions={}) {
-    const [data, setData, getData] = useStateMounted<Jsonify<Awaited<ReturnType<typeof apiCall<T>>>> | undefined>(undefined)
+
+export type UseApi<FT extends ApiHandler=ApiHandler> = ReturnType<typeof useApi<FT>>
+// FT is the type of the server-side function
+export function useApi<FT extends ApiHandler>(cmd: string | Falsy, params?: object, options: ApiCallOptions={}) {
+    type ApiReq = Promise<ApiData<FT>> & { abort(): void, aborted: () => boolean | undefined }
+    const [data, setData, getData] = useStateMounted<ApiData<FT> | undefined>(undefined)
     const [error, setError] = useStateMounted<Error | undefined>(undefined)
     const [forcer, setForcer] = useStateMounted(0)
-    const [loading, setLoading, getLoading] = useStateMounted<undefined | ReturnType<typeof apiCall>>(undefined)
+    const [loading, setLoading, getLoading] = useStateMounted<undefined | ApiReq>(undefined)
     const reloadPromise = useRef<any>()
     useEffect(() => {
         setError(undefined)
-        const isAborted = () => getLoading()?.aborted()
+        let undone = false
+        let currentReq: ApiReq | undefined
+        const isAborted = () => undone || currentReq?.aborted()
         const wholePromise = wait(0) // postpone a bit so that if it is aborted immediately, it is never really fired (happens mostly in dev mode)
             .then(() => {
-                const ret = !cmd || isAborted() ? undefined : apiCall<T>(cmd, params, options)
-                setLoading(ret)
-                return ret
+                if (undone) return
+                currentReq = !cmd || isAborted() ? undefined : apiCall<FT>(cmd, params, options)
+                setLoading(currentReq)
+                return currentReq
             })
-            .then(res => isAborted() || setData(res as any) || setError(undefined),
-                err => {
-                    if (isAborted()) return
-                    setError(err)
-                    setData(undefined)
-                })
-            .finally(() => setLoading(reloadPromise.current = undefined))
+            .then(res => {
+                setData(isAborted() ? undefined : res)
+                setError(undefined)
+            }, err => {
+                setError(isAborted() ? undefined : err)
+                setData(undefined)
+            })
+            .finally(() => {
+                if (currentReq === getLoading()) // update loading only if it's only if it's still the current request
+                    setLoading(undefined)
+                reloadPromise.current = undefined
+            })
         reloadPromise.current?.resolve(wholePromise)
-        return () => { wholePromise.finally(() => getLoading()?.abort()) }
-    }, [cmd, JSON.stringify(params), forcer]) //eslint-disable-line -- json-ize to detect deep changes
+        return () => {
+            undone = true
+            currentReq?.abort()
+        }
+    }, [cmd, JSON.stringify(params), JSON.stringify(options), forcer]) //eslint-disable-line -- json-ize to detect deep changes
     const reload = useCallback(() => {
         if (reloadPromise.current) return
         reloadPromise.current = pendingPromise()

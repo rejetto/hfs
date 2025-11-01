@@ -17,6 +17,7 @@ import { cut } from './clip'
 import { loginDialog } from './login'
 import { useInterval } from 'usehooks-ts'
 import i18n from './i18n'
+import { frontEndApis } from '../../src/frontEndApis'
 const { t, useI18N } = i18n
 
 interface FileMenuEntry {
@@ -102,7 +103,8 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
         restoreFocus: ev.screenY || ev.screenX ? false : undefined,
         Content() {
             const {t} = useI18N()
-            const details = useApi('get_file_details', { uris: [entry.uri] }).data?.details?.[0]
+            const { data } = useApi<typeof frontEndApis.get_file_details>('get_file_details', { uris: [entry.uri] })
+            const details = data?.details?.[0]
             const showProps = [ ...props,
                 with_(renderUploaderFromDetails(details), value =>
                     value && { id: 'uploader', label: t`Uploader`, value })
@@ -183,7 +185,7 @@ async function rename(entry: DirEntry) {
             getHFS().navigate(uri + '../' + pathEncode(dest) + '/') )
     // update state instead of re-getting the list
     const newN = n.replace(/(.*?)[^/]+$/, (_,before) => before + dest)
-    const newEntry = new DirEntry(newN, { key: n, ...entry }) // by keeping old key, we avoid unmounting the element, that's causing focus lost
+    const newEntry = new DirEntry(newN, { key: n, ...entry }) // by keeping the old key, we avoid unmounting the element, that's causing focus lost
     const i = _.findIndex(state.list, { n })
     state.list[i] = newEntry
     // update filteredList too

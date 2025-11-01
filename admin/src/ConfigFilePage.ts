@@ -9,16 +9,17 @@ import { Save, Edit, Download } from '@mui/icons-material'
 import { TextEditor } from './TextEditor';
 import { state } from './state';
 import { DisplayField } from '@hfs/mui-grid-form'
+import { adminApis } from '../../src/adminApis'
 
 export default function ConfigFilePage() {
     state.title = "Config file"
-    const { data, reload, element } = useApiEx('get_config_text', {})
+    const { data, reload, element } = useApiEx<typeof adminApis.get_config_text>('get_config_text', {})
     const [text, setText] = useState<string | undefined>()
     const [saved, setSaved] = useState<string | undefined>()
     const [edit, setEdit] = useState(false)
     useEffect(() => { setSaved(data?.text) }, [data])
     useEffect(() => { saved !== undefined && setText(saved || '') }, [saved])
-    return h(Fragment, {},
+    return element || h(Fragment, {},
         h(Flex, { flexWrap: 'wrap', justifyContent: 'space-between' },
             h(Btn, { icon: Download, onClick: exportConfig, disabled: !data }, "Export without passwords"),
             edit ? h(Fragment, {},
@@ -63,7 +64,7 @@ export default function ConfigFilePage() {
         const s = (text || '')
                 .replace(/^(\s*(\w*password(?!_change)\w*|srp):\s*).+\n/gm, '$1removed\n')
                 .replace(/(:\/\/)[^/@\s]+@/g, '$1removed@')
-            + prefix('custom_html: | # this is currently ignored by hfs, just here for reference\n', data.customHtml?.replace(/^/gm, '  '))
+            + prefix('custom_html: | # this is currently ignored by hfs, just here for reference\n', data!.customHtml?.replace(/^/gm, '  '))
         if (!s) return
         downloadFileWithContent('config_no_passwords.yaml', s)
     }
