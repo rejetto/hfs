@@ -3,7 +3,7 @@
 import { createElement as h, Fragment, useEffect, useState } from 'react';
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
-import { downloadFileWithContent, focusSelector, isCtrlKey, KeepInScreen } from './misc'
+import { downloadFileWithContent, focusSelector, isCtrlKey, KeepInScreen, prefix } from './misc'
 import { Btn, Flex, IconBtn, reloadBtn } from './mui';
 import { Save, Edit, Download } from '@mui/icons-material'
 import { TextEditor } from './TextEditor';
@@ -20,7 +20,7 @@ export default function ConfigFilePage() {
     useEffect(() => { saved !== undefined && setText(saved || '') }, [saved])
     return h(Fragment, {},
         h(Flex, { flexWrap: 'wrap', justifyContent: 'space-between' },
-            h(Btn, { icon: Download, onClick: exportConfig }, "Export without passwords"),
+            h(Btn, { icon: Download, onClick: exportConfig, disabled: !data }, "Export without passwords"),
             edit ? h(Fragment, {},
                 reloadBtn(reload),
                 h(IconBtn, {
@@ -63,7 +63,7 @@ export default function ConfigFilePage() {
         const s = (text || '')
                 .replace(/^(\s*(\w*password(?!_change)\w*|srp):\s*).+\n/gm, '$1removed\n')
                 .replace(/(:\/\/)[^/@\s]+@/g, '$1removed@')
-            + 'custom_html: | # this is currently ignored by hfs, just here for reference\n' + data.customHtml.replace(/^/gm, '  ')
+            + prefix('custom_html: | # this is currently ignored by hfs, just here for reference\n', data.customHtml?.replace(/^/gm, '  '))
         if (!s) return
         downloadFileWithContent('config_no_passwords.yaml', s)
     }
