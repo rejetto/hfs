@@ -169,12 +169,14 @@ export default function AccountsPage() {
     }
 
     async function deleteAccounts() {
-        if (sel.length > _.pull(sel, username).length)
-            if (!await confirmDialog(`Will delete the rest but not current account (${username})`)) return
-        if (!sel.length) return
-        if (!await confirmDialog(`Delete ${sel.length} item(s)?`)) return
+        const toDelete = _.without(sel, username)
+        if (sel.length > toDelete.length)
+            if (!await confirmDialog(`You cannot ask to delete the account you are using. Continue with the rest?`)) return
+        if (!toDelete.length)
+            return alertDialog("Nothing to delete", 'info')
+        if (!await confirmDialog(`Delete ${toDelete.length} item(s)?`)) return
         const errors = []
-        for (const username of sel)
+        for (const username of toDelete)
             if (!await apiCall('del_account', { username }).then(() => 1, () => 0))
                 errors.push(username)
         reload()
