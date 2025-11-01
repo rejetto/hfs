@@ -4,7 +4,8 @@ import { promisify } from 'util'
 import { access } from 'fs/promises'
 import { try_, tryJson } from './cross'
 import { onProcessExit } from './first'
-import { utimes, stat } from 'node:fs/promises'
+import { utimes } from 'node:fs/promises'
+import { statWithTimeout } from './util-files'
 import { IS_WINDOWS } from './const'
 
 const fsx = try_(() => {
@@ -21,7 +22,7 @@ const FILE_ATTR_PREFIX = 'user.hfs.' // user. prefix to be linux compatible
 
 /* @param v must be JSON-able or undefined */
 export async function storeFileAttr(path: string, k: string, v: any) {
-    const s = await stat(path).catch(() => null)
+    const s = await statWithTimeout(path).catch(() => null)
     // since we don't have fsx.remove, we simulate it with an empty string
     if (s && await fsx?.set(path, FILE_ATTR_PREFIX + k, v === undefined ? '' : JSON.stringify(v)).then(() => 1, () => 0)) {
         if (IS_WINDOWS) utimes(path, s.atime, s.mtime) // restore timestamps, necessary only on Windows

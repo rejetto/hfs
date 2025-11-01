@@ -1,7 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { access, mkdir, readFile, stat } from 'fs/promises'
-import { Promisable, try_, wait, isWindowsDrive } from './cross'
+import { Promisable, try_, wait, isWindowsDrive, haveTimeout } from './cross'
+import { defineConfig } from './config'
 import { createWriteStream, mkdirSync, watch, ftruncate } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
@@ -11,8 +12,14 @@ import { Readable } from 'stream'
 // @ts-ignore
 import unzipper from 'unzip-stream'
 
+const fileTimeout = defineConfig('file_timeout', 3, x => x * 1000)
+
+export function statWithTimeout(path: string) {
+    return haveTimeout(fileTimeout.compiled(), stat(path))
+}
+
 export async function isDirectory(path: string) {
-    try { return (await stat(path)).isDirectory() }
+    try { return (await statWithTimeout(path)).isDirectory() }
     catch {}
 }
 
@@ -148,7 +155,7 @@ export function exists(path: string) {
 // parse a file, caching unless timestamp has changed
 export const parseFileCache = new Map<string, { ts: Date, parsed: unknown }>()
 export async function parseFile<T>(path: string, parse: (path: string) => T) {
-    const { mtime: ts } = await stat(path)
+    const { mtime: ts } = await statWithTimeout(path)
     const cached = parseFileCache.get(path)
     if (cached && Number(ts) === Number(cached.ts))
         return cached.parsed as T

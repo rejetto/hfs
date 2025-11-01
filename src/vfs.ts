@@ -5,6 +5,7 @@ import { basename, dirname, join, resolve } from 'path'
 import {
     makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who, debounceAsync,
     isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_, matches,
+    statWithTimeout,
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -136,7 +137,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
 export async function nodeStats(ret: VfsNode) {
     if (ret.stats)
         return ret.stats
-    const stats = ret.source ? await fs.stat(ret.source) : undefined
+    const stats = ret.source ? await statWithTimeout(ret.source) : undefined
     setHidden(ret, { stats })
     return stats
 }

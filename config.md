@@ -126,7 +126,8 @@ Configuration can be done in several ways
   Setting one will trigger a test request to google.com. You can skip this with env HFS_SKIP_PROXY_TEST=1 . 
 - `auto_basic` automatically detect (based on user-agent) when the basic web interface should be served, to support legacy browsers. Default is true. No UI.
   You can disable it setting it to `false`, or recognize additional user-agents by setting a regular expression. 
-- `authorization_header` support Authentication HTTP header. Default is true. No UI.
+- `file_timeout` number of seconds to wait before giving up when accessing a file. Default is 3. No UI.
+- `authorization_header` enable support for the HTTP `Authorization` header. Default is true. No UI.
 - `cache_control_disk_files` number of seconds after which the browser should bypass the cache and check the server for an updated version of the file. Default is 5. No UI.
 - `disable_custom_html` disable the content of `custom_html`. Default is false.
 - `split_uploads` The size in megabytes of the chunks the upload will be split into. Default is none.

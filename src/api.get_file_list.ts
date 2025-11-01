@@ -5,9 +5,8 @@ import {
     statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
 } from './vfs'
 import { ApiError, ApiHandler } from './apiMiddleware'
-import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
-import { asyncGeneratorToArray, pattern2filter, WHO_NO_ONE } from './misc'
+import { asyncGeneratorToArray, pattern2filter, statWithTimeout, WHO_NO_ONE } from './misc'
 import { HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
 import { getCommentFor, areCommentsEnabled } from './comments'
@@ -36,7 +35,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     if (!node)
         return fail(HTTP_NOT_FOUND)
     admin &&= ctxAdminAccess(ctx) // validate 'admin' flag
-    if (await hasDefaultFile(node, ctx) || !nodeIsFolder(node)) // in case of files without permission, we are provided with the frontend, and the location is the file itself
+    if (await hasDefaultFile(node, ctx) || !nodeIsFolder(node)) // for files without permission, the frontend is sent, and the location is the file itself
         // so, we first check if you have a permission problem, to tell frontend to show login, otherwise we fall back to method_not_allowed, as it's proper for files.
         return fail(!admin && statusCodeForMissingPerm(node, 'can_read', ctx) ? undefined : HTTP_METHOD_NOT_ALLOWED)
     if (!admin && statusCodeForMissingPerm(node, 'can_list', ctx))
@@ -116,7 +115,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
             return name ? { n: name, url, target: node.target } : null
         const isFolder = nodeIsFolder(node)
         try {
-            const st = source ? node.stats || await stat(source).catch(e => {
+            const st = source ? node.stats || await statWithTimeout(source).catch(e => {
                 if (!isFolder || !node.children?.length) // folders with virtual children, keep them
                     throw e
             }) : undefined
@@ -128,7 +127,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
             const pr = node.can_read === WHO_NO_ONE && !(isFolder && filesInsideCould()) ? 'r'
                 : !hasPermission(node, 'can_read', ctx) ? 'R'
                 : ''
-            // for delete, the diff is based on can_delete_children instead of can_delete, because it will produce fewer data
+            // for delete, the diff is based on can_delete_children instead of can_delete, because it will produce less data
             const pd = Boolean(can_delete_children) === hasPermission(node, 'can_delete', ctx) ? '' : can_delete_children ? 'd' : 'D'
             const pa = Boolean(can_archive) === hasPermission(node, 'can_archive', ctx) ? '' : can_archive ? 'a' : 'A'
             const pu = !isFolder || Boolean(can_upload) === hasPermission(node, 'can_upload', ctx) ? '' : can_upload ? 'u' : 'U'

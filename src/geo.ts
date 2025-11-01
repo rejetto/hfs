@@ -1,6 +1,6 @@
 import { defineConfig } from './config'
-import { CFG, DAY, httpStream, isIpLan, isLocalHost, unzip } from './misc'
-import { stat, rename, unlink } from 'node:fs/promises'
+import { CFG, DAY, httpStream, isIpLan, isLocalHost, statWithTimeout, unzip } from './misc'
+import { rename, unlink } from 'node:fs/promises'
 import { IP2Location } from 'ip2location-nodejs'
 import _ from 'lodash'
 import { Middleware } from 'koa'
@@ -40,7 +40,7 @@ async function checkFiles() {
     const URL = `https://download.ip2location.com/lite/${ZIP_FILE}.ZIP`
     const LOCAL_FILE = 'geo_ip.bin'
     const TEMP = LOCAL_FILE + '.downloading'
-    const { mtime=0 } = await stat(LOCAL_FILE).catch(() => ({ mtime: 0 }))
+    const { mtime=0 } = await statWithTimeout(LOCAL_FILE).catch(() => ({ mtime: 0 }))
     const name = 'geo-ip db'
     const now = Date.now()
     if (+mtime < now - 31 * DAY) // month-old or non-existing
@@ -48,7 +48,7 @@ async function checkFiles() {
             const req = await httpStream(URL)
             console.log(`downloading ${name}`)
             await unzip(req, path => path.toUpperCase().endsWith(ZIP_FILE) && TEMP)
-            await stat(TEMP) // check existence
+            await statWithTimeout(TEMP) // check existence
             if (isOpen())
                 ip2location.close()
             await unlink(LOCAL_FILE).catch(() => {})

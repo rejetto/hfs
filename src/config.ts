@@ -9,9 +9,10 @@ import { debounceAsync } from './debounceAsync'
 import { statSync } from 'fs'
 import { join, resolve } from 'path'
 import events from './events'
-import { copyFile, stat } from 'fs/promises'
+import { copyFile } from 'fs/promises'
 import { produce, setAutoFreeze } from 'immer'
 import { argv } from './argv'
+import { statWithTimeout } from './util-files'
 
 setAutoFreeze(false) // we still want to mess with objects later (eg: account.belongs)
 
@@ -182,7 +183,7 @@ const saveDebounced = debounceAsync(async () => {
     // keep backup
     const bak = filePath + '.bak'
     const aWeekAgo = Date.now() - DAY * 7
-    if (await stat(bak).then(x => aWeekAgo > x.mtimeMs, () => true))
+    if (await statWithTimeout(bak).then(x => aWeekAgo > x.mtimeMs, () => true))
         await copyFile(filePath, bak).catch(() => {}) // ignore errors
 
     await configFile.save(stringify({ ...state, version: VERSION }))

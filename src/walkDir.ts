@@ -1,5 +1,5 @@
 import { makeQ } from './makeQ'
-import { stat, opendir } from 'fs/promises'
+import { opendir } from 'fs/promises'
 import { IS_WINDOWS } from './const'
 import { join } from 'path'
 import { pendingPromise, Promisable } from './cross'
@@ -8,7 +8,7 @@ import events from './events'
 import _ from 'lodash'
 import { Context } from 'koa'
 import fswin from 'fswin'
-import { isDirectory } from './util-files'
+import { isDirectory, statWithTimeout } from './util-files'
 
 export interface DirStreamEntry extends Dirent {
     closingBranch?: Promise<string>
@@ -70,7 +70,7 @@ export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRec
             if (stopped) break
             if (!hidden && entry.name[0] === '.' && !IS_WINDOWS)
                 continue
-            const stats = entry.isSymbolicLink?.() && await stat(join(base, entry.name)).catch(() => null)
+            const stats = entry.isSymbolicLink?.() && await statWithTimeout(join(base, entry.name)).catch(() => null)
             if (stats === null) continue
             if (stats)
                 entry = new DirentFromStats(entry.name, stats)

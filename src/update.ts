@@ -4,10 +4,10 @@ import { apiGithubPaginated, getProjectInfo, getRepoInfo } from './github'
 import { ARGS_FILE, HFS_REPO, IS_BINARY, IS_WINDOWS, PREVIOUS_TAG, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
-import { DAY, exists, debounceAsync, unzip, prefix, xlate, HOUR, httpWithBody } from './misc'
+import { DAY, exists, debounceAsync, unzip, prefix, xlate, HOUR, httpWithBody, statWithTimeout } from './misc'
 import { createReadStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { pluginsWatcher } from './plugins'
-import { chmod, rename, stat, writeFile } from 'fs/promises'
+import { chmod, rename, writeFile } from 'fs/promises'
 import open from 'open'
 import { currentVersion, defineConfig, versionToScalar } from './config'
 import { cmdEscape, RUNNING_AS_SERVICE } from './util-os'
@@ -151,7 +151,7 @@ export async function update(tagOrUrl: string='') {
             join(binPath, path === binFile ? newBinFile : path))
         const newBin = join(binPath, newBinFile)
         if (!IS_WINDOWS) {
-            const { mode } = await stat(bin)
+            const { mode } = await statWithTimeout(bin)
             await chmod(newBin, mode).catch(console.error)
         }
         await rename(INSTALLED_FN, PREVIOUS_FN).catch(e => e?.code !== 'ENOENT' && console.warn(String(e)))

@@ -6,9 +6,8 @@ import { Writable } from 'stream'
 import { defineConfig } from './config'
 import { createWriteStream, renameSync, statSync } from 'fs'
 import * as util from 'util'
-import { stat } from 'fs/promises'
 import _ from 'lodash'
-import { createFileWithPath, prepareFolder } from './util-files'
+import { createFileWithPath, prepareFolder, statWithTimeout } from './util-files'
 import { getCurrentUsername } from './auth'
 import { DAY, makeNetMatcher, tryJson, Dict, Falsy, CFG, strinsert, repeat, formatTimestamp, HTTP_NOT_FOUND } from './misc'
 import { extname } from 'path'
@@ -33,7 +32,7 @@ class Logger {
         if (!path)
             return this.stream = undefined
         try {
-            const stats = await stat(path)
+            const stats = await statWithTimeout(path)
             this.last = stats.mtime
         }
         catch {
@@ -139,7 +138,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         if (events.anyListener(logger.name)) // small optimization: this event can happen often, while most times there's no listener, and the parameters object is constructed pointlessly. A benchmark measured it 20% faster (just the line), while maybe it was not necessary.
             events.emit(logger.name, { ctx, length, user, ts: now, uri, extra })
         debounce(() => // once in a while we check if the file is still good (not deleted, etc), or we'll reopen it
-            stat(logger.path).catch(() => logger.reopen())) // async = smoother but we may lose some entries
+            statWithTimeout(logger.path).catch(() => logger.reopen())) // async = smoother but we may lose some entries
         stream!.write(util.format( format,
             ctx.ip,
             user || '-',

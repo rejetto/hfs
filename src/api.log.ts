@@ -2,10 +2,9 @@ import { ApiHandlers } from './apiMiddleware'
 import _ from 'lodash'
 import { consoleLog } from './consoleLog'
 import { HTTP_BAD_REQUEST, HTTP_NOT_ACCEPTABLE, HTTP_NOT_FOUND, wait } from './cross'
-import { apiAssertTypes } from './misc'
+import { apiAssertTypes, statWithTimeout } from './misc'
 import events from './events'
 import { getRotatedFiles, loggers } from './log'
-import { stat } from 'fs/promises'
 import { SendListReadable } from './SendList'
 import { forceDownload, serveFile } from './serveFile'
 import { ips } from './ips'
@@ -13,7 +12,7 @@ import { disconnectionsLog } from './connections'
 
 export default {
     async get_log_info() {
-        const current = Object.fromEntries(await Promise.all(loggers.map(async x => [x.name, await stat(x.path).then(s => s.size, () => 0)])))
+        const current = Object.fromEntries(await Promise.all(loggers.map(async x => [x.name, await statWithTimeout(x.path).then(s => s.size, () => 0)])))
         return { current, rotated: await getRotatedFiles() }
     },
 

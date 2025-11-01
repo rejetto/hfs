@@ -2,10 +2,9 @@
 
 import { getNodeName, hasPermission, nodeIsFolder, nodeIsLink, urlToNode, VfsNode, walkNode, statusCodeForMissingPerm } from './vfs'
 import Koa from 'koa'
-import { filterMapGenerator, isWindowsDrive, safeDecodeURIComponent, wantArray } from './misc'
+import { filterMapGenerator, isWindowsDrive, safeDecodeURIComponent, statWithTimeout, wantArray } from './misc'
 import { QuickZipStream } from './QuickZipStream'
 import { createReadStream } from 'fs'
-import fs from 'fs/promises'
 import { defineConfig } from './config'
 import { basename, dirname } from 'path'
 import { applyRange, forceDownload, monitorAsDownload } from './serveFile'
@@ -56,7 +55,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
             if (nodeIsFolder(el))
                 return { path: name + '/' }
             if (!source) return
-            const st = el.stats || await fs.stat(source)
+            const st = el.stats || await statWithTimeout(source)
             if (!st || !st.isFile())
                 return
             return {
