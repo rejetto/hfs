@@ -48,13 +48,12 @@ export function logout() {
 }
 
 export let closeLoginDialog: undefined | (() => void)
-let lastPromise: Promise<any>
 export async function loginDialog(closable=true, reloadAfter=true) {
-    return lastPromise = new Promise(resolve => {
+    return new Promise(resolve => {
         if (fallbackToBasicAuth())
-            return location.href = '/?get=login'
+            return location.href = '/?get=login' // redirect
         if (closeLoginDialog)
-            return lastPromise
+            return resolve(undefined)
         let going = false
         const { close } = newDialog({
             closable,

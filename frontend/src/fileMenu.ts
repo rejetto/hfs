@@ -227,9 +227,9 @@ export function makeOnClickOpen(entry: DirEntry) {
         ev.preventDefault()
         if (entry.cantOpen === DirEntry.FORBIDDEN)
             return alertDialog(t`Forbidden`, 'warning')
-        if (!await loginDialog(true, false)) return
+        if (!await loginDialog(true, false)) return // if we get here, login is required, and we can go on only if it succeeds
         if (entry.isFolder && !entry.web) // internal navigation
-            return setTimeout(() => getHFS().navigate(entry.uri)) // couldn't find the reason why navigating sync is reverted back
+            return setTimeout(() => getHFS().navigate(entry.uri)) // couldn't find the reason why navigating sync is reverted, so setTimeout
         location.href = entry.uri
     }
 }
