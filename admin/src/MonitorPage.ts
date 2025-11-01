@@ -21,6 +21,7 @@ import { BlockIpBtn } from './blockIp'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import { useInterval } from 'usehooks-ts'
 import { PageProps } from './App'
+import { adminApis } from '../../src/adminApis'
 
 export default function MonitorPage({ setTitleSide }: PageProps) {
     setTitleSide(useMemo(() =>
@@ -33,7 +34,7 @@ export default function MonitorPage({ setTitleSide }: PageProps) {
 }
 
 function MoreInfo() {
-    const { data: status, element, reload } = useApiEx('get_status')
+    const { data: status, element, reload } = useApiEx<typeof adminApis.get_status>('get_status')
     useInterval(reload, 10_000) // status hardly change, but it can
     const { data: connections } = useApiEvents('get_connection_stats')
     const [allInfo, setAllInfo] = useState(false)

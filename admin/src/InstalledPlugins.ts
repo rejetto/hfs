@@ -13,7 +13,7 @@ import {
 } from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
-import { Account } from './AccountsPage'
+import { adminApis } from '../../src/adminApis'
 import { BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectField, StringField } from '@hfs/mui-grid-form'
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
@@ -310,7 +310,7 @@ export async function startPlugin(id: string) {
 }
 
 function UsernameField({ value, onChange, multiple, groups, ...rest }: FieldProps<string>) {
-    const { data, element, loading } = useApiEx<{ list: Account[] }>('get_accounts')
+    const { data, element, loading } = useApiEx<typeof adminApis.get_accounts>('get_accounts')
     return !loading && element || h((multiple ? MultiSelectField : SelectField) as Field<string>, {
         value, onChange,
         options: data?.list.filter(x => groups === undefined || groups === x.isGroup).map(x => x.username),

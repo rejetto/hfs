@@ -12,7 +12,7 @@ import { alertDialog, confirmDialog, formDialog, promptDialog, toast, waitDialog
 import { BoolField, Form, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
 import { suggestMakingCert } from './OptionsPage'
 import { changeBaseUrl } from './FileForm'
-import apiNet from '../../src/api.net'
+import { adminApis } from '../../src/adminApis'
 import { ALL, WITH_IP } from './countries'
 import _ from 'lodash'
 import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
@@ -37,8 +37,8 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     const baseUrl = config.data?.[CFG.base_url]
     const localColor = with_([status.data?.http?.error, status.data?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
-    const nat = useApiEx<typeof apiNet.get_nat>('get_nat', {}, { timeout: 20 })
-    const { data: publicIps } = useApiEx('get_public_ips')
+    const nat = useApiEx<typeof adminApis.get_nat>('get_nat', {}, { timeout: 20 })
+    const { data: publicIps } = useApiEx<typeof adminApis.get_public_ips>('get_public_ips')
     const { data } = nat
     const port = data?.internalPort
     const wrongMap = data?.mapped && data.mapped.private.port !== port && data.mapped.private.port

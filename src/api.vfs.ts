@@ -32,7 +32,7 @@ const ALLOWED_KEYS: (keyof VfsNodeStored)[] = ['name', 'source', 'masks', 'defau
 
 export interface LsEntry { n:string, s?:number, m?:string, c?:string, k?:'d' }
 
-const apis: ApiHandlers = {
+export default {
 
     async get_vfs() {
         return { root: await recur() }
@@ -268,9 +268,7 @@ const apis: ApiHandlers = {
         return {}
     },
 
-}
-
-export default apis
+} satisfies ApiHandlers
 
 // pick only selected props, and consider null and empty string as undefined, as it's the default value and we don't want to store it
 export function pickProps(o: any, keys: string[]) {

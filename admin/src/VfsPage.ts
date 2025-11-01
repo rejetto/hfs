@@ -25,7 +25,10 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     const { vfs, selectedFiles, movingFile } = useSnapState()
     const { data, reload, element, loading } = useApiEx('get_vfs')
     exposeVfsLoading = loading
-    useMemo(() => vfs || reload(), [vfs, reload])
+    useEffect(() => {
+        if (!vfs)
+            reload()
+    }, [vfs, reload])
     const { data: config } = useApiEx('get_config', { only: [CFG.force_address, CFG.base_url] })
     const sideBreakpoint = 'md'
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
