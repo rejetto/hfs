@@ -95,16 +95,16 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
     const reloadPromise = useRef<any>()
     useEffect(() => {
         setError(undefined)
-        const aborted = () => getLoading()?.aborted()
+        const isAborted = () => getLoading()?.aborted()
         const wholePromise = wait(0) // postpone a bit so that if it is aborted immediately, it is never really fired (happens mostly in dev mode)
             .then(() => {
-                const ret = !cmd || aborted() ? undefined : apiCall<T>(cmd, params, options)
+                const ret = !cmd || isAborted() ? undefined : apiCall<T>(cmd, params, options)
                 setLoading(ret)
                 return ret
             })
-            .then(res => aborted() || setData(res as any) || setError(undefined),
+            .then(res => isAborted() || setData(res as any) || setError(undefined),
                 err => {
-                    if (aborted()) return
+                    if (isAborted()) return
                     setError(err)
                     setData(undefined)
                 })
@@ -113,9 +113,9 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
         return () => { wholePromise.finally(() => getLoading()?.abort()) }
     }, [cmd, JSON.stringify(params), forcer]) //eslint-disable-line -- json-ize to detect deep changes
     const reload = useCallback(() => {
-        if (getLoading()) return
-        setForcer(v => v + 1)
+        if (reloadPromise.current) return
         reloadPromise.current = pendingPromise()
+        setForcer(v => v + 1)
     }, [setForcer])
     const ee = useMemo(() => new BetterEventEmitter, [])
     const sub = useCallback((cb: Callback) => ee.on('data', cb), [ee])
