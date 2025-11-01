@@ -63,7 +63,7 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
                     return ret
                 }
                 const ret = [...list, ...chunk]
-                ret.splice(0, length - (limit ?? Infinity))
+                ret.splice(0, ret.length - (limit ?? Infinity))
                 return ret
             })
         }, 1000, { maxWait: 1000 })
