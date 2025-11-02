@@ -12,7 +12,7 @@ import { getNatInfo, getPublicIps, upnpClient } from './nat'
 import { makeCert } from './acme'
 import { selfCheck } from './selfCheck'
 
-const apis: ApiHandlers = {
+export default {
     get_nat: getNatInfo,
     get_public_ips: getPublicIps,
 
@@ -86,6 +86,4 @@ const apis: ApiHandlers = {
     get_cert() {
         return getCertObject() || { none: true }
     }
-}
-
-export default apis
+} satisfies ApiHandlers
