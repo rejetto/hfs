@@ -132,7 +132,12 @@ export function wait<T=undefined>(ms: number, val?: T): Promise<T | undefined> {
 
 // throws after ms
 export function haveTimeout<T>(ms: number, job: Promise<T>, error?: any) {
-    return Promise.race([job, wait(ms).then(() => { throw error || Error('timeout') })])
+    let h: Timeout
+    return Promise.race([
+        job.finally(() => clearTimeout(h)), // don't leave pending timeout if the job is done first
+        new Promise<never>((_resolve, reject) =>
+            h = setTimeout(() => reject(error || Error('timeout')), ms))
+    ])
 }
 
 export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Truthy<S[keyof S]>, key:keyof S)=>VR) {

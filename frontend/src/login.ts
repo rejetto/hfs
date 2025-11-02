@@ -54,7 +54,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
         if (fallbackToBasicAuth())
             return location.href = '/?get=login'
         if (closeLoginDialog)
-            return lastPromise
+            return lastPromise // this refers to the previous promise, as lastPromise wille be updated only after this function ends
         let going = false
         const { close } = newDialog({
             closable,

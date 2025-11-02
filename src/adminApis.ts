@@ -5,7 +5,7 @@ import { configFile, defineConfig, getWholeConfig, setConfig } from './config'
 import { getBaseUrlOrDefault, getIps, getServerStatus, getUrls } from './listen'
 import {
     API_VERSION, BUILD_TIMESTAMP, COMPATIBLE_API_VERSION, HFS_STARTED, IS_WINDOWS, VERSION,
-    HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_FORBIDDEN
+    HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR
 } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'

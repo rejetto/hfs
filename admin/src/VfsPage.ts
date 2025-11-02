@@ -11,7 +11,7 @@ import {
 import { Flex, useBreakpoint } from './mui'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
-import { Account } from './AccountsPage'
+import apiAccounts from '../../src/api.accounts'
 import FileForm from './FileForm'
 import { Add, Delete } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
@@ -43,7 +43,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
             ret.unshift(b)
         return ret
     }, [status, config])
-    const accountsApi = useApiEx<{ list: Account[] }>('get_accounts') // load accounts once and for all, or !isSideBreakpoint will cause a call for each selection
+    const accountsApi = useApiEx<typeof apiAccounts.get_accounts>('get_accounts') // load accounts once and for all, or !isSideBreakpoint will cause a call for each selection
     const accounts = useMemo(() => _.sortBy(accountsApi?.data?.list, 'username'), [accountsApi.data])
 
     // this will take care of closing the dialog, for the user's convenience, after "cut" button is pressed
