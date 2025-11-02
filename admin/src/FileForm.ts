@@ -323,7 +323,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
 function who2desc(who: any) {
     return who === false ? "No one"
         : who === true ? "Anyone"
-            : who === '*' ? "Any account (login required)"
+            : who === '*' ? "Any account login"
                 : Array.isArray(who) ? who.join(', ')
                     : typeof who === 'string' ? `As "can ${perm2word(who)}"`
                         : "*UNKNOWN*" + JSON.stringify(who)
