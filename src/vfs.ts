@@ -172,7 +172,10 @@ export async function getNodeByName(name: string, parent: VfsNode) {
 }
 
 export let vfs: VfsNode = {}
-defineConfig('vfs', vfs).sub(reviewVfs)
+defineConfig('vfs', vfs).sub(async x => {
+    await reviewVfs(x)
+    console.log('VFS ready')
+})
 
 async function reviewVfs(data=vfs) {
     await (async function recur(node) {

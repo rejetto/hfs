@@ -1,30 +1,18 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { access, mkdir, readFile, stat } from 'fs/promises'
-import { Promisable, try_, wait, isWindowsDrive, haveTimeout, splitAt } from './cross'
-import { defineConfig } from './config'
+import { access, mkdir, readFile } from 'fs/promises'
+import { Promisable, try_, wait, isWindowsDrive } from './cross'
 import { createWriteStream, mkdirSync, watch, ftruncate } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
 import { once } from 'events'
 import { Readable } from 'stream'
+import { statWithTimeout } from './stat'
 // @ts-ignore
 import unzipper from 'unzip-stream'
 
-const fileTimeout = defineConfig('file_timeout', 3, x => x * 1000)
-
-// since nodejs' UV_THREADPOOL_SIZE is 4 by default, avoid using multiple slots for the same UNC host. This doesn't solve the problem but at least mitigates it.
-const uncStatWaiting = new Map<string, Promise<any>>()
-export async function statWithTimeout(path: string) {
-    const uncHost = path.startsWith('\\\\') && splitAt('\\', path.slice(2))[0]
-    if (uncHost)
-        await uncStatWaiting.get(uncHost)
-    const op = stat(path)
-    if (uncHost)
-        uncStatWaiting.set(uncHost, op.finally(() => uncStatWaiting.delete(uncHost)).catch(() => {}))
-    return haveTimeout(fileTimeout.compiled(), op)
-}
+export { statWithTimeout }
 
 export async function isDirectory(path: string) {
     try { return (await statWithTimeout(path)).isDirectory() }
