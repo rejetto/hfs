@@ -184,6 +184,7 @@ async function reviewVfs(data=vfs) {
             await Promise.allSettled(node.children.map(recur))
     })(data)
     vfs = data
+    console.debug('vfs check complete')
 }
 
 export const saveVfs = debounceAsync(async () => {

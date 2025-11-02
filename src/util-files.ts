@@ -1,7 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { access, mkdir, readFile, stat } from 'fs/promises'
-import { Promisable, try_, wait, isWindowsDrive, haveTimeout, splitAt } from './cross'
+import { Promisable, try_, wait, isWindowsDrive, haveTimeout, pendingPromise } from './cross'
+import { Stats } from 'node:fs'
 import { defineConfig } from './config'
 import { createWriteStream, mkdirSync, watch, ftruncate } from 'fs'
 import { basename, dirname } from 'path'
@@ -11,20 +12,6 @@ import { once } from 'events'
 import { Readable } from 'stream'
 // @ts-ignore
 import unzipper from 'unzip-stream'
-
-const fileTimeout = defineConfig('file_timeout', 3, x => x * 1000)
-
-// since nodejs' UV_THREADPOOL_SIZE is 4 by default, avoid using multiple slots for the same UNC host. This doesn't solve the problem but at least mitigates it.
-const uncStatWaiting = new Map<string, Promise<any>>()
-export async function statWithTimeout(path: string) {
-    const uncHost = path.startsWith('\\\\') && splitAt('\\', path.slice(2))[0]
-    if (uncHost)
-        await uncStatWaiting.get(uncHost)
-    const op = stat(path)
-    if (uncHost)
-        uncStatWaiting.set(uncHost, op.finally(() => uncStatWaiting.delete(uncHost)).catch(() => {}))
-    return haveTimeout(fileTimeout.compiled(), op)
-}
 
 export async function isDirectory(path: string) {
     try { return (await statWithTimeout(path)).isDirectory() }
@@ -174,4 +161,40 @@ export async function parseFile<T>(path: string, parse: (path: string) => T) {
 
 export async function parseFileContent<T>(path: string, parse: (raw: Buffer) => T) {
     return parseFile(path, () => readFile(path).then(parse))
+}
+
+const fileTimeout = defineConfig('file_timeout', 3, x => x * 1000)
+
+// since nodejs' UV_THREADPOOL_SIZE is 4 by default, avoid using multiple slots for the same UNC host. Also, always leave one slot free for local operations.
+const poolSize = Number(process.env.UV_THREADPOOL_SIZE || 4)
+const uncStatWaiting = new Map<string, Promise<Stats>>()
+export async function statWithTimeout(path: string) {
+    const uncHost = /^\\\\([^\\]+)\\/.exec(path)?.[1]
+    if (!uncHost)
+        return haveTimeout(fileTimeout.compiled(), stat(path))
+    const others = Array.from(uncStatWaiting.values())
+    const busy = uncStatWaiting.get(uncHost)
+    const ret = pendingPromise<Stats>()
+    uncStatWaiting.set(uncHost, ret) // reserve the slot before starting the operation
+    if (busy) {
+        const err = await busy.then(() => false, e => e.code !== 'timeout' && e) // only timeout error is shared with pending requests
+        if (err) {
+            uncStatWaiting.delete(uncHost) // but we don't want to block forever, only involve those that were already waiting
+            ret.reject(err)
+            return ret
+        }
+    }
+    else if (others.length >= poolSize - 1) // always leave one slot free for local operations
+        await Promise.race(others).catch(() => {}) // we are assuming UV_THREADPOOL_SIZE > 2, otherwise race() will deadlock
+    try {
+        ret.resolve(await haveTimeout(fileTimeout.compiled(), stat(path) ))
+    }
+    catch (e) {
+        ret.reject(e)
+    }
+    finally {
+        if (uncStatWaiting.get(uncHost) === ret)
+            uncStatWaiting.delete(uncHost)
+    }
+    return ret
 }
