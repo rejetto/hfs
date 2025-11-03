@@ -105,19 +105,24 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
 
         function connect() {
             return proxyParsed && new Promise<boolean>(resolve => {
-                (proxyParsed.protocol === 'https:' ? https : http).request({
+                const path = `${parsed.hostname}:${parsed.port || 443}`
+                ;(proxyParsed.protocol === 'https:' ? https : http).request({
                     ...proxyParsed,
+                    auth: undefined, // void proxyParsed.auth
                     method: 'CONNECT',
-                    path: `${parsed.hostname}:${parsed.port || 443}`,
-                    auth: undefined,
-                    headers: proxyAuth
-                }).on('error', reject).on('connect', (res, socket) => {
+                    path,
+                    headers: { Host: path, ...proxyAuth }
+                }).on('connect', (res, socket) => {
                     if (res.statusCode !== 200)
                         return resolve(false)
-                    // a TLS for every request is inefficient. Consider optimizing in the future, especially for reading plugins from github, which makes tens of requests.
+                    // we are creating a TLS for every request, very inefficient. Consider optimizing in the future, especially for reading plugins from github, which makes tens of requests.
                     options.createConnection = () => tls.connect({ socket, servername: parsed.hostname || undefined })
                     resolve(true)
-                }).end()
+                }).on('response', res => {
+                    console.debug("proxy CONNECT response", res.statusCode, res.statusMessage)
+                    resolve(false)
+                }).on('error', reject)
+                    .end()
             })
         }
 
