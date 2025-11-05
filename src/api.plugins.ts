@@ -2,7 +2,7 @@
 
 import {
     InactivePlugin, enablePlugins, getInactivePlugins, getPluginConfigFields, mapPlugins, Plugin, pluginsConfig,
-    PATH as PLUGINS_PATH, enablePlugin, getPluginInfo, setPluginConfig, isPluginRunning,
+    PATH as PLUGINS_PATH, enablePlugin, getPluginInfo, setPluginConfig, isPluginRunning, pluginsScanned,
     stopPlugin, startPlugin, CommonPluginInterface, getMissingDependencies, findPluginByRepo, suspendPlugins,
 } from './plugins'
 import _ from 'lodash'
@@ -43,6 +43,7 @@ const apis: ApiHandlers = {
                         list.update({ id }, { updated: true })
                     }
                 })
+                await pluginsScanned
                 await Promise.allSettled(_.map(getFolder2repo(), async (repo, folder) => {
                     try {
                         if (!repo) return
