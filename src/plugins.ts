@@ -39,6 +39,7 @@ export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
 export const DELETE_ME_SUFFIX = '-delete_me' + DISABLING_SUFFIX
 export const STORAGE_FOLDER = 'storage'
+export const pluginsScanned = pendingPromise()
 
 setTimeout(async () => { // delete leftovers, if any
     for (const x of await readdir(PATH))
@@ -415,20 +416,21 @@ export async function rescan() {
     const patterns = [PATH + '/*']
     if (APP_PATH !== process.cwd())
         patterns.unshift(adjustStaticPathForGlob(APP_PATH) + '/' + patterns[0]) // first search bundled plugins, because otherwise they won't be loaded because of the folders with same name in .hfs/plugins (used for storage)
-    const met = []
+    const existing = []
     for (const { path, dirent } of await glob(patterns, { onlyFiles: false, suppressErrors: true, objectMode: true })) {
         if (!dirent.isDirectory() || path.endsWith(DISABLING_SUFFIX)) continue
         const id = path.split('/').slice(-1)[0]!
-        met.push(id)
+        existing.push(id)
         if (!pluginWatchers.has(id))
             pluginWatchers.set(id, watchPlugin(id, join(path, PLUGIN_MAIN_FILE)))
     }
     for (const [id, cancelWatcher] of pluginWatchers.entries())
-        if (!met.includes(id)) {
+        if (!existing.includes(id)) {
             enablePlugin(id, false)
             cancelWatcher()
             pluginWatchers.delete(id)
         }
+    pluginsScanned.resolve()
 }
 
 function watchPlugin(id: string, path: string) {
