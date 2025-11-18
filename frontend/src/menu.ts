@@ -104,7 +104,7 @@ export function MenuPanel() {
                 href: buildUrlQueryString(_.pickBy({
                     get: 'zip',
                     ...remoteSearch,
-                    list
+                    list: isAllSelected() ? undefined : list
                 })),
                 ...!list && {
                     confirm: remoteSearch ? t('zip_confirm_search', "Download ALL results of this search as ZIP archive?")
@@ -154,6 +154,10 @@ export function MenuPanel() {
             onClick: searchDialog,
         }
     }
+}
+
+function isAllSelected() {
+    return state.list.every(x => state.selected[x.uri])
 }
 
 export function MenuLink({ href, target, confirm, confirmOptions, id, ...rest }: BtnProps & { href: string, target?: string, confirm?: string, confirmOptions?: ConfirmOptions }) {
