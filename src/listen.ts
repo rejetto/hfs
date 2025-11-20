@@ -41,7 +41,10 @@ export function getHttpsWorkingPort() {
     return httpsSrv?.listening && (httpsSrv.address() as any)?.port
 }
 
-const commonServerOptions: http.ServerOptions = { requestTimeout: 0 }
+const commonServerOptions: http.ServerOptions = {
+    requestTimeout: 0, // disable timeout on long uploads
+    maxHeaderSize: 32768, // allow a larger header for a larger list in ?get=zip
+}
 // these are properties that can be assigned to the server object
 const commonServerAssign = { headersTimeout: 30_000, timeout: MINUTE } // 'headersTimeout' is not recognized by type lib, and 'timeout' is not effective when passed in parameters
 
