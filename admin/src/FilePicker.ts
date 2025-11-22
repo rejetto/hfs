@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { apiCall, useApiList } from './api'
+import { apiCall, useApi, useApiList } from './api'
 import _ from 'lodash'
 import { Alert, Box, Checkbox, ListItemIcon, ListItemText, MenuItem, TextField, Typography } from '@mui/material'
 import { enforceFinal, formatBytes, isWindowsDrive, err2msg, basename, formatPerc } from './misc'
@@ -21,20 +21,23 @@ interface FilePickerProps {
     files?: boolean
     fileMask?: string
 }
-let lastPath = ''
+let lastPath = '.'
 export default function FilePicker({ onSelect, multiple=true, files=true, folders=true, fileMask, from=lastPath }: FilePickerProps) {
     const [cwd, setCwd] = useState(from)
     lastPath = cwd
     const [ready, setReady] = useState(false)
     const isWindows = useRef(false)
-    useEffect(() => {
-        apiCall('resolve_path', { path: from, closestFolder: true }).then(res => {
-            if (typeof res.path === 'string') {
-                setCwd(res.path)
-                isWindows.current = res.path[1] === ':' || res.path.startsWith('\\\\') // drive or unc
-            }
-        }).finally(() => setReady(true))
-    }, [from])
+    useApi(!ready && 'resolve_path', { path: from, closestFolder: true }, { onResponse: async (_res, body) => {
+        try {
+            const {path} = body
+            if (typeof path !== 'string') return
+            setCwd(path)
+            isWindows.current = path[1] === ':' || path.startsWith('\\\\') // drive or unc
+        }
+        finally {
+            setReady(true)
+        }
+    } })
     const { list, props, error, connecting, reload } = useApiList<LsEntry>(ready && 'get_ls', { path: cwd, files, fileMask })
     useEffect(() => {
         setSel([])
