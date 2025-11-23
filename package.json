@@ -57,6 +57,7 @@
   "pkg": {
     "assets": [
       "central.json",
+      "src/statWorker.js",
       "admin/**/*",
       "frontend/**/*",
       "**/node_modules/fswin/x64/*",
