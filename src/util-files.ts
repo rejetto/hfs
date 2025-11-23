@@ -1,18 +1,33 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { access, mkdir, readFile } from 'fs/promises'
-import { Promisable, try_, wait, isWindowsDrive } from './cross'
+import { access, mkdir, readFile, stat } from 'fs/promises'
+import { Promisable, try_, wait, isWindowsDrive, haveTimeout } from './cross'
+import { defineConfig } from './config'
 import { createWriteStream, mkdirSync, watch, ftruncate } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
 import { once } from 'events'
 import { Readable } from 'stream'
-import { statWithTimeout } from './stat'
+import { getStatWorker } from './stat'
 // @ts-ignore
 import unzipper from 'unzip-stream'
 
-export { statWithTimeout }
+const fileTimeout = defineConfig('file_timeout', 3, x => x * 1000)
+// a smart (and a bit arbitrary) way to decide if we need the stat-workers functionality. Without it, we may be a bit faster. We'll see with experience if we need a dedicated configuration.
+const disableStatWorkers = Number(process.env.UV_THREADPOOL_SIZE) >= 10
+
+// some paths (mostly offline networked ones) can take 20+ seconds to fail
+export async function statWithTimeout(path: string) {
+    // with just 4 requests we saturate the default UV_THREADPOOL_SIZE, blocking even local fs operations, so we move all UNC requests to worker threads
+    const workerKey = !disableStatWorkers && IS_WINDOWS && getUncHost(path) // pool requests by server name
+    const op = workerKey ? getStatWorker(workerKey)(path) : stat(path)
+    return haveTimeout(fileTimeout.compiled(), op)
+}
+
+function getUncHost(path: string) {
+    return /^\\\\([^\\]+)\\/.exec(path)?.[1]
+}
 
 export async function isDirectory(path: string) {
     try { return (await statWithTimeout(path)).isDirectory() }
