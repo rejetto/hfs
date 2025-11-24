@@ -55,7 +55,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
             if (nodeIsFolder(el))
                 return { path: name + '/' }
             if (!source) return
-            const st = el.stats || await statWithTimeout(source)
+            const st = await (el.stats || statWithTimeout(source))
             if (!st || !st.isFile())
                 return
             return {
