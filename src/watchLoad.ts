@@ -2,7 +2,7 @@
 
 import { FSWatcher, watch } from 'fs'
 import fs from 'fs/promises'
-import { readFileBusy } from './util-files'
+import { readFileWithBusyRetry } from './util-files'
 import { debounceAsync } from './debounceAsync'
 import { BetterEventEmitter } from './events'
 
@@ -56,7 +56,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
         if (doing) return
         doing = true
         try {
-            const text = await readFileBusy(path).catch(e => { // ignore read errors
+            const text = await readFileWithBusyRetry(path).catch(e => { // ignore read errors
                 if (e.code === 'EPERM')
                     console.error("missing permissions on file", path) // warn user, who could be clueless about this problem
                 return ''

@@ -5,7 +5,7 @@ import { get_file_list } from './api.get_file_list'
 import * as api_auth from './api.auth'
 import events from './events'
 import Koa from 'koa'
-import { dirTraversal, isValidFileName } from './util-files'
+import { hasDirTraversal, isValidFileName } from './util-files'
 import {
     HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FAILED_DEPENDENCY, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED,
     HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED
@@ -86,7 +86,7 @@ export const frontEndApis: ApiHandlers = {
         const node = await urlToNode(uri, ctx)
         if (!node)
             throw new ApiError(HTTP_NOT_FOUND)
-        if (isRoot(node) || dest.includes('/') || dirTraversal(dest))
+        if (isRoot(node) || dest.includes('/') || hasDirTraversal(dest))
             throw new ApiError(HTTP_FORBIDDEN)
         if (!hasPermission(node, 'can_delete', ctx))
             throw new ApiError(HTTP_UNAUTHORIZED)

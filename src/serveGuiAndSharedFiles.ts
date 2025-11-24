@@ -18,7 +18,7 @@ import { preventAdminAccess, favicon } from './adminApis'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
-import { asyncGeneratorToReadable, filterMapGenerator, parseFile, pathEncode, try_ } from './misc'
+import { asyncGeneratorToReadable, filterMapGenerator, loadFileCached, pathEncode, try_ } from './misc'
 import XXH from 'xxhashjs'
 import fs from 'fs'
 import { rm } from 'fs/promises'
@@ -68,7 +68,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         ctx.state.uploadPath = decPath
         if (getUploadTempHash)
             return !folder.source ? sendErrorPage(ctx, HTTP_NOT_FOUND)
-                : ctx.body = await parseFile(getUploadTempFor(join(folder.source, rest)), calcHash)  // negligible memory leak
+                : ctx.body = await loadFileCached(getUploadTempFor(join(folder.source, rest)), calcHash)  // negligible memory leak
         const dest = uploadWriter(folder, folderUri, rest, ctx)
         if (dest) {
             ctx.req.pipe(dest).on('error', err => {

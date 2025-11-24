@@ -226,8 +226,8 @@ export function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snaps
             label: t('copy_links', "Copy links"),
             asText: true,
             successFeedback: true,
-            onClick() {
-                copyTextToClipboard(done.map(x => location.origin + x.response.uri).join('\n'))
+            async onClick() {
+                await copyTextToClipboard(done.map(x => location.origin + x.response.uri).join('\n'))
                 operationSuccessful()
             }
         }),

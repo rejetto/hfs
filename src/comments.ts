@@ -1,7 +1,7 @@
 import { defineConfig } from './config'
 import { dirname, basename, join } from 'path'
 import { CFG } from './cross'
-import { parseFileContent, parseFileCache, safeWriteStream } from './util-files'
+import { parseFile, parseFileCache, createSafeWriteStream } from './util-files'
 import { loadFileAttr, singleWorkerFromBatchWorker, storeFileAttr } from './misc'
 import _ from 'lodash'
 import iconv from 'iconv-lite'
@@ -56,7 +56,7 @@ const setCommentDescriptIon = singleWorkerFromBatchWorker(async (jobs: [path: st
         if (!comments.size)
             return unlink(path)
         // encode comments in descript.ion format
-        const ws = await safeWriteStream(path)
+        const ws = await createSafeWriteStream(path)
         comments.forEach((comment, filename) => {
             const multiline = comment.includes('\n')
             const line = (filename.includes(' ') ? `"${filename}"` : filename)
@@ -77,7 +77,7 @@ export function areCommentsEnabled() {
 const MULTILINE_SUFFIX = Buffer.from([4, 0xC2])
 function readDescriptIon(path: string) {
     // decoding could also be done with native TextDecoder.decode, but we need iconv for the encoding anyway
-    return parseFileContent(join(path, DESCRIPT_ION), raw => {
+    return parseFile(join(path, DESCRIPT_ION), raw => {
         // for simplicity we "remove" the sequence MULTILINE_SUFFIX before iconv.decode messes it up
         for (let i=0; i<raw.length; i++)
             if (raw[i] === MULTILINE_SUFFIX[0] && raw[i+1] === MULTILINE_SUFFIX[1] && [undefined,13,10].includes(raw[i+2]))

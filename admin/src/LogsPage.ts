@@ -211,7 +211,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
         ])),
         initialState: isIps ? { sorting: { sortModel: [{ field: 'ts', sort: 'desc' }] } } : undefined,
         ...rest,
-        footerSide: width => h(Box, {}, // 4 icons don't fit the tabs row on mobile
+        footerSide: width => h(Box, {}, // 4 icons don't fit the tab row on mobile
             pauseButton,
             showApiButton,
             !connecting && skipped > 0 && h(Btn, {

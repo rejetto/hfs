@@ -34,12 +34,12 @@ export async function isDirectory(path: string) {
     catch {}
 }
 
-export async function readFileBusy(path: string): Promise<string> {
+export async function readFileWithBusyRetry(path: string): Promise<string> {
     return readFile(path, 'utf8').catch(e => {
         if ((e as any)?.code !== 'EBUSY')
             throw e
         console.debug('busy')
-        return wait(100).then(()=> readFileBusy(path))
+        return wait(100).then(()=> readFileWithBusyRetry(path))
     })
 }
 
@@ -82,35 +82,35 @@ export function watchDir(dir: string, cb: ()=>void, atStart=false) {
     }
 }
 
-export function dirTraversal(s?: string) {
+export function hasDirTraversal(s?: string) {
     return s && /(^|[/\\])\.\.($|[/\\])/.test(s)
 }
 
 // apply this to paths that may contain \ as separator (not supported by fast-glob) and other special chars to be escaped (parenthesis)
-export function adjustStaticPathForGlob(path: string) {
+export function escapeGlobPath(path: string) {
     return glob.escapePath(path.replace(/\\/g, '/'))
 }
 
 export async function unzip(stream: Readable, cb: (path: string) => Promisable<false | string>) {
-    let pending: Promise<any> = Promise.resolve()
+    let chain: Promise<any> = Promise.resolve()
     return new Promise((resolve, reject) =>
         stream.pipe(unzipper.Parse())
-            .on('end', () => pending.then(resolve))
+            .on('end', () => chain.then(resolve))
             .on('error', reject)
             .on('entry', (entry: any) =>
-                pending = pending.then(async () => { // don't overlap writings
+                chain = chain.then(async () => { // don't overlap writings
                     const { path, type } = entry
                     const dest = await try_(() => cb(path), e => console.warn(String(e)))
                     if (!dest || type !== 'File')
                         return entry.autodrain()
                     console.debug('unzip', dest)
-                    const thisFile = entry.pipe(await safeWriteStream(dest))
+                    const thisFile = entry.pipe(await createSafeWriteStream(dest))
                     await once(thisFile, 'finish')
                 }) )
     )
 }
 
-export async function prepareFolder(path: string, dirnameIt=true) {
+export async function ensureParentFolder(path: string, dirnameIt=true) {
     if (dirnameIt)
         path = dirname(path)
     if (isWindowsDrive(path)) return
@@ -133,8 +133,8 @@ export function createFileWithPath(path: string, options?: Parameters<typeof cre
     return createWriteStream(path, options)
 }
 
-export async function safeWriteStream(path: string, options?: Parameters<typeof createWriteStream>[1]) {
-    await prepareFolder(path)
+export async function createSafeWriteStream(path: string, options?: Parameters<typeof createWriteStream>[1]) {
+    await ensureParentFolder(path)
     return new Promise<ReturnType<typeof createWriteStream>>((resolve, reject) => {
         const first = createWriteStream(path, options)
             .on('open', () => resolve(first))
@@ -156,7 +156,7 @@ export async function safeWriteStream(path: string, options?: Parameters<typeof 
 }
 
 export function isValidFileName(name: string) {
-    return !(IS_WINDOWS ? /[/:"*?<>|\\]/ : /\//).test(name) && !dirTraversal(name)
+    return !(IS_WINDOWS ? /[/:"*?<>|\\]/ : /\//).test(name) && !hasDirTraversal(name)
 }
 
 export function exists(path: string) {
@@ -165,16 +165,16 @@ export function exists(path: string) {
 
 // parse a file, caching unless timestamp has changed
 export const parseFileCache = new Map<string, { ts: Date, parsed: unknown }>()
-export async function parseFile<T>(path: string, parse: (path: string) => T) {
+export async function loadFileCached<T>(path: string, loader: (path: string) => T) {
     const { mtime: ts } = await statWithTimeout(path)
     const cached = parseFileCache.get(path)
     if (cached && Number(ts) === Number(cached.ts))
         return cached.parsed as T
-    const parsed = parse(path)
+    const parsed = loader(path)
     parseFileCache.set(path, { ts, parsed })
     return parsed
 }
 
-export async function parseFileContent<T>(path: string, parse: (raw: Buffer) => T) {
-    return parseFile(path, () => readFile(path).then(parse))
+export async function parseFile<T>(path: string, parse: (raw: Buffer) => T) {
+    return loadFileCached(path, () => readFile(path).then(parse))
 }
