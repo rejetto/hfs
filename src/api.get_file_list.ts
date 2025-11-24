@@ -115,10 +115,10 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
             return name ? { n: name, url, target: node.target } : null
         const isFolder = nodeIsFolder(node)
         try {
-            const st = source ? node.stats || await statWithTimeout(source).catch(e => {
+            const st = source ? await (node.stats || statWithTimeout(source).catch(e => {
                 if (!isFolder || !node.children?.length) // folders with virtual children, keep them
                     throw e
-            }) : undefined
+            })) : undefined
             // permissions of entries are sent as a difference with permissions of parent
             const pl = node.can_list === WHO_NO_ONE ? 'l'
                 : !hasPermission(node, 'can_list', ctx) ? 'L'
