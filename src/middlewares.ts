@@ -3,7 +3,7 @@
 import compress from 'koa-compress'
 import Koa from 'koa'
 import { API_URI, DEV, HTTP_FOOL } from './const'
-import { ALLOW_SESSION_IP_CHANGE, DAY, dirTraversal, isLocalHost, netMatches, splitAt, stream2string, tryJson } from './misc'
+import { ALLOW_SESSION_IP_CHANGE, DAY, hasDirTraversal, isLocalHost, netMatches, splitAt, stream2string, tryJson } from './misc'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, getAccount, getFromAccount } from './perm'
@@ -60,7 +60,7 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
         }
 
     try {
-        if (dirTraversal(decodeURI(ctx.path)))
+        if (hasDirTraversal(decodeURI(ctx.path)))
             return ctx.status = HTTP_FOOL
         if (!ctx.state.skipFilters && applyBlock(ctx.socket, ctx.ip))
             return

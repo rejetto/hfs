@@ -414,7 +414,7 @@ export async function rescan() {
     console.debug('scanning plugins')
     const patterns = [PATH + '/*']
     if (APP_PATH !== process.cwd())
-        patterns.unshift(adjustStaticPathForGlob(APP_PATH) + '/' + patterns[0]) // first search bundled plugins, because otherwise they won't be loaded because of the folders with same name in .hfs/plugins (used for storage)
+        patterns.unshift(escapeGlobPath(APP_PATH) + '/' + patterns[0]) // first search bundled plugins, because otherwise they won't be loaded because of the folders with same name in .hfs/plugins (used for storage)
     const met = []
     for (const { path, dirent } of await glob(patterns, { onlyFiles: false, suppressErrors: true, objectMode: true })) {
         if (!dirent.isDirectory() || path.endsWith(DISABLING_SUFFIX)) continue

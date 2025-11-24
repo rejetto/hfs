@@ -181,16 +181,22 @@ export function createDurationFormatter({ locale=undefined, unitDisplay='narrow'
     }
 }
 
-export function copyTextToClipboard(text: string) {
-    //navigator.clipboard.writeText(text) // this method works only in https and localhost
-    const d = document
-    const ta = d.createElement("textarea")
-    ta.textContent = text
-    d.body.appendChild(ta)
-    ta.select()
-    d.execCommand("copy")
-    d.body.removeChild(ta)
+export async function copyTextToClipboard(text: string) {
+    try {
+        await navigator.clipboard.writeText(text) // this method works only in https and localhost
+    }
+    catch {
+        console.debug('fallback clipboard method')
+        const d = document
+        const ta = d.createElement("textarea")
+        ta.textContent = text
+        d.body.appendChild(ta)
+        ta.select()
+        d.execCommand("copy")
+        d.body.removeChild(ta)
+    }
 }
+
 
 export function downloadFileWithContent(name: string, content: Blob | string) {
     const blob = content instanceof Blob ? content : new Blob([content], {type: 'text/plain'})

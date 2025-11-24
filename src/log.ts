@@ -7,7 +7,7 @@ import { defineConfig } from './config'
 import { createWriteStream, renameSync, statSync } from 'fs'
 import * as util from 'util'
 import _ from 'lodash'
-import { createFileWithPath, prepareFolder, statWithTimeout } from './util-files'
+import { createFileWithPath, ensureParentFolder, statWithTimeout } from './util-files'
 import { getCurrentUsername } from './auth'
 import { DAY, makeNetMatcher, tryJson, Dict, Falsy, CFG, strinsert, repeat, formatTimestamp, HTTP_NOT_FOUND } from './misc'
 import { extname } from 'path'
@@ -36,7 +36,7 @@ class Logger {
             this.last = stats.mtime
         }
         catch {
-            if (await prepareFolder(path) === false)
+            if (await ensureParentFolder(path) === false)
                 console.log("cannot create folder for", path)
         }
         this.reopen()
