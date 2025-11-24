@@ -9,7 +9,7 @@ import {
 import * as Const from './const'
 import Koa from 'koa'
 import {
-    adjustStaticPathForGlob, callable, Callback, CFG, debounceAsync, Dict, objSameKeys, onlyTruthy, prefix,
+    escapeGlobPath, callable, Callback, CFG, debounceAsync, Dict, objSameKeys, onlyTruthy, prefix,
     PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir, objFromKeys, patchKey
 } from './misc'
 import * as misc from './misc'
@@ -415,7 +415,7 @@ export async function rescan() {
     console.debug('scanning plugins')
     const patterns = [PATH + '/*']
     if (APP_PATH !== process.cwd())
-        patterns.unshift(adjustStaticPathForGlob(APP_PATH) + '/' + patterns[0]) // first search bundled plugins, because otherwise they won't be loaded because of the folders with same name in .hfs/plugins (used for storage)
+        patterns.unshift(escapeGlobPath(APP_PATH) + '/' + patterns[0]) // first search bundled plugins, because otherwise they won't be loaded because of the folders with same name in .hfs/plugins (used for storage)
     const existing = []
     for (const { path, dirent } of await glob(patterns, { onlyFiles: false, suppressErrors: true, objectMode: true })) {
         if (!dirent.isDirectory() || path.endsWith(DISABLING_SUFFIX)) continue

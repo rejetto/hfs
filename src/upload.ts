@@ -7,7 +7,7 @@ import {
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
 import {
-    dirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter, pathEncode,
+    hasDirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter, pathEncode,
     enforceFinal, Timeout,
 } from './misc'
 import { defineConfig } from './config'
@@ -60,7 +60,7 @@ const diskSpaceCache = expiringCache<ReturnType<typeof getDiskSpaceSync>>(3_000)
 const uploadingFiles = new Map<string, { ctx: Koa.Context, size: number, got: number }>()
 // stay sync because we use this function with formidable()
 export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: Koa.Context) {
-    if (dirTraversal(path))
+    if (hasDirTraversal(path))
         return fail(HTTP_FOOL)
     if (statusCodeForMissingPerm(base, 'can_upload', ctx))
         return fail()
