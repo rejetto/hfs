@@ -13,7 +13,7 @@ const outboundProxy = defineConfig(CFG.outbound_proxy, '', v => {
         const test = 'https://google.com'
         console.debug("testing proxy using", test)
         httpString(test, { noRedirect: true }).catch(e =>
-            console.error(`proxy failed for ${test} : ${e?.errors?.[0] || e}`)) // `.errors` in case of AggregateError
+            console.error(`proxy test failed on ${test} : ${e?.errors?.[0] || e}`)) // `.errors` in case of AggregateError
     }
     catch {
         console.warn("invalid URL", v)

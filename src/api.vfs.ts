@@ -2,7 +2,7 @@
 
 import {
     getNodeName, isSameFilenameAs, nodeIsFolder, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
-    permsFromParent, nodeIsLink, VfsNodeStored, isRoot
+    permsFromParent, VfsNodeStored, isRoot, nodeStats
 } from './vfs'
 import _ from 'lodash'
 import { mkdir } from 'fs/promises'
@@ -39,8 +39,8 @@ const apis: ApiHandlers = {
 
         async function recur(node=vfs): Promise<VfsNodeAdminSend> {
             const { source } = node
-            const stats = !source ? undefined : (node.stats || await statWithTimeout(source!).catch(() => undefined))
-            const isDir = !nodeIsLink(node) && (!source || (stats?.isDirectory() ?? (source.endsWith('/') || node.children?.length! > 0)))
+            const stats = await nodeStats(node)
+            const isFolder = nodeIsFolder(node)
             const copyStats: Pick<VfsNodeAdminSend, 'size' | 'birthtime' | 'mtime'> = stats ? _.pick(stats, ['size', 'birthtime', 'mtime'])
                 : { size: source ? -1 : undefined }
             if (copyStats.mtime && (stats?.mtimeMs! - stats?.birthtimeMs!) < 1000)
@@ -56,10 +56,10 @@ const apis: ApiHandlers = {
                 inherited,
                 byMasks: _.isEmpty(byMasks) ? undefined : byMasks,
                 website: Boolean(node.children?.find(isSameFilenameAs('index.html')))
-                    || isDir && source && await statWithTimeout(join(source, 'index.html')).then(() => true, () => undefined)
+                    || isFolder && source && await statWithTimeout(join(source, 'index.html')).then(() => true, () => undefined)
                     || undefined,
                 name: getNodeName(node),
-                type: isDir ? 'folder' : undefined,
+                type: isFolder ? 'folder' : undefined,
                 children: node.children && await Promise.all(node.children.map(async child =>
                     recur(await applyParentToChild(child, node)) ))
             }
