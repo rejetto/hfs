@@ -319,26 +319,26 @@ export async function* walkNode(parent: VfsNode, {
         async read() {
             if (started) return // for simplicity, we care about starting, and never suspend
             started = true
-            const { children, source } = parent
+            const { source } = parent
             const taken = prefixPath ? undefined : new Set()
             const maskApplier = parentMaskApplier(parent)
             const visitLater: any = []
-            if (children) for (const child of children) {
+            const childrenWorking = parent.children?.length && Promise.all(parent.children.map(async child => {
                 const nodeName = getNodeName(child)
                 const name = prefixPath + nodeName
                 taken?.add(normalizeFilename(name))
                 const item = { ...child, original: child, name, parent }
-                if (await cantSee(item)) continue
+                if (await cantSee(item)) return
                 if (item.source && !item.children?.length) // real items must be accessible, unless there's more to it
                     try { await fs.access(item.source) }
-                    catch { continue }
+                    catch { return }
                 const isFolder = nodeIsFolder(child)
                 if (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
                     stream.push(item)
-                if (!depth || !isFolder || cantRecur(item)) continue
+                if (!depth || !isFolder || cantRecur(item)) return
                 inheritMasks(item, parent)
                 visitLater.push([item, name]) // prioritize siblings
-            }
+            }))
 
             try {
                 if (!source)
@@ -382,6 +382,7 @@ export async function* walkNode(parent: VfsNode, {
                 }
             }
             finally {
+                await childrenWorking
                 for (const [item, name] of visitLater)
                     for await (const x of walkNode(item, { depth: depth - 1, prefixPath: name + '/', ctx, requiredPerm, onlyFolders, parallelizeRecursion }))
                         stream.push(x)

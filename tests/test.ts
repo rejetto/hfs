@@ -118,7 +118,7 @@ describe('basics', () => {
     test('inheritNegativeMask', reqList('/tests/page', { outList: ['index.html'] }))
 
     const zipSize = 13242
-    const zipOfs = 0x32EF
+    const zipOfs = 0x194E
     const zipLength = 4
     test('zip.head', req('/f1/?get=zip', { empty:true, length:zipSize }, { method:'HEAD' }) )
     test('zip.partial', req('/f1/?get=zip', { re:/^page$/, length: zipLength }, { headers: { Range: `bytes=${zipOfs}-${zipOfs+zipLength-1}` } }) )
