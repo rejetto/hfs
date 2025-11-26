@@ -4,7 +4,7 @@ import { apiCall } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
 import { alertDialog, newDialog, toast } from './dialog'
 import {
-    getHFS, hIcon, makeSessionRefresher, srpClientSequence, working, fallbackToBasicAuth,
+    getHFS, hIcon, makeSessionRefresher, srpClientSequence, working, fallbackToBasicAuth, hfsEvent,
     HTTP_CONFLICT, HTTP_UNAUTHORIZED, HTTP_METHOD_NOT_ALLOWED, ALLOW_SESSION_IP_CHANGE,
 } from './misc'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
@@ -22,10 +22,12 @@ async function login(username:string, password:string, extra?: object) {
             return apiCall('login', { username, password, ...extra })
         throw err
     }).then(res => {
+        hfsEvent('loginOk', { username })
         refreshSession(res)
         state.loginRequired = false
         return res
     }, err => {
+        hfsEvent('loginFailed', { username, error: err }) // the name inconsistency with the backend event 'failedLogin' can make it easier to distinguish
         throw Error(err.data === 'trust' ? t('login_untrusted', "Login aborted: server identity cannot be trusted")
             : err.code === HTTP_UNAUTHORIZED && !err.data ? t('login_bad_credentials', "Invalid credentials") // err.data is empty on standard errors, but a plugin may want to show differently
                 : err.code === HTTP_CONFLICT ? t('login_bad_cookies', "Cookies not working - login failed")

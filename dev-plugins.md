@@ -617,8 +617,12 @@ This is a list of available frontend-events, with respective object parameter an
 - `newListEntries`
   - new entries for the list have being fetched from the server
   - parameter `{ entries: DirEntry[] }`
+- `loginOk`
+  - parameter `{ username }`
+- `loginFailed`
+  - parameter `{ username, error }`
 - All of the following have no parameters and you are supposed to output `Html` that will be displayed in the described place:
--   `appendMenuBar` inside menu-bar, at the end
+  - `appendMenuBar` inside menu-bar, at the end
   - `afterMenuBar` between menu-bar and breadcrumbs
   - `afterBreadcrumbs` between breadcrumbs and folder-stats
   - `afterFolderStats` between folder-stats and filter-bar
@@ -1080,3 +1084,5 @@ If you want to override a text regardless of the language, use the special langu
 - 12.94 (v0.57.24)
   - HFS.onEvent now supports :after
   - HFS.userBelongsTo now supports array of usernames
+- 12.95 (v0.57.27)
+  - frontend events: loginOk, loginFailed
