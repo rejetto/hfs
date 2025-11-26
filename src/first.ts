@@ -13,7 +13,7 @@ onProcessExit(() => quitting = true)
 
 onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT', 'SIGHUP'], signal =>
     Promise.allSettled(Array.from(cbs).map(cb => cb(signal))).then(() => {
-        console.log('quitting')
+        console.log('quitting', signal||'')
         process.exit(0)
     }))
 
