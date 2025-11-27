@@ -30,7 +30,7 @@ export async function getCommentFor(path?: string) {
     return !path ? undefined : Promise.all([
         commentsStorage.get() ? loadFileAttr(path, COMMENT_ATTR) : undefined,
         readFromDescriptIon(path)
-    ]).then(([fromAttr, fromIon]) => fromAttr || fromIon)
+    ]).then(([fromAttr, fromIon]) => fromAttr || fromIon || undefined)
 }
 
 export async function setCommentFor(path: string, comment: string) {
