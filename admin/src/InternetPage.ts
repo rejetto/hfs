@@ -181,7 +181,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         return status.element || h(TitleCard, { title: "HTTPS", icon: Lock, color: https?.listening && !error ? 'success' : 'warning' },
             error ? h(Alert, { severity: 'warning' }, error) :
                 (disabled && h(LinkBtn, { onClick: notEnabled }, "Not enabled")),
-            cert.element || with_(cert.data, c => c.none ? h(LinkBtn, { onClick: () => suggestMakingCert().then(cert.reload) }, "No certificate configured") : h(Box, {},
+            cert.element || with_(cert.data, c => c.none ? h(LinkBtn, { onClick: noCertClick }, "No certificate configured") : h(Box, {},
                 h(CardMembership, { fontSize: 'small', sx: { mr: 1, verticalAlign: 'middle' } }), "Current certificate",
                 h('ul', {},
                     h('li', {}, "Domain: ", c.altNames?.join(' + ') ||'-'),
@@ -245,6 +245,12 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                 },
             })
         )
+
+        async function noCertClick() {
+            await suggestMakingCert()
+            cert.reload()
+            status.reload()
+        }
     }
 
     async function notEnabled() {

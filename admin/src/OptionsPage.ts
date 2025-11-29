@@ -413,14 +413,14 @@ export async function suggestMakingCert() {
         async function makeCertAndSave() {
             if (!window.crypto.subtle)
                 return alertDialog("Retry this procedure on localhost", 'warning')
-            close()
             const saved = await apiCall('make_self_signed_cert', { fileName: 'self' })
             if (loaded) // when undefined we are not in this page
                 Object.assign(loaded, saved)
             setTimeout(exposedReloadStatus!, 1000) // give some time for backend to apply
             setTimeout(exposedReloadStatus!, 2000) // try again in case it's very slow
             Object.assign(state.config, saved)
-            alertDialog("Certificate saved", 'success')
+            await alertDialog("Certificate saved", 'success')
+            close()
         }
     })
 }
