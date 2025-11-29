@@ -23,6 +23,7 @@ import InternetPage from './InternetPage'
 import { useWindowSize } from 'usehooks-ts'
 import { hTooltip } from './mui'
 import { PageProps } from './App'
+import { confirmDialog } from './dialog'
 
 interface MenuEntry {
     path: string
@@ -62,8 +63,15 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
             }
         },
             h(Box, { id: 'hfs-name', display: 'flex', px: 2, py: .5, gap: 2, alignItems: 'center' },
-                h('a', { href: WEBSITE, target: 'website', style: { textDecoration: 'none' } },
-                    h(Box, { color: 'primary.contrastText', fontSize: 'min(3rem, max(5vw, 4vh))' }, 'HFS')),
+                h(Box, {
+                    color: 'primary.contrastText',
+                    fontSize: 'min(3rem, max(5vw, 4vh))',
+                    sx: { cursor: 'pointer' },
+                    async onClick() {
+                        if (await confirmDialog("Open HFS website?"))
+                            window.open(WEBSITE)
+                    }
+                }, 'HFS'),
                 h(Box, { fontSize: 'small', className: HIDE_IN_TESTS }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
                 short && h('img', { src: logo, style: { height: '2.5em' } }),
             ),
