@@ -85,7 +85,7 @@ export function isSameFilenameAs(name: string) {
         normalized === normalizeFilename(typeof other === 'string' ? other : getNodeName(other))
 }
 
-function normalizeFilename(x: string) {
+export function normalizeFilename(x: string) {
     return (IS_WINDOWS || IS_MAC ? x.toLocaleLowerCase() : x).normalize()
 }
 

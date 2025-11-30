@@ -360,6 +360,9 @@ The `api` object you get as parameter of the `init` contains the following:
 - `onServer(cb: (Server) => any)` execute your callback on every instance of Server created by HFS.
   It is the standard Node.js class, and it can be http or https. It can be instantiated multiple times.
 
+- `normalizeFilename(filename: string): string` HFS applies some normalization to files, and so should you.
+  It's necessary when running on Mac and Windows, as they are case-insensitive.
+
 ## Frontend JS
 
 The following information applies to the frontend bundled with HFS.
@@ -1086,5 +1089,6 @@ If you want to override a text regardless of the language, use the special langu
 - 12.94 (v0.57.24)
   - HFS.onEvent now supports :after
   - HFS.userBelongsTo now supports array of usernames
-- 12.95 (v0.57.27)
+- 12.96 (v0.57.27)
   - frontend events: loginOk, loginFailed
+  - api.normalizeFilename

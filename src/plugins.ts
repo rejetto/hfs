@@ -15,7 +15,7 @@ import {
 import * as misc from './misc'
 import { defineConfig, getConfig, subMultipleConfigs } from './config'
 import { DirEntry } from './api.get_file_list'
-import { VfsNode } from './vfs'
+import { normalizeFilename, VfsNode } from './vfs'
 import { serveFile } from './serveFile'
 import events from './events'
 import { mkdir, readdir, readFile, rm } from 'fs/promises'
@@ -157,7 +157,7 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>
             controlledEvents.on('listening', ({ server }: any) => cb(server))
         },
         misc, _,
-        customApiCall, notifyClient, addBlock, ctxBelongsTo, getConnections,
+        customApiCall, notifyClient, addBlock, ctxBelongsTo, getConnections, normalizeFilename,
         getCurrentUsername, getAccount, getUsernames, addAccount, delAccount, updateAccount, renameAccount,
         ...morePassedToInit
     })
