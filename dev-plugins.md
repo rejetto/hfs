@@ -174,6 +174,8 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
   When necessary your plugin will read its value using `api.getConfig('message')` in the backend, 
   or `HFS.getPluginConfig('message')` in the frontend, but the latter must be enabled using the `frontend` flag in the config.
   To handle more complex cases, you can pass a function to `config` instead of an object. The function will receive a parameter `values`.
+  If any of your config contains sensitive information, ensure the name ends with `password`, or it starts with `_`.
+  This way HFS will remove it when the user clicks "export without passwords".
   
 - `configDialog: DialogOptions` object to override dialog options. Please refer to sources for details.
 - `onFrontendConfig: (config: object) => (void | object)` manipulate config values exposed to frontend.
