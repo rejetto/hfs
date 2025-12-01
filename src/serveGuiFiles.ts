@@ -21,6 +21,7 @@ import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
 import { dontOverwriteUploading } from './upload'
 import { customizedIcons, CustomizedIcons } from './icons'
+import { getProxyDetected } from './middlewares'
 
 const size1024 = defineConfig(CFG.size_1024, false, x => formatBytes.k = x ? 1024 : 1000) // we both configure formatBytes, and also provide a compiled version (number instead of boolean)
 const splitUploads = defineConfig(CFG.split_uploads, 0)
@@ -108,6 +109,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         plugins,
                         loadScripts: Object.fromEntries(mapPlugins((p, id) =>  [id, p.frontend_js?.map(f => f.includes('//') ? f : pub + id + '/' + f)])),
                         prefixUrl: ctx.state.revProxyPath,
+                        proxyDetected: Boolean(getProxyDetected()),
                         dontOverwriteUploading: dontOverwriteUploading.get(),
                         splitUploads: splitUploads.get(),
                         kb: size1024.compiled(),

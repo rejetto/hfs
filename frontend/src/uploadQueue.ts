@@ -194,7 +194,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
 
     function error(status: number) {
         const ERRORS = {
-            [HTTP_PAYLOAD_TOO_LARGE]: t`file too large`,
+            [HTTP_PAYLOAD_TOO_LARGE]: t`file too large` + (getHFS().proxyDetected ?  '\n– ' + t('proxy_413', "Check for this limit on the proxy server") : ''),
             [HTTP_CONFLICT]: t('upload_conflict', "already exists"),
             [HTTP_INSUFFICIENT_STORAGE]: t`insufficient storage`,
         }
