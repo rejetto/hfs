@@ -96,7 +96,8 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
         }).on('error', (e: any) => {
             if (proxy && e?.code === 'ECONNREFUSED')
                 console.debug("cannot connect to proxy ", proxy)
-            reject((req as any).res || e)
+            e.cause ??= req // enrich the error
+            reject(e)
         })
         if (body && body instanceof Readable)
             body.pipe(req).on('end', () => req.end())

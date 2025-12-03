@@ -4,7 +4,7 @@ import { debounceAsync } from './debounceAsync'
 import { haveTimeout, HOUR, inCommon, ipForUrl, MINUTE, promiseBestEffort, repeat, wantArray } from './cross'
 import { getProjectInfo } from './github'
 import _ from 'lodash'
-import { httpString } from './util-http'
+import { httpStream, httpString } from './util-http'
 import { Resolver } from 'dns/promises'
 import { isIP } from 'net'
 import { getIps, getServerStatus } from './listen'
@@ -49,8 +49,14 @@ export const getPublicIps = debounceAsync(async () => {
             if (typeof svc === 'string')
                 svc = { type: 'http', url: svc }
             console.debug("trying ip service", svc.url || svc.name)
-            if (svc.type === 'http')
-                return httpString(svc.url, { timeout: 5_000 })
+            if (svc.type === 'http') {
+                const timeout = 5_000
+                return httpString(svc.url, { timeout, proxy: '' }).catch(e => { // first try without a proxy
+                    if (!e.cause?.statusCode && httpStream.defaultProxy) // only for network errors (not http, where we have statusCode), retry using the proxy (if any)
+                        return httpString(svc.url, { timeout })
+                    throw e
+                })
+            }
             if (svc.type !== 'dns') throw "unsupported"
             const resolver = new Resolver({ timeout: 2_000 })
             resolver.setServers(svc.ips)
