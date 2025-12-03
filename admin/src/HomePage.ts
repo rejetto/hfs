@@ -66,14 +66,13 @@ export default function HomePage() {
     return h(Box, {},
         h(RandomPlugin),
         h(Box, { display:'flex', gap: 2, flexDirection:'column', alignItems: 'flex-start', height: '100%' },
-            entry('', md("This is the *Admin-panel*, where you manage your server. Access your files on the [Front-end](../..).")),
-            vfs && !vfs.children?.length && !vfs.source ? entry('warning', "You have no shared files", SOLUTION_SEP, fsLink("add some")) : null,
-            account?.adminActualAccess ? entry('', "Welcome, "+username)
-                : entry('', md("You're accessing the Admin-panel without an account because you are on localhost"),
-                    SOLUTION_SEP, "to access from another computer, you must ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission")) ),
             dontBotherWithKeys(status.alerts?.map(x => entry('warning', md(x, { html: false })))),
             errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
                 : entry('success', "Server is working"),
+            vfs && !vfs.children?.length && !vfs.source ? entry('warning', "You have no shared files", SOLUTION_SEP, fsLink("add some")) : null,
+            account?.adminActualAccess ? entry('', "Welcome, "+username)
+                : entry('', md("You're accessing the Admin-panel without an account because you are on localhost"),
+                    ...status.anyAccountCanLoginAdmin ? [] : [SOLUTION_SEP, "to access from another computer, you must ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission"))] ),
             !href && entry('warning', "Frontend unreachable: ",
                 _.map(serverErrors, (v,k) => k + " " + (v ? "is in error" : "is off")).join(', '),
                 !errors.length && [ SOLUTION_SEP, cfgLink("switch http or https on") ]
@@ -103,6 +102,7 @@ export default function HomePage() {
                     h('li',{}, md(`configure FRP to connect to HFS <u>not</u> with localhost (safe, but you won't see users' IPs)`)),
                     h('li',{}, `disable "admin access for localhost" in HFS (safe, but you won't see users' IPs)`),
                 )),
+            entry('', md("This is the *Admin-panel*, where you manage your server. Access your files on the [Front-end](../..).")),
             entry('', wikiLink('', "See the documentation"), " and ", h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "get support")),
             !updates && with_(status.autoCheckUpdateResult, x =>
                 x?.isNewer && h(Update, { info: x, fromAuto: true, bodyCollapsed: true, title: "An update has been found" }) ),

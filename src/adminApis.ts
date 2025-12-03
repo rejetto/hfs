@@ -137,6 +137,7 @@ export const adminApis = {
             ips: await getIps(false),
             baseUrl: await getBaseUrlOrDefault(),
             roots: roots.get(),
+            anyAccountCanLoginAdmin: anyAccountCanLoginAdmin(),
             updatePossible: !await updateSupported() ? false : (await localUpdateAvailable()) ? 'local' : true,
             previousVersionAvailable: await previousAvailable(),
             autoCheckUpdateResult: autoCheckUpdateResult.get(), // in this form, we get the same type of the serialized json
