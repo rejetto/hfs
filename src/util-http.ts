@@ -32,7 +32,7 @@ export interface XRequestOptions extends https.RequestOptions {
 }
 
 export declare namespace httpStream { let defaultProxy: string | undefined }
-export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThrow=true, ...options }: XRequestOptions ={}) {
+export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThrow=true, ...options }: XRequestOptions ={}, redirected: string[]=[]) {
     const controller = new AbortController()
     options.signal ??= controller.signal
     return Object.assign(new Promise<IncomingMessage>(async (resolve, reject) => {
@@ -82,15 +82,18 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
                 return reject(new Error(String(res.statusCode), { cause: res }))
             let r = res.headers.location
             if (r && !noRedirect) {
-                r = new URL(r, url).toString() // rewrite in case r is just a path, and thus relative to current url
-                const stack = ((options as any)._stack ||= [])
-                if (stack.length > 20 || stack.includes(r))
-                    return reject(new Error('endless http redirection'))
-                stack.push(r)
-                delete options.method // redirections are always GET
-                delete options.headers?.['content-length']
-                delete options.auth
-                return resolve(httpStream(r, options))
+                const dest = new URL(r, url) // rewrite in case r is just a path, and thus relative to the current url
+                r = dest.toString()
+                const src = new URL(url)
+                const sameOrigin = src.protocol === dest.protocol && src.host === dest.host
+                return redirected.includes(r) ? reject(new Error('endless http redirection'))
+                    : redirected.length > 20 ? reject(new Error('excessive http redirection'))
+                    : resolve(httpStream(r, {
+                            httpThrow, jar, proxy,
+                            ..._.pick(options, ['agent', 'rejectUnauthorized', 'timeout']),
+                            // forward some headers and exclude authorization if it's cross-origin
+                            headers: options.headers && _.omit(options.headers, ['content-length', 'host', 'connection', 'transfer-encoding', sameOrigin ? '' : 'authorization']),
+                        }, [...redirected, r]))
             }
             resolve(res)
         }).on('error', (e: any) => {
