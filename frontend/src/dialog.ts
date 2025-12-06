@@ -118,33 +118,36 @@ export async function formDialog({ ...rest }: DialogOptions): Promise<any> {
 
 export type AlertType = 'error' | 'warning' | 'info'
 
-let lastMsg: any
+let msgShowing: any
 export function alertDialog(msg: ReactElement | string | Error, type:AlertType='info', title='') {
-    if (msg === lastMsg) return
-    lastMsg = msg
+    if (msg === msgShowing) return // no sense in having 2 on the screen. While not strictly our responsibility, it can be handy off-loader for the caller
+    const was = msgShowing
+    msgShowing = msg
     if (msg instanceof Error)
         type = 'error'
     const ret = pendingPromise()
+    ret.finally(() => {
+        if (msg === msgShowing) // check, in the unlikely case the order of open/close of alertDialog is not strictly a "stack"
+            msgShowing = was
+    })
     return Object.assign(ret, newDialog({
         className: 'dialog-alert dialog-alert-'+type,
         title: title || t(_.capitalize(type)),
         icon: '!',
         onClose: ret.resolve,
         dialogProps: { role: 'alertdialog' },
-        Content
-    }))
-
-    function Content(){
-        if (msg instanceof Error) {
-            const main = err2msg(msg)
-            const sub = msg.message
-            msg = h('div', {}, main,
-                sub !== main && h('div', { style: { marginTop: 20, fontSize: 'small' } }, sub))
+        Content() {
+            if (msg instanceof Error) { // msg is transformed only once to be a ReactElement
+                const main = err2msg(msg)
+                const sub = msg.message
+                msg = h('div', {}, main,
+                    sub !== main && h('div', { style: { marginTop: 20, fontSize: 'small' } }, sub))
+            }
+            if (typeof msg === 'string')
+                msg = h('p', {}, msg)
+            return msg
         }
-        if (typeof msg === 'string')
-            msg = h('p', {}, msg)
-        return msg
-    }
+    }))
 }
 
 export interface ConfirmOptions extends Partial<DialogOptions> {
