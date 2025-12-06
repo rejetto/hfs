@@ -650,7 +650,7 @@ exports.init = function(api) {
 }
 ```
 
-Of course the example above can be written more shortly as follows, but they are equivalent.
+But javascript allows a shorter and equivalent syntax for the example above:
 
 ```js
 exports.init = api => ({
@@ -667,11 +667,14 @@ api.events.on('deleting', async () => your-code-here)
 
 ### Stop, the way you prevent default behavior
 
-Some events allow you to stop their default behavior, by returning `api.events.preventDefault`.
+Some events allow you to stop their default behavior, by returning `api.events.stop`.
 This is reported in the list below with the word "preventable".
 
 ```js
-api.events.on('deleting', ({ node }) => node.source.endsWith('.jpg'))
+api.events.on('deleting', ({ node }) => {
+    if (!node.source.endsWith('.jpg'))
+        return api.events.stop
+})
 ```
 
 The example above will return false only when the file is NOT ending with .jpg, thus allowing only jpg files to be deleted.
@@ -685,7 +688,9 @@ This section is still partially documented, and you may need to have a look at t
   - async supported
   - preventable
 - `login`
+  - parameters: { ctx }
 - `logout`
+  - parameters: { ctx }
 - `attemptingLogin` called when the login process starts
   - parameters: { ctx, username, via? }
     - via?: string
@@ -695,7 +700,7 @@ This section is still partially documented, and you may need to have a look at t
   - preventable
 - `failedLogin`
   - parameters: { ctx, username, via? }
-- - `clearTextLogin` give plugins the chance to authenticate users
+- `clearTextLogin` give plugins the chance to authenticate users
   - parameters: { ctx, username, password, via: 'url' | 'header' }
   - async supported
   - return: `true` to consider authentication done
@@ -705,15 +710,25 @@ This section is still partially documented, and you may need to have a look at t
       - merge of all inputs both from body and URL
       - all fields with a `name` attribute in the form, included those added by plugins, are included 
   - async supported
-- `config ready`
+- `configReady` when the config is fully loaded (the boolean flags whether we started without an existing config file)
+  - parameters: { startedWithoutConfig: boolean }
 - `config.KEY` where KEY is the key of a config that has changed
+  - parameters: newValue
 - `connectionClosed`
+  - parameters: connection
 - `connection`
+  - parameters: connection
 - `connectionUpdated`
+  - parameters: connection
+- connectionNewIp
+  - parameters: connection
 - `console`
+  - parameters: { ts, msg, k: 'log' | 'warn' | 'error' | 'debug' }
 - `dynamicDnsError`
-- `httpsReady`
+  - parameters: { ts, error, url }
+- `httpsReady` when the HTTPS server becomes available (no parameters)
 - `spam`
+  - parameters: { ctx }
 - `log`
   - parameters: { ctx, length, user, ts, uri, extra }
 - `error_log`
@@ -723,9 +738,12 @@ This section is still partially documented, and you may need to have a look at t
 - `pluginDownload`
 - `pluginUpdated`
 - `pluginInstalled`
+  - parameters: plugin
 - `pluginUninstalled`
 - `pluginStopped`
 - `pluginStarted`
+- `listening`
+  - parameters: { server, port }
 - `httpsServerOptions` if you need to customize the options of the https server.
   - return: object with some properties [documented here](https://nodejs.org/api/https.html#httpscreateserveroptions-requestlistener).  
 - `uploadStart`
@@ -1006,6 +1024,7 @@ If you want to override a text regardless of the language, use the special langu
   - frontend event: menuZip
   - config.type:username
   - api.events class has changed
+  - backend event: deleting
   - frontend event "fileMenu": changed props format
   - api.getConfig() without parameters
   - api.notifyClient + HFS.getNotifications
@@ -1024,6 +1043,7 @@ If you want to override a text regardless of the language, use the special langu
   - frontend event: showPlay
   - api.addBlock
   - api.misc
+  - api.events.stop
   - frontend event: paste
   - exports.customRest + HFS.customRestCall
   - config.type: vfs_path

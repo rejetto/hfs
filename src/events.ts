@@ -68,7 +68,7 @@ export class BetterEventEmitter {
         }
         for (const cb of cbs) {
             const res = cb(...args, extra)
-            if (res === this.preventDefault)
+            if (res === this.stop)
                 extra.preventDefault()
             else if (res !== undefined)
                 output.push(res)
