@@ -121,10 +121,12 @@ export type AlertType = 'error' | 'warning' | 'info'
 let lastMsg: any
 export function alertDialog(msg: ReactElement | string | Error, type:AlertType='info', title='') {
     if (msg === lastMsg) return
+    const was = lastMsg
     lastMsg = msg
     if (msg instanceof Error)
         type = 'error'
     const ret = pendingPromise()
+    ret.finally(() => lastMsg = was)
     return Object.assign(ret, newDialog({
         className: 'dialog-alert dialog-alert-'+type,
         title: title || t(_.capitalize(type)),
