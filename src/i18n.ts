@@ -3,6 +3,9 @@
 import { proxy, useSnapshot } from 'valtio'
 import { watch } from 'valtio/utils'
 
+export const ANY_LANGUAGE = 'all'
+
+// this code is in the backend to give the chance to plugins to translate http's body
 export function i18nFromTranslations(translations: Record<string, any>, embedded='en') {
     const state = proxy({
         embedded,
@@ -11,8 +14,8 @@ export function i18nFromTranslations(translations: Record<string, any>, embedded
     })
     const searchLangs: string[] = []
     watch(get => {
-        const snapshot = get(state)
-        searchLangs.splice(0, Infinity, 'all', ...Object.keys(snapshot.translations), snapshot.embedded) // replace completely
+        const snap = get(state)
+        searchLangs.splice(0, Infinity, ANY_LANGUAGE, ...snap.disabled ? [] : Object.keys(snap.translations), snap.embedded) // replace the array completely
     })
 
     const warns = new Set() // avoid duplicates
@@ -36,7 +39,7 @@ export function i18nFromTranslations(translations: Record<string, any>, embedded
         let selectedLang = '' // keep track of where we find the translation
         const { embedded } = state
         const langs = Object.keys(state.translations)
-        if (!state.disabled) for (const key of keys) {
+        for (const key of keys) {
             for (const lang of searchLangs)
                 if (found = state.translations[selectedLang=lang]?.translate?.[key]) break
             if (found) break

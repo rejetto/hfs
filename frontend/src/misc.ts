@@ -16,6 +16,7 @@ import { logout } from './login'
 import { subscribeKey } from 'valtio/utils'
 import { uploadState } from './uploadQueue'
 import { fileShow, Video, Audio, getShowComponent } from './show'
+import { ANY_LANGUAGE } from '../../src/i18n'
 import { debounceAsync } from '../../src/debounceAsync'
 export * from '@hfs/shared'
 import i18n from './i18n'
@@ -102,7 +103,7 @@ export function formatTimestamp(x: number | string | Date, options?: Intl.DateTi
 import * as thisModule from './misc'
 Object.assign(getHFS(), {
     h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, iconBtn, useBatch, fileShow,
-    toast, domOn, getNotifications, debounceAsync, useSnapState, DirEntry, Btn,
+    toast, domOn, getNotifications, debounceAsync, useSnapState, DirEntry, Btn, i18n,
     fileShowComponents: { Video, Audio },
     isVideoComponent, markVideoComponent, isAudioComponent, markAudioComponent,
     isShowSupported: getShowComponent,
@@ -127,6 +128,12 @@ Object.assign(getHFS(), {
         try { return _.find(state.list, { uri: new URL(a.href).pathname }) }
         catch {}
     },
+    customizeText(mods: Dict<string>, lang=ANY_LANGUAGE) {
+        const o = i18n.state.translations
+        if (lang === ANY_LANGUAGE || lang === cross.EMBEDDED_LANGUAGE) // these are missing at the start, but we need them if we want to customize content
+            o[lang] ??= { translate: {} }
+        Object.assign(o[lang]?.translate || {}, mods)
+    }
 })
 
 markVideoComponent(Video)

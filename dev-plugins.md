@@ -456,6 +456,9 @@ In frontend you will have access to the `HFS` object of the global scope, which 
 - `markVideoComponent(Component): Component` if you replace the show-video component with yours, wrap it with this function.
 - `isAudioComponent(Component): boolean` tell if the component is used by show for audio files.
 - `markAudioComponent(Component): Component` if you replace the show-audio component with yours, wrap it with this function.
+- `customizeText(changes: { [key]: string }, languageCode?: string)` customize text. Find text keys to change, and assign new text.
+    If you don't specify a languageCode, the change will apply to all languages (and has precedence).
+    Find they keys in this file https://github.com/rejetto/hfs/blob/main/src/langs/hfs-lang-en.json (english language).
 
 - The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -1112,3 +1115,5 @@ If you want to override a text regardless of the language, use the special langu
 - 12.96 (v0.57.27)
   - frontend events: loginOk, loginFailed
   - api.normalizeFilename
+- 12.97 (v0.57.28)
+  - HFS.customizeText 
