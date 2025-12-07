@@ -136,10 +136,10 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                     <style>
                     :root {
                         ${_.map(plugins, (configs, pluginName) => // make plugin configs accessible via css
-                    _.map(configs, (v, k) => {
-                        v = serializeCss(v)
-                        return typeof v === 'string' && `\n--${pluginName}-${k}: ${v};`
-                    }).filter(Boolean).join('')).join('')}
+                            _.map(configs, (v, k) => {
+                                v = serializeCss(v)
+                                return typeof v === 'string' && `\n--${pluginName}-${k}: ${v};`
+                            }).filter(Boolean).join('')).join('')}
                     }
                     ${isFrontend && getSection('style')}
                     </style>

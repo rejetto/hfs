@@ -5,13 +5,13 @@ import { readFile } from 'fs/promises'
 import { defineConfig } from './config'
 import { watchLoad } from './watchLoad'
 import EMBEDDED_TRANSLATIONS from './langs/embedded'
+import { EMBEDDED_LANGUAGE } from './const'
 import { mapPlugins } from './plugins'
 import { join } from 'path'
 import _ from 'lodash'
 
 const PREFIX = 'hfs-lang-'
 const SUFFIX = '.json'
-const EMBEDDED_LANGUAGE = 'en'
 
 export function code2file(code: string) {
     return PREFIX + code.toLowerCase() + SUFFIX
