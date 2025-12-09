@@ -197,7 +197,6 @@ export async function copyTextToClipboard(text: string) {
     }
 }
 
-
 export function downloadFileWithContent(name: string, content: Blob | string) {
     const blob = content instanceof Blob ? content : new Blob([content], {type: 'text/plain'})
     const a = document.createElement('a')

@@ -99,8 +99,9 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
 export const makeCert = debounceAsync(async (domain: string, email?: string, altNames?: string[]) => {
     if (!domain) return new ApiError(HTTP_BAD_REQUEST, 'bad params')
     const res = await generateSSLCert(domain, email, altNames).catch(e => {
-        throw !e.message?.includes('not match this challenge') ? e // another acme server?
-            : Error("a different server is responding on port 80 of your domain(s)")
+        throw e.message?.includes('Timeout') ? Error("ensure your router is forwarding port 80 correctly")
+            : e.message?.includes('not match this challenge') ? Error("a different server is responding on port 80 of your domain(s)")
+            : e
     })
     const CERT_FILE = 'acme.cer'
     const KEY_FILE = 'acme.key'
