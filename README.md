@@ -1,4 +1,4 @@
-# HFS: HTTP File Server (version 3)
+# HFS: HTTP File Server
 
 ![logo and motto](hfs-logo-color-motto.svg)
 
