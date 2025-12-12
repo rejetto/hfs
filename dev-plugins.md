@@ -857,6 +857,7 @@ These files have a special meaning:
 
 Plugins that need to store generated data persistently should put all the files in the "storage" folder that is
 automatically created for each plugin. In your plugin you can get this path by reading `api.storageDir`.
+Failing to do so may cause your plugin to lose data during automatic updates.
 
 There is a very powerful way to store data, that is by using `api.openDb`. This will automatically create the file
 inside the storage folder. For further details please refer to the dedicated documentation.

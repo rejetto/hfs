@@ -1,32 +1,25 @@
----
-name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: bug
-
----
 **BEFORE**
 
 - Are you using a reverse-proxy, like nginx?
-  - Check if your problem is caused by your proxy, try without it.
+  - Check if your problem is caused by your proxy, try WITHOUT it.
+- If you installed plugins, try disabling them.
+  - There's a PAUSE button at the bottom of the plugin list that will temporarily disable them all at once.
+- Whenever possible, attach your configuration or send it privately to a@rejetto.com
+  - Click on *Admin-panel > Options > Config file > Export without passwords*
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
+**Environment (please complete the following information):**
+- OS: [e.g. Windows]
+- HFS Version [e.g. 0.57.0]
+- Browser [e.g. chrome, safari]
+
+**Steps to reproduce the problem**
+1. Go to ...
+2. Click on ...
 
 **Describe the bug**
 
-**Expected behavior**
-What you expected to happen.
+**What you expected to happen**
 
 **Screenshots**
+
 Try to provide videos or else screenshots to help explain your problem.
-
-**Environment (please complete the following information):**
- - OS: [e.g. Windows]
- - HFS Version [e.g. 0.40.0]
- - Browser [e.g. chrome, safari]
-
-**Additional context**
-Add any other context about the problem here.
