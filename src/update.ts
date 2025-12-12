@@ -7,7 +7,7 @@ import { spawn, spawnSync } from 'child_process'
 import { DAY, exists, debounceAsync, unzip, prefix, xlate, HOUR, httpWithBody, statWithTimeout } from './misc'
 import { createReadStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { pluginsWatcher } from './plugins'
-import { chmod, rename, writeFile } from 'fs/promises'
+import { chmod, rename, writeFile, rm } from 'fs/promises'
 import open from 'open'
 import { currentVersion, defineConfig, versionToScalar } from './config'
 import { cmdEscape, RUNNING_AS_SERVICE } from './util-os'
@@ -150,12 +150,17 @@ export async function update(tagOrUrl: string='') {
         await unzip(createReadStream(LOCAL_UPDATE), path =>
             join(binPath, path === binFile ? newBinFile : path))
         const newBin = join(binPath, newBinFile)
+        if (!existsSync(newBin)) {
+            if (url) // the file was downloaded, and the UI would show the "update from local file" button until we remove it
+                await rm(LOCAL_UPDATE).catch(e => console.warn(String(e)))
+            throw "Missing executable in the archive"
+        }
         if (!IS_WINDOWS) {
             const { mode } = await statWithTimeout(bin)
             await chmod(newBin, mode).catch(console.error)
         }
         await rename(INSTALLED_FN, PREVIOUS_FN).catch(e => e?.code !== 'ENOENT' && console.warn(String(e)))
-        await rename(LOCAL_UPDATE, INSTALLED_FN).catch(console.warn)
+        await rename(LOCAL_UPDATE, INSTALLED_FN).catch(e => console.warn(String(e)))
         onProcessExit(() => {
             const oldBinFile = 'old-' + binFile
             const oldBin = join(binPath, oldBinFile)
@@ -182,8 +187,8 @@ if (argv.updating) { // we were launched with a temporary name, restore original
     const bin = process.execPath
     const dest = join(dirname(bin), argv.updating)
     renameSync(bin, dest)
-    // have to relaunch with new name, or otherwise next update will fail with EBUSY on hfs.exe
-    console.log("renamed binary file to", argv.updating, "and restarting")
+    // have to relaunch with the new name, or otherwise next update will fail with EBUSY on hfs.exe
+    console.log(`renamed binary file to "${argv.updating}" and now restarting`)
     // be sure to test launching both double-clicking and in a terminal
     if (IS_WINDOWS) // this method on Mac works only once, and without console
         onProcessExit(() =>

@@ -186,7 +186,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
                 let dest = fullPath // final destination, considering numbering if necessary
                 if (dontOverwriteUploading.get() && !await overwriteAnyway() && fs.existsSync(dest)) {
                     if (overwriteRequestedButForbidden) {
-                        await rm(tempName).catch(console.warn)
+                        await rm(tempName).catch(e => console.warn(String(e)))
                         releaseFile()
                         return fail() // status code set by overwriteAnyway
                     }

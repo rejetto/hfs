@@ -139,7 +139,7 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
             if (wasRunning)
                 if (await waitFor(() => getPluginInfo(folder), { timeout: 10_000 }))
                     void startPlugin(folder) // don't wait, in case it fails to start. We still use startPlugin instead of enablePlugin, as it will take care of disabling other themes.
-                        .catch(console.warn)
+                        .catch(e => console.warn(String(e)))
             events.emit('pluginDownloaded', { id: folder, repo })
             return folder
         }
