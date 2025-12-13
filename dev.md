@@ -18,9 +18,7 @@ You could instead run `npm run dist` to run both *build-all* & *dist-bin*.
 # Dev environment
 
 0. `npm install`
-1. `npm run watch-server-proxied` and leave it running. It will serve server stuff plus will proxy frontend and admin files.
-2. `npm run start-frontend` and leave it running. It will serve on port 3005.
-3. `npm run start-admin` and leave it running. It will serve on port 3006
+1. `npm run watch-server-full` and leave it running. It will serve server stuff plus will proxy frontend and admin files.
 
 If you don't want this proxying version, you can use `npm run watch-server` but after both frontend and admin have
 been built, so their files are available in `dist` folder.

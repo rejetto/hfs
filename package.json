@@ -10,6 +10,7 @@
   "scripts": {
     "watch-server": "cross-env DEV=1 nodemon --ignore tests/ --watch src -e ts,tsx --exec tsx src",
     "watch-server-proxied": "cross-env FRONTEND_PROXY=3005 ADMIN_PROXY=3006 npm run watch-server",
+    "watch-server-full": "npm run start --workspace=frontend & npm run start --workspace=admin & cross-env FRONTEND_PROXY=3005 ADMIN_PROXY=3006 npm run watch-server",
     "start-frontend": "npm run start --workspace=frontend",
     "start-admin": "npm run start --workspace=admin",
     "build-all": "npm audit --omit=dev --audit-level=moderate && rm -rf dist && npm i && npm run build-server && npm run test-with-server && (npm run build-frontend & npm run build-admin) && echo COMPLETED",
@@ -23,7 +24,7 @@
     "test-ui": "npx playwright test frontend && npx playwright test serial",
     "test-with-ui": "npx playwright test --ui",
     "pub": "cd dist && npm publish",
-    "dist": "(git diff-index --quiet HEAD -- || git stash push -m 'dist') && (CI=1 npm run dist-uncommitted || (EXIT_CODE=$? && git stash pop || true && exit $EXIT_CODE)); git stash pop || true",
+    "dist": "(git diff-index --quiet HEAD -- || git stash push -m 'dist') && (CI=1 FORCE_COLOR=1 npm run dist-uncommitted || (EXIT_CODE=$? && git stash pop || true && exit $EXIT_CODE)); git stash pop || true",
     "dist-uncommitted": "npm run build-all && npm run test-ui && npm run dist-bin",
     "dist-bin": "npm run dist-modules && npm run dist-bin-win && npm run dist-bin-linux && npm run dist-bin-mac && npm run dist-bin-mac-arm",
     "dist-modules": "cp package*.json central.json dist && cd dist && npm ci --omit=dev && cd .. && node prune_modules",
