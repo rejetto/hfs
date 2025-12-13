@@ -189,11 +189,7 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
     await Promise.all(mapPlugins(async (pl, id) => {
         try {
             const res = await pl.middleware?.(ctx)
-            if (lastStatus !== ctx.status || lastBody !== ctx.body) {
-                console.debug("plugin changed response", id)
-                lastStatus = ctx.status
-                lastBody = ctx.body
-            }
+            printChange(id)
             if (ctx.isAborted())
                 ctx.stop()
             // don't just check ctx.isStopped, as the async plugin that called ctx.stop will reach here after sync ones
@@ -206,7 +202,7 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
             printError(id, e)
         }
     }))
-    // expose public plugins' files`
+    // expose public plugins' files
     if (!ctx.isStopped) {
         const { path } = ctx
         if (path.startsWith(PLUGINS_PUB_URI)) {
@@ -222,9 +218,22 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
         if (ctx.body === undefined && ctx.status === HTTP_NOT_FOUND) // no response was provided by plugins, so we'll do
             await next()
     }
-    for (const [id,f] of Object.entries(after))
-        try { await f() }
+    lastStatus = ctx.status
+    lastBody = ctx.body
+    for (const [id, f] of Object.entries(after))
+        try {
+            await f()
+            printChange(id)
+        }
         catch (e) { printError(id, e) }
+
+
+    function printChange(id: string) {
+        if (id === SERVER_CODE_ID || (lastStatus === ctx.status && lastBody === ctx.body)) return
+        console.debug("plugin changed response:", id)
+        lastStatus = ctx.status
+        lastBody = ctx.body
+    }
 
     function printError(id: string, e: any) {
         console.log(`error middleware plugin ${id}: ${e?.message || e}`)
