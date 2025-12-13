@@ -4,7 +4,7 @@ import { apiGithubPaginated, getProjectInfo, getRepoInfo } from './github'
 import { ARGS_FILE, HFS_REPO, IS_BINARY, IS_WINDOWS, PREVIOUS_TAG, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
-import { DAY, exists, debounceAsync, unzip, prefix, xlate, HOUR, httpWithBody, statWithTimeout } from './misc'
+import { DAY, exists, debounceAsync, unzip, prefix, xlate, HOUR, httpStream, statWithTimeout } from './misc'
 import { createReadStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { pluginsWatcher } from './plugins'
 import { chmod, rename, writeFile, rm } from 'fs/promises'
@@ -134,10 +134,14 @@ export async function update(tagOrUrl: string='') {
     }
     if (url) {
         console.log("downloading", url)
-        const { body } = await httpWithBody(url)
-        if (!body)
-            throw "Download failed for " + url
-        await writeFile(LOCAL_UPDATE, body)
+        try {
+            await writeFile(LOCAL_UPDATE, await httpStream(url))
+        }
+        catch(e: any) {
+            await rm(LOCAL_UPDATE).catch(() => {}) // no leftovers
+            throw "Download failed for " + url + prefix(' – ', e?.message)
+        }
+        console.debug("download finished")
     }
     const bin = process.execPath
     const binPath = dirname(bin)
