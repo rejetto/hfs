@@ -159,7 +159,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
                 : { k: 'source', label: "Disk source", xl: true, comp: FileField, files: isUnknown || !isDir, folders: isUnknown || isDir,
                     placeholder: "none",
                     helperText: !values.source ? "If you enter a path here, its content will be listed. Leaving this empty, makes this folder fully virtual."
-                        : isDir ? "Content from this path on disk will be listed, but you can also add more" : undefined,
+                        : isDir ? "Files from this path on disk will be listed, but you can add more" : undefined,
             },
             { k: 'id', comp: LinkField, statusApi, xs: 12 },
             { k: 'order', comp: NumberField, min: -1E5, max: 1E5, placeholder: 'default', sm: 4, helperText: wikiLink('Virtual-file-system#order', "To force position") },

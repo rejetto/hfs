@@ -62,7 +62,7 @@ export default function ConfigFilePage() {
 
     function exportConfig() {
         const s = (text || '')
-                .replace(/^(\s*(\w*password|_\w*|token|srp):\s*).+\n/gm, '$1removed\n')
+                .replace(/^(\s*(\w*password|_\w*|token|srp|dynamic_dns_url):\s*).+\n/gm, '$1removed\n')
                 .replace(/(:\/\/)[^/@\s]+@/g, '$1removed@') // url credentials
             + prefix('custom_html: | # this is currently ignored by hfs, just here for reference\n', data!.customHtml?.replace(/^/gm, '  '))
         if (!s) return
