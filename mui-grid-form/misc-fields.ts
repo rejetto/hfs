@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, useEffect, useState } from 'react'
-import { StringField } from './StringField'
+import { StringField, StringFieldProps } from './StringField'
 import { FieldProps } from '.'
 import {
     Box, Checkbox, FormControl, FormControlLabel, FormGroup, FormHelperText, FormLabel, IconButton,
@@ -11,10 +11,10 @@ import { Cancel } from '@mui/icons-material'
 import _ from 'lodash'
 import { useGetSize } from '@hfs/shared'
 
-export function DisplayField({ value, empty='-', ...props }: any) {
+export function DisplayField({ value, empty='-', ...props }: Omit<StringFieldProps, 'onChange'> & { value: any }) {
     if (!props.toField && empty !== undefined && value !== 0 && !value)
         value = empty
-    return h(StringField, {  ...props, value, disabled: true })
+    return h(StringField, {  ...props, value, disabled: true, onChange() {} })
 }
 
 export function NumberField({ value, onChange, setApi, required, min=0, max, step, unit, clearable, ...props }: FieldProps<number | null>) {

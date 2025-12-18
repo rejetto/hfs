@@ -30,7 +30,7 @@ export default function ConfigFilePage() {
                     modified: text !== saved,
                     onClick: save,
                 }),
-                h(Alert, { severity: 'warning', sx: { flex: 1, minWidth: '10em' } }, "Be careful, you can easily break things here"),
+                h(Alert, { severity: 'warning', sx: { minWidth: '10em' } }, "Be careful, you can easily break things here"),
             ) : h(Btn, {
                 icon: Edit,
                 variant: 'outlined',
@@ -39,7 +39,7 @@ export default function ConfigFilePage() {
                     setTimeout(() => focusSelector('main textarea'), 500)
                 }
             }, "Edit"),
-            h(Box, { flex: 1, minWidth: 'fit-content' }, h(DisplayField, { label: "File path", value: data?.fullPath }))
+            h(Box, { flex: 1, minWidth: 'fit-content' }, h(DisplayField, { label: "File path", value: data?.fullPath, size: 'small' }))
         ),
         element || text !== undefined && // avoids bad undo behaviour on start
             h(KeepInScreen, { margin: 10 }, h(TextEditor, {
