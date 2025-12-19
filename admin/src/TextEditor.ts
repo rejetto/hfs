@@ -15,8 +15,8 @@ import 'prismjs/themes/prism-solarizedlight.css' // looks good both with light a
 type OP = ComponentProps<typeof Editor>
 type Already = 'highlight' | 'padding' | 'tabSize' | 'insertSpaces' | 'ignoreTabKey'
 type TextEditorProps = Omit<OP, Already> & Partial<Pick<OP, Already>> & { lang?: 'plain' | 'js' | 'html' | 'css' | 'json' | 'yaml' }
-export const TextEditor = forwardRef(({ style, lang='plain', ...props }: TextEditorProps, ref) => h(Editor, {
-    // Editor component doesn't seem to support ref, but I didn't cause any problem yet
+export const TextEditor = forwardRef(({ style, lang='plain', ...props }: TextEditorProps, _ref) => h(Editor, {
+    // Editor component doesn't seem to support ref, but it didn't cause any problem yet
     highlight: s => highlight(s, languages[lang], lang),
     padding: 10,
     tabSize: 4,

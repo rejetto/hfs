@@ -41,19 +41,20 @@ export default function ConfigFilePage() {
             }, "Edit"),
             h(Box, { flex: 1, minWidth: 'fit-content' }, h(DisplayField, { label: "File path", value: data?.fullPath, size: 'small' }))
         ),
-        element || text !== undefined && // avoids bad undo behaviour on start
-            h(KeepInScreen, { margin: 10 }, h(TextEditor, {
-                value: text,
-                disabled: !edit,
-                style: { background: '#8881' },
-                onValueChange: setText,
-                onKeyDown(ev) {
-                    if (['s','Enter'].includes(isCtrlKey(ev) as any)) {
-                        void save()
-                        ev.preventDefault()
-                    }
-                },
-            })),
+        element || text !== undefined && // avoids bad undo behavior on start
+            h(Box, { sx: { '& pre,& textarea': { wordBreak: 'break-all !important' } } }, // fixes long lines not wrapping at the right point when the side menu is visible
+                h(KeepInScreen, { margin: 10 }, h(TextEditor, {
+                    value: text,
+                    disabled: !edit,
+                    style: { background: '#8881' },
+                    onValueChange: setText,
+                    onKeyDown(ev) {
+                        if (['s','Enter'].includes(isCtrlKey(ev) as any)) {
+                            void save()
+                            ev.preventDefault()
+                        }
+                    },
+                }))),
     )
 
     function save() {
