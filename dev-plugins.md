@@ -18,7 +18,7 @@ This is probably the easiest form to start with.
 
 A neater way is to keep it both in the form of github repo and installed plugin.
 If you want to do so, have a folder with your github repo in it, *outside* your `.hfs` folder.
-As you'll see in the [[Publish your plugin]] section, you should keep your files inside the `dist` subfolder.
+As you'll see in the [Publish your plugin](#publish-your-plugin) section, you should keep your files inside the `dist` subfolder.
 Then you'll need to link it inside the `plugins` folder.
 If you go in your `.hfs/plugins` folder on linux and mac, and enter
 
@@ -876,7 +876,7 @@ While you may just put a zip on any website, that would require manual installat
 If you want to appear in the Admin-panel, for easier finding and installation, please do as follows.
 
 Be sure that you are exporting (not returning) the essential properties, like `apiRequired`.
-Find the full list in the [[Things a plugin can export]], marked with "JSON syntax".
+Find the full list in the [Things a plugin can export](#things-a-plugin-can-export) section, marked with "JSON syntax".
 
 Suggested method for publishing is to have a dedicated repository on GitHub, with topic `hfs-plugin`.
 To set the topic go on the repo home and click on the gear icon near the "About" box.
