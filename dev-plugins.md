@@ -18,7 +18,7 @@ This is probably the easiest form to start with.
 
 A neater way is to keep it both in the form of github repo and installed plugin.
 If you want to do so, have a folder with your github repo in it, *outside* your `.hfs` folder.
-As you'll see in the [[Publish your plugin]] section, you should keep your files inside the `dist` subfolder.
+As you'll see in the [Publish your plugin](#publish-your-plugin) section, you should keep your files inside the `dist` subfolder.
 Then you'll need to link it inside the `plugins` folder.
 If you go in your `.hfs/plugins` folder on linux and mac, and enter
 
@@ -511,7 +511,7 @@ E.g. HFS.onEvent("entryIcon:after", ...)
 This is a list of available frontend-events, with respective object parameter and output.
 
 - `additionalEntryDetails`
-  - you receive each entry of the list, and optionally produce HTML code that will be added in the `entry-details` container.
+  - use this to add HTML at the beginning of the `entry-details` container.
   - parameter `{ entry: DirEntry }` current entry. The `DirEntry` type is an object with the following properties:
     - `name: string` name of the entry.
     - `ext: string` just the extension part of the name, dot excluded and lowercase.
@@ -528,20 +528,20 @@ This is a list of available frontend-events, with respective object parameter an
     - `getDefaultIcon: ()=>ReactElement` produces the default icon for this entry
   - output `Html`
 - `entry`
-  - you receive each entry of the list, and optionally produce HTML code that will completely replace the entry row/slot.
+  - called displaying each entry of the list, and optionally produce HTML code that will completely replace the entry row/slot.
   - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
   - output `Html` 
     - return null if you want to hide this entry, or undefined to leave it unchanged
 - `afterEntryName`
-  - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
+  - use this to add HTML after the name of the entry.
   - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
   - output `Html`
 - `entryIcon`
-  - you receive an entry of the list and optionally produce HTML that will be used in place of the standard icon.
+  - use this to change the entry icon.
   - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
   - output `Html`
 - `beforeHeader` & `afterHeader`
-  - use this to produce content that should go right before/after the `header` part
+  - use this to add HTML right before/after the `header` part
   - output `Html`
 - `beforeLogin`
   - no parameter
@@ -876,7 +876,7 @@ While you may just put a zip on any website, that would require manual installat
 If you want to appear in the Admin-panel, for easier finding and installation, please do as follows.
 
 Be sure that you are exporting (not returning) the essential properties, like `apiRequired`.
-Find the full list in the [[Things a plugin can export]], marked with "JSON syntax".
+Find the full list in the [Things a plugin can export](#things-a-plugin-can-export) section, marked with "JSON syntax".
 
 Suggested method for publishing is to have a dedicated repository on GitHub, with topic `hfs-plugin`.
 To set the topic go on the repo home and click on the gear icon near the "About" box.

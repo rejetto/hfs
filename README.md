@@ -4,16 +4,16 @@
 
 ## Introduction
 
-Access via web your files directly from your disk.
+Access your files via web, directly from your disk.
 
-- Be your own server, share files **fresh from your disk**, with **unlimited** space and bandwidth.
-- **Fast:** try zipping 100GB, download starts immediately.
-- **Smart:** HFS tries to detect problems and suggest solutions.
+- Be your own server: share files **fresh from your disk** with **unlimited** space and bandwidth.
+- **Fast:** try zipping 100GB – download starts immediately.
+- **Smart:** HFS detects problems and suggest solutions.
 - Present things the way you want: share **even a single file**, even with a different name, with our *virtual file system*.
 - **Monitor** all activities in real-time.
 - **Bandwidth throttling**: decide how much to give.
 - **Direct transfers**: share large files with friends without having to upload them first.
-- **Expandable**: find the right plugin, or create you own
+- **Expandable**: install plugins for additional features.
 
 Runs on: Windows, Linux, macOS, FreeBSD, Android
 
@@ -54,15 +54,14 @@ Runs on: Windows, Linux, macOS, FreeBSD, Android
 
 If you need [Docker installation](https://github.com/damienzonly/hfs-docker) or [Service installation](https://github.com/rejetto/hfs/wiki/Service-installation), click the links.
 
-Minimum Windows version required is 10 or Server 2019. If you have a previous version, you can still follow instructions for [Other systems](#other-systems)  
+Minimum Windows version required is 10 or Server 2019.
 
-1. go to https://github.com/rejetto/hfs/releases
-2. click on `Assets`
-3. **download** the right version for your system, unzip and launch `hfs` file. 
-   - Mac: if you get *"cannot be opened because it is from an unidentified developer"*,
+1. Download the zip file for your operating system from https://github.com/rejetto/hfs/releases
+   - ⚠️ If you have Linux ARM or other unlisted/unsupported platforms, please see the [Other systems](#other-systems) section.
+2. Unzip and launch `hfs` file. 
+   - ⚠️ Mac: if you get *"cannot be opened because it is from an unidentified developer"*,
      you can hold `control` key while clicking, then click `open`.
-   - If your system isn't listed, please see the [Other systems](#other-systems) section.
-4. the browser should automatically open on `localhost` address, so you can configure the rest in the Admin-panel.
+3. The browser should automatically open on `localhost` address, so you can configure the rest in the Admin-panel.
 
 Troubleshooting
    - if a browser cannot be opened on the computer where you are installing HFS, 
