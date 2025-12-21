@@ -19,7 +19,7 @@ This is probably the easiest form to start with.
 A neater way is to keep it both in the form of github repo and installed plugin.
 If you want to do so, have a folder with your github repo in it, *outside* your `.hfs` folder.
 As you'll see in the [Publish your plugin](#publish-your-plugin) section, you should keep your files inside the `dist` subfolder.
-Then you'll need to link it inside the `plugins` folder.
+Then you'll need to link the `dist` folder inside the `plugins` folder.
 If you go in your `.hfs/plugins` folder on linux and mac, and enter
 
     ln -s /PATH_TO_YOUR_REPO/dist MY_PLUGIN_NAME
@@ -180,6 +180,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 - `configDialog: DialogOptions` object to override dialog options. Please refer to sources for details.
 - `onFrontendConfig: (config: object) => (void | object)` manipulate config values exposed to frontend.
 - `customHtml: object | () => object` return custom-html sections programmatically.
+  Each key is a section name, the value is the html (or js, or css). Refer to https://github.com/rejetto/hfs/wiki/Customization:-HTML-sections
 - `customRest: { [name]: (parameters: object, ctx) => any }` declare backend functions to be called by frontend with `HFS.customRestCall`
   E.g. 
   ```js
@@ -819,28 +820,28 @@ so we prepared this list as a quick reference, but beware that it may become out
 If so, please report, and we'll do our best to update it asap.
 Where there is too little information, you'll have to consult the source code. Apologies.
 
-        originalPath: string // before roots is applied
-        browsing?: string // for admin/monitoring
-        dontLog?: boolean // don't log this request
-        logExtra?: object
-        completed?: Promise<unknown>
-        spam?: boolean // this request was marked as spam
-        params: Record<string, any>
-        account?: Account // user logged in
-        revProxyPath: string
-        connection: Connection
-        skipFilters?: boolean
-        vfsNode?: VfsNode
-        includesLastByte?: boolean
-        serveApp?: boolean // please, serve the frontend app
-        uploadPath?: string // current one
-        uploads?: string[] // in case of request with potentially multiple uploads (POST), we register all filenames (no full path)
-        length?: number
-        originalStream?: typeof ctx.body
-        uploadDestinationPath?: string // this value is the temporary file in uploadStart and the final one in uploadFinished
-        archive?: string
-        fileSource?: string // set when serving a file
-        fileStats?: Stat // file attributes
+    originalPath: string // before roots is applied
+    browsing?: string // for admin/monitoring
+    dontLog?: boolean // don't log this request
+    logExtra?: object
+    completed?: Promise<unknown>
+    spam?: boolean // this request was marked as spam
+    params: Record<string, any>
+    account?: Account // user logged in
+    revProxyPath: string
+    connection: Connection
+    skipFilters?: boolean
+    vfsNode?: VfsNode
+    includesLastByte?: boolean
+    serveApp?: boolean // please, serve the frontend app
+    uploadPath?: string // current one
+    uploads?: string[] // in case of request with potentially multiple uploads (POST), we register all filenames (no full path)
+    length?: number
+    originalStream?: typeof ctx.body
+    uploadDestinationPath?: string // this value is the temporary file in uploadStart and the final one in uploadFinished
+    archive?: string
+    fileSource?: string // set when serving a file
+    fileStats?: Stat // file attributes
 
 ## Other files
 
