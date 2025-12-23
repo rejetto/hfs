@@ -96,7 +96,21 @@ All the following properties are optional unless otherwise specified.
 
 - `description: string` try to explain what this plugin is for. (JSON syntax)
 - `version: number` use progressive numbers to distinguish each release
-- `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed. Mandatory. [Refer to API version history](#api-version-history)   
+- `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed. Mandatory.
+  A single number represents the minimum required version; an array of two defines the min/max supported versions.
+  Refer to the [API version history](#api-version-history) to find the correct number for your case.
+  Set a maximum version only if you know your plugin is incompatible with later releases.
+
+  Backward compatibility is standard, with rare exceptions. Most breaking changes affecting plugins occur when relying
+  on undocumented features, particularly via `api.require`. If your plugin becomes incompatible with a new HFS version:  
+  - If you don't want to release an update: you can push a commit to modify `apiRequired` and specify a maximum version.
+  - If you release a new version to fix the issue:
+      - You DO NOT to set a *max* version.
+      - Only if your update broke the compatibility with the previous HFS version:
+        - You MUST update `apiRequired` to the current API version
+          (found at the end of this document).
+        - You MAY create a branch from the previous commit and name it `api12.8` (where 12.8 is your previous *apiRequired*).
+          This optional step enables users of older versions of HFS to still install your plugin. 
 - `isTheme: boolean | "light" | "dark"` set true if this is a theme that's not supposed to work together with other themes. 
   Running a theme will cause other themes to be stopped. Missing this, HFS will check if the name of the plugin ends with `-theme`.
   Special values "light" and "dark" to declare whether the theme is (for example) dark and forces HFS to use dark-theme as a base.   

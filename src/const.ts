@@ -10,7 +10,7 @@ import { argv } from './argv'
 export * from './cross-const'
 
 export const API_VERSION = 12.97
-export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise it is made equal to API_VERSION
+export const COMPATIBLE_API_VERSION = 1 // the day we break with the past, we'll update this
 
 // you can add arguments with this file, currently used for the update process on mac/linux
 export const ARGS_FILE = join(homedir(), 'hfs-args')

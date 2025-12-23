@@ -452,7 +452,7 @@ function watchPlugin(id: string, path: string) {
             return onUninstalled()
         if (isPluginEnabled(id, true))
             return start()
-        const p = parsePluginSource(id, source)
+        const p = parsePluginSource(id, source) // plugin not running = json parsing
         if (same(notRunning, p)) return
         inactivePlugins[id] = p
         events.emit(notRunning ? 'pluginUpdated' : 'pluginInstalled', p)
@@ -665,9 +665,10 @@ export function parsePluginSource(id: string, source: string) {
 
 function calculateBadApi(data: InactivePlugin) {
     const r = data.apiRequired
-    const [min, max] = Array.isArray(r) ? r : [r, r] // normalize data type
-    data.badApi = min! > API_VERSION ? "may not work correctly as it is designed for a newer version of HFS - check for updates"
-        : max! < COMPATIBLE_API_VERSION ? "may not work correctly as it is designed for an older version of HFS - check for updates"
+    const [min=0, max=Infinity] = Array.isArray(r) ? r : [r] // normalize data type
+    data.badApi = !r ? "missing mandatory property apiRequired"
+        : min > API_VERSION ? "may not work correctly as it is designed for a newer version of HFS - check for updates"
+        : min < COMPATIBLE_API_VERSION || max < API_VERSION ? "may not work correctly as it is designed for an older version of HFS - check for updates"
             : undefined
 }
 
