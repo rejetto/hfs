@@ -343,6 +343,10 @@ export function throw_(err: any): never {
     throw err
 }
 
+export function isAsyncIterable<T>(iterable: AsyncIterable<T> | Iterable<T>): iterable is AsyncIterable<T> {
+    return Symbol.asyncIterator in iterable
+}
+
 export async function* filterMapGenerator<IN,OUT>(generator: AsyncIterableIterator<IN>, filterMap: (el: IN) => Promise<OUT>) {
     for await (const x of generator) {
         const res:OUT = await filterMap(x)
