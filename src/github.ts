@@ -2,8 +2,7 @@
 
 import events from './events'
 import {
-    httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, retry, popKey, onlyTruthy, waitFor,
-    HOUR, DAY
+    httpString, httpStream, unzip, AsapStream, debounceAsync, retry, popKey, onlyTruthy, waitFor, HOUR, DAY
 } from './misc'
 import {
     DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getInactivePlugins, getPluginInfo, isPluginRunning, mapPlugins,
@@ -240,25 +239,39 @@ async function isPluginBlacklisted(repo: string) {
 }
 
 export async function searchPlugins(text='', { skipRepos=[''] }={}) {
-    // github doesn't allow complex search, so we have to do it multiple times and merge the results
-    const searches = [
-        ...text.split(' ').filter(Boolean).slice(0, 2).map(x => 'user:' + encodeURI(x)), // first 2 words can be the author of the plugin
-        encodeURI(text), // search elsewhere, and results after the author search
-    ]
-    const list = await Promise.all(searches.map(x => asyncGeneratorToArray(apiGithubPaginated(`search/repositories?q=topic:hfs-plugin+${x}`))))
-    const deduped = _.uniqBy(list.flat(), x => x.full_name)
-    return new AsapStream(deduped.map(async it => { // using AsapStream we parallelize these promises and produce each result as it's ready
-        const repo = it.full_name as string
-        if (skipRepos.includes(repo) || await isPluginBlacklisted(repo)) return
-        const pl = await readOnlineCompatiblePlugin(repo, it.default_branch).catch(() => undefined)
-        if (!pl) return
-        Object.assign(pl, { // inject some extra useful fields
-            repo, // overwrite parsed value, that may be wrong
-            downloading: downloading[repo],
-            license: it.license?.spdx_id,
-        }, _.pick(it, ['pushed_at', 'stargazers_count', 'default_branch']))
-        return pl
-    }))
+    const seen = new Set<string>()
+    return new AsapStream(pluginPromises())
+
+    async function *pluginPromises() {
+        // github doesn't allow complex search, so we have to do it multiple times and merge the results
+        const searches = [
+            ...text.split(' ').filter(Boolean).slice(0, 2).map(x => 'user:' + encodeURI(x)), // first 2 words can be the author of the plugin
+            encodeURI(text), // search elsewhere, and results after the author search
+        ]
+        for (const term of searches) {
+            for await (const it of apiGithubPaginated(`search/repositories?q=topic:hfs-plugin+${term}`)) {
+                const repo = it.full_name as string
+                if (!repo || seen.has(repo)) // avoid duplicates, as we search multiple times
+                    continue
+                seen.add(repo)
+                if (skipRepos.includes(repo))
+                    continue
+                yield (async () => {
+                    if (await isPluginBlacklisted(repo))
+                        return
+                    const pl = await readOnlineCompatiblePlugin(repo, it.default_branch).catch(() => undefined)
+                    if (!pl)
+                        return
+                    Object.assign(pl, {
+                        repo,
+                        downloading: downloading[repo],
+                        license: it.license?.spdx_id,
+                    }, _.pick(it, ['pushed_at', 'stargazers_count', 'default_branch']))
+                    return pl
+                })()
+            }
+        }
+    }
 }
 
 export const alerts = storedMap.singleSync<string[]>('alerts', [])
