@@ -8,6 +8,7 @@ export * from './util-files'
 export * from './fileAttr'
 export * from './cross'
 export * from './debounceAsync'
+export * from './AsapStream'
 import { Readable, Transform } from 'stream'
 import { SocketAddress, BlockList } from 'node:net'
 import { ApiError } from './apiMiddleware'
@@ -101,22 +102,6 @@ export function asyncGeneratorToReadable<T>(generator: AsyncIterable<T>) {
             })
         }
     })
-}
-
-// produces as promises resolve, not sequentially
-export class AsapStream<T> extends Readable {
-    finished = false
-    constructor(private promises: Promise<T>[]) {
-        super({ objectMode: true })
-    }
-    _read() {
-        if (this.finished) return
-        this.finished = true
-        for (const p of this.promises)
-            p.then(x => x !== undefined && this.push(x),
-                e => this.emit('error', e) )
-        Promise.allSettled(this.promises).then(() => this.push(null))
-    }
 }
 
 export function apiAssertTypes(paramsByType: { [type:string]: { [name:string]: any  } }) {
