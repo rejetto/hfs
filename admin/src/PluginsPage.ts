@@ -8,8 +8,8 @@ import { useBreakpoint } from "./mui"
 
 const TABS = {
     "Installed": InstalledPlugins,
-    "Search online|Search": OnlinePlugins,
-    "Check updates|Updates": () => h(InstalledPlugins, { updates: true }),
+    "Get more": OnlinePlugins,
+    "Check updates": () => h(InstalledPlugins, { updates: true }),
 }
 const LABELS = Object.keys(TABS)
 const PANES = Object.values(TABS)
@@ -17,7 +17,6 @@ export const PLUGIN_ERRORS = { ENOTFOUND: "Cannot reach github.com", ECONNREFUSE
 
 export default function PluginsPage() {
     const [tab, setTab] = useState(0)
-    const tooSmall = !useBreakpoint('sm')
     return h(Fragment, {},
         h(Tabs, {
             value: tab,
@@ -25,10 +24,7 @@ export default function PluginsPage() {
                 setTab(i)
             }
         }, LABELS.map(x =>
-            h(Tab, {
-                key: x,
-                label: x.split('|').slice(tooSmall ? -1 : 0)[0]
-            }))),
+            h(Tab, { key: x, label: x }))),
         h(PANES[tab])
     )
 }

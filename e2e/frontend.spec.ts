@@ -284,7 +284,7 @@ test('admin1', async ({ page }) => {
     await clickMenu('Plugins')
     await expect(page.getByText('antibrute')).toBeVisible() // wait for data
     await screenshot(page)
-    await page.getByRole('tab', { name: 'Search' }).click()
+    await page.getByRole('tab', { name: 'Get more' }).click()
     await page.getByRole('tab', { name: 'updates' }).click()
     await clickMenu('Custom HTML')
     await expect(page.getByRole('combobox', { name: 'Section Style' })).toBeVisible() // wait for data to be loaded
