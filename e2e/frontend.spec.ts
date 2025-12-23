@@ -256,7 +256,7 @@ test('admin1', async ({ page }) => {
     await clickAdminMenu(page, 'Plugins')
     await expect(page.getByText('antibrute')).toBeVisible() // wait for data
     await screenshot(page)
-    await page.getByRole('tab', { name: 'Search' }).click()
+    await page.getByRole('tab', { name: 'Get more' }).click()
     await page.getByRole('tab', { name: 'updates' }).click()
     await clickAdminMenu(page, 'Custom HTML')
     await expect(page.getByRole('combobox', { name: 'Section Style' })).toBeVisible() // wait for data to be loaded
@@ -442,8 +442,6 @@ test('anew', async ({ page, browserName }) => {
     await adminPage.getByRole('dialog').locator('div').nth(1).click()
     await adminPage.locator('.MuiDialog-container').press('Escape')
     await adminPage.locator('#vfs').click()
-    await adminPage.getByText('folder1', { exact: true }).click()
-    await adminPage.getByRole('treeitem', { name: 'folder1' }).locator('path').first().click()
     await adminPage.getByText('folder1', { exact: true }).click()
     await adminPage.getByRole('button', { name: 'Cut' }).click()
     await adminPage.locator('div').filter({ hasText: 'InfoNow that this is marked' }).nth(1).click()
