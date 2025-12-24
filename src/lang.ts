@@ -1,5 +1,5 @@
 import Koa from 'koa'
-import { CFG, hasProp, onlyTruthy, tryJson } from './misc'
+import { CFG, Dict, hasProp, onlyTruthy, tryJson } from './misc'
 import { expiringCache } from './expiringCache'
 import { readFile } from 'fs/promises'
 import { defineConfig } from './config'
@@ -21,7 +21,7 @@ export function file2code(fn: string) {
     return fn.replace(PREFIX, '').replace(SUFFIX, '')
 }
 
-const cache = expiringCache(3_000) // 3 seconds for both a good dx and acceptable performance
+const cache = expiringCache<Dict>(3_000) // 3 seconds for both a good dx and acceptable performance
 export async function getLangData(ctxOrLangCsv: Koa.Context | string) {
     if (typeof ctxOrLangCsv !== 'string') {
         const ctx = ctxOrLangCsv
@@ -33,7 +33,7 @@ export async function getLangData(ctxOrLangCsv: Koa.Context | string) {
     const csv = ctxOrLangCsv.toLowerCase()
     return cache.try(csv, async () => {
         const langs = csv.split(',')
-        const ret: any = {}
+        const ret: Dict = {}
         let i = 0
         while (i < langs.length) {
             let k = langs[i] || '' // shut up ts
