@@ -4,13 +4,13 @@ import {
 } from './vfs'
 import {
     HTTP_BAD_REQUEST, HTTP_CREATED, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND, HTTP_SERVER_ERROR,
-    enforceFinal, pathEncode, prefix, getOrSet, Dict, Timeout, HTTP_UNAUTHORIZED, CFG
+    enforceFinal, pathEncode, prefix, getOrSet, Dict, Timeout, HTTP_UNAUTHORIZED, CFG, HTTP_LOCKED
 } from './cross'
 import { PassThrough } from 'stream'
 import { mkdir, rm } from 'fs/promises'
 import { isValidFileName } from './misc'
 import { basename, dirname, join } from 'path'
-import { requestedRename } from './frontEndApis'
+import { moveFiles, requestedRename } from './frontEndApis'
 import { randomUUID } from 'node:crypto'
 import { IS_MAC } from './const'
 import { exec } from 'child_process'
@@ -29,8 +29,9 @@ function isLocked(path: string, ctx: Koa.Context) {
     if (!lock) return false
     const ifHeader = ctx.get('If')
     const tokenHeader = ctx.get(TOKEN_HEADER)
-    if (hasToken(ifHeader, lock.token) || hasToken(tokenHeader, lock.token)) return false
-    ctx.status = 423
+    if (hasToken(ifHeader, lock.token) || hasToken(tokenHeader, lock.token))
+        return false
+    ctx.status = HTTP_LOCKED
     return true
 }
 
@@ -45,10 +46,8 @@ export async function handledWebdav(ctx: Koa.Context) {
     if (ctx.method === 'OPTIONS') {
         if (ctx.get('Access-Control-Request-Method')) return // it's a preflight cors request, not webdav
         setWebdavHeaders()
-        if (forceWebdavLogin.get() && !getCurrentUsername(ctx)) {
-            ctx.status = HTTP_UNAUTHORIZED
-            return true
-        }
+        if (forceWebdavLogin.get() && !getCurrentUsername(ctx))
+            return ctx.status = HTTP_UNAUTHORIZED
         ctx.body = ''
         return true
     }
@@ -110,7 +109,11 @@ export async function handledWebdav(ctx: Koa.Context) {
             catch(e:any) {
                 return ctx.status = e.status || HTTP_SERVER_ERROR
             }
-        return ctx.status = HTTP_METHOD_NOT_ALLOWED // moving between folders not supported yet
+        const moveRes = await moveFiles([path], dirname(dest), ctx)
+        if (moveRes instanceof Error)
+            return ctx.status = (moveRes as any).status || HTTP_SERVER_ERROR
+        const err = moveRes?.errors?.[0]
+        return ctx.status = !err ? HTTP_CREATED : typeof err === 'number' ? err : HTTP_SERVER_ERROR
     }
     if (ctx.method === 'DELETE') {
         setWebdavHeaders()

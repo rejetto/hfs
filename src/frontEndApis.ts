@@ -92,39 +92,15 @@ export const frontEndApis: ApiHandlers = {
         return {}
     },
 
-    async move_files({ uri_from, uri_to }, ctx, override) {
-        apiAssertTypes({ array: { uri_from }, string: { uri_to } })
-        ctx.logExtra(null, { target: uri_from.map(decodeURI), destination: decodeURI(uri_to) })
-        const destNode = await urlToNode(uri_to, ctx)
-        const err = !destNode ? HTTP_NOT_FOUND : statusCodeForMissingPerm(destNode, 'can_upload', ctx)
-        if (err)
-            return new ApiError(err)
-        return {
-            errors: await Promise.all(uri_from.map(async (from1: any) => {
-                if (typeof from1 !== 'string') return HTTP_BAD_REQUEST
-                const srcNode = await urlToNode(from1, ctx)
-                const src = srcNode?.source
-                if (!src) return HTTP_NOT_FOUND
-                const dest = join(destNode!.source!, basename(src))
-                if (_.isFunction(override))
-                    return override?.(srcNode, dest)
-                return statusCodeForMissingPerm(srcNode, 'can_delete', ctx)
-                    || rename(src, dest).catch(async e => {
-                        if (e.code !== 'EXDEV') throw e // exdev = different drive
-                        await copyFile(src, dest)
-                        await unlink(src)
-                    }).catch(e => e.code || String(e))
-            }))
-        }
+    async move_files({ uri_from, uri_to }, ctx) {
+        return moveFiles(uri_from, uri_to, ctx)
     },
 
-    async copy_files(params, ctx) {
-        return frontEndApis.move_files!(params, ctx, // same parameters
-            (srcNode: VfsNode, dest: string) => // but override behavior
-                statusCodeForMissingPerm(srcNode, 'can_read', ctx)
-                    // .source is checked by move_files
-                    || copyFile(srcNode.source!, dest, fs.constants.COPYFILE_EXCL | fs.constants.COPYFILE_FICLONE)
-                        .catch(e => e.code || String(e))
+    async copy_files({ uri_from, uri_to }, ctx) {
+        return moveFiles(uri_from, uri_to, ctx, (srcNode: VfsNode, dest: string) => // override behavior
+            statusCodeForMissingPerm(srcNode, 'can_read', ctx)
+                || copyFile(srcNode.source!, dest, fs.constants.COPYFILE_EXCL | fs.constants.COPYFILE_FICLONE) // .source is checked by moveFiles
+                    .catch(e => e.code || String(e))
         )
     },
 
@@ -174,6 +150,32 @@ export function notifyClient(channel: string | Koa.Context, name: string, data: 
 }
 
 const NOTIFICATION_PREFIX = 'notificationChannel:'
+
+export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, override?: Function) {
+    apiAssertTypes({ array: { uri_from }, string: { uri_to } })
+    ctx.logExtra(null, { target: uri_from.map(decodeURI), destination: decodeURI(uri_to) })
+    const destNode = await urlToNode(uri_to, ctx)
+    const err = !destNode ? HTTP_NOT_FOUND : statusCodeForMissingPerm(destNode, 'can_upload', ctx)
+    if (err)
+        return new ApiError(err)
+    return {
+        errors: await Promise.all(uri_from.map(async (from1: any) => {
+            if (typeof from1 !== 'string') return HTTP_BAD_REQUEST
+            const srcNode = await urlToNode(from1, ctx)
+            const src = srcNode?.source
+            if (!src) return HTTP_NOT_FOUND
+            const dest = join(destNode!.source!, basename(src))
+            if (_.isFunction(override))
+                return override?.(srcNode, dest)
+            return statusCodeForMissingPerm(srcNode, 'can_delete', ctx)
+                || rename(src, dest).catch(async e => {
+                    if (e.code !== 'EXDEV') throw e // exdev = different drive
+                    await copyFile(src, dest)
+                    await unlink(src)
+                }).catch(e => e.code || String(e))
+        }))
+    }
+}
 
 export async function requestedRename(node: VfsNode | undefined, newName: string, ctx: Koa.Context) {
     if (!node)

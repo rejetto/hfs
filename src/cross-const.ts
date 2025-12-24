@@ -33,6 +33,7 @@ export const HTTP_PRECONDITION_FAILED = 412
 export const HTTP_PAYLOAD_TOO_LARGE = 413
 export const HTTP_RANGE_NOT_SATISFIABLE = 416
 export const HTTP_FOOL = 418
+export const HTTP_LOCKED = 423
 export const HTTP_FAILED_DEPENDENCY = 424
 export const HTTP_TOO_MANY_REQUESTS = 429
 export const HTTP_SERVER_ERROR = 500
