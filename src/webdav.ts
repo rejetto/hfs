@@ -24,6 +24,21 @@ const TOKEN_HEADER = 'lock-token'
 const canOverwrite = new Set()
 const locks = new Map<string, { token: string, timeout: NodeJS.Timeout }>()
 
+function isLocked(path: string, ctx: Koa.Context) {
+    const lock = locks.get(path)
+    if (!lock) return false
+    const ifHeader = ctx.get('If')
+    const tokenHeader = ctx.get(TOKEN_HEADER)
+    if (hasToken(ifHeader, lock.token) || hasToken(tokenHeader, lock.token)) return false
+    ctx.status = 423
+    return true
+}
+
+function hasToken(header: string, token: string) {
+    if (!header) return false
+    return header.includes(`<${token}>`) || header.split(/[,;\s]+/).includes(token)
+}
+
 export async function handledWebdav(ctx: Koa.Context) {
     const {path} = ctx
 
@@ -38,8 +53,8 @@ export async function handledWebdav(ctx: Koa.Context) {
         return true
     }
     if (ctx.method === 'PUT') {
-        // Finder first creates an empty file, probably to test if upload is possible, the wants to overwrite it.
-        // You may not have permission for deletion, and uploads get renamed, so we give it special permission for a few seconds.
+        if (isLocked(path, ctx)) return true
+        // Finder first creates an empty file (a test?) then wants to overwrite it, which requires deletion permission, but the user may not have it, causing a renamed upload. To solve, so we give it special permission for a few seconds.
         const x = ctx.get('x-expected-entity-length') // field used by Finder's webdav on actual upload, after
         if (!x && !ctx.length) {
             canOverwrite.add(path)
@@ -57,6 +72,7 @@ export async function handledWebdav(ctx: Koa.Context) {
     }
     if (ctx.method === 'MKCOL') {
         setWebdavHeaders()
+        if (isLocked(path, ctx)) return true
         const node = await urlToNode(path, ctx)
         if (node)
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
@@ -78,13 +94,15 @@ export async function handledWebdav(ctx: Koa.Context) {
     }
     if (ctx.method === 'MOVE') {
         setWebdavHeaders()
+        if (isLocked(path, ctx)) return true
         const node = await urlToNode(path, ctx)
         if (!node) return
         let dest = ctx.get('destination')
         const i = dest.indexOf('//')
         if (i >= 0)
             dest = dest.slice(dest.indexOf('/', i + 2))
-        if (dirname(path) === dirname(dest)) // rename
+        if (isLocked(dest, ctx)) return true
+        if (dirname(path) === dirname(dest)) // rename. `path` is is encoded, so we test before decoding `dest`
             try {
                 await requestedRename(node, basename(decodeURI(dest)), ctx)
                 return ctx.status = HTTP_CREATED
@@ -92,7 +110,12 @@ export async function handledWebdav(ctx: Koa.Context) {
             catch(e:any) {
                 return ctx.status = e.status || HTTP_SERVER_ERROR
             }
-        return
+        return ctx.status = HTTP_METHOD_NOT_ALLOWED // moving between folders not supported yet
+    }
+    if (ctx.method === 'DELETE') {
+        setWebdavHeaders()
+        if (isLocked(path, ctx)) return true
+        return // allow default handling in serveGuiAndSharedFiles.ts
     }
     if (ctx.method === 'UNLOCK') {
         setWebdavHeaders()

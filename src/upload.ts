@@ -60,7 +60,7 @@ const diskSpaceCache = expiringCache<ReturnType<typeof getDiskSpaceSync>>(3_000)
 const uploadingFiles = new Map<string, { ctx: Koa.Context, size: number, got: number }>()
 // stay sync because we use this function with formidable()
 export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: Koa.Context) {
-    if (hasDirTraversal(path))
+    if (hasDirTraversal(path) || !path)
         return fail(HTTP_FOOL)
     if (statusCodeForMissingPerm(base, 'can_upload', ctx))
         return fail()
