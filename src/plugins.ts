@@ -648,11 +648,11 @@ onProcessExit(() =>
 export function parsePluginSource(id: string, source: string) {
     const pl: InactivePlugin = { id }
     pl.description = tryJson(/exports.description\s*=\s*(".*")/.exec(source)?.[1])
-    pl.repo = tryJson(/exports.repo\s*=\s*(\S*)/.exec(source)?.[1])
+    pl.repo = tryJson(/exports.repo\s*=\s*([^\s;]+)/.exec(source)?.[1])
     pl.version = Number(/exports.version\s*=\s*(\d*\.?\d+)/.exec(source)?.[1]) ?? undefined
     pl.apiRequired = tryJson(/exports.apiRequired\s*=\s*([ \d.,[\]]+)/.exec(source)?.[1]) ?? undefined
     pl.isTheme = tryJson(/exports.isTheme\s*=\s*(true|false|"light"|"dark")/.exec(source)?.[1]) ?? (id.endsWith('-theme') || undefined)
-    pl.preview = tryJson(/exports.preview\s*=\s*(.+)/.exec(source)?.[1]) ?? undefined
+    pl.preview = tryJson(/exports.preview\s*=\s*("(?:[^"\\]|\\.)*"|\[[\s\S]*?\])/.exec(source)?.[1]) ?? undefined
     pl.depend = tryJson(/exports.depend\s*=\s*(\[[\s\S]*?])/m.exec(source)?.[1])?.filter((x: any) =>
         typeof x.repo === 'string' && x.version === undefined || typeof x.version === 'number'
             || console.warn("plugin dependency discarded", x) )
