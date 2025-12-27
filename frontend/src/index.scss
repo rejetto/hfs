@@ -519,6 +519,22 @@ button .icon + .label {
         margin-bottom: .5em;
         margin-left: .1em;
     }
+    .password-field {
+        position: relative;
+        input { padding-right: 2.2em; }
+    }
+    .password-eye {
+        position: absolute;
+        right: .5em;
+        top: 50%;
+        transform: translateY(-50%);
+        border: 0;
+        background: none;
+        outline: none;
+        padding: 0;
+        cursor: pointer;
+        line-height: 1;
+    }
     .submit { text-align: right; }
 }
 #search-dialog form {
