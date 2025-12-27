@@ -263,6 +263,18 @@
       "css": "info",
       "code": 59419,
       "src": "elusive"
+    },
+    {
+      "uid": "44e04715aecbca7f266a17d5a7863c68",
+      "css": "plus",
+      "code": 59420,
+      "src": "fontawesome"
+    },
+    {
+      "uid": "c5fd349cbd3d23e4ade333789c29c729",
+      "css": "eye",
+      "code": 59421,
+      "src": "fontawesome"
     }
   ]
 }
