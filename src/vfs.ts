@@ -378,7 +378,7 @@ export async function* walkNode(parent: VfsNode, {
                     })
                 }
                 catch(e) {
-                    console.debug('walkNode', source, e) // ENOTDIR, or lacking permissions
+                    console.debug('walkNode', source, String(e)) // ENOTDIR, or lacking permissions
                 }
             }
             finally {

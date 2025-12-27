@@ -109,7 +109,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             }
         })
         const uris = await new Promise<string[]>(res => form.parse(ctx.req, async err => {
-            if (err) console.error(String(err))
+            if (err) console.warn("Couldn't parse POST requests:", String(err)) // parsing failure is typically a client-side issue; log as a warning at most
             res(Promise.all(locks))
         }))
         ctx.body = { uris }
