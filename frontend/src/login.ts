@@ -7,7 +7,7 @@ import {
     getHFS, hIcon, makeSessionRefresher, srpClientSequence, working, fallbackToBasicAuth, hfsEvent,
     HTTP_CONFLICT, HTTP_UNAUTHORIZED, HTTP_METHOD_NOT_ALLOWED, ALLOW_SESSION_IP_CHANGE,
 } from './misc'
-import { createElement as h, Fragment, useEffect, useRef } from 'react'
+import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
 import { reloadList } from './useFetchList'
 import { Checkbox, CustomCode } from './components'
 import { changePassword } from './UserPanel'
@@ -71,6 +71,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                 const usrRef = useRef<HTMLInputElement>()
                 const pwdRef = useRef<HTMLInputElement>()
                 const ipRef = useRef<HTMLInputElement>()
+                const [showPassword, setShowPassword] = useState(false)
                 useEffect(() => {
                     setTimeout(() => usrRef.current?.focus()) // setTimeout workarounds problem due to double-mount while in dev
                 }, [])
@@ -95,15 +96,31 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                     )),
                     h(CustomCode, { name: 'loginPasswordField' }, h('div', { className: 'field' },
                         h('label', { htmlFor: 'login_password' }, t`Password`),
-                        h('input', {
-                            ref: pwdRef,
-                            id: 'login_password',
-                            name: 'password',
-                            type: 'password',
-                            autoComplete: 'current-password',
-                            required: true,
-                            onKeyDown
-                        }),
+                        h('div', { className: 'password-field' },
+                            h('input', {
+                                ref: pwdRef,
+                                id: 'login_password',
+                                name: 'password',
+                                type: showPassword ? 'text' : 'password',
+                                autoComplete: 'current-password',
+                                required: true,
+                                onKeyDown
+                            }),
+                            h('button', {
+                                type: 'button',
+                                className: 'password-eye',
+                                'aria-hidden': true,
+                                tabIndex: -1,
+                                onPointerDown(ev: PointerEvent) {
+                                    ev.preventDefault()
+                                    setShowPassword(true)
+                                },
+                                onPointerUp: () => setShowPassword(false),
+                                onPointerEnter: () => setShowPassword(true),
+                                onPointerLeave: () => setShowPassword(false),
+                                onPointerCancel: () => setShowPassword(false),
+                            }, hIcon('eye')),
+                        ),
                     )),
                     h(CustomCode, { name: 'beforeLoginSubmit' }),
                     h('div', { className: 'submit' },
