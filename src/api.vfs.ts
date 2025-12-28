@@ -235,7 +235,8 @@ export default {
 
     async windows_integration({ parent }) {
         const status = await getServerStatus(true)
-        const h = status.http.listening ? status.http : status.https // prefer http on localhost
+        const useHttp = status.http.listening
+        const h = useHttp ? status.http : status.https // prefer http on localhost
         const url = h.srv!.name + '://localhost:' + h.port
         for (const k of ['*', 'Directory']) {
             await reg('add', WINDOWS_REG_KEY.replace('*', k), '/ve', '/f', '/d', 'Add to HFS (new)')
@@ -245,8 +246,8 @@ export default {
             $wsh = New-Object -ComObject Wscript.Shell;
             $j = @{parent=@'\n${parent}\n'@; source=@'\n%1\n'@} | ConvertTo-Json -Compress
             $j = [System.Text.Encoding]::UTF8.GetBytes($j);
-            [System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}  
-            try { 
+            ${useHttp ? '' : '[System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}'}  
+            try {
                 $res = Invoke-WebRequest -Uri '${url}/~/api/add_vfs' -UseBasicParsing -Method POST -Headers @{ 'x-hfs-anti-csrf' = '1' } -ContentType 'application/json' -TimeoutSec 2 -Body $j; 
                 $json = $res.Content | ConvertFrom-Json; $link = $json.link; $link | Set-Clipboard;
                 $wsh.Popup('The link is ready to be pasted');
