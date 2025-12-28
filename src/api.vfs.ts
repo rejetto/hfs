@@ -247,7 +247,7 @@ export default {
             $j = [System.Text.Encoding]::UTF8.GetBytes($j);
             [System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}  
             try { 
-                $res = Invoke-WebRequest -Uri '${url}/~/api/add_vfs' -Method POST -Headers @{ 'x-hfs-anti-csrf' = '1' } -ContentType 'application/json' -TimeoutSec 2 -Body $j; 
+                $res = Invoke-WebRequest -Uri '${url}/~/api/add_vfs' -UseBasicParsing -Method POST -Headers @{ 'x-hfs-anti-csrf' = '1' } -ContentType 'application/json' -TimeoutSec 2 -Body $j; 
                 $json = $res.Content | ConvertFrom-Json; $link = $json.link; $link | Set-Clipboard;
                 $wsh.Popup('The link is ready to be pasted');
             } catch { $wsh.Popup($_.Exception.Message + ' – ' + '${url}', 0, 'Error', 16); }"`)
