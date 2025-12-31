@@ -320,7 +320,7 @@ export async function* walkNode(parent: VfsNode, {
             if (started) return // for simplicity, we care about starting, and never suspend
             started = true
             const { source } = parent
-            const taken = prefixPath ? undefined : new Set()
+            const taken = new Set()
             const maskApplier = parentMaskApplier(parent)
             const visitLater: any = []
             const childrenWorking = parent.children?.length && Promise.all(parent.children.map(async child => {
