@@ -296,8 +296,6 @@ async function screenshot(page: Page, selectorForMask = '') {
 
 test('anew', async ({ page, browserName }) => {
     if (page.viewportSize()?.width! < 1000 || browserName !== 'chromium') return // test only for desktop chromium
-    await fs.promises.writeFile('tests/work2/config.yaml', "port: 82\nopen_browser_at_start: false") // reset config
-    await wait(500) // ensure new config is aplied
     await page.goto('http://localhost:82/')
     await expect(page.getByText('Nothing here')).toBeVisible()
     await page.getByRole('button', { name: 'Options' }).click()
