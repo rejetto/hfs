@@ -78,10 +78,14 @@ let ignorePopState = false
 async function back() {
     ignorePopState = true
     let was = history.state
-    history.back()
-    return waitClosing = waitClosing.then(() => new Promise<void>(res => {
-        const h = setInterval(() => was !== history.state && res() , 10)
-        setTimeout(() => clearTimeout(h), 500)
+    return waitClosing = waitClosing.then(() => new Promise<void>(async res => {
+        const started = Date.now()
+        while (was === history.state) { // history.back seems to not always be effective, so we loop for it
+            if (Date.now() - started > 1000) break // emergency brake
+            history.back()
+            await wait(10)
+        }
+        res()
     }))
 }
 
