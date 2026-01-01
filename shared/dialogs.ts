@@ -94,20 +94,23 @@ async function back() {
     }))
 }
 
+const BASE_STATE = 1
 ;(async () => {
-    while (history.state?.$dialog) { // it happens if the user reloads the browser leaving open dialogs
+    // this condition happens if the user reloads the browser leaving open dialogs. Don't pop BASE_STATE as it may contain other state we inherited
+    while (history.state?.$dialog !== undefined && history.state.$dialog !== BASE_STATE) {
         history.back()
         await wait(1) // history.state is not changed without this, on chrome123
     }
+    history.replaceState({ ...history.state, $dialog: BASE_STATE }, '')
 })()
 
 export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
     useEffect(() => domOn('popstate', () => {
         if (ignorePopState)
             return ignorePopState = false
-        if (!history.state) return
-        const { $dialog } = history.state
-        if ($dialog && !dialogs.find(x => x.$id === $dialog)) // it happens if the user, after closing a dialog, goes forward in the history
+        const d = history.state?.$dialog
+        if (d === undefined) return // not my state, not my business
+        if (d !== BASE_STATE && !dialogs.find(x => x.$id === d)) // it happens if the user, after closing a dialog, goes forward in the history
             return back()
         closeDialog(undefined, true)
     }), [])
@@ -230,7 +233,7 @@ export function closeDialog(v?:any, skipHistory=false) {
         if (d.reserveClosing)
             continue
         if (!skipHistory) {
-            if (history.state.$dialog !== d.$id) return
+            if (history.state?.$dialog !== d.$id) return
             d.closed = back()
         }
         closeDialogAt(i, v)
