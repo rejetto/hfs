@@ -131,7 +131,31 @@ accounts.sub(_.debounce(obj => {
             setHidden(rec, { username: norm })
         }
         void updateAccount(rec, {}) // work fields
+        removeLoops(norm)
     })
+
+    function removeLoops(normalizedUsername: string, visiting = new Set<string>()) {
+        if (visiting.has(normalizedUsername))
+            return
+        visiting.add(normalizedUsername)
+        const account = obj[normalizedUsername]
+        const removed = _.remove(account.belongs, parent => {
+            const k = normalizeUsername(parent)
+            return obj[k] && visiting.has(k)
+        })
+        if (removed.length)
+            saveAccountsAsap()
+        if (account?.belongs?.length) {
+            for (const parent of account.belongs) {
+                const k = normalizeUsername(parent)
+                if (obj[k])
+                    removeLoops(k, visiting)
+            }
+            if (!account.belongs.length)
+                delete account.belongs
+        }
+        visiting.delete(normalizedUsername)
+    }
 })) // don't trigger in the middle of a series of deletion, as we may have an inconsistent state
 
 export function normalizeUsername(username: string) {
