@@ -222,6 +222,8 @@ For each account entries, this is the list of properties you can have:
 - `password` a temporary unencrypted password, transformed into `srp` ASAP (and removed).
 - `srp` encrypted password. Don't modify this, HFS will create it from `password` field.
 - `disabled` prevents using this account. Default is false.
+  If a user is disabled, it cannot log in. A user won't inherit permissions from a group if the group is disabled.
+  If all of its groups are disabled, then it cannot log in, even if the user itself is not disabled.
 - `expire` account won't work once the time has passed this timestamp. Use JSON timestamp syntax. Default is none.
 - `days_to_live` used to set `expire` on first login. Default is none.
 - `disable_password_change` set `true` if you want to forbid password change for this user. Default is `false`.
