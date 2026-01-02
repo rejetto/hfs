@@ -15,7 +15,7 @@ import {
     enforceStarting, statWithTimeout
 } from './misc'
 import { favicon, title } from './adminApis'
-import { customHtml, getAllSections, getSection } from './customHtml'
+import { getAllSections, getSection } from './customHtml'
 import _ from 'lodash'
 import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
@@ -29,9 +29,7 @@ export const logGui = defineConfig(CFG.log_gui, false)
 _.each(FRONTEND_OPTIONS, (v,k) => defineConfig(k, v)) // define default values
 
 function serveStatic(uri: string): Koa.Middleware {
-    const folder = (DEV ? 'dist/' : '') + uri.slice(2,-1) // we know folder is very similar to uri
-    let cache: Record<string, Promise<string>> = {}
-    customHtml.emitter.on('change', () => cache = {}) // reset cache at every change
+    const folder = (DEV ? 'dist/' : '') + uri.slice(2,-1)
     return async ctx => {
         if (!logGui.get())
             ctx.state.dontLog = true
