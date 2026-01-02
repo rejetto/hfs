@@ -24,7 +24,7 @@
     "test-ui": "npx playwright test frontend && npx playwright test serial",
     "test-with-ui": "npx playwright test --ui",
     "pub": "cd dist && npm publish",
-    "dist": "(git diff-index --quiet HEAD -- || git stash push -m 'dist') && (CI=1 FORCE_COLOR=1 npm run dist-uncommitted || (EXIT_CODE=$? && git stash pop || true && exit $EXIT_CODE)); git stash pop || true",
+    "dist": "STASHED=; if ! git diff-index --quiet HEAD --; then git stash push -m 'dist' && STASHED=1; fi; CI=1 FORCE_COLOR=1 npm run dist-uncommitted || (EXIT_CODE=$?; [ -n \"$STASHED\" ] && git stash pop; exit $EXIT_CODE); [ -n \"$STASHED\" ] && git stash pop",
     "dist-uncommitted": "npm run build-all && npm run test-ui && npm run dist-bin",
     "dist-bin": "npm run dist-modules && npm run dist-bin-win && npm run dist-bin-linux && npm run dist-bin-mac && npm run dist-bin-mac-arm",
     "dist-modules": "cp package*.json central.json dist && cd dist && npm ci --omit=dev && cd .. && node prune_modules",
