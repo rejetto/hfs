@@ -127,7 +127,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                     ${getSection('htmlHead')}`}
                 `
             function iconsToObj(icons: CustomizedIcons, pre='') {
-                return icons && objSameKeys(icons, (v, k) => ICONS_URI + pre + k)
+                return icons && objSameKeys(icons, (v, k) => ctx.state.revProxyPath + ICONS_URI + pre + k)
             }
 
             if (isBody && isOpen)
