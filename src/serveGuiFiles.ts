@@ -123,7 +123,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                     </script>
                     ${isFrontend && `
                         <title>${title.get()}</title>
-                        <link rel="shortcut icon" href="/favicon.ico?${timestamp}" />
+                        <link rel="shortcut icon" href="${ctx.state.revProxyPath}/favicon.ico?${timestamp}" />
                     ${getSection('htmlHead')}`}
                 `
             function iconsToObj(icons: CustomizedIcons, pre='') {
