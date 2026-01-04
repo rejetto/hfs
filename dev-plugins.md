@@ -38,16 +38,16 @@ Frontend files reside in the "public" folder, while all the rest is backend.
 
 ## System icons
 
-HFS defines "system icons" that will be used in the frontend, like the icon for the login.
-A plugin can customize such icons by creating a folder called "icons" and putting an image file with
-its name (excluding extension) matching one of the list: 
+HFS defines "system icons" that are used in the frontend, like the icon for the login.
+They can be customized by creating a folder called "icons" and putting an image file for each icon to be customized;
+the filename (excluding extension) will match one of the list: 
 *login, user, filter, search, search_off, close, error, stop, options, archive, logout, home, parent, folder, file, 
 spinner, password, download, upload, reload, lock, admin, check, to_start, to_end, menu, list, play, pause, edit, zoom, 
 delete, comment, link, info, cut, paste, copy, shuffle, repeat, success, warning, audio, video, image, cancel, total*.
 
-The list above may become outdated, but you can always find an updated version at https://github.com/rejetto/hfs/blob/main/frontend/src/sysIcons.ts.
+For example, put a file "login.png" into "icons" to customize that icon. Stadard web file formats are supported. 
 
-For example, put a file "login.png" into "icons" to customize that icon.
+If the list above becomes outdated, you can always find an updated version at https://github.com/rejetto/hfs/blob/main/frontend/src/sysIcons.ts.
 
 ## Definitions
 

@@ -2,6 +2,20 @@
 
 ![logo and motto](hfs-logo-color-motto.svg)
 
+## Index
+
+- [Introduction](#introduction)
+- [How does it work](#how-does-it-work)
+- [Features](#features)
+- [Installation](#installation)
+  - [Other systems](#other-systems)
+- [Configuration](#configuration)
+  - [Where is it stored](#where-is-it-stored)
+- [Internationalization](#internationalization)
+- [Hidden features](#hidden-features)
+- [Contribute](#contribute)
+- [More](#more)
+
 ## Introduction
 
 Access your files via web, directly from your disk.
@@ -19,8 +33,8 @@ Runs on: Windows, Linux, macOS, FreeBSD, Android
 
 ## How does it work
 
-- run HFS on your computer, administration page automatically shows up
-- select what files and folders you want to be accessible
+- run HFS on your computer; an administration webpage automatically shows up
+- select which files and folders you want to be accessible
 - access those files from a phone or another computer just using a browser
 - possibly create accounts and limit access to files
 
@@ -57,6 +71,7 @@ If you need [Docker installation](https://github.com/damienzonly/hfs-docker) or 
 Minimum Windows version required is 10 or Server 2019.
 
 1. Download the zip file for your operating system from https://github.com/rejetto/hfs/releases
+   - ⚠️ Antivirus problems on Windows? [READ THIS](https://github.com/rejetto/hfs/wiki/Antivirus)
    - ⚠️ If you have Linux ARM or other unlisted/unsupported platforms, please see the [Other systems](#other-systems) section.
 2. Unzip and launch `hfs` file. 
    - ⚠️ Mac: if you get *"cannot be opened because it is from an unidentified developer"*,
@@ -90,18 +105,7 @@ Configuration and other files will be stored in `%HOME%/.vfs`
 
 ## Configuration
 
-For configuration please see [file config.md](config.md).
-
-### Where is it stored
-
-Configuration is stored in the file `config.yaml`, exception made for custom HTML which is stored in `custom.html`.
-
-These files are kept in the Current Working Directory (cwd), which is by default the same folder of `hfs.exe`
-if you are using this kind of distribution on Windows, or `USER_FOLDER/.hfs` on other systems.
-You can decide a different folder passing `--cwd SOME_FOLDER` parameter at command line.
-Any relative path provided is relative to the *cwd*.
-
-[Check details about config file format](config.md).
+For configuration please see [config.md](config.md); it explains also where all configurations are stored.
 
 ## Internationalization
 
@@ -170,6 +174,6 @@ There are several ways to contribute
 
 - [Build yourself](dev.md)
 
-- [License](https://github.com/rejetto/hfs/blob/master/LICENSE.txt)
+- [License](LICENSE.txt)
 
 - Flag images are public-domain, downloaded from https://flagpedia.net

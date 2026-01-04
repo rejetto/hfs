@@ -11,17 +11,17 @@ Anyway, the current working directory (CWD) is printed by HFS in the first lines
 Many things are stored in the CWD, like the plugins you install.
 You can decide a different CWD passing `--cwd SOME_FOLDER` parameter at command line.
 
-If you are not sure what your `cwd` is, look in the console, and you'll see that it is printed in one of the first lines.
+If you are not sure what your `cwd` is, look in the console, and you'll see that in first lines of your console.
 Here is an example, look at the 6th line:
 ```
 HFS ~ HTTP File Server
 © Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
-started 2025-01-03 10:10:00
-version 0.55.2
-build 2025-01-03T14:14:31.396Z
+started 2026-01-03 10:10:00
+version 3.0.0
+build 2025-12-20T13:20:50.027Z
 working directory (cwd) /Users/rejetto/.hfs
-node v18.20.4
-platform darwin arm64 node
+node v20.19.6
+platform darwin arm64 binary
 ```
 
 ### How to modify configuration
