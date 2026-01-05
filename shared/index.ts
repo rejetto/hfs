@@ -211,13 +211,16 @@ export async function copyTextToClipboard(text: string) {
     }
     catch {
         console.debug('fallback clipboard method')
-        const d = document
-        const ta = d.createElement("textarea")
-        ta.textContent = text
-        d.body.appendChild(ta)
-        ta.select()
-        d.execCommand("copy")
-        d.body.removeChild(ta)
+        // with this handler we work around the focus-trap of MUI dialogs
+        const undo = domOn('copy', ev => {
+            ev.clipboardData?.setData('text/plain', text)
+            ev.preventDefault()
+        }, { capture: true, target: document })
+        try {
+            if (!document.execCommand('copy'))
+                throw Error('unknown')
+        }
+        finally { undo?.() }
     }
 }
 
