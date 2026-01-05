@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import legacy from '@vitejs/plugin-legacy'
+import preact from '@preact/preset-vite'
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => {
@@ -10,6 +11,14 @@ export default defineConfig(async () => {
             emptyOutDir: true,
             sourcemap: Boolean(Sonda),
             //target: "chrome69",
+        },
+        resolve: {
+            alias: {
+                'react': 'preact/compat',
+                'react-dom': 'preact/compat',
+                'react-dom/test-utils': 'preact/test-utils',
+                'react/jsx-runtime': 'preact/jsx-runtime',
+            },
         },
         server: {
             port: 3005,
@@ -24,6 +33,7 @@ export default defineConfig(async () => {
             }
         },
         plugins: [
+            preact(),
             legacy({
                 renderModernChunks: false, // single version, legacy one
                 polyfills: false, // keeping polyfills at a minimum, manually

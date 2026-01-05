@@ -11,8 +11,7 @@
   "dependencies": {
     "@hfs/shared": "*",
     "lodash": "^4.17.21",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "preact": "^10.28.1",
     "react-router-dom": "^6.1.1",
     "tssrp6a": "^3.0.0",
     "usehooks-ts": "^2.6.0",
@@ -24,6 +23,7 @@
     "@types/react": "^18.3.14",
     "@types/react-dom": "^18.3.2",
     "@types/xxhashjs": "^0.2.4",
+    "@preact/preset-vite": "^2.10.2",
     "@vitejs/plugin-legacy": "^6.0.0",
     "sass": "^1.54.5",
     "sonda": "^0.10.1",
