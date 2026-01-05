@@ -13,7 +13,7 @@ import { alertDialog, promptDialog } from './dialog'
 import { reloadList } from './useFetchList'
 import { apiCall } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
-import { Link } from 'react-router-dom'
+import { Link } from './router'
 import { LinkClosingDialog } from './fileMenu'
 import {
     abortCurrentUpload, enqueueUpload, getFilePath, normalizeAccept, resetCounters, resetReloadOnClose,
