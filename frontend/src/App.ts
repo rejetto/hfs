@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom"
+import { BrowserRouter, Route, Routes, useNavigate } from './router'
 import { createElement as h, Fragment } from 'react'
 import { BrowseFiles } from "./BrowseFiles"
 import { alertDialog, Dialogs } from './dialog'
@@ -41,7 +41,7 @@ function App() {
                 h(Toasts),
                 h(Dialogs, {},
                     h(Routes, {},
-                        h(Route, { path:'*', element: h(BrowseFiles) })
+                        h(Route, { path: '*', element: h(BrowseFiles) })
                     ),
                 ),
             ),

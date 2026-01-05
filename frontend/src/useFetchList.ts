@@ -11,7 +11,7 @@ import {
     hfsEvent, LIST, urlParams, xlate, objFromKeys, getHFS,
     HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED,
 } from './misc'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from './router'
 import { closeLoginDialog } from './login'
 import { fileShow, getShowComponent } from './show'
 import i18n from './i18n'
