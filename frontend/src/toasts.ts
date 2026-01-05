@@ -1,6 +1,7 @@
-import { createElement as h, HTMLAttributes, isValidElement, ReactElement, useEffect, useState, useRef,
-    useCallback, cloneElement, useMemo } from 'react'
-import { proxy, useSnapshot } from 'valtio'
+import {
+    createElement as h, HTMLAttributes, isValidElement, ReactElement, useEffect, useState, useRef, useCallback
+} from 'react'
+import { proxy, ref, useSnapshot } from 'valtio'
 import { AlertType } from './dialog'
 import { hIcon, pendingPromise } from './misc'
 import _ from 'lodash'
@@ -12,7 +13,13 @@ type Content = string | ReactElement
 export function toast(content: Content, type: ToastType='info', { timeout=5_000 }: { timeout?: number } & Omit<ToastOptions, 'id' | 'content' | 'type'>={}) {
     console.debug("toast", content)
     const id = Math.random()
-    toasts.push({ id, content, type, close })
+    toasts.push({
+        id,
+        // keep react elements out of valtio proxy snapshots
+        content: isValidElement(content) ? ref(content) : content,
+        type: isValidElement(type) ? ref(type) : type,
+        close
+    })
     const closed = pendingPromise()
     setTimeout(close, timeout)
     return {
@@ -61,7 +68,6 @@ function Toast({ content, type, closed, id, close, ...props }: ToastRecord) {
             _.remove(toasts, { id })
     }, [addClass])
     const ref = useRef<HTMLDivElement | null>()
-    content = useMemo(() => isValidElement(content) ? cloneElement(content) : content, [content]) // proxied elements are frozen, and crash
     return h('div', {
             ...props,
             ref,
