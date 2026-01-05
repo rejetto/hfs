@@ -25,6 +25,7 @@
     "@types/xxhashjs": "^0.2.4",
     "@vitejs/plugin-legacy": "^6.0.0",
     "sass": "^1.54.5",
+    "sonda": "^0.10.1",
     "vite": "*"
   },
   "eslintConfig": {
