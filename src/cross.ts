@@ -37,6 +37,7 @@ export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready:
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
 type Truthy<T> = T extends false | '' | 0 | null | undefined | void ? never : T
+export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Promisable<T> = T | Promise<T>
 export type Functionable<T, Args extends any[] = any[]> = T | ((...args: Args) => T)
