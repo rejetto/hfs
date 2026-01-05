@@ -137,14 +137,14 @@ export function useFixSticky() {
 }
 
 // returns props to assign to your component, and a copy of the ref; calls back with [width, height]
-export function useOnResize(cb: (width: number, height: number, target: HTMLElement, style: CSSStyleDeclaration) => any) {
-    const ref = useRef<HTMLElement | null>(null)
+export function useOnResize(cb: (width: number, height: number, target: Element, style: CSSStyleDeclaration) => any) {
+    const ref = useRef<Element | null>(null)
     const cleanupRef = useRef(_.noop)
     return useMemo(() => {
         let lastW = -1
         let lastH = -1
 
-        function measure(el: HTMLElement) {
+        function measure(el: Element) {
             const style = getComputedStyle(el)
             const w = (el.clientWidth || el.getBoundingClientRect().width)
                 + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
@@ -158,7 +158,7 @@ export function useOnResize(cb: (width: number, height: number, target: HTMLElem
 
         return {
             ref,
-            refToPass(el: HTMLElement | null) {
+            refToPass(el: Element | null) {
                 ref.current = el
                 cleanupRef.current()
                 cleanupRef.current = _.noop

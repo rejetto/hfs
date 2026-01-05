@@ -2,7 +2,7 @@ import { ComponentProps, createElement as h, forwardRef, useState } from 'react'
 import Editor from 'react-simple-code-editor'
 import { FieldProps } from '@hfs/mui-grid-form'
 import { Box, TextField, TextFieldProps } from '@mui/material'
-import { focusableSelector, isCtrlKey, try_ } from './misc'
+import { focusableSelector, isCtrlKey, Optional, try_ } from './misc'
 import _ from 'lodash'
 import { highlight, languages } from 'prismjs'
 import 'prismjs/components/prism-markup'
@@ -14,7 +14,7 @@ import 'prismjs/themes/prism-solarizedlight.css' // looks good both with light a
 
 type OP = ComponentProps<typeof Editor>
 type Already = 'highlight' | 'padding' | 'tabSize' | 'insertSpaces' | 'ignoreTabKey'
-type TextEditorProps = Omit<OP, Already> & Partial<Pick<OP, Already>> & { lang?: 'plain' | 'js' | 'html' | 'css' | 'json' | 'yaml' }
+type TextEditorProps = Optional<OP, Already> & { lang?: 'plain' | 'js' | 'html' | 'css' | 'json' | 'yaml' }
 export const TextEditor = forwardRef(({ style, lang='plain', ...props }: TextEditorProps, _ref) => h(Editor, {
     // Editor component doesn't seem to support ref, but it didn't cause any problem yet
     highlight: s => highlight(s, languages[lang], lang),
