@@ -1,7 +1,5 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
-
 export async function srpClientSequence(username:string, password:string, apiCall: (cmd:string, params:any) => any, extra?: object) {
     const { pubKey, salt } = await apiCall('loginSrp1', { username })
     if (!salt) throw Error('salt')
@@ -12,6 +10,7 @@ export async function srpClientSequence(username:string, password:string, apiCal
 }
 
 export async function srpClientPart(username: string, password: string, salt: string, pubKey: string) {
+    const { SRPClientSession, SRPParameters, SRPRoutines } = await import('tssrp6a')
     const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
     const srpClient = new SRPClientSession(srp6aNimbusRoutines);
     const res = await srpClient.step1(username, password)
