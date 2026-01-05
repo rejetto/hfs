@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from './router'
 import {
     createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState, useId
 } from 'react'
@@ -401,4 +401,3 @@ export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnig
 
 const EntrySize = memo(({ s }: { s: DirEntry['s']  }) =>
     s === undefined ? null : h(Bytes, { className: 'entry-size', bytes: s }) )
-

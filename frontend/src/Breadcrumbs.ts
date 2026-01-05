@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Link, LinkProps } from 'react-router-dom'
+import { Link, LinkProps } from './router'
 import { createElement as h, Fragment, ReactElement } from 'react'
 import { getPrefixUrl, hIcon } from './misc'
 import { DirEntry, state, useSnapState } from './state'
@@ -69,4 +69,3 @@ function Breadcrumb({ path, label, current, ...rest }: { current?: boolean, path
         }
     }, label)
 }
-
