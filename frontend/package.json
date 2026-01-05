@@ -4,6 +4,7 @@
   "scripts": {
     "start": "vite",
     "build": "tsc && vite build",
+    "report": "tsc && BUNDLE_REPORT=1 vite build",
     "preview": "vite preview",
     "test-dep": "npm audit --production"
   },
