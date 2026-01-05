@@ -3,7 +3,6 @@
 import { state, useSnapState } from './state'
 import { createElement as h } from 'react'
 import { alertDialog, newDialog, promptDialog } from './dialog'
-import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { apiCall } from '@hfs/shared/api'
 import { logout } from './login'
 import { Btn, CustomCode } from './components'
@@ -54,6 +53,7 @@ export async function changePassword(required=false) {
     if (!check) return
     if (check !== pwd)
         return alertDialog(t('pass2_mismatch', "The second password you entered did not match the first. Procedure aborted."), 'warning')
+    const { createVerifierAndSalt, SRPParameters, SRPRoutines } = await import('tssrp6a')
     const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
     const res = await createVerifierAndSalt(srp6aNimbusRoutines, state.username, pwd)
     try {
