@@ -56,10 +56,33 @@ export function buildUrlQueryString(params: Dict) { // not using URLSearchParams
     return '?' + Object.entries(params).filter(pair => pair[1] !== undefined).map(pair => pair.map(x => encodeURIComponent(x).replaceAll('%2F','/')).join('=') ).join('&')
 }
 
-export function domOn<K extends keyof WindowEventMap>(eventName: K, cb: (ev: WindowEventMap[K]) => void, { target=window }={}) {
+type DomOnEventMap<T> =
+    T extends Window ? WindowEventMap :
+    T extends Document ? DocumentEventMap :
+    T extends HTMLMediaElement ? HTMLMediaElementEventMap :
+    T extends HTMLElement ? HTMLElementEventMap :
+    T extends SVGElement ? SVGElementEventMap :
+    T extends Element ? ElementEventMap :
+    T extends MediaQueryList ? MediaQueryListEventMap :
+    T extends EventTarget ? Record<string, Event> :
+    never
+
+type DomOnTarget<O> = O extends { target?: infer T } ? T : Window
+type DomOnEventMapFor<O> = DomOnEventMap<DomOnTarget<O>>
+
+// default target is `window`
+export function domOn<
+    O extends boolean | undefined | { target?: EventTarget } & AddEventListenerOptions = undefined,
+    K extends keyof DomOnEventMapFor<O> & string = keyof DomOnEventMapFor<O> & string
+>(
+    eventName: K,
+    cb: (ev: DomOnEventMapFor<O>[K]) => void,
+    options?: O
+) {
+    const target = options && 'target' in options ? options.target : window
     if (!target) return
-    target.addEventListener(eventName, cb)
-    return () => target.removeEventListener(eventName, cb)
+    target.addEventListener(eventName, cb as EventListener, options)
+    return () => target.removeEventListener(eventName, cb as EventListener, options)
 }
 
 export function restartAnimation(e: HTMLElement | null | undefined, animation: string) {
@@ -182,6 +205,7 @@ export function createDurationFormatter({ locale=undefined, unitDisplay='narrow'
 }
 
 export async function copyTextToClipboard(text: string) {
+    text = String(text)
     try {
         await navigator.clipboard.writeText(text) // this method works only in https and localhost
     }

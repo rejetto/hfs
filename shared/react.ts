@@ -210,7 +210,7 @@ export function isCtrlKey(ev: KeyboardEvent) {
 }
 
 export function useAutoScroll(dependency: any) {
-    const ref = useRef<any>()
+    const ref = useRef<HTMLElement | null>(null)
     const lastScrollListenerRef = useRef<any>()
     const [goBottom, setGoBottom] = useState(true)
     useEffect(() => {
@@ -218,12 +218,13 @@ export function useAutoScroll(dependency: any) {
         if (goBottom)
             el?.scrollTo(0, el.scrollHeight)
     }, [goBottom, dependency])
-    return useCallback((el: any) => {
+    return useCallback((el: HTMLElement | null) => {
         ref.current = el
         // reinstall listener
         lastScrollListenerRef.current?.()
+        if (!el) return
         lastScrollListenerRef.current = domOn('scroll', ev => {
-            const el = ev.target as HTMLDivElement
+            const el = ev.target as HTMLElement
             if (!el) return
             setGoBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 3)
         }, { target: el })
