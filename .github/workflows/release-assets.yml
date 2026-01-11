@@ -1,0 +1,245 @@
+name: release-assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v3.0.2)'
+        required: true
+        type: string
+      signing_policy:
+        description: 'SignPath signing policy slug'
+        required: true
+        default: release-signing
+        type: string
+      commitish:
+        description: 'Target branch or commit (optional)'
+        required: false
+        type: string
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build server and UIs
+        run: |
+          npm run build-server
+          npm run build-frontend
+          npm run build-admin
+
+      - name: Prepare dist dependencies
+        run: npm run dist-modules
+
+      - name: Build Windows binary
+        run: |
+          cd dist
+          npx pkg . --public -C gzip -t node${{ env.NODE_VERSION }}-win-x64
+          npx resedit-cli --in hfs.exe --icon 1,../hfs.ico --out hfs.exe
+
+      - name: Prepare unsigned artifact folder
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/signpath | Out-Null
+          Copy-Item dist/hfs.exe dist/signpath/hfs.exe -Force
+          Copy-Item dist/plugins dist/signpath/plugins -Recurse -Force
+
+      - name: Upload unsigned artifact
+        id: upload_unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: hfs-windows-unsigned
+          path: dist/signpath/**
+
+      - name: Sign with SignPath
+        uses: SignPath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: hfs
+          artifact-configuration-slug: hfs_win_zip
+          signing-policy-slug: ${{ inputs.signing_policy }}
+          github-artifact-id: ${{ steps.upload_unsigned.outputs.artifact-id }}
+          github-token: ${{ github.token }}
+          output-artifact-directory: dist/signpath-output
+
+      - name: Package signed artifact
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          $target = "dist/hfs-windows-x64-$version.zip"
+          $outputDir = 'dist/signpath-output'
+          $zip = Get-ChildItem -Path $outputDir -Filter *.zip -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if ($zip) {
+            if ((Resolve-Path $target).Path -ne $zip.FullName) {
+              Copy-Item $zip.FullName $target -Force
+            }
+            exit 0
+          }
+          $items = Get-ChildItem -Path $outputDir
+          if (-not $items) {
+            Write-Host 'No signed artifact files found. Listing dist contents for troubleshooting:'
+            Get-ChildItem -Path dist -Recurse | Select-Object FullName
+            throw 'No signed artifact files found after signing.'
+          }
+          Compress-Archive -Path "$outputDir/*" -DestinationPath $target -Force
+
+      - name: Upload signed package
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets-windows
+          path: dist/hfs-windows-x64-*.zip
+
+  linux:
+    runs-on: ubuntu-latest
+    needs: windows
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build server and UIs
+        run: |
+          npm run build-server
+          npm run build-frontend
+          npm run build-admin
+
+      - name: Prepare dist dependencies
+        run: npm run dist-modules
+
+      - name: Build Linux binary
+        run: npm run dist-bin-linux
+
+      - name: Upload Linux package
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets-linux
+          path: dist/hfs-linux-x64-*.zip
+
+  mac_x64:
+    runs-on: macos-15-intel
+    needs: windows
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build server and UIs
+        run: |
+          npm run build-server
+          npm run build-frontend
+          npm run build-admin
+
+      - name: Prepare dist dependencies
+        run: npm run dist-modules
+
+      - name: Build macOS x64 binary
+        run: npm run dist-bin-mac
+
+      - name: Upload macOS x64 package
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets-mac-x64
+          path: dist/hfs-mac-x64-*.zip
+
+  mac_arm:
+    runs-on: macos-14
+    needs: windows
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build server and UIs
+        run: |
+          npm run build-server
+          npm run build-frontend
+          npm run build-admin
+
+      - name: Prepare dist dependencies
+        run: npm run dist-modules
+
+      - name: Build macOS arm64 binary
+        run: npm run dist-bin-mac-arm
+
+      - name: Upload macOS arm64 package
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets-mac-arm
+          path: dist/hfs-mac-arm64-*.zip
+
+  release:
+    runs-on: ubuntu-latest
+    needs:
+      - windows
+      - linux
+      - mac_x64
+      - mac_arm
+    permissions:
+      contents: write
+    steps:
+      - name: Download assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-assets-*
+          merge-multiple: true
+          path: release-assets
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: ${{ inputs.tag }}
+          target_commitish: ${{ inputs.commitish || github.event.repository.default_branch }}
+          draft: true
+          files: release-assets/*.zip
