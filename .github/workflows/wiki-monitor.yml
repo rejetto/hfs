@@ -1,0 +1,138 @@
+name: Wiki monitor
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore last seen commit
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: .wiki-monitor
+          key: wiki-monitor-${{ github.run_id }}
+          restore-keys: |
+            wiki-monitor-
+
+      - name: Get latest wiki commit
+        id: wiki
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo='${{ github.repository }}'
+          url="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${repo}.wiki.git"
+          if ! sha=$(git ls-remote "$url" HEAD | awk '{print $1}'); then
+            echo 'exists=false' >> "$GITHUB_OUTPUT"
+            echo 'Wiki repo not found or inaccessible.'
+            exit 0
+          fi
+          if [ -z "$sha" ]; then
+            echo 'exists=false' >> "$GITHUB_OUTPUT"
+            echo 'Wiki repo not found or empty.'
+            exit 0
+          fi
+          echo 'exists=true' >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Send Telegram alert
+        if: steps.wiki.outputs.exists == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: '128365884'
+          REPO: ${{ github.repository }}
+          SKIP_EMAILS: 'a@rejetto.com'
+        run: |
+          set -euo pipefail
+          if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+            echo 'Missing TELEGRAM_BOT_TOKEN; skipping Telegram alert.'
+            exit 0
+          fi
+          url="https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO}.wiki.git"
+          mkdir -p .wiki-monitor
+          if [ ! -d .wiki-monitor/wiki ]; then
+            git clone --quiet --depth=50 "$url" .wiki-monitor/wiki
+          fi
+          cd .wiki-monitor/wiki
+          git fetch --quiet origin HEAD
+          git -c advice.detachedHead=false checkout --quiet FETCH_HEAD
+          latest_sha=$(git rev-parse HEAD)
+          last_seen_file=../last_seen
+          last_seen=''
+          if [ -f "$last_seen_file" ]; then
+            last_seen=$(cat "$last_seen_file")
+          fi
+          if [ -n "$last_seen" ] && ! git cat-file -e "$last_seen^{commit}" 2>/dev/null; then
+            git fetch --quiet --unshallow || true
+          fi
+          if [ -n "$last_seen" ] && ! git cat-file -e "$last_seen^{commit}" 2>/dev/null; then
+            echo "Last seen commit missing; resetting baseline to ${latest_sha}."
+            echo "$latest_sha" > "$last_seen_file"
+            exit 0
+          fi
+          range=''
+          if [ -n "$last_seen" ]; then
+            range="${last_seen}..HEAD"
+          fi
+          commits=$(git log --format='%H|%an|%ae' ${range:+$range})
+          if [ -z "$last_seen" ]; then
+            echo "$latest_sha" > "$last_seen_file"
+            echo 'Initialized last seen commit; skipping notification.'
+            exit 0
+          fi
+          echo "Last seen: ${last_seen:-<none>}"
+          echo "Latest: ${latest_sha}"
+          notify=''
+          if [ -n "$commits" ]; then
+            echo 'Commits since last seen:'
+            echo "$commits"
+            while IFS='|' read -r sha author_name author_email; do
+              if [ -z "$sha" ]; then
+                continue
+              fi
+              if [ -n "$SKIP_EMAILS" ]; then
+                IFS=',' read -r -a skip_emails <<< "$SKIP_EMAILS"
+                for email in "${skip_emails[@]}"; do
+                  if [ "${author_email}" = "${email}" ]; then
+                    sha=''
+                    break
+                  fi
+                done
+                if [ -z "$sha" ]; then
+                  continue
+                fi
+              fi
+              short_sha=$(echo "$sha" | cut -c1-7)
+              files=$(git diff-tree --no-commit-id --name-only -r "$sha" | tr '\n' ',' | sed 's/,$//')
+              if [ -z "$files" ]; then
+                files='(no file list)'
+              fi
+              notify="${notify}- ${short_sha} by ${author_name} files: ${files}\n"
+            done <<< "$commits"
+          fi
+          echo "$latest_sha" > "$last_seen_file"
+          if [ -z "$notify" ]; then
+            exit 0
+          fi
+          message="Wiki updated by others:\n${notify}"
+          response=$(printf '%b' "$message" | \
+            curl -sS -w '\nHTTP_STATUS=%{http_code}\n' -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_CHAT_ID}" \
+              --data-urlencode "text@-" \
+              -d "disable_web_page_preview=true")
+          echo "Telegram response:"
+          echo "$response"
+
+      - name: Save last seen commit
+        if: steps.wiki.outputs.exists == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .wiki-monitor
+          key: wiki-monitor-${{ github.run_id }}
