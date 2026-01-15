@@ -8,7 +8,7 @@ import _ from 'lodash'
 import { findDefined, randomId, try_, tryJson, wait } from '../src/cross'
 import { httpStream, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
-import { access, rm, writeFile } from 'fs/promises'
+import { access, mkdir, rm, writeFile } from 'fs/promises'
 import { Readable } from 'stream'
 /*
 import { PORT, srv } from '../src'
@@ -54,6 +54,20 @@ describe('basics', () => {
     test('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
     test('search root', reqList('/', { inList:['cantListPage/'], outList:['cantListPage/page/'] }, { search:'page' }))
     test('download.mime', req('/f1/f2/alfa.txt', { re:/abcd/, mime:'text/plain' }))
+    test('download.not modified', async () => {
+        let lm = ''
+        await req('/f1/f2/alfa.txt', (_data, res) => lm = res.headers?.['last-modified'])()
+        if (!lm)
+            throw "last-modified"
+        await req('/f1/f2/alfa.txt', { status: 304, empty: true }, { headers: { 'If-Modified-Since': lm } })()
+    })
+    test('download.if-range', async () => {
+        let etag = ''
+        await req('/f1/f2/alfa.txt', (_data, res) => etag = res.headers?.etag)()
+        if (!etag)
+            throw "missing etag"
+        await req('/f1/f2/alfa.txt', /a[^d]+$/, { headers: { Range: 'bytes=0-2', 'If-Range': etag } })() // only "abc" is expected
+    })
     test('download.partial', req('/f1/f2/alfa.txt', /a[^d]+$/, { // only "abc" is expected
         headers: { Range: 'bytes=0-2' }
     }))
@@ -63,12 +77,25 @@ describe('basics', () => {
     test('roots', req('/f2/alfa.txt', 200, { baseUrl: BASE_URL_127 })) // host 127.0.0.1 is rooted in /f1
     test('website', req('/f1/page/', { re:/This is a test/, mime:'text/html' }))
     test('traversal', req('/f1/page/.%2e/.%2e/README.md', 418))
+    test('traversal.double-encoded', req('/f1/page/%252e%252e/%252e%252e/README.md', 404))
+    test('traversal.encoded-slash', req('/f1/page/%2e%2e%2f%2e%2e%2fREADME.md', 404))
+    test('traversal.backslash', req('/f1/page/..%5c..%5cREADME.md', 418))
+    test('traversal.to-admin', req('/f1/page/%2e%2e/%2e%2e/for-admins/alfa.txt', 418))
+    test('traversal.mixed-dots', req('/f1/page/.%2e/%2e./README.md', 418))
+    test('traversal.overlong-utf8', req('/f1/page/%c0%ae%c0%ae/%c0%ae%c0%ae/README.md', 418))
     test('custom mime from above', req('/tests/page/index.html', { status: 200, mime:'text/plain' }))
     test('name encoding', req('/x%25%23x', 200))
 
     test('missing perm', reqList('/for-admins/', 401))
     test('missing perm.file', req('/for-admins/alfa.txt', 401))
-
+    test('missing anti-csrf', reqApi('rename', { uri: '/f1', dest: 'x' }, 418, { headers: {} })) // overriding anti-csrf
+    test('malformed body', reqApi('rename', { uri: '/f1', dest: 'x' }, { status: 400 }, {
+        headers: { 'x-hfs-anti-csrf': '1', 'content-type': 'application/json' },
+        body: '{'
+    }))
+    test('file_details.missing', reqApi('get_file_details', { uris: ['/missing'] }, res => res?.details?.[0] === false))
+    test('file_list.traversal', reqApi('get_file_list', { uri: '/f1/%2e%2e/for-admins' }, 404))
+    test('file_details.traversal', reqApi('get_file_details', { uris: ['/f1/%2e%2e/for-admins/alfa.txt'] }, res => res?.details?.[0] === false))
     test('forbidden list', req('/cantListPage/page/', 403))
     test('forbidden list.api', reqList('/cantListPage/page/', 403))
     test('forbidden list.cant see', reqList('/cantListPage/', { outList:['page/'] }))
@@ -143,14 +170,15 @@ describe('basics', () => {
                 throw "unexpected size for " + fn
         }))
     test('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 401))
+    test('create_folder.bad type', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 123 }, { status: 400, re: /name/ }))
     test('delete.no perm', req('/for-admins/', 405, { method: 'delete' }))
     test('delete.need account', req(UPLOAD_ROOT + 'alfa.txt', 401, { method: 'delete'}))
     test('rename.no perm', reqApi('rename', { uri: '/for-admins', dest: 'any' }, 401))
-    test('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw Error('logged in') }, () => {}))
+    test('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw "in" }, () => {}))
     test('allow_net.canLogin', () => login(username))
     test('allow_net.cantLogin', () => {
         defaultBaseUrl = BASE_URL_127 // 127.0.0.1 is not allowed for this account
-        return login(username).then(() => { throw Error('logged in') }, () => {})
+        return login(username).then(() => { throw "in" }, () => {})
             .finally(() => defaultBaseUrl = BASE_URL)
     })
 
@@ -188,6 +216,40 @@ describe('after-login', () => {
     test('inherit.disabled', reqList('/for-disabled/', 401))
     test('upload.never', reqUpload('/random', 403))
     test('upload.ok', reqUpload(UPLOAD_DEST, 200))
+    test('file_details.admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, res => {
+        const u = res?.details?.[0]?.upload
+        const err = !u?.ip ? 'ip' : u?.username !== username ? 'username' : ''
+        if (err)
+            throw err
+    }))
+    test('file_details.non-admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, res => {
+        const u = res?.details?.[0]?.upload
+        const err = !u ? 'missing upload' : u?.ip ? 'ip' : u?.username !== username ? 'username' : ''
+        if (err)
+            throw err
+    }, { jar: {} }))
+    test('upload but not delete', async () => {
+        const name = `cant-delete`
+        await mkdir(resolve(ROOT, name), { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        try {
+            const dest = `${UPLOAD_ROOT}${name}/no-delete.txt`
+            await reqUpload(dest, 200)()
+            await req(dest, 403, { method: 'delete' })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rm(resolve(ROOT, name), { recursive: true, force: true }).catch(() => {})
+        }
+    })
+    test('upload.existing.skip', async () => {
+        const filePath = resolve(__dirname, UPLOAD_RELATIVE)
+        const before = statSync(filePath).size
+        await reqUpload(UPLOAD_DEST + '?existing=skip', 409)()
+        const after = statSync(filePath).size
+        if (after !== before)
+            throw "size changed"
+    })
     test('upload.crossing', reqUpload(UPLOAD_DEST.replace('temp', '../..'), 418))
     test('upload.overlap', async () => {
         const ms = 300
@@ -215,19 +277,19 @@ describe('after-login', () => {
         const getTempSize = () => try_(() => statSync(fn)?.size)
         const size = getTempSize()
         if (!size) // temp file is left, not empty
-            throw Error("missing temp file")
+            throw "missing temp file"
         await reqUpload(UPLOAD_DEST + '?resume=0!', 412)()
         await makeAbortedRequest(timeFirstRequest * 1.5) // upload more than r1
         if (!(size < getTempSize()!)) // should be increased, as secondary temp file got bigger and replaced primary one
-            throw Error(`temp file not enlarged, it was ${size} and now it's ${getTempSize()}`)
+            throw `temp file not enlarged, it was ${size} and now it's ${getTempSize()}`
         await reqUpload(UPLOAD_DEST, 200, makeReadableThatTakes(0))() // quickly complete the upload, and check for final size
         if (getTempSize())
-            throw Error("temp file should be cleared")
+            throw "temp file should be cleared"
         // test resume
         await makeAbortedRequest(timeFirstRequest)
         const partial = getTempSize()
         if (!partial)
-            throw Error("partial file missing")
+            throw "partial file missing"
         await reqUpload(UPLOAD_DEST, 200, Readable.from(BIG_CONTENT.slice(partial)), BIG_CONTENT.length, partial)()
     })
     const renameTo = 'z'
@@ -267,6 +329,11 @@ describe('after-login', () => {
         await reqUpload(uri, 200, BIG_CONTENT)()
         await testMaxDl(uri, 2, 1)
     })
+    test('logout', async () => {
+        await reqApi('get_accounts', {}, 200)() // we're admin
+        await reqApi('logout', {}, 401)()
+        await reqApi('get_accounts', {}, 401)() // no more
+    })
     after(() => rm(resolve(__dirname, 'temp'), { recursive: true }).catch(() => 0))
 })
 
@@ -281,6 +348,17 @@ describe('admin', () => {
         finally {
             await reqApi('del_vfs', { uris: ['/'+name] }, 200, { auth })() // remove
         }
+    })
+    test('plugins.missing', reqApi('set_plugin', { id: 'missing-plugin', enabled: true }, { status: 400, re: /miss/ }, { auth }))
+    test('plugins.update.missing', reqApi('update_plugin', { id: 'missing-plugin' }, 404, { auth }))
+    test('plugins.start_stop', async () => {
+        const id = 'download-counter'
+        await reqApi('stop_plugin', { id }, 200, { auth })()
+        await reqApi('start_plugin', { id }, 200, { auth })()
+        await reqApi('stop_plugin', { id }, res => {
+            if (res?.msg === 'already stopped')
+                throw "plugin didn't start"
+        }, { auth })()
     })
 })
 
@@ -302,7 +380,7 @@ function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?
                 if (!stats)
                     throw Error("uploaded file not found: " + fn)
                 if (size !== stats.size)
-                    throw Error(`uploaded file wrong size: ${fn} = ${stats.size.toLocaleString()} expected ${size?.toLocaleString()}`)
+                    throw `uploaded file wrong size: ${fn} = ${stats.size.toLocaleString()} expected ${size?.toLocaleString()}`
                 return true
             }
         }
