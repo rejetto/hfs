@@ -165,6 +165,8 @@ export default {
                     return HTTP_SERVER_ERROR
                 const idx = children.indexOf(node)
                 children.splice(idx, 1)
+                if (!children.length)
+                    parentNode.children = undefined
                 return 0 // error code 0 is OK
             })).finally(saveVfs)
         }
