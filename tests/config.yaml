@@ -46,6 +46,10 @@ vfs:
             - admins
           can_delete:
             - admins
+          children:
+            - name: no-upload
+              source: ../tmp/no-upload
+              can_upload: false
         - source: ../alfa.txt
     - name: for-disabled
       can_list:

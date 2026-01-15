@@ -104,7 +104,12 @@ export async function applyParentToChild(child: VfsNode | undefined, parent: Vfs
     return ret
 }
 
-export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=vfs, getRest?: (rest: string) => any) : Promise<VfsNode | undefined> {
+export async function urlToNode(
+    url: string,
+    ctx?: Koa.Context,
+    parent: VfsNode=vfs,
+    resolveMissing?: true | ((rest: string) => any)
+) : Promise<VfsNode | undefined> {
     let initialSlashes = 0
     while (url[initialSlashes] === '/')
         initialSlashes++
@@ -112,20 +117,25 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     const name = decodeURIComponent(url.slice(initialSlashes, nextSlash < 0 ? undefined : nextSlash))
     if (!name)
         return parent
-    const rest = nextSlash < 0 ? '' : url.slice(nextSlash+1, url.endsWith('/') ? -1 : undefined)
-    const ret = await getNodeByName(name, parent)
+    const hasTrailingSlash = url.endsWith('/')
+    const rest = nextSlash < 0 ? '' : url.slice(nextSlash+1, hasTrailingSlash ? -1 : undefined)
+    const allowMissing = resolveMissing === true
+    const assumeFolder = allowMissing && (rest > '' || hasTrailingSlash)
+    const ret = await getNodeByName(name, parent, assumeFolder)
     if (!ret)
         return
     if (rest || ret?.original)
-        return urlToNode(rest, ctx, ret, getRest)
+        return urlToNode(rest, ctx, ret, resolveMissing)
     if (ret.source)
         if (!showHiddenFiles.get() && await isHiddenFile(ret.source))
             throw 'hiddenFile'
         else if (await setIsFolder(ret) === undefined) { // undefined = not found on disk
-            if (!getRest)
+            if (!resolveMissing)
                 return
-            const rest = ret.source.slice(parent.source!.length) // parent has source, otherwise !ret.source || ret.original
-            getRest(removeStarting('/', rest))
+            if (allowMissing)
+                return ret
+            const rest = ret.source!.slice(parent.source!.length) // we know parent has .source, otherwise !ret.source || ret.original
+            resolveMissing(removeStarting('/', rest))
             return parent
         }
     return ret
@@ -146,7 +156,7 @@ async function isHiddenFile(path: string) {
         : path[path.lastIndexOf('/') + 1] === '.'
 }
 
-export async function getNodeByName(name: string, parent: VfsNode) {
+export async function getNodeByName(name: string, parent: VfsNode, assumeMissingToBeFolder=false) {
     // does the tree node have a child that goes by this name, otherwise attempt disk
     const child = parent.children?.find(isSameFilenameAs(name)) || await childFromDisk()
     return child && applyParentToChild(child, parent, name)
@@ -167,6 +177,8 @@ export async function getNodeByName(name: string, parent: VfsNode) {
         ret.source = join(parent.source, onDisk)
         ret.original = undefined // this will overwrite the 'original' set in applyParentToChild, so we know this is not part of the vfs
         await setIsFolder(ret)
+        if (assumeMissingToBeFolder)
+            ret.isFolder ??= true
         return ret
     }
 }

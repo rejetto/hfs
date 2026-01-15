@@ -4,13 +4,13 @@ import { getNodeName, nodeIsFolder, statusCodeForMissingPerm, urlToNode, vfs, Vf
 import { sendErrorPage } from './errorPages'
 import events from './events'
 import {
-    ADMIN_URI, FRONTEND_URI, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND,
+    ADMIN_URI, FRONTEND_URI, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND,
     HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK, ICONS_URI, HTTP_FAILED_DEPENDENCY, UPLOAD_TEMP_HASH
 } from './cross-const'
 import { getUploadTempFor, uploadWriter } from './upload'
-import formidable from 'formidable'
+import { handleMultipartUpload } from './multipartUpload'
 import { once } from 'events'
-import { Transform, Writable } from 'stream'
+import { Transform } from 'stream'
 import { serveFile, serveFileNode } from './serveFile'
 import { BUILD_TIMESTAMP, DEV, MIME_AUTO, VERSION } from './const'
 import { zipStreamFromFolder } from './zip'
@@ -60,9 +60,9 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const getUploadTempHash = get === UPLOAD_TEMP_HASH
     if (ctx.method === 'PUT' || getUploadTempHash) { // PUT is what you get with `curl -T file url/`
         const decPath = decodeURIComponent(path)
-        let rest = basename(decPath)
+        const rest = basename(decPath)
         const folderUri = pathEncode(dirname(decPath)) // re-encode to get readable urls
-        const folder = await urlToNode(folderUri, ctx, vfs, v => rest = v+'/'+rest)
+        const folder = await urlToNode(folderUri, ctx, vfs, true)
         if (!folder)
             return sendErrorPage(ctx, HTTP_NOT_FOUND)
         ctx.state.uploadPath = decPath
@@ -89,32 +89,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     let node = await urlToNode(path, ctx)
     if (!node)
         return sendErrorPage(ctx, HTTP_NOT_FOUND)
-    if (ctx.method === 'POST') { // curl -F upload=@file url/
-        if (ctx.request.type !== 'multipart/form-data')
-            return ctx.status = HTTP_BAD_REQUEST
-        ctx.state.uploads = []
-        let locks: Promise<string>[] = []
-        const form = formidable({
-            maxFileSize: Infinity,
-            allowEmptyFiles: true,
-            fileWriteStreamHandler: f => {
-                const fn = (f as any).originalFilename
-                ctx.state.uploadPath = decodeURI(ctx.path) + fn
-                ctx.state.uploads!.push(fn)
-                const ret = uploadWriter(node!, path, fn, ctx)
-                if (!ret)
-                    return new Writable({ write(data,enc,cb) { cb() } }) // just discard data
-                locks.push(ret.lockMiddleware)
-                return ret
-            }
-        })
-        const uris = await new Promise<string[]>(res => form.parse(ctx.req, async err => {
-            if (err) console.warn("Couldn't parse POST requests:", String(err)) // parsing failure is typically a client-side issue; log as a warning at most
-            res(Promise.all(locks))
-        }))
-        ctx.body = { uris }
-        return
-    }
+    if (ctx.method === 'POST') // curl -F upload=@file url/
+        return handleMultipartUpload(ctx, node)
     if (ctx.method === 'DELETE') {
         const { source } = node
         if (!source)

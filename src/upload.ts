@@ -7,7 +7,7 @@ import {
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
 import {
-    hasDirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter, pathEncode,
+    isValidFileName, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter, pathEncode,
     enforceFinal, Timeout,
 } from './misc'
 import { defineConfig } from './config'
@@ -58,13 +58,13 @@ export function getUploadTempFor(fullPath: string) {
 
 const diskSpaceCache = expiringCache<ReturnType<typeof getDiskSpaceSync>>(3_000) // invalidate shortly
 const uploadingFiles = new Map<string, { ctx: Koa.Context, size: number, got: number }>()
-// stay sync because we use this function with formidable()
-export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: Koa.Context) {
-    if (hasDirTraversal(path))
+// initially sync for formidable; still sync to avoid async races and PUT piping gaps
+export function uploadWriter(base: VfsNode, baseUri: string, filename: string, ctx: Koa.Context) {
+    if (!filename || !isValidFileName(filename))
         return fail(HTTP_FOOL)
     if (statusCodeForMissingPerm(base, 'can_upload', ctx))
         return fail()
-    const fullPath = join(base.source!, path)
+    const fullPath = join(base.source!, filename)
     const already = uploadingFiles.get(fullPath) // this can be checked so early because this function is sync
     if (already) // if it's the same client, we tell to retry later
         return fail(HTTP_CONFLICT, ctx.query.id && ctx.query.id === already.ctx.query.id ? 'retry' : 'already uploading')
@@ -160,7 +160,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         const lockMiddleware = pendingPromise<string>() // expose outside, to let know when all operations stopped
         let errored: any
         fileStream.on('error', (e: any) => {
-            console.warn('file error while uploading', path, ':', e.message)
+            console.warn('file error while uploading', filename, ':', e.message)
             errored = e
             fail(HTTP_SERVER_ERROR, e.code) // don't send e.message as it may contain a disk paths we don't want to leak
         })
@@ -247,7 +247,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
 
     async function overwriteAnyway() {
         if (ctx.query.existing !== 'overwrite') return false
-        const n = await getNodeByName(path, base)
+        const n = await getNodeByName(filename, base)
         if (n && !statusCodeForMissingPerm(n, 'can_delete', ctx)) return true
         overwriteRequestedButForbidden = true
         return false

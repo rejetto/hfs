@@ -21,11 +21,17 @@ onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT', 'SIGHUP'], signal
 // keep calling cb in a sync fashion – returning a promise instead would break the code for argv.updating (update.ts)
 export function onFirstEvent(emitter:EventEmitter, events: string[], cb: (...args:any[])=> void) {
     let already = false
-    for (const e of events)
-        emitter.once(e, (...args) => {
+    const cleanup = () => {
+        events.forEach((e, i) => emitter.off(e, handlers[i]!))
+    }
+    const handlers = events.map(e => {
+        const handler = (...args: any[]) => {
             if (already) return
             already = true
-            cb(...args)
-        })
+            cleanup()
+            cb(e, ...args)
+        }
+        emitter.on(e, handler)
+        return handler
+    })
 }
-

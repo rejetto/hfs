@@ -1,14 +1,14 @@
 import test, { describe, before, after } from 'node:test';
 import { promisify } from 'util'
 import { srpClientSequence } from '../src/srp'
-import { createReadStream, statfsSync, statSync } from 'fs'
+import { createReadStream, existsSync, statfsSync, statSync } from 'fs'
 import { basename, dirname, resolve } from 'path'
 import { exec } from 'child_process'
 import _ from 'lodash'
 import { findDefined, randomId, try_, tryJson, wait } from '../src/cross'
 import { httpStream, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
-import { access, mkdir, rm, writeFile } from 'fs/promises'
+import { mkdir, rm, writeFile } from 'fs/promises'
 import { Readable } from 'stream'
 /*
 import { PORT, srv } from '../src'
@@ -20,6 +20,7 @@ const appStarted = new Promise(resolve =>
 
 const username = 'rejetto'
 const password = 'password'
+const auth = `${username}:${password}`
 const API = '/~/api/'
 const ROOT = 'tests/'
 const BASE_URL = 'http://[::1]:81'
@@ -31,6 +32,7 @@ const BIG_CONTENT = _.repeat(randomId(10), 300_000) // 3MB, big enough to satura
 const throttle = BIG_CONTENT.length /1000 /0.8 // KB, finish in 0.8s, quick but still overlapping downloads
 const SAMPLE_FILE_PATH = resolve(__dirname, 'page/gpl.png')
 let defaultBaseUrl = BASE_URL
+const execP = (cmd: string) => promisify(exec)(cmd).then(x => x.stdout)
 
 class StringRepeaterStream extends Readable {
     constructor(private str: string, private n: number, readonly length=n*str.length) {
@@ -160,15 +162,42 @@ describe('basics', () => {
 
     test('upload.need account', reqUpload( UPLOAD_DEST, 401))
     test('upload.post', () => // this is also testing basic-auth
-        promisify(exec)(`curl -u ${username}:${password} -F upload=@${SAMPLE_FILE_PATH} ${BASE_URL}${UPLOAD_ROOT}`).then(x => {
-            let fn = tryJson(x.stdout)?.uris?.[0]
-            if (!fn) throw "unexpected output " + (x.stdout || x.stderr)
-            fn = resolve(__dirname, basename(decodeURI(fn)))
+        execP(`curl -u ${auth} -F upload=@${SAMPLE_FILE_PATH} ${BASE_URL}${UPLOAD_ROOT}`).then(x => {
+            const uri = tryJson(x)?.uris?.[0]
+            if (!uri) throw "unexpected output " + x
+            const fn = resolve(__dirname, basename(decodeURI(uri)))
             const stats = statSync(fn)
             rm(fn).catch(() => {}) // clear
             if (stats?.size !== statSync(SAMPLE_FILE_PATH).size)
                 throw "unexpected size for " + fn
         }))
+    test('upload.post.empty filename', () => {
+        const boundary = '----hfs-boundary'
+        const body = `--${boundary}\\r\\nContent-Disposition: form-data; name="upload"; filename=""\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nX\\r\\n--${boundary}--\\r\\n`
+        return execP(`printf '%b' "${body}" | curl -s -u ${auth} -H "Content-Type: multipart/form-data; boundary=${boundary}" --data-binary @- ${BASE_URL}${UPLOAD_ROOT} -w "\\nSTATUS:%{http_code}"`).then(x => {
+            const out = x.trimEnd()
+            const idx = out.lastIndexOf('\nSTATUS:')
+            const status = out.slice(idx + 8)
+            if (status !== '400')
+                throw "unexpected status " + status
+            const errMsg = tryJson(out.slice(0, idx))?.errors?.[0]
+            if (!['empty filename', 'no files'].includes(errMsg))
+                throw 'missing error'
+        })
+    })
+    test('upload.post.absolute filename', () => {
+        const absPath = resolve(ROOT, `abs-${randomId(6)}.txt`)
+        const absForBody = absPath.replace(/\\\\/g, '/')
+        const storedPath = resolve(ROOT, 'tmp', basename(absPath))
+        return execP(`curl -s -u ${auth} -H "x-hfs-wait: 1" -F "upload=@${SAMPLE_FILE_PATH};filename=${absForBody}" ${BASE_URL}${UPLOAD_ROOT} -w "\\nSTATUS:%{http_code}"`).then(async x => {
+            const out = x.trimEnd()
+            const idx = out.lastIndexOf('\nSTATUS:')
+            const status = out.slice(idx + 8)
+            throwIf(status !== '418' ? "unexpected status " + status
+                : existsSync(absPath) ? "absolute path accepted"
+                    : existsSync(storedPath) ? "stored file escaped" : '')
+        }).finally(() => Promise.all([rmAny(absPath), rmAny(storedPath)]))
+    })
     test('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 401))
     test('create_folder.bad type', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 123 }, { status: 400, re: /name/ }))
     test('delete.no perm', req('/for-admins/', 405, { method: 'delete' }))
@@ -186,9 +215,9 @@ describe('basics', () => {
     test('folder size.cant', reqApi('get_folder_size', { uri: 'for-admins' }, 401))
 
     test('get_accounts', reqApi('get_accounts', {}, 401)) // admin api requires login
-    test('url login', () => promisify(exec)(`curl -v "${BASE_URL}/for-admins/?login=${username}:${password}"`).then(x => {
-        if (!x.stdout?.includes('Redirect'))
-            throw x.stderr || "failed"
+    test('url login', () => execP(`curl -s -D - -o /dev/null "${BASE_URL}/for-admins/?login=${auth}"`).then(x => {
+        if (!/^(location|set-cookie):/im.test(x))
+            throw "failed"
     }))
 })
 
@@ -218,15 +247,11 @@ describe('after-login', () => {
     test('upload.ok', reqUpload(UPLOAD_DEST, 200))
     test('file_details.admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, res => {
         const u = res?.details?.[0]?.upload
-        const err = !u?.ip ? 'ip' : u?.username !== username ? 'username' : ''
-        if (err)
-            throw err
+        throwIf(!u?.ip ? 'ip' : u?.username !== username ? 'username' : '')
     }))
     test('file_details.non-admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, res => {
         const u = res?.details?.[0]?.upload
-        const err = !u ? 'missing upload' : u?.ip ? 'ip' : u?.username !== username ? 'username' : ''
-        if (err)
-            throw err
+        throwIf(!u ? 'missing upload' : u?.ip ? 'ip' : u?.username !== username ? 'username' : '')
     }, { jar: {} }))
     test('upload but not delete', async () => {
         const name = `cant-delete`
@@ -239,8 +264,15 @@ describe('after-login', () => {
         }
         finally {
             await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
-            await rm(resolve(ROOT, name), { recursive: true, force: true }).catch(() => {})
+            await rmAny(resolve(ROOT, name))
         }
+    })
+    test('upload.path bypass', async () => {
+        const name = 'no-upload'
+        const targetDir = resolve(ROOT, 'tmp', name)
+        await execP(`curl -g -s -u ${auth} -F "upload=@${SAMPLE_FILE_PATH};filename=${name}/evil.txt" ${BASE_URL}${UPLOAD_ROOT}`)
+        if (existsSync(resolve(targetDir, 'evil.txt')))
+            throw "file created"
     })
     test('upload.existing.skip', async () => {
         const filePath = resolve(__dirname, UPLOAD_RELATIVE)
@@ -297,9 +329,11 @@ describe('after-login', () => {
     test('delete.miss renamed', req(UPLOAD_DEST, 404, { method: 'delete' }))
     test('delete.ok', async () => {
         const fn = resolve(__dirname, dirname(UPLOAD_RELATIVE), renameTo)
-        await access(fn)
+        if (!existsSync(fn))
+            throw "missing file"
         await req(dirname(UPLOAD_DEST) + '/' + renameTo, 200, { method: 'delete' })()
-        await access(fn).then(() => { throw "not deleted" }, () => {})
+        if (existsSync(fn))
+            throw "not deleted"
     })
     test('reupload', reqUpload(UPLOAD_DEST, 200))
     test('delete.method', req(UPLOAD_DEST, 200, { method: 'DELETE' }))
@@ -334,11 +368,10 @@ describe('after-login', () => {
         await reqApi('logout', {}, 401)()
         await reqApi('get_accounts', {}, 401)() // no more
     })
-    after(() => rm(resolve(__dirname, 'temp'), { recursive: true }).catch(() => 0))
+    after(() => rmAny(resolve(__dirname, 'temp')))
 })
 
 describe('admin', () => {
-    const auth = `${username}:${password}`
     test('add folder', async () => {
         const name = 'added'
         try {
@@ -378,7 +411,7 @@ function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?
                 const fn = ROOT + decodeURI(data.uri).replace(UPLOAD_ROOT, '')
                 const stats = try_(() => statSync(fn))
                 if (!stats)
-                    throw Error("uploaded file not found: " + fn)
+                    throw "uploaded file not found: " + fn
                 if (size !== stats.size)
                     throw `uploaded file wrong size: ${fn} = ${stats.size.toLocaleString()} expected ${size?.toLocaleString()}`
                 return true
@@ -478,7 +511,7 @@ function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }:
         }
         if (typeof test === 'function')
             if (test(obj ?? data, res) === false)
-                throw Error("failed test: " + test)
+                throw "failed test: " + test
         return obj ?? data
     }
 }
@@ -498,4 +531,13 @@ function reqList(uri:string, tester:Tester, params?: object) {
 
 function isInList(res:any, name:string) {
     return Array.isArray(res?.list) && Boolean((res.list as any[]).find(x => x.n===name))
+}
+
+function rmAny(path: string) {
+    return rm(path, { recursive: true, force: true }).catch(() => {})
+}
+
+function throwIf(msg: any) {
+    if (msg)
+        throw msg
 }
