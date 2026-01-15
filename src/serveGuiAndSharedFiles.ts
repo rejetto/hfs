@@ -68,7 +68,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         ctx.state.uploadPath = decPath
         if (getUploadTempHash)
             return !folder.source ? sendErrorPage(ctx, HTTP_NOT_FOUND)
-                : ctx.body = await loadFileCached(getUploadTempFor(join(folder.source, rest)), calcHash)  // negligible memory leak
+                : statusCodeForMissingPerm(folder, 'can_upload', ctx) ? null
+                : ctx.body = await loadFileCached(getUploadTempFor(join(folder.source, rest)), calcHash) // negligible memory leak
         const dest = uploadWriter(folder, folderUri, rest, ctx)
         if (dest) {
             ctx.req.pipe(dest).on('error', err => {

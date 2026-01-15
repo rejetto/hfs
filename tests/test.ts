@@ -5,7 +5,7 @@ import { createReadStream, existsSync, statfsSync, statSync } from 'fs'
 import { basename, dirname, resolve } from 'path'
 import { exec } from 'child_process'
 import _ from 'lodash'
-import { findDefined, randomId, try_, tryJson, wait } from '../src/cross'
+import { findDefined, randomId, try_, tryJson, UPLOAD_TEMP_HASH, wait } from '../src/cross'
 import { httpStream, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { mkdir, rm, writeFile } from 'fs/promises'
@@ -26,7 +26,8 @@ const ROOT = 'tests/'
 const BASE_URL = 'http://[::1]:81'
 const BASE_URL_127 = 'http://127.0.0.1:81'
 const UPLOAD_ROOT = '/for-admins/upload/'
-const UPLOAD_RELATIVE = 'temp/gpl.png'
+const UPLOAD_DIR = 'temp'
+const UPLOAD_RELATIVE = `${UPLOAD_DIR}/gpl.png`
 const UPLOAD_DEST = UPLOAD_ROOT + UPLOAD_RELATIVE
 const BIG_CONTENT = _.repeat(randomId(10), 300_000) // 3MB, big enough to saturate buffers
 const throttle = BIG_CONTENT.length /1000 /0.8 // KB, finish in 0.8s, quick but still overlapping downloads
@@ -245,6 +246,11 @@ describe('after-login', () => {
     test('inherit.disabled', reqList('/for-disabled/', 401))
     test('upload.never', reqUpload('/random', 403))
     test('upload.ok', reqUpload(UPLOAD_DEST, 200))
+    test('upload.temp hash requires auth', async () => {
+        const rel = `${UPLOAD_DIR}/partial.png`
+        await reqUpload(`${UPLOAD_ROOT}${rel}?partial=1`, 204)()
+        await req(`${UPLOAD_ROOT}${rel}?get=${UPLOAD_TEMP_HASH}`, 401, { jar: {} })()
+    })
     test('file_details.admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, res => {
         const u = res?.details?.[0]?.upload
         throwIf(!u?.ip ? 'ip' : u?.username !== username ? 'username' : '')
