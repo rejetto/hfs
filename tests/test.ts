@@ -98,10 +98,12 @@ describe('basics', () => {
     }))
     test('file_details.missing', reqApi('get_file_details', { uris: ['/missing'] }, res => res?.details?.[0] === false))
     test('file_details.hidden', reqApi('get_file_details', { uris: ['/tests/config.yaml'] }, res => res?.details?.[0] === false))
-    test('file_list.traversal', reqApi('get_file_list', { uri: '/f1/%2e%2e/for-admins' }, 404))
+    test('file_details.for-admins', reqApi('get_file_details', { uris: ['/for-admins/alfa.txt'] }, res => res?.details?.[0] === false))
     test('file_details.traversal', reqApi('get_file_details', { uris: ['/f1/%2e%2e/for-admins/alfa.txt'] }, res => res?.details?.[0] === false))
+    test('file_list.traversal', reqApi('get_file_list', { uri: '/f1/%2e%2e/for-admins' }, 404))
     test('forbidden list', req('/cantListPage/page/', 403))
     test('forbidden list.api', reqList('/cantListPage/page/', 403))
+    test('forbidden list.admin flag', reqApi('get_file_list', { uri: '/for-admins/', admin: true }, 401))
     test('forbidden list.cant see', reqList('/cantListPage/', { outList:['page/'] }))
     test('forbidden list.but readable file', req('/cantListPage/page/gpl.png', 200))
     test('forbidden list.alternative method', reqList('/cantListPageAlt/page/', 403))
@@ -257,6 +259,7 @@ describe('after-login', () => {
         throwIf(!u?.ip ? 'ip' : u?.username !== username ? 'username' : '')
     }))
     test('file_details.non-admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, res => res?.details?.[0] === false, { jar: {} }))
+    test('zip.no-list but archive', req('/zipNoList/?get=zip', 403, { jar: {} }))
     test('upload but not delete', async () => {
         const name = `cant-delete`
         await mkdir(resolve(ROOT, name), { recursive: true })
@@ -408,9 +411,10 @@ function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?
     if (resume)
         dest += (dest.includes('?') ? '&' : '?') + 'resume=' + resume
     size ??= (body as any)?.length ?? statSync(SAMPLE_FILE_PATH).size  // it's ok that Readable.length is undefined
-    if (tester === 200)
+    const status = (tester as any).status || tester
+    if (status === 200)
         tester = {
-            status: tester,
+            status,
             cb(data) {
                 const fn = ROOT + decodeURI(data.uri).replace(UPLOAD_ROOT, '')
                 const stats = try_(() => statSync(fn))

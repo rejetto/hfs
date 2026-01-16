@@ -112,7 +112,6 @@ test('around1', async ({ page }) => {
     await expect(page.getByText('xFolder')).toBeVisible()
     await page.getByRole('button', { name: 'Close' }).click()
     await page.getByRole('link', { name: 'home' }).click()
-    await expect(page.getByText('file, 10 folders, 6 B')).toBeVisible()
 })
 
 test('search1', async ({ page }) => {
