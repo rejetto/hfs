@@ -249,6 +249,7 @@ describe('after-login', () => {
     test('inherit.disabled', reqList('/for-disabled/', 401))
     test('upload.never', reqUpload('/random', 403))
     test('upload.ok', reqUpload(UPLOAD_DEST, 200))
+    test('upload.dot name', reqUpload(`${UPLOAD_ROOT}%2e`, 418))
     test('upload.temp hash requires auth', async () => {
         const rel = `${UPLOAD_DIR}/partial.png`
         await reqUpload(`${UPLOAD_ROOT}${rel}?partial=1`, 204)()
