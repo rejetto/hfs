@@ -128,7 +128,7 @@ export async function urlToNode(
         return urlToNode(rest, ctx, ret, resolveMissing)
     if (ret.source)
         if (!showHiddenFiles.get() && await isHiddenFile(ret.source))
-            throw 'hiddenFile'
+            return
         else if (await setIsFolder(ret) === undefined) { // undefined = not found on disk
             if (!resolveMissing)
                 return

@@ -97,6 +97,7 @@ describe('basics', () => {
         body: '{'
     }))
     test('file_details.missing', reqApi('get_file_details', { uris: ['/missing'] }, res => res?.details?.[0] === false))
+    test('file_details.hidden', reqApi('get_file_details', { uris: ['/tests/config.yaml'] }, res => res?.details?.[0] === false))
     test('file_list.traversal', reqApi('get_file_list', { uri: '/f1/%2e%2e/for-admins' }, 404))
     test('file_details.traversal', reqApi('get_file_details', { uris: ['/f1/%2e%2e/for-admins/alfa.txt'] }, res => res?.details?.[0] === false))
     test('forbidden list', req('/cantListPage/page/', 403))
@@ -255,10 +256,7 @@ describe('after-login', () => {
         const u = res?.details?.[0]?.upload
         throwIf(!u?.ip ? 'ip' : u?.username !== username ? 'username' : '')
     }))
-    test('file_details.non-admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, res => {
-        const u = res?.details?.[0]?.upload
-        throwIf(!u ? 'missing upload' : u?.ip ? 'ip' : u?.username !== username ? 'username' : '')
-    }, { jar: {} }))
+    test('file_details.non-admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, res => res?.details?.[0] === false, { jar: {} }))
     test('upload but not delete', async () => {
         const name = `cant-delete`
         await mkdir(resolve(ROOT, name), { recursive: true })

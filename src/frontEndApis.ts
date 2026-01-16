@@ -49,10 +49,10 @@ export const frontEndApis: ApiHandlers = {
                 if (typeof uri !== 'string')
                     return false // false means error
                 const node = await urlToNode(uri, ctx)
-                if (!node)
+                if (!node || !hasPermission(node, 'can_see', ctx))
                     return false
                 let upload = node.source && await getUploadMeta(node.source).catch(() => undefined)
-                if (!upload) return
+                if (!upload) return false
                 if (!isAdmin)
                     upload = _.omit(upload, 'ip')
                 return { upload }
