@@ -150,7 +150,7 @@ Valid keys in a node are:
 - `order`: a number that you can set if you want to force the position of this element to the top or the bottom of the list. 
    A positive number for the top, negative for the bottom. If you set "1" for an entry and "2" for another, the "2" will be the topmost.
 - `target`: optional, for links only, used to [open the link in a new browser](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). E.g. `_blank`
-- `accept`:  valid only on upload folders, used to restrict the type of files you can upload. E.g. `.zip,.rar`
+- `accept`: valid only on upload folders; not enforced, just hinting the browser. E.g. `.zip,.rar`
 - `default`: use this with a folder where you want to serve a file, instead of the standard page with the list of files.
   The value must be the name of the file to serve. E.g.: `index.html`. 
   The value must be an absolute or relative path in the VFS, not a path on disk. It works also with other type of files.

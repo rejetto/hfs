@@ -200,7 +200,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
             showTimestamps && { k: 'birthtime', comp: DisplayField, sm: 6, lg: showSize && 4, label: "Created", toField: formatTimestamp },
             showTimestamps && { k: 'mtime', comp: DisplayField, sm: 6, lg: showSize && 4, label: "Modified", toField: formatTimestamp },
             showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything", xl: showWebsite ? 4 : 12,
-                helperText: h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip") },
+                helperText: h('span', {}, "Not enforced, just hinting the browser. ", h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip")) },
             showWebsite && { k: 'default', comp: BoolField, xl: showAccept ? 8 : 12,
                 label: "Serve as web-page if index.html is found" + (inheritedDefault && values.default == null ? ' (inherited)' : ''),
                 value: values.default ?? inheritedDefault,
