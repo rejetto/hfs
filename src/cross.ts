@@ -197,11 +197,9 @@ export function setHidden<T, ADD>(dest: T, src: ADD) {
 }
 
 export function try_<T,E=undefined>(cb: () => T, onException?: (e:any) => E) {
-    try {
-        return cb()
-    }
+    try { return cb() }
     catch(e) {
-        return onException?.(e)
+        return onException?.(e) as E
     }
 }
 
@@ -525,9 +523,9 @@ export function callable<T>(x: Functionable<T>, ...args: unknown[]) {
     return _.isFunction(x) ? x(...args) : x
 }
 
-export function safeDecodeURIComponent(s: string) {
+export function safeDecodeURIComponent(s: string, fallback: string=s) {
     try { return decodeURIComponent(s) }
-    catch { return s }
+    catch { return fallback }
 }
 
 export function popKey(o: any, k: string) {

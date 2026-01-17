@@ -114,9 +114,12 @@ export async function urlToNode(
     while (url[initialSlashes] === '/')
         initialSlashes++
     let nextSlash = url.indexOf('/', initialSlashes)
-    const name = decodeURIComponent(url.slice(initialSlashes, nextSlash < 0 ? undefined : nextSlash))
-    if (!name)
+    const slice = url.slice(initialSlashes, nextSlash < 0 ? undefined : nextSlash)
+    if (!slice)
         return parent
+    const name = try_(() => decodeURIComponent(slice))
+    if (!name) // failed decoding
+        return
     const hasTrailingSlash = url.endsWith('/')
     const rest = nextSlash < 0 ? '' : url.slice(nextSlash+1, hasTrailingSlash ? -1 : undefined)
     const allowMissing = resolveMissing === true

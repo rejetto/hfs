@@ -59,24 +59,17 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
             ss.ip = ctx.ip
         }
 
-    try {
-        if (hasDirTraversal(decodeURI(ctx.path)))
-            return ctx.status = HTTP_FOOL
-        if (!ctx.state.skipFilters && applyBlock(ctx.socket, ctx.ip))
-            return
+    if (!ctx.state.skipFilters && applyBlock(ctx.socket, ctx.ip))
+        return
 
-        if (ctx.get('X-Forwarded-For')
-        // we have some dev-proxies to ignore
-        && !(DEV && [process.env.FRONTEND_PROXY, process.env.ADMIN_PROXY].includes(ctx.get('X-Forwarded-port')))) {
-            proxyDetected = ctx
-            ctx.state.whenProxyDetected = new Date()
-        }
-        if (ctx.get('cf-ray'))
-            cloudflareDetected = new Date()
+    if (ctx.get('X-Forwarded-For')
+    // we have some dev-proxies to ignore
+    && !(DEV && [process.env.FRONTEND_PROXY, process.env.ADMIN_PROXY].includes(ctx.get('X-Forwarded-port')))) {
+        proxyDetected = ctx
+        ctx.state.whenProxyDetected = new Date()
     }
-    catch {
-        return ctx.status = HTTP_FOOL
-    }
+    if (ctx.get('cf-ray'))
+        cloudflareDetected = new Date()
     if (!ctx.secure && forceHttps.get() && getHttpsWorkingPort() && !isLocalHost(ctx)) {
         const { URL } = ctx
         URL.protocol = 'https'

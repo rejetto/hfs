@@ -19,7 +19,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     ctx.status = HTTP_OK
     ctx.mime = 'zip'
     // ctx.query.list is undefined | string | string[]
-    const name = list?.length === 1 ? safeDecodeURIComponent(basename(list[0]!)) : getNodeName(node)
+    const name = list?.length === 1 ? safeDecodeURIComponent(basename(list[0]!), '') : getNodeName(node)
     forceDownload(ctx, (isWindowsDrive(name) ? name[0] : (name || 'archive')) + '.zip')
     const { filterName, filterComment } = paramsToFilter(ctx.query)
     const walker = !list ? walkNode(node, { ctx, requiredPerm: 'can_archive' })
@@ -36,7 +36,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
                     }
                     continue
                 }
-                let folder = dirname(safeDecodeURIComponent(uri)) // decodeURI() won't account for %23=#
+                let folder = dirname(decodeURIComponent(uri)) // decodeURI() won't account for %23=# . uri is safe because otherwise urlToNode above would have already returned undefined
                 folder = folder === '.' ? '' : folder + '/'
                 yield { ...subNode, name: folder + getNodeName(subNode) } // reflect relative path in archive, otherwise way may have name-clashes
             }

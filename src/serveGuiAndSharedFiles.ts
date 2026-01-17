@@ -18,7 +18,7 @@ import { preventAdminAccess, favicon } from './adminApis'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
-import { asyncGeneratorToReadable, filterMapGenerator, loadFileCached, pathEncode, try_ } from './misc'
+import { asyncGeneratorToReadable, filterMapGenerator, isValidFileName, loadFileCached, pathEncode, try_ } from './misc'
 import XXH from 'xxhashjs'
 import fs from 'fs'
 import { rm } from 'fs/promises'
@@ -60,17 +60,17 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const getUploadTempHash = get === UPLOAD_TEMP_HASH
     if (ctx.method === 'PUT' || getUploadTempHash) { // PUT is what you get with `curl -T file url/`
         const decPath = decodeURIComponent(path)
-        const rest = basename(decPath)
+        const fn = basename(decPath)
         const folderUri = pathEncode(dirname(decPath)) // re-encode to get readable urls
         const folder = await urlToNode(folderUri, ctx, vfs, true)
         if (!folder)
             return sendErrorPage(ctx, HTTP_NOT_FOUND)
         ctx.state.uploadPath = decPath
         if (getUploadTempHash)
-            return !folder.source ? sendErrorPage(ctx, HTTP_NOT_FOUND)
+            return !folder.source || !isValidFileName(fn) ? sendErrorPage(ctx, HTTP_NOT_FOUND)
                 : statusCodeForMissingPerm(folder, 'can_upload', ctx) ? null
-                : ctx.body = await loadFileCached(getUploadTempFor(join(folder.source, rest)), calcHash) // negligible memory leak
-        const dest = uploadWriter(folder, folderUri, rest, ctx)
+                : ctx.body = await loadFileCached(getUploadTempFor(join(folder.source, fn)), calcHash) // negligible memory leak
+        const dest = uploadWriter(folder, folderUri, fn, ctx)
         if (dest) {
             ctx.req.pipe(dest).on('error', err => {
                 ctx.status = HTTP_SERVER_ERROR

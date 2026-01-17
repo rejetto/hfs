@@ -317,7 +317,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 sx: { wordBreak: 'break-all' }, // be flexible, uri can be a mess
                 mergeRender: { method: {}, status: {} },
                 renderCell: ({ value, row }) => {
-                    const [path, query] = splitAt('?', value).map(safeDecodeURIComponent)
+                    const [path, query] = splitAt('?', value).map(x => safeDecodeURIComponent(x))
                     const ul = row.extra?.ul
                     if (_.isArray(ul))
                         return path + ul.join(' + ')

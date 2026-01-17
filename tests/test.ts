@@ -67,13 +67,14 @@ describe('basics', () => {
     }))
     test('roots', req('/f2/alfa.txt', 200, { baseUrl: BASE_URL_127 })) // host 127.0.0.1 is rooted in /f1
     test('website', req('/f1/page/', { re:/This is a test/, mime:'text/html' }))
-    test('traversal', req('/f1/page/.%2e/.%2e/README.md', 418))
+    test('traversal', req('/f1/page/.%2e/.%2e/README.md', 404))
     test('traversal.double-encoded', req('/f1/page/%252e%252e/%252e%252e/README.md', 404))
     test('traversal.encoded-slash', req('/f1/page/%2e%2e%2f%2e%2e%2fREADME.md', 404))
-    test('traversal.backslash', req('/f1/page/..%5c..%5cREADME.md', 418))
-    test('traversal.to-admin', req('/f1/page/%2e%2e/%2e%2e/for-admins/alfa.txt', 418))
-    test('traversal.mixed-dots', req('/f1/page/.%2e/%2e./README.md', 418))
-    test('traversal.overlong-utf8', req('/f1/page/%c0%ae%c0%ae/%c0%ae%c0%ae/README.md', 418))
+    test('traversal.backslash', req('/f1/page/..%5c..%5cREADME.md', 404))
+    test('traversal.to-admin', req('/f1/page/%2e%2e/%2e%2e/for-admins/alfa.txt', 404))
+    test('traversal.mixed-dots', req('/f1/page/.%2e/%2e./README.md', 404))
+    test('traversal.overlong-utf8', req('/f1/page/%c0%ae%c0%ae/%c0%ae%c0%ae/README.md', 404))
+    test('bad url encoding', req('/f1/%E0%A4%A', 404))
     test('custom mime from above', req('/tests/page/index.html', { status: 200, mime:'text/plain' }))
     test('name encoding', req('/x%25%23x', 200))
 
@@ -89,6 +90,7 @@ describe('basics', () => {
     test('file_details.for-admins', reqApi('get_file_details', { uris: ['/for-admins/alfa.txt'] }, res => res?.details?.[0] === false))
     test('file_details.traversal', reqApi('get_file_details', { uris: ['/f1/%2e%2e/for-admins/alfa.txt'] }, res => res?.details?.[0] === false))
     test('file_list.traversal', reqApi('get_file_list', { uri: '/f1/%2e%2e/for-admins' }, 404))
+    test('file_list.bad encoding', reqApi('get_file_list', { uri: '/f1/%E0%A4%A' }, 404))
     test('forbidden list', req('/cantListPage/page/', 403))
     test('forbidden list.api', reqList('/cantListPage/page/', 403))
     test('forbidden list.admin flag', reqApi('get_file_list', { uri: '/for-admins/', admin: true }, 401))
@@ -145,6 +147,7 @@ describe('basics', () => {
     test('zip.partial', req('/f1/?get=zip', { re:/^page$/, length: zipLength }, { headers: { Range: `bytes=${zipOfs}-${zipOfs+zipLength-1}` } }) )
     test('zip.partial.resume', req('/f1/?get=zip', { re:/^page/, length:zipSize-zipOfs }, { headers: { Range: `bytes=${zipOfs}-` } }) )
     test('zip.partial.end', req('/f1/f2/?get=zip', { re:/^6/, length:10 }, { headers: { Range: 'bytes=-10' } }) )
+    test('zip.list.bad encoding', req('/f1/?get=zip&list=%E0%A4%A', { status: 200, length: 22 })) // basically empty
     test('zip.alfa is forbidden', req('/protectFromAbove/child/?get=zip&list=alfa.txt//renamed', { empty: true, length:134 }, { method:'HEAD' }))
     test('zip.cantReadPage', req('/cantReadPage/?get=zip', { length: 4832 }, { method:'HEAD' }))
 
@@ -251,6 +254,7 @@ describe('after-login', () => {
     test('upload.never', reqUpload('/random', 403))
     test('upload.ok', reqUpload(UPLOAD_DEST, 200))
     test('upload.dot name', reqUpload(`${UPLOAD_ROOT}%2e`, 418))
+    test('upload.temp hash traversal', req(`${UPLOAD_ROOT}%2e%2e?get=${UPLOAD_TEMP_HASH}`, 404))
     test('upload.temp hash requires auth', async () => {
         const rel = `${UPLOAD_DIR}/partial.png`
         await reqUpload(`${UPLOAD_ROOT}${rel}?partial=1`, 204)()
@@ -315,7 +319,7 @@ describe('after-login', () => {
         if (after !== before)
             throw "size changed"
     })
-    test('upload.crossing', reqUpload(UPLOAD_DEST.replace('temp', '../..'), 418))
+    test('upload.crossing', reqUpload(UPLOAD_DEST.replace('temp', '../..'), 404))
     test('upload.overlap', async () => {
         const ms = 300
         const first = reqUpload(UPLOAD_DEST, 200, makeReadableThatTakes(ms))()
