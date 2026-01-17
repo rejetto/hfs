@@ -282,6 +282,7 @@ describe('after-login', () => {
         await reqUpload(`${UPLOAD_ROOT}${rel}?partial=1`, 204)()
         await req(`${UPLOAD_ROOT}${rel}?get=${UPLOAD_TEMP_HASH}`, 401, { jar: {} })()
     })
+    test('upload.temp hash missing', req(`${UPLOAD_ROOT}${UPLOAD_DIR}/missing.png?get=${UPLOAD_TEMP_HASH}`, 404))
     test('file_details.admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, res => {
         const u = res?.details?.[0]?.upload
         throwIf(!u?.ip ? 'ip' : u?.username !== username ? 'username' : '')
