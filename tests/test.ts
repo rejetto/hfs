@@ -8,7 +8,7 @@ import _ from 'lodash'
 import { findDefined, randomId, try_, tryJson, UPLOAD_TEMP_HASH, wait } from '../src/cross'
 import { httpStream, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
-import { mkdir, rm, writeFile } from 'fs/promises'
+import { mkdir, rm, rename, writeFile } from 'fs/promises'
 import { Readable } from 'stream'
 /*
 import { PORT, srv } from '../src'
@@ -331,6 +331,11 @@ describe('after-login', () => {
         if (!partial)
             throw "partial file missing"
         await reqUpload(UPLOAD_DEST, 200, Readable.from(BIG_CONTENT.slice(partial)), BIG_CONTENT.length, partial)()
+    })
+    test('rename.backslash', async () => {
+        await reqApi('rename', { uri: UPLOAD_DEST, dest: 'sub\\file' }, process.platform === 'win32' ? 403 : 200)()
+        const d = resolve(ROOT, UPLOAD_DIR)
+        await rename(resolve(d, 'sub\\file'), resolve(d, basename(UPLOAD_DEST))).catch(() => {})
     })
     const renameTo = 'z'
     test('rename.ok', reqApi('rename', { uri: UPLOAD_DEST, dest: renameTo }, 200))

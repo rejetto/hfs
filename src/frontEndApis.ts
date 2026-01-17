@@ -86,7 +86,7 @@ export const frontEndApis: ApiHandlers = {
         const node = await urlToNode(uri, ctx)
         if (!node)
             throw new ApiError(HTTP_NOT_FOUND)
-        if (isRoot(node) || dest.includes('/') || hasDirTraversal(dest))
+        if (isRoot(node) || !isValidFileName(dest))
             throw new ApiError(HTTP_FORBIDDEN)
         if (statusCodeForMissingPerm(node, 'can_delete', ctx))
             throw new ApiError(ctx.status)
