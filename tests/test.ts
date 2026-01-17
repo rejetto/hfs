@@ -27,6 +27,8 @@ const BASE_URL = 'http://[::1]:81'
 const BASE_URL_127 = 'http://127.0.0.1:81'
 const UPLOAD_ROOT = '/for-admins/upload/'
 const UPLOAD_DIR = 'temp'
+const CANT_OVERWRITE_NAME = 'cant-overwrite'
+const CANT_OVERWRITE_URI = `/for-admins/${CANT_OVERWRITE_NAME}/`
 const UPLOAD_RELATIVE = `${UPLOAD_DIR}/gpl.png`
 const UPLOAD_DEST = UPLOAD_ROOT + UPLOAD_RELATIVE
 const BIG_CONTENT = _.repeat(randomId(10), 300_000) // 3MB, big enough to saturate buffers
@@ -34,20 +36,6 @@ const throttle = BIG_CONTENT.length /1000 /0.8 // KB, finish in 0.8s, quick but 
 const SAMPLE_FILE_PATH = resolve(__dirname, 'page/gpl.png')
 let defaultBaseUrl = BASE_URL
 const execP = (cmd: string) => promisify(exec)(cmd).then(x => x.stdout)
-
-class StringRepeaterStream extends Readable {
-    constructor(private str: string, private n: number, readonly length=n*str.length) {
-        super()
-    }
-    _read() {
-        this.push(this.n-- > 0 ? this.str : null)
-    }
-}
-
-function makeReadableThatTakes(ms: number) {
-    return Object.assign(Readable.from(BIG_CONTENT).pipe(new ThrottledStream(new ThrottleGroup(BIG_CONTENT.length / ms))),
-        { length: BIG_CONTENT.length })
-}
 
 describe('basics', () => {
     //before(async () => appStarted)
@@ -247,6 +235,19 @@ describe('after-login', () => {
     test('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 200))
     test('inherit.perm', reqList('/for-admins/', { inList:['alfa.txt'] }))
     test('inherit.disabled', reqList('/for-disabled/', 401))
+    test('rename.to existing folder', async () => {
+        const from = 'rename'
+        const dest = 'cant-overwrite'
+        const baseDir = await ensureCantOverwriteDir()
+        const fromPath = resolve(baseDir, from)
+        const destPath = resolve(baseDir, dest)
+        await writeFile(fromPath, 'from')
+        await writeFile(destPath, 'dest')
+        try { await reqApi('rename', { uri: CANT_OVERWRITE_URI + from, dest }, 403)() }
+        finally {
+            await rmAny(baseDir)
+        }
+    })
     test('upload.never', reqUpload('/random', 403))
     test('upload.ok', reqUpload(UPLOAD_DEST, 200))
     test('upload.dot name', reqUpload(`${UPLOAD_ROOT}%2e`, 418))
@@ -275,12 +276,36 @@ describe('after-login', () => {
             await rmAny(resolve(ROOT, name))
         }
     })
+    test('move.overwrite needs delete', async () => {
+        const destFile = 'locked.txt'
+        const destDir = await ensureCantOverwriteDir()
+        const destPath = resolve(destDir, destFile)
+        const sourceUri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${destFile}`
+        await writeFile(destPath, 'dest')
+        try {
+            await reqUpload(sourceUri, 200, 'source')()
+            const before = statSync(destPath).size
+            await reqApi('move_files', { uri_from: [sourceUri], uri_to: CANT_OVERWRITE_URI }, res => res?.errors?.[0] === 403)()
+            const after = statSync(destPath).size
+            if (after !== before)
+                throw "file overwritten"
+        }
+        finally {
+            await rmAny(resolve(ROOT, UPLOAD_DIR, destFile))
+            await rmAny(destDir)
+        }
+    })
     test('upload.path bypass', async () => {
         const name = 'no-upload'
         const targetDir = resolve(ROOT, 'tmp', name)
-        await execP(`curl -g -s -u ${auth} -F "upload=@${SAMPLE_FILE_PATH};filename=${name}/evil.txt" ${BASE_URL}${UPLOAD_ROOT}`)
-        if (existsSync(resolve(targetDir, 'evil.txt')))
-            throw "file created"
+        try {
+            await execP(`curl -g -s -u ${auth} -F "upload=@${SAMPLE_FILE_PATH};filename=${name}/evil.txt" ${BASE_URL}${UPLOAD_ROOT}`)
+            if (existsSync(resolve(targetDir, 'evil.txt')))
+                throw "file created"
+        }
+        finally {
+            await rmAny(targetDir)
+        }
     })
     test('upload.existing.skip', async () => {
         const filePath = resolve(__dirname, UPLOAD_RELATIVE)
@@ -554,4 +579,24 @@ function rmAny(path: string) {
 function throwIf(msg: any) {
     if (msg)
         throw msg
+}
+
+async function ensureCantOverwriteDir() {
+    const baseDir = resolve(ROOT, 'tmp', CANT_OVERWRITE_NAME)
+    await mkdir(baseDir, { recursive: true })
+    return baseDir
+}
+
+class StringRepeaterStream extends Readable {
+    constructor(private str: string, private n: number, readonly length=n*str.length) {
+        super()
+    }
+    _read() {
+        this.push(this.n-- > 0 ? this.str : null)
+    }
+}
+
+function makeReadableThatTakes(ms: number) {
+    return Object.assign(Readable.from(BIG_CONTENT).pipe(new ThrottledStream(new ThrottleGroup(BIG_CONTENT.length / ms))),
+        { length: BIG_CONTENT.length })
 }

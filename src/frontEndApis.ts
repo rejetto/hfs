@@ -5,7 +5,7 @@ import { get_file_list } from './api.get_file_list'
 import * as api_auth from './api.auth'
 import events from './events'
 import Koa from 'koa'
-import { hasDirTraversal, isValidFileName } from './util-files'
+import { isValidFileName } from './util-files'
 import {
     HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FAILED_DEPENDENCY, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED,
     HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED
@@ -90,9 +90,12 @@ export const frontEndApis: ApiHandlers = {
             throw new ApiError(HTTP_FORBIDDEN)
         if (statusCodeForMissingPerm(node, 'can_delete', ctx))
             throw new ApiError(ctx.status)
+        if (!node.source)
+            throw new ApiError(HTTP_FAILED_DEPENDENCY)
+        const destNode = await urlToNode(dest, ctx, node.parent)
+        if (destNode && statusCodeForMissingPerm(destNode, 'can_delete', ctx)) // if destination exists, you need delete permission
+            throw new ApiError(ctx.status)
         try {
-            if (!node.source)
-                throw new ApiError(HTTP_FAILED_DEPENDENCY)
             const destSource = join(dirname(node.source), dest)
             await rename(node.source, destSource)
             getCommentFor(node.source).then(c => {
@@ -120,7 +123,11 @@ export const frontEndApis: ApiHandlers = {
                 const srcNode = await urlToNode(from1, ctx)
                 const src = srcNode?.source
                 if (!src) return HTTP_NOT_FOUND
-                const dest = join(destNode!.source!, basename(src))
+                const destName = basename(src)
+                const destChild = await urlToNode(destName, ctx, destNode!)
+                if (destChild && statusCodeForMissingPerm(destChild, 'can_delete', ctx))
+                    return ctx.status
+                const dest = join(destNode!.source!, destName)
                 if (_.isFunction(override))
                     return override?.(srcNode, dest)
                 return statusCodeForMissingPerm(srcNode, 'can_delete', ctx)

@@ -4,7 +4,7 @@ allowed_referer: x.com
 localhost_admin: false
 vfs:
   masks:
-    "**/config.yaml*|test.ts|work|*uploaded|work2":
+    "**/config.yaml*|test.ts|work|*uploaded|work2|tmp":
       can_see: false
     tests/page/!*.png:
       mime: text/plain
@@ -50,6 +50,11 @@ vfs:
             - name: no-upload
               source: ../tmp/no-upload
               can_upload: false
+        - name: cant-overwrite
+          source: ../tmp/cant-overwrite
+          can_upload:
+            - admins
+          can_delete: false
         - source: ../alfa.txt
     - name: for-disabled
       can_list:
