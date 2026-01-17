@@ -88,8 +88,8 @@ export const frontEndApis: ApiHandlers = {
             throw new ApiError(HTTP_NOT_FOUND)
         if (isRoot(node) || dest.includes('/') || hasDirTraversal(dest))
             throw new ApiError(HTTP_FORBIDDEN)
-        if (!hasPermission(node, 'can_delete', ctx))
-            throw new ApiError(HTTP_UNAUTHORIZED)
+        if (statusCodeForMissingPerm(node, 'can_delete', ctx))
+            throw new ApiError(ctx.status)
         try {
             if (!node.source)
                 throw new ApiError(HTTP_FAILED_DEPENDENCY)
