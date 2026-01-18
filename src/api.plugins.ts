@@ -7,13 +7,13 @@ import {
 } from './plugins'
 import _ from 'lodash'
 import assert from 'assert'
-import { HTTP_CONFLICT, HTTP_PRECONDITION_FAILED, newObj, waitFor } from './misc'
+import { apiAssertTypes, HTTP_CONFLICT, HTTP_PRECONDITION_FAILED, newObj, waitFor } from './misc'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { rm } from 'fs/promises'
 import {
     downloadPlugin, getFolder2repo, readOnlineCompatiblePlugin, readOnlinePlugin, searchPlugins, downloading
 } from './github'
-import { HTTP_FAILED_DEPENDENCY, HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './const'
+import { HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './const'
 import { SendListReadable } from './SendList'
 
 const apis: ApiHandlers = {
@@ -72,6 +72,7 @@ const apis: ApiHandlers = {
     },
 
     async start_plugin({ id }) {
+        assertPluginId(id)
         if (isPluginRunning(id))
             return { msg: 'already running' }
         if (suspendPlugins.get())
@@ -81,6 +82,7 @@ const apis: ApiHandlers = {
     },
 
     async stop_plugin({ id }) {
+        assertPluginId(id)
         if (!isPluginRunning(id))
             return { msg: 'already stopped' }
         await stopPlugin(id)
@@ -88,7 +90,7 @@ const apis: ApiHandlers = {
     },
 
     async set_plugin({ id, enabled, config }) {
-        assert(id, 'id')
+        assertPluginId(id)
         if (config)
             setPluginConfig(id, config)
         if (enabled !== undefined)
@@ -97,6 +99,7 @@ const apis: ApiHandlers = {
     },
 
     async get_plugin({ id }) {
+        assertPluginId(id)
         return {
             enabled: enablePlugins.get().includes(id),
             config: {
@@ -107,6 +110,8 @@ const apis: ApiHandlers = {
     },
 
     get_online_plugins({ text }, ctx) {
+        if (text !== undefined && !_.isString(text))
+            return new ApiError(HTTP_BAD_REQUEST, 'bad text')
         return new SendListReadable({
             async doAtStart(list) {
                 const repos = [] as string[]
@@ -144,6 +149,7 @@ const apis: ApiHandlers = {
     },
 
     async download_plugin({ id, branch, stop }) {
+        assertPluginId(id)
         await checkDependencies(await readOnlinePlugin(id, branch))
         const folder = await downloadPlugin(id, { branch })
         if (stop) // be sure this is not automatically started
@@ -153,6 +159,7 @@ const apis: ApiHandlers = {
     },
 
     async update_plugin({ id }) {
+        assertPluginId(id)
         const found = getPluginInfo(id)
         if (!found)
             return new ApiError(HTTP_NOT_FOUND)
@@ -165,6 +172,7 @@ const apis: ApiHandlers = {
     },
 
     async uninstall_plugin({ id, deleteConfig }) {
+        assertPluginId(id)
         await stopPlugin(id)
         await rm(PLUGINS_PATH + '/' + id,  { recursive: true, force: true })
         if (deleteConfig)
@@ -173,6 +181,7 @@ const apis: ApiHandlers = {
     },
 
     get_plugin_log({ id }, ctx) {
+        assertPluginId(id)
         const p = getPluginInfo(id)
         if (!p)
             return new ApiError(HTTP_NOT_FOUND)
@@ -185,6 +194,10 @@ const apis: ApiHandlers = {
 }
 
 export default apis
+
+function assertPluginId(id: unknown) {
+    apiAssertTypes({ string: { id } })
+}
 
 function serialize(p: Readonly<Plugin> | InactivePlugin) {
     let o = 'getData' in p ? Object.assign(_.pick(p, ['id','started']), p.getData())

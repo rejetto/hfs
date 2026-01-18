@@ -17,6 +17,7 @@ export default {
     },
 
     async get_log_file({ file = 'log', range = '' }, ctx) { // this is limited to logs on file, and serves the file instead of a list of records
+        apiAssertTypes({ string: { file, range } })
         const log = _.find(loggers, { name: file })
         if (!log)
             throw HTTP_NOT_FOUND
@@ -32,6 +33,7 @@ export default {
     },
 
     get_log({ file = 'log' }, ctx) {
+        apiAssertTypes({ string: { file } })
         const files = file.split('|') // potentially more then one
         return new SendListReadable({
             bufferTime: 10,

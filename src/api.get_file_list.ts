@@ -6,7 +6,7 @@ import {
 } from './vfs'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { mapPlugins } from './plugins'
-import { asyncGeneratorToArray, pattern2filter, statWithTimeout, WHO_NO_ONE } from './misc'
+import { apiAssertTypes, asyncGeneratorToArray, pattern2filter, statWithTimeout, WHO_NO_ONE } from './misc'
 import { HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
 import { getCommentFor, areCommentsEnabled } from './comments'
@@ -30,6 +30,7 @@ export function paramsToFilter({ search, wild, searchComment, fileMask }: any) {
 }
 
 export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onlyFolders, onlyFiles, admin, ...rest }, ctx) => {
+    apiAssertTypes({ string: { uri }})
     const node = await urlToNode(uri, ctx)
     const list = ctx.get('accept') === 'text/event-stream' ? new SendListReadable() : undefined
     if (!node)

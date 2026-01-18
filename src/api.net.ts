@@ -1,7 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
-import { HTTP_FAILED_DEPENDENCY, HTTP_SERVER_ERROR, HTTP_SERVICE_UNAVAILABLE, HTTP_PRECONDITION_FAILED } from './const'
+import {
+    HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_SERVER_ERROR, HTTP_SERVICE_UNAVAILABLE, HTTP_PRECONDITION_FAILED
+} from './const'
 import _ from 'lodash'
 import { getCertObject } from './listen'
 import { getProjectInfo } from './github'
@@ -43,6 +45,7 @@ export default {
     },
 
     async map_port({ external, internal }) {
+        apiAssertTypes({ number_undefined: { external, internal } })
         const { upnp, externalPort, internalPort } = await getNatInfo()
         if (!upnp)
             return new ApiError(HTTP_SERVICE_UNAVAILABLE, "upnp failed")
@@ -60,6 +63,7 @@ export default {
     },
 
     async self_check({ url }) {
+        apiAssertTypes({ string_undefined: { url } })
         if (url)
             return await selfCheck(url)
                 || new ApiError(HTTP_SERVICE_UNAVAILABLE)
@@ -77,6 +81,9 @@ export default {
     },
 
     async make_cert({domain, email, altNames}) {
+        apiAssertTypes({ string: { domain }, string_undefined: { email }, array_undefined: { altNames } })
+        if (altNames?.some((name: unknown) => typeof name !== 'string'))
+            return new ApiError(HTTP_BAD_REQUEST, 'bad altNames')
         await makeCert(domain, email, altNames).catch(e => {
             throw new ApiError(HTTP_SERVER_ERROR, e.message || String(e))
         })

@@ -73,10 +73,16 @@ export const adminApis = {
             customHtml: customHtml.getText(),
         }
     },
-    set_config_text: ({ text }) => configFile.save(text, { reparse: true }),
-    update: ({ tag }) => update(tag).catch(e => {
-        throw e.cause?.statusCode ? new ApiError(e.cause?.statusCode) : e
-    }),
+    set_config_text: ({ text }) => {
+        apiAssertTypes({ string: { text } })
+        return configFile.save(text, { reparse: true })
+    },
+    update: ({ tag }) => {
+        apiAssertTypes({ string_undefined: { tag } })
+        return update(tag).catch(e => {
+            throw e.cause?.statusCode ? new ApiError(e.cause?.statusCode) : e
+        })
+    },
     async check_update() {
         return { options: await getUpdates() }
     },
@@ -91,6 +97,10 @@ export const adminApis = {
     },
 
     async ip_country({ ips }) {
+        apiAssertTypes({
+            array: { ips },
+            string: { ips0: ips[0] }
+        })
         const res = await Promise.allSettled(ips.map(ip2country))
         return {
             codes: res.map(x => x.status === 'rejected' || x.value === '-' ? '' : x.value)
@@ -115,6 +125,7 @@ export const adminApis = {
     },
 
     async set_custom_html({ sections }) {
+        apiAssertTypes({ object: { sections } })
         await saveCustomHtml(sections)
         return {}
     },

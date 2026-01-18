@@ -109,7 +109,7 @@ export function apiAssertTypes(paramsByType: { [type:string]: { [name:string]: a
         if (!_.isPlainObject(params))
             throw "invalid apiAssertTypes call"
         for (const [name, val] of Object.entries(params))
-            if (!types.split('_').some(type => type === 'array' ? Array.isArray(val) : typeof val === type))
+            if (!types.split('_').some(t => t === 'array' ? Array.isArray(val) : t === 'object' ? _.isPlainObject(val) : typeof val === t))
                 throw new ApiError(HTTP_BAD_REQUEST, 'bad ' + name)
     }
 }

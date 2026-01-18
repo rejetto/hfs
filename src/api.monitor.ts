@@ -13,6 +13,11 @@ import { storedMap } from './persistence'
 export default {
 
     async disconnect({ ip, port, allButLocalhost }) {
+        apiAssertTypes({
+            string_undefined: { ip },
+            number_undefined: { port },
+            boolean_undefined: { allButLocalhost },
+        })
         const match = allButLocalhost ? ((x: any) => !isLocalHost(x.ip))
             : _.matches({ ip, port })
         const found = getConnections().filter(c => match(getConnAddress(c)))
