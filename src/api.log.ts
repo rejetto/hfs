@@ -17,6 +17,7 @@ export default {
     },
 
     async get_log_file({ file = 'log', range = '' }, ctx) { // this is limited to logs on file, and serves the file instead of a list of records
+        apiAssertTypes({ string: { file, range } })
         const log = _.find(loggers, { name: file })
         if (!log)
             throw HTTP_NOT_FOUND
@@ -32,7 +33,8 @@ export default {
     },
 
     get_log({ file = 'log' }, ctx) {
-        const files = file.split('|') // potentially more then one
+        apiAssertTypes({ string: { file } })
+        const files = file.split('|') // potentially more than one
         return new SendListReadable({
             bufferTime: 10,
             async doAtStart(list) {
@@ -59,7 +61,7 @@ export default {
                 if (_.some(files, x => !_.find(loggers, { name: x })) )
                     return list.error(HTTP_NOT_FOUND, true)
                 list.ready()
-                // unsubscribe when connection is interrupted
+                // unsubscribe when the connection is interrupted
                 ctx.res.once('close', events.on(files, x =>
                     list.add(Object.assign(_.pick(x.ctx, ['ip', 'method','status']), x, { ctx: undefined }))))
             }

@@ -130,7 +130,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
     const [firstSight, setFirstSight] = useState(!hidden)
     useEffect(() => setFirstSight(x => x || !hidden), [hidden])
     const hasFile = LOGS_ON_FILE.includes(file)
-    useApi(firstSight && hasFile && 'get_log_file', { file, range: limited || !skipped ? -MAX : `0-${skipped}` }, {
+    useApi(firstSight && hasFile && 'get_log_file', { file, range: limited || !skipped ? String(-MAX) : `0-${skipped}` }, {
         skipParse: true, skipLog: true,
         onResponse(res, body) {
             const lines = body.split('\n')

@@ -14,6 +14,7 @@ import { failAllowNet, sessionDuration } from './middlewares'
 import { clearTextLogin, getCurrentUsername, setLoggedIn, srpServerStep1 } from './auth'
 import { defineConfig } from './config'
 import events from './events'
+import { apiAssertTypes } from './misc'
 
 const ongoingLogins:Record<string,SRPServerSessionStep1> = {} // store data that doesn't fit session object
 const keepSessionAlive = defineConfig('keep_session_alive', true)
@@ -39,6 +40,7 @@ export const login: ApiHandler = async ({ username, password }, ctx) => {
 }
 
 export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
+    apiAssertTypes({ string: { username } })
     if (!username)
         return new ApiError(HTTP_BAD_REQUEST)
     const account = getAccount(username)

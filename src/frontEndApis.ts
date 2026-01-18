@@ -41,7 +41,7 @@ export const frontEndApis: ApiHandlers = {
     },
 
     async get_file_details({ uris }, ctx) {
-        if (typeof uris?.[0] !== 'string')
+        if (!Array.isArray(uris) || typeof uris[0] !== 'string')
             return new ApiError(HTTP_BAD_REQUEST, 'bad uris')
         const isAdmin = ctxAdminAccess(ctx)
         return {
