@@ -255,6 +255,7 @@ describe('after-login', () => {
     test('upload.never', reqUpload('/random', 403))
     test('upload.ok', reqUpload(UPLOAD_DEST, 200))
     test('upload.dot name', reqUpload(`${UPLOAD_ROOT}%2e`, 418))
+    test('upload.unreadable', reqUpload(`${UPLOAD_ROOT}%0a`, 418))
     test('upload.temp hash traversal', req(`${UPLOAD_ROOT}%2e%2e?get=${UPLOAD_TEMP_HASH}`, 404))
     test('upload.temp hash requires auth', async () => {
         const rel = `${UPLOAD_DIR}/partial.png`
