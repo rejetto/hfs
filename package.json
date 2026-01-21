@@ -20,7 +20,7 @@
     "server-for-test": "node dist/src --cwd tests/work --config tests --debug",
     "server-for-test-dev": "cross-env DEV=1 FRONTEND_PROXY=3005 ADMIN_PROXY=3006 nodemon --ignore tests/ --watch src -e ts,tsx --exec tsx src -- --cwd tests/work --config tests",
     "test": "node --import tsx --test tests/test.ts",
-    "test-with-server": "npm run port-is-free && tsc && rm -rf tests/work && (node dist/src --cwd tests/work --config tests & echo $! > .server_pid) && sleep 2 && node --import tsx --test tests/test.ts; _exit=$?; if [ -f ./.server_pid ]; then SERVER_PID=$(cat ./.server_pid); kill \"$SERVER_PID\" 2>/dev/null || true; rm -f ./.server_pid; fi; exit $_exit",
+    "test-with-server": "npm run port-is-free && tsc && rm -rf tests/work tests/tmp && (node dist/src --cwd tests/work --config tests & echo $! > .server_pid) && sleep 2 && node --import tsx --test tests/test.ts; _exit=$?; if [ -f ./.server_pid ]; then SERVER_PID=$(cat ./.server_pid); kill \"$SERVER_PID\" 2>/dev/null || true; rm -f ./.server_pid; fi; exit $_exit",
     "port-is-free": "node -e \"process.exit(await fetch('http://localhost:81').then(() => console.log('BUSY') || 1, () => 0))\"",
     "test-ui": "npx playwright test frontend && npx playwright test serial",
     "test-with-ui": "npx playwright test --ui",

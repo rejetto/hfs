@@ -161,7 +161,11 @@ async function isHiddenFile(path: string) {
 
 export async function getNodeByName(name: string, parent: VfsNode, assumeMissingToBeFolder=false) {
     // does the tree node have a child that goes by this name, otherwise attempt disk
-    const child = parent.children?.find(isSameFilenameAs(name)) || await childFromDisk()
+    let child = parent.children?.find(isSameFilenameAs(name))
+    if (child) // found as vfs node
+        await setIsFolder(child) // in case it's pointing to a folder that didn't exist at loading time
+    else
+        child = await childFromDisk()
     return child && applyParentToChild(child, parent, name)
 
     async function childFromDisk() {

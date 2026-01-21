@@ -182,9 +182,9 @@ describe('basics', () => {
         })
     })
     test('upload.post.absolute filename', () => {
-        const absPath = resolve(ROOT, `abs-${randomId(6)}.txt`)
+        const absPath = resolve(__dirname, `abs-${randomId(6)}.txt`)
         const absForBody = absPath.replace(/\\\\/g, '/')
-        const storedPath = resolve(ROOT, 'tmp', basename(absPath))
+        const storedPath = resolve(__dirname, 'tmp', basename(absPath))
         return execP(`curl -s -u ${auth} -H "x-hfs-wait: 1" -F "upload=@${SAMPLE_FILE_PATH};filename=${absForBody}" ${BASE_URL}${UPLOAD_ROOT} -w "\\nSTATUS:%{http_code}"`).then(async x => {
             const out = x.trimEnd()
             const idx = out.lastIndexOf('\nSTATUS:')
@@ -254,6 +254,7 @@ describe('after-login', () => {
     })
     test('upload.never', reqUpload('/random', 403))
     test('upload.ok', reqUpload(UPLOAD_DEST, 200))
+    test('move.dest is file', reqApi('move_files', { uri_from: [UPLOAD_DEST], uri_to: UPLOAD_DEST }, 405))
     test('upload.dot name', reqUpload(`${UPLOAD_ROOT}%2e`, 418))
     test('upload.unreadable', reqUpload(`${UPLOAD_ROOT}%0a`, 418))
     test('upload.temp hash traversal', req(`${UPLOAD_ROOT}%2e%2e?get=${UPLOAD_TEMP_HASH}`, 404))
@@ -270,7 +271,7 @@ describe('after-login', () => {
     test('zip.no-list but archive', req('/zipNoList/?get=zip', 403, { jar: {} }))
     test('upload but not delete', async () => {
         const name = `cant-delete`
-        await mkdir(resolve(ROOT, name), { recursive: true })
+        await mkdir(resolve(__dirname, name), { recursive: true })
         await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
         try {
             const dest = `${UPLOAD_ROOT}${name}/no-delete.txt`
@@ -279,7 +280,7 @@ describe('after-login', () => {
         }
         finally {
             await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
-            await rmAny(resolve(ROOT, name))
+            await rmAny(resolve(__dirname, name))
         }
     })
     test('move.overwrite needs delete', async () => {
@@ -297,13 +298,13 @@ describe('after-login', () => {
                 throw "file overwritten"
         }
         finally {
-            await rmAny(resolve(ROOT, UPLOAD_DIR, destFile))
+            await rmAny(resolve(__dirname, UPLOAD_DIR, destFile))
             await rmAny(destDir)
         }
     })
     test('upload.path bypass', async () => {
         const name = 'no-upload'
-        const targetDir = resolve(ROOT, 'tmp', name)
+        const targetDir = resolve(__dirname, 'tmp', name)
         try {
             await execP(`curl -g -s -u ${auth} -F "upload=@${SAMPLE_FILE_PATH};filename=${name}/evil.txt" ${BASE_URL}${UPLOAD_ROOT}`)
             if (existsSync(resolve(targetDir, 'evil.txt')))
@@ -365,7 +366,7 @@ describe('after-login', () => {
     })
     test('rename.backslash', async () => {
         await reqApi('rename', { uri: UPLOAD_DEST, dest: 'sub\\file' }, process.platform === 'win32' ? 403 : 200)()
-        const d = resolve(ROOT, UPLOAD_DIR)
+        const d = resolve(__dirname, UPLOAD_DIR)
         await rename(resolve(d, 'sub\\file'), resolve(d, basename(UPLOAD_DEST))).catch(() => {})
     })
     const renameTo = 'z'
@@ -588,7 +589,7 @@ function throwIf(msg: any) {
 }
 
 async function ensureCantOverwriteDir() {
-    const baseDir = resolve(ROOT, 'tmp', CANT_OVERWRITE_NAME)
+    const baseDir = resolve(__dirname, 'tmp', CANT_OVERWRITE_NAME)
     await mkdir(baseDir, { recursive: true })
     return baseDir
 }

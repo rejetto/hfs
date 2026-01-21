@@ -114,7 +114,9 @@ export const frontEndApis: ApiHandlers = {
         apiAssertTypes({ array: { uri_from }, string: { uri_to } })
         ctx.logExtra(null, { target: uri_from.map(decodeURI), destination: decodeURI(uri_to) })
         const destNode = await urlToNode(uri_to, ctx)
-        const err = !destNode ? HTTP_NOT_FOUND : statusCodeForMissingPerm(destNode, 'can_upload', ctx)
+        const err = !destNode ? HTTP_NOT_FOUND
+            : !nodeIsFolder(destNode) ? HTTP_METHOD_NOT_ALLOWED
+            : statusCodeForMissingPerm(destNode, 'can_upload', ctx)
         if (err)
             return new ApiError(err)
         return {
