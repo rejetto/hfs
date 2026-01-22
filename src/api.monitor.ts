@@ -72,8 +72,8 @@ export default {
                 user: getCurrentUsername(ctx),
                 agent: shortenAgent(ctx.get('user-agent')),
                 archive: s.archive,
-                ...s.browsing ? { op: 'browsing', path: decodeURIComponent(s.browsing) }
-                    : s.uploadPath ? { op: 'upload', path: decodeURIComponent(s.uploadPath) }
+                ...s.browsing ? { op: 'browsing', path: safeDecodeURIComponent(s.browsing) }
+                    : s.uploadPath ? { op: 'upload', path: safeDecodeURIComponent(s.uploadPath) }
                         : {
                             op: !s.considerAsGui && (ctx.state.archive || ctx.state.vfsNode) ? 'download' : undefined,
                             path: safeDecodeURIComponent(ctx.originalUrl),

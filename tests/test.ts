@@ -459,6 +459,20 @@ describe('admin', () => {
     })
     test('plugins.missing', reqApi('set_plugin', { id: 'missing-plugin', enabled: true }, { status: 400, re: /miss/ }, { auth }))
     test('plugins.update.missing', reqApi('update_plugin', { id: 'missing-plugin' }, 404, { auth }))
+    test('monitor.connections safe path decode', async () => {
+        const body = makeReadableThatTakes(1000)
+        const size = body.length
+        const rawName = '%2'
+        const uploadPromise = reqUpload(`${UPLOAD_ROOT}${pathEncode(rawName)}`, () => true, body, size)()
+        try {
+            await wait(200)
+            const res = await readEventStreamOnce(`${API}get_connections`, { auth })
+            await uploadPromise
+            if (res.status !== 200)
+                throw `unexpected status ${res.status}`
+        }
+        finally { await rmAny(resolve(__dirname, rawName)) }
+    })
     test('plugins.start_stop', async () => {
         const id = 'download-counter'
         await reqApi('stop_plugin', { id }, 200, { auth })()
@@ -590,6 +604,35 @@ function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }:
                 throw "failed test: " + test
         return obj ?? data
     }
+}
+
+async function readEventStreamOnce(url: string, { baseUrl, ...requestOptions }: XRequestOptions & { baseUrl?: string }={}) {
+    const res = await httpStream((baseUrl || defaultBaseUrl) + url, {
+        path: url,
+        httpThrow: false,
+        headers: { accept: 'text/event-stream', ...requestOptions.headers },
+        ...requestOptions,
+    })
+    const data = await new Promise<string>((resolve, reject) => {
+        const timer = setTimeout(() => {
+            res.destroy()
+            reject(new Error('event stream timeout'))
+        }, 2000)
+        res.once('data', chunk => {
+            clearTimeout(timer)
+            resolve(String(chunk))
+            res.destroy()
+        })
+        res.once('end', () => {
+            clearTimeout(timer)
+            resolve('')
+        })
+        res.once('error', err => {
+            clearTimeout(timer)
+            reject(err)
+        })
+    })
+    return { status: res.statusCode, data }
 }
 
 function reqApi(api: string, params: object, test:Tester, options:any={}) {
