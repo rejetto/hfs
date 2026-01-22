@@ -26,6 +26,7 @@ const ROOT = 'tests/'
 const BASE_URL = 'http://[::1]:81'
 const BASE_URL_127 = 'http://127.0.0.1:81'
 const UPLOAD_ROOT = '/for-admins/upload/'
+const VIRTUAL_UPLOAD_ROOT = '/renameChild/'
 const UPLOAD_DIR = 'temp'
 const CANT_OVERWRITE_NAME = 'cant-overwrite'
 const CANT_OVERWRITE_URI = `/for-admins/${CANT_OVERWRITE_NAME}/`
@@ -35,6 +36,7 @@ const BIG_CONTENT = _.repeat(randomId(10), 300_000) // 3MB, big enough to satura
 const throttle = BIG_CONTENT.length /1000 /0.8 // KB, finish in 0.8s, quick but still overlapping downloads
 const SAMPLE_FILE_PATH = resolve(__dirname, 'page/gpl.png')
 let defaultBaseUrl = BASE_URL
+
 const execP = (cmd: string) => promisify(exec)(cmd).then(x => x.stdout)
 
 describe('basics', () => {
@@ -157,42 +159,45 @@ describe('basics', () => {
     }))
 
     test('upload.need account', reqUpload( UPLOAD_DEST, 401))
-    test('upload.post', () => // this is also testing basic-auth
-        execP(`curl -u ${auth} -F upload=@${SAMPLE_FILE_PATH} ${BASE_URL}${UPLOAD_ROOT}`).then(x => {
-            const uri = tryJson(x)?.uris?.[0]
-            if (!uri) throw "unexpected output " + x
-            const fn = resolve(__dirname, basename(decodeURI(uri)))
-            const stats = statSync(fn)
-            rm(fn).catch(() => {}) // clear
-            if (stats?.size !== statSync(SAMPLE_FILE_PATH).size)
-                throw "unexpected size for " + fn
-        }))
-    test('upload.post.empty filename', () => {
+    test('upload.post', async () => { // this is also testing basic-auth
+        const output = await execP(`curl -u ${auth} -F upload=@${SAMPLE_FILE_PATH} ${BASE_URL}${UPLOAD_ROOT}`)
+        const uri = tryJson(output)?.uris?.[0]
+        if (!uri) throw "unexpected output " + output
+        const fn = resolve(__dirname, basename(decodeURI(uri)))
+        const stats = statSync(fn)
+        rm(fn).catch(() => {}) // clear
+        if (stats?.size !== statSync(SAMPLE_FILE_PATH).size)
+            throw "unexpected size for " + fn
+    })
+    test('upload.post.virtual folder', async () => {
+        const { status } = await curlWithStatus(`curl -s -u ${auth} -F upload=@${SAMPLE_FILE_PATH} ${BASE_URL}${VIRTUAL_UPLOAD_ROOT}`)
+        if (status !== 403)
+            throw "unexpected status " + status
+    })
+    test('upload.put.virtual folder', reqUpload(`${VIRTUAL_UPLOAD_ROOT}gpl.png`, 403))
+    test('upload.post.empty filename', async () => {
         const boundary = '----hfs-boundary'
         const body = `--${boundary}\\r\\nContent-Disposition: form-data; name="upload"; filename=""\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nX\\r\\n--${boundary}--\\r\\n`
-        return execP(`printf '%b' "${body}" | curl -s -u ${auth} -H "Content-Type: multipart/form-data; boundary=${boundary}" --data-binary @- ${BASE_URL}${UPLOAD_ROOT} -w "\\nSTATUS:%{http_code}"`).then(x => {
-            const out = x.trimEnd()
-            const idx = out.lastIndexOf('\nSTATUS:')
-            const status = out.slice(idx + 8)
-            if (status !== '400')
-                throw "unexpected status " + status
-            const errMsg = tryJson(out.slice(0, idx))?.errors?.[0]
-            if (!['empty filename', 'no files'].includes(errMsg))
-                throw 'missing error'
-        })
+        const { status, body: responseBody } = await curlWithStatus(`printf '%b' "${body}" | curl -s -u ${auth} -H "Content-Type: multipart/form-data; boundary=${boundary}" --data-binary @- ${BASE_URL}${UPLOAD_ROOT}`)
+        if (status !== 400)
+            throw "unexpected status " + status
+        const errMsg = tryJson(responseBody)?.errors?.[0]
+        if (!['empty filename', 'no files'].includes(errMsg))
+            throw 'missing error'
     })
-    test('upload.post.absolute filename', () => {
+    test('upload.post.absolute filename', async () => {
         const absPath = resolve(__dirname, `abs-${randomId(6)}.txt`)
         const absForBody = absPath.replace(/\\\\/g, '/')
         const storedPath = resolve(__dirname, 'tmp', basename(absPath))
-        return execP(`curl -s -u ${auth} -H "x-hfs-wait: 1" -F "upload=@${SAMPLE_FILE_PATH};filename=${absForBody}" ${BASE_URL}${UPLOAD_ROOT} -w "\\nSTATUS:%{http_code}"`).then(async x => {
-            const out = x.trimEnd()
-            const idx = out.lastIndexOf('\nSTATUS:')
-            const status = out.slice(idx + 8)
-            throwIf(status !== '418' ? "unexpected status " + status
+        try {
+            const { status } = await curlWithStatus(`curl -s -u ${auth} -H "x-hfs-wait: 1" -F "upload=@${SAMPLE_FILE_PATH};filename=${absForBody}" ${BASE_URL}${UPLOAD_ROOT}`)
+            throwIf(status !== 418 ? "unexpected status " + status
                 : existsSync(absPath) ? "absolute path accepted"
                     : existsSync(storedPath) ? "stored file escaped" : '')
-        }).finally(() => Promise.all([rmAny(absPath), rmAny(storedPath)]))
+        }
+        finally {
+            await Promise.all([rmAny(absPath), rmAny(storedPath)])
+        }
     })
     test('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 401))
     test('create_folder.bad type', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 123 }, { status: 400, re: /name/ }))
@@ -211,10 +216,11 @@ describe('basics', () => {
     test('folder size.cant', reqApi('get_folder_size', { uri: 'for-admins' }, 401))
 
     test('get_accounts', reqApi('get_accounts', {}, 401)) // admin api requires login
-    test('url login', () => execP(`curl -s -D - -o /dev/null "${BASE_URL}/for-admins/?login=${auth}"`).then(x => {
-        if (!/^(location|set-cookie):/im.test(x))
+    test('url login', async () => {
+        const output = await execP(`curl -s -D - -o /dev/null "${BASE_URL}/for-admins/?login=${auth}"`)
+        if (!/^(location|set-cookie):/im.test(output))
             throw "failed"
-    }))
+    })
 })
 
 // do this before login, or max_dl_accounts config will override max_dl
@@ -237,6 +243,7 @@ describe('accounts', () => {
 describe('after-login', () => {
     before(() => login(username))
     test('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 200))
+    test('create_folder.empty name', reqApi('create_folder', { uri: UPLOAD_ROOT, name: '' }, 409))
     test('inherit.perm', reqList('/for-admins/', { inList:['alfa.txt'] }))
     test('inherit.disabled', reqList('/for-disabled/', 401))
     test('rename.to existing folder', async () => {
@@ -606,4 +613,12 @@ class StringRepeaterStream extends Readable {
 function makeReadableThatTakes(ms: number) {
     return Object.assign(Readable.from(BIG_CONTENT).pipe(new ThrottledStream(new ThrottleGroup(BIG_CONTENT.length / ms))),
         { length: BIG_CONTENT.length })
+}
+
+async function curlWithStatus(cmd: string) {
+    const out = (await execP(`${cmd} -w "\\nSTATUS:%{http_code}"`)).trimEnd()
+    const idx = out.lastIndexOf('\nSTATUS:')
+    if (idx < 0)
+        throw "missing status in curl output"
+    return { status: Number(out.slice(idx + 8)), body: out.slice(0, idx) }
 }

@@ -64,8 +64,10 @@ vfs:
         "**/!*.png|files|":
           can_see: false
     - name: renameChild
+      can_upload: true
       children:
         - source: ..
+          can_upload: false
           rename:
             alfa.txt: renamed1
             page/gpl.png: renamed2
