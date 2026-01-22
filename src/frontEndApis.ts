@@ -85,16 +85,16 @@ export const frontEndApis: ApiHandlers = {
         ctx.logExtra(null, { target: decodeURI(uri), destination: decodeURI(dest) })
         const node = await urlToNode(uri, ctx)
         if (!node)
-            throw new ApiError(HTTP_NOT_FOUND)
+            return new ApiError(HTTP_NOT_FOUND)
         if (isRoot(node) || !isValidFileName(dest))
-            throw new ApiError(HTTP_FORBIDDEN)
+            return new ApiError(HTTP_FORBIDDEN)
         if (statusCodeForMissingPerm(node, 'can_delete', ctx))
-            throw new ApiError(ctx.status)
+            return new ApiError(ctx.status)
         if (!node.source)
-            throw new ApiError(HTTP_FAILED_DEPENDENCY)
+            return new ApiError(HTTP_FAILED_DEPENDENCY)
         const destNode = await urlToNode(dest, ctx, node.parent)
         if (destNode && statusCodeForMissingPerm(destNode, 'can_delete', ctx)) // if destination exists, you need delete permission
-            throw new ApiError(ctx.status)
+            return new ApiError(ctx.status)
         try {
             const destSource = join(dirname(node.source), dest)
             await rename(node.source, destSource)
@@ -106,7 +106,7 @@ export const frontEndApis: ApiHandlers = {
             return {}
         }
         catch (e: any) {
-            throw new ApiError(HTTP_SERVER_ERROR, e)
+            return new ApiError(HTTP_SERVER_ERROR, e)
         }
     },
 
@@ -157,11 +157,11 @@ export const frontEndApis: ApiHandlers = {
         ctx.logExtra(null, { target: decodeURI(uri) })
         const node = await urlToNode(uri, ctx)
         if (!node)
-            throw new ApiError(HTTP_NOT_FOUND)
+            return new ApiError(HTTP_NOT_FOUND)
         if (!hasPermission(node, 'can_upload', ctx))
-            throw new ApiError(HTTP_UNAUTHORIZED)
+            return new ApiError(HTTP_UNAUTHORIZED)
         if (!node.source)
-            throw new ApiError(HTTP_FAILED_DEPENDENCY)
+            return new ApiError(HTTP_FAILED_DEPENDENCY)
         await setCommentFor(node.source, comment)
         return {}
     },
@@ -175,9 +175,9 @@ export const frontEndApis: ApiHandlers = {
         apiAssertTypes({ string: { uri } })
         const folder = await urlToNode(uri, ctx)
         if (!folder)
-            throw new ApiError(HTTP_NOT_FOUND)
+            return new ApiError(HTTP_NOT_FOUND)
         if (!nodeIsFolder(folder))
-            throw new ApiError(HTTP_METHOD_NOT_ALLOWED)
+            return new ApiError(HTTP_METHOD_NOT_ALLOWED)
         if (statusCodeForMissingPerm(folder, 'can_list', ctx))
             return new ApiError(ctx.status)
         let bytes = 0

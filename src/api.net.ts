@@ -27,17 +27,17 @@ export default {
             lookup(domain).then(x => [x.address]),
         ])
         if (settled[0].status === 'rejected' && settled[0].reason.code === 'ECONNREFUSED')
-            throw new ApiError(HTTP_SERVICE_UNAVAILABLE, "cannot resolve domain")
+            return new ApiError(HTTP_SERVICE_UNAVAILABLE, "cannot resolve domain")
         // merge all results
         const domainIps = _.uniq(onlyTruthy(settled.map(x => x.status === 'fulfilled' && x.value)).flat())
         if (!domainIps.length)
-            throw new ApiError(HTTP_FAILED_DEPENDENCY, "domain not working")
+            return new ApiError(HTTP_FAILED_DEPENDENCY, "domain not working")
         const publicIps = await getPublicIps() // do this before stopping the server
         for (const v6 of [false, true]) {
             const domainIpsThisVersion = domainIps.filter(x => isIPv6(x) === v6)
             const ipsThisVersion = publicIps.filter(x => isIPv6(x) === v6)
             if (domainIpsThisVersion.length && ipsThisVersion.length && !_.intersection(domainIpsThisVersion, ipsThisVersion).length)
-                throw new ApiError(HTTP_PRECONDITION_FAILED, `configure your domain to point to ${ipsThisVersion} (currently on ${domainIpsThisVersion[0]}) – a change can take hours to be effective`)
+                return new ApiError(HTTP_PRECONDITION_FAILED, `configure your domain to point to ${ipsThisVersion} (currently on ${domainIpsThisVersion[0]}) – a change can take hours to be effective`)
         }
         return {}
     },
