@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { Connection, disconnect, getConnections } from './connections'
-import { apiAssertTypes, isLocalHost, shortenAgent, try_, wait, wantArray } from './misc'
+import { apiAssertTypes, isLocalHost, safeDecodeURIComponent, shortenAgent, wait, wantArray } from './misc'
 import { ApiHandlers } from './apiMiddleware'
 import Koa from 'koa'
 import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
@@ -76,7 +76,7 @@ export default {
                     : s.uploadPath ? { op: 'upload', path: decodeURIComponent(s.uploadPath) }
                         : {
                             op: !s.considerAsGui && (ctx.state.archive || ctx.state.vfsNode) ? 'download' : undefined,
-                            path: try_(() => decodeURIComponent(ctx.originalUrl), () => ctx.originalUrl),
+                            path: safeDecodeURIComponent(ctx.originalUrl),
                         },
                 opProgress: _.isNumber(s.opProgress) ? _.round(s.opProgress, 3) : undefined,
                 opTotal: s.opTotal,
