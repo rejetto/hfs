@@ -460,7 +460,7 @@ export async function promiseBestEffort<T>(promises: Promise<T>[]) {
 export function pathEncode(s: string) {
     return s.replace(/[:&#'"% ?\\]/g, escape) // escape() is not utf8, but we are encoding only ascii chars
 }
-//unused function pathDecode(s: string) { return decodeURI(s).replace(/%23/g, '#') }
+export function pathDecode(s: string) { return decodeURI(s).replace(/%23/g, '#') }
 
 // run at a specific point in time, also solving the limit of setTimeout, which doesn't work with +32bit delays
 export function runAt(ts: number, cb: Callback) {

@@ -17,7 +17,7 @@ import fs from 'fs'
 import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
 import { getUploadMeta } from './upload'
-import { apiAssertTypes, popKey } from './misc'
+import { apiAssertTypes, pathDecode, pathEncode, popKey } from './misc'
 import { getCommentFor, setCommentFor } from './comments'
 import { SendListReadable } from './SendList'
 import { ctxAdminAccess } from './adminApis'
@@ -62,7 +62,8 @@ export const frontEndApis: ApiHandlers = {
 
     async create_folder({ uri, name }, ctx) {
         apiAssertTypes({ string: { uri, name } })
-        ctx.logExtra(null, { name, target: decodeURI(uri) })
+        try { ctx.logExtra(null, { name, target: pathDecode(uri) }) }
+        catch { return new ApiError(HTTP_BAD_REQUEST) }
         if (!isValidFileName(name))
             return new ApiError(HTTP_BAD_REQUEST, 'bad name')
         const parentNode = await urlToNode(uri, ctx)
@@ -80,9 +81,11 @@ export const frontEndApis: ApiHandlers = {
         }
     },
 
+    // dest is not encoded
     async rename({ uri, dest }, ctx) {
         apiAssertTypes({ string: { uri, dest } })
-        ctx.logExtra(null, { target: decodeURI(uri), destination: decodeURI(dest) })
+        try { ctx.logExtra(null, { target: pathDecode(uri), destination: dest }) }
+        catch { return new ApiError(HTTP_BAD_REQUEST) }
         const node = await urlToNode(uri, ctx)
         if (!node)
             return new ApiError(HTTP_NOT_FOUND)
@@ -92,7 +95,7 @@ export const frontEndApis: ApiHandlers = {
             return new ApiError(ctx.status)
         if (!node.source)
             return new ApiError(HTTP_FAILED_DEPENDENCY)
-        const destNode = await urlToNode(dest, ctx, node.parent)
+        const destNode = await urlToNode(pathEncode(dest), ctx, node.parent)
         if (destNode && statusCodeForMissingPerm(destNode, 'can_delete', ctx)) // if destination exists, you need delete permission
             return new ApiError(ctx.status)
         try {
@@ -112,7 +115,8 @@ export const frontEndApis: ApiHandlers = {
 
     async move_files({ uri_from, uri_to }, ctx, override) {
         apiAssertTypes({ array: { uri_from }, string: { uri_to } })
-        ctx.logExtra(null, { target: uri_from.map(decodeURI), destination: decodeURI(uri_to) })
+        try { ctx.logExtra(null, { target: uri_from.map(pathDecode), destination: pathDecode(uri_to) }) }
+        catch { return new ApiError(HTTP_BAD_REQUEST) }
         const destNode = await urlToNode(uri_to, ctx)
         const err = !destNode ? HTTP_NOT_FOUND
             : !nodeIsFolder(destNode) ? HTTP_METHOD_NOT_ALLOWED
@@ -154,7 +158,8 @@ export const frontEndApis: ApiHandlers = {
 
     async comment({ uri, comment }, ctx) {
         apiAssertTypes({ string: { uri, comment } })
-        ctx.logExtra(null, { target: decodeURI(uri) })
+        try { ctx.logExtra(null, { target: pathDecode(uri) }) }
+        catch { return new ApiError(HTTP_BAD_REQUEST) }
         const node = await urlToNode(uri, ctx)
         if (!node)
             return new ApiError(HTTP_NOT_FOUND)

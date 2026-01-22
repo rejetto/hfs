@@ -5,10 +5,10 @@ import { createReadStream, existsSync, statfsSync, statSync } from 'fs'
 import { basename, dirname, resolve } from 'path'
 import { exec } from 'child_process'
 import _ from 'lodash'
-import { findDefined, randomId, try_, tryJson, UPLOAD_TEMP_HASH, wait } from '../src/cross'
+import { findDefined, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, wait } from '../src/cross'
 import { httpStream, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
-import { mkdir, rm, rename, writeFile } from 'fs/promises'
+import { mkdir, rm, rename, writeFile, access } from 'fs/promises'
 import { Readable } from 'stream'
 /*
 import { PORT, srv } from '../src'
@@ -212,6 +212,11 @@ describe('basics', () => {
             .finally(() => defaultBaseUrl = BASE_URL)
     })
 
+    test('create_folder.bad encoding', reqApi('comment', { uri: '%a' }, 400))
+    test('comment.bad encoding', reqApi('comment', { uri: '%a', comment: 'anything' }, 400))
+    test('rename.bad encoding', reqApi('rename', { uri: '%a', dest: 'anything' }, 400))
+    test('move_files.bad encoding', reqApi('move_files', { uri_from: ['%a'], uri_to: '%a' }, 400))
+
     test('folder size', reqApi('get_folder_size', { uri: 'f1/page' }, res => res.bytes === 6328 ))
     test('folder size.cant', reqApi('get_folder_size', { uri: 'for-admins' }, 401))
 
@@ -242,8 +247,15 @@ describe('accounts', () => {
 
 describe('after-login', () => {
     before(() => login(username))
+    const trickyChars = '%strange#'
     test('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 200))
     test('create_folder.empty name', reqApi('create_folder', { uri: UPLOAD_ROOT, name: '' }, 409))
+    test('create_folder.tricky chars', async () => {
+        await reqApi('create_folder', { uri: UPLOAD_ROOT, name: trickyChars }, 200)()
+        const dest = resolve(__dirname, trickyChars)
+        await access(dest)
+        await rm(dest, { recursive: true })
+    })
     test('inherit.perm', reqList('/for-admins/', { inList:['alfa.txt'] }))
     test('inherit.disabled', reqList('/for-disabled/', 401))
     test('rename.to existing folder', async () => {
@@ -390,6 +402,17 @@ describe('after-login', () => {
     test('reupload', reqUpload(UPLOAD_DEST, 200))
     test('delete.method', req(UPLOAD_DEST, 200, { method: 'DELETE' }))
     test('delete.miss deleted', req(UPLOAD_DEST, 404, { method: 'delete' }))
+    test('rename.tricky chars', async () => {
+        const dest = trickyChars
+        await mkdir(resolve(__dirname, UPLOAD_DIR), { recursive: true })
+        const fn = resolve(__dirname, UPLOAD_RELATIVE)
+        await writeFile(fn, 'z')
+        try {
+            await reqApi('rename', { uri: UPLOAD_DEST, dest }, 200)() // dest is not encoded
+            await reqApi('rename', { uri: dirname(UPLOAD_DEST) + '/' + pathEncode(dest), dest: basename(UPLOAD_DEST) }, 200)()
+        }
+        finally { await rm(fn) }
+    })
     const declaredSize = BIG_CONTENT.length / 2
     test('upload.too much', reqUpload(UPLOAD_DEST, (x,res)=> {
         if (res.statusCode === 400) return // status 400 is caused by nodejs itself, intercepting the mismatch, but it's probably an unreliable race condition
