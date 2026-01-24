@@ -27,12 +27,13 @@
     "pub": "cd dist && npm publish",
     "dist": "STASHED=; if ! git diff-index --quiet HEAD --; then git stash push -m 'dist' && STASHED=1; fi; CI=1 FORCE_COLOR=1 npm run dist-uncommitted || (EXIT_CODE=$?; [ -n \"$STASHED\" ] && git stash pop; exit $EXIT_CODE); [ -n \"$STASHED\" ] && git stash pop",
     "dist-uncommitted": "npm audit --omit=dev --audit-level=moderate && npm run build-all && npm run test-ui && npm run dist-bin",
-    "dist-bin": "npm run dist-modules && npm run dist-bin-win && npm run dist-bin-linux && npm run dist-bin-mac && npm run dist-bin-mac-arm",
+    "dist-bin": "npm run dist-modules && npm run dist-bin-win && npm run dist-bin-linux && npm run dist-bin-linux-arm && npm run dist-bin-mac && npm run dist-bin-mac-arm",
     "dist-modules": "cp package*.json central.json dist && cd dist && npm ci --omit=dev && cd .. && node prune_modules",
     "dist-bin-win": "cd dist && pkg . --public -C gzip -t node20-win-x64 && npx resedit-cli --in hfs.exe --icon 1,../hfs.ico --out hfs.exe && zip hfs-windows-x64-$(jq -r .version ../package.json).zip hfs.exe -r plugins && cd ..",
     "dist-bin-mac-arm": "cd dist && pkg . --public -C gzip -t node20-macos-arm64 && zip hfs-mac-arm64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
     "dist-bin-mac": "cd dist && pkg . --public -C gzip -t node20-macos-x64 && zip hfs-mac-x64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
     "dist-bin-linux": "cd dist && pkg . --public -C gzip -t node20-linux-x64 && zip hfs-linux-x64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
+    "dist-bin-linux-arm": "cd dist && pkg . --public -C gzip -t node20-linux-arm64 && zip hfs-linux-arm64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
     "dist-win": "npm run dist-modules && npm run dist-bin-win",
     "dist-mac-arm": "npm run dist-modules && npm run dist-bin-mac-arm",
     "dist-mac": "npm run dist-modules && npm run dist-bin-mac",
@@ -69,7 +70,8 @@
       "node20-win-x64",
       "node20-mac-x64",
       "node20-mac-arm64",
-      "node20-linux-x64"
+      "node20-linux-x64",
+      "node20-linux-arm64"
     ]
   },
   "dependencies": {
