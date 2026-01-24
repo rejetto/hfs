@@ -2,7 +2,7 @@ import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
 import { createElement as h, forwardRef, Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import {
     basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation, useStateMounted,
-    isNumeric,
+    isNumeric, safeDecodeURIComponent,
 } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
@@ -204,7 +204,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                                 setCover(pathEncode(_.maxBy(covers, 's')?.n || ''))
                                 const meta = {
                                     title: cur.name,
-                                    album: decodeURIComponent(basename(dirname(cur.uri))),
+                                    album: safeDecodeURIComponent(basename(dirname(cur.uri)), ''),
                                     artwork: covers.map(x => ({ src: x.n }))
                                 }
                                 const m = window.MediaMetadata && (navigator.mediaSession.metadata = new MediaMetadata(meta))

@@ -51,7 +51,7 @@ vfs:
               source: ../tmp/no-upload
               can_upload: false
         - name: cant-overwrite
-          source: ../tmp/cant-overwrite
+          source: ../work/cant-overwrite
           can_upload:
             - admins
           can_delete: false

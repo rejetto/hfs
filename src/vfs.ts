@@ -5,7 +5,7 @@ import { basename, dirname, join, resolve } from 'path'
 import {
     makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who, debounceAsync,
     isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_, matches,
-    statWithTimeout,
+    statWithTimeout, safeDecodeURIComponent,
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -117,7 +117,7 @@ export async function urlToNode(
     const slice = url.slice(initialSlashes, nextSlash < 0 ? undefined : nextSlash)
     if (!slice)
         return parent
-    const name = try_(() => decodeURIComponent(slice))
+    const name = safeDecodeURIComponent(slice, '')
     if (!name) // failed decoding
         return
     const hasTrailingSlash = url.endsWith('/')

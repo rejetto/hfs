@@ -205,7 +205,7 @@ describe('basics', () => {
             await Promise.all([rmAny(absPath), rmAny(storedPath)])
         }
     })
-    test('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 401))
+    test('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: UPLOAD_DIR }, 401))
     test('create_folder.bad type', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 123 }, { status: 400, re: /name/ }))
     test('delete.no perm', req('/for-admins/', 405, { method: 'delete' }))
     test('delete.need account', req(UPLOAD_ROOT + 'alfa.txt', 401, { method: 'delete'}))
@@ -254,7 +254,7 @@ describe('accounts', () => {
 describe('after-login', () => {
     before(() => login(username))
     const trickyChars = '%strange#'
-    test('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 200))
+    test('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: UPLOAD_DIR }, 200))
     test('create_folder.empty name', reqApi('create_folder', { uri: UPLOAD_ROOT, name: '' }, 409))
     test('create_folder.tricky chars', async () => {
         await reqApi('create_folder', { uri: UPLOAD_ROOT, name: trickyChars }, 200)()
@@ -295,6 +295,62 @@ describe('after-login', () => {
         throwIf(!u?.ip ? 'ip' : u?.username !== username ? 'username' : '')
     }))
     test('file_details.non-admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, res => res?.details?.[0] === false, { jar: {} }))
+    test('percent name apis.details', async () => {
+        const percentName = `x%25-${randomId(4)}`
+        const percentUri = `${UPLOAD_ROOT}${pathEncode(percentName)}`
+        const comment = `note-${randomId(6)}`
+        await reqUpload(percentUri, 200)()
+        try {
+            await reqApi('get_file_details', { uris: [percentUri] }, res => !!res?.details?.[0]?.upload)()
+            await reqApi('comment', { uri: percentUri, comment }, 200)()
+            await reqApi('get_file_list', { uri: UPLOAD_ROOT }, res => _.find(res?.list, { n: percentName })?.comment === comment)()
+            await reqApi('get_folder_size', { uri: percentUri }, 405)()
+        }
+        finally {
+            await req(percentUri, 200, { method: 'delete' })().catch(() => {})
+            await rmAny(resolve(__dirname, percentName))
+        }
+    })
+
+    test('percent name apis.rename', async () => {
+        const percentName = `x%25-${randomId(4)}`
+        const percentUri = `${UPLOAD_ROOT}${pathEncode(percentName)}`
+        const renameName = `${percentName}-renamed`
+        const renamedUri = `${UPLOAD_ROOT}${pathEncode(renameName)}`
+        await reqUpload(percentUri, 200)()
+        try {
+            await reqApi('rename', { uri: percentUri, dest: renameName }, 200)()
+            await req(percentUri, 404)()
+            await req(renamedUri, 200)()
+        }
+        finally {
+            await req(renamedUri, 200, { method: 'delete' })().catch(() => {})
+            await rmAny(resolve(__dirname, renameName))
+        }
+    })
+
+    test('percent name apis.move-copy', async () => {
+        const percentName = `x%25-${randomId(4)}`
+        const percentUri = `${UPLOAD_ROOT}${pathEncode(percentName)}`
+        const folderName = `pct-${randomId(6)}`
+        const folderUri = `${UPLOAD_ROOT}${folderName}/`
+        const movedUri = `${UPLOAD_ROOT}${folderName}/${pathEncode(percentName)}`
+        await reqUpload(percentUri, 200)()
+        try {
+            await reqApi('create_folder', { uri: UPLOAD_ROOT, name: folderName }, 200)()
+            await reqApi('move_files', { uri_from: [percentUri], uri_to: folderUri }, res => !res?.errors?.[0])()
+            await req(movedUri, 200)()
+            await reqApi('copy_files', { uri_from: [movedUri], uri_to: UPLOAD_ROOT }, res => !res?.errors?.[0])()
+            await req(percentUri, 200)()
+        }
+        finally {
+            await req(percentUri, 200, { method: 'delete' })().catch(() => {})
+            await req(movedUri, 200, { method: 'delete' })().catch(() => {})
+            await rmAny(resolve(__dirname, percentName))
+            await rmAny(resolve(__dirname, folderName, percentName))
+            await rmAny(resolve(__dirname, folderName))
+        }
+    })
     test('zip.no-list but archive', req('/zipNoList/?get=zip', 403, { jar: {} }))
     test('upload but not delete', async () => {
         const name = `cant-delete`
@@ -349,7 +405,7 @@ describe('after-login', () => {
         if (after !== before)
             throw "size changed"
     })
-    test('upload.crossing', reqUpload(UPLOAD_DEST.replace('temp', '../..'), 404))
+    test('upload.crossing', reqUpload(UPLOAD_DEST.replace(UPLOAD_DIR, '../..'), 404))
     test('upload.overlap', async () => {
         const ms = 300
         const first = reqUpload(UPLOAD_DEST, 200, makeReadableThatTakes(ms))()
@@ -434,15 +490,15 @@ describe('after-login', () => {
         const res = statfsSync(ROOT)
         const free = res.bavail * res.bsize
         const fakeSize = Math.round(free * 0.51)
-        const r1 = reqUpload(UPLOAD_ROOT + 'temp/free1', 400, makeReadableThatTakes(1000), fakeSize)()
+        const r1 = reqUpload(`${UPLOAD_ROOT}${UPLOAD_DIR}/free1`, 400, makeReadableThatTakes(1000), fakeSize)()
         setTimeout(r1.abort, 1500)
         await Promise.all([
             r1.catch(() => {}),
-            wait(100).then(() => reqUpload(UPLOAD_ROOT + 'temp/free2', 507, makeReadableThatTakes(500), fakeSize)())
+            wait(100).then(() => reqUpload(`${UPLOAD_ROOT}${UPLOAD_DIR}/free2`, 507, makeReadableThatTakes(500), fakeSize)())
         ])
     })
     test('max_dl.account', async () => {
-        const uri = UPLOAD_ROOT + 'temp/big'
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/big`
         await reqUpload(uri, 200, BIG_CONTENT)()
         await testMaxDl(uri, 2, 1)
     })
@@ -451,7 +507,7 @@ describe('after-login', () => {
         await reqApi('logout', {}, 401)()
         await reqApi('get_accounts', {}, 401)() // no more
     })
-    after(() => rmAny(resolve(__dirname, 'temp')))
+    after(() => rmAny(resolve(__dirname, UPLOAD_DIR)))
 })
 
 describe('admin', () => {
@@ -700,7 +756,7 @@ function throwIf(msg: any) {
 }
 
 async function ensureCantOverwriteDir() {
-    const baseDir = resolve(__dirname, 'tmp', CANT_OVERWRITE_NAME)
+    const baseDir = resolve(__dirname, 'work', CANT_OVERWRITE_NAME)
     await mkdir(baseDir, { recursive: true })
     return baseDir
 }
