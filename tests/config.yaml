@@ -164,7 +164,7 @@ accounts:
   admins:
     allow_net: ::1
     admin: true
-version: 3.0.1
+version: 3.0.2
 max_downloads_per_account: 2
 max_downloads: 1
 roots:
