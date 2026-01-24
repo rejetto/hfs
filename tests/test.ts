@@ -456,9 +456,11 @@ describe('admin', () => {
             await reqList(name, { inList: ['plugins/'] })()
         }
         finally {
-            await reqApi('del_vfs', { uris: ['/'+name] }, 200, { auth })() // remove
+            await reqApi('del_vfs', { uris: ['/'+name] }, data => data?.errors?.[0] === 0, { auth })() // remove
         }
     })
+    test('del_vfs.bad uris', reqApi('del_vfs', { uris: ['', '/', '//'] }, (res: any) =>
+        throwIf(res?.errors.some((x: any) => x === 406) ? '' : res?.errors || 'missing'), { auth }))
     test('plugins.missing', reqApi('set_plugin', { id: 'missing-plugin', enabled: true }, { status: 400, re: /miss/ }, { auth }))
     test('plugins.update.missing', reqApi('update_plugin', { id: 'missing-plugin' }, 404, { auth }))
     test('monitor.connections safe path decode', async () => {

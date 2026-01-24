@@ -42,7 +42,7 @@ export interface VfsNodeStored extends VfsPerms {
 export interface VfsNode extends VfsNodeStored { // include fields that are only filled at run-time
     isTemp?: true // this node doesn't belong to the tree and was created by necessity
     original?: VfsNode // if this is a temp node but reflecting an existing node
-    parent?: VfsNode // available when original is available
+    parent?: VfsNode // available when original is available (therefore, only for isTemp)
     isFolder?: boolean // use nodeIsFolder() instead of relying on this field
     stats?: Promise<Stats>
 }

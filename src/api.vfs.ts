@@ -151,21 +151,20 @@ export default {
             errors: await Promise.all(uris.map(async uri => {
                 if (typeof uri !== 'string')
                     return HTTP_BAD_REQUEST
-                if (uri === '/')
-                    return HTTP_NOT_ACCEPTABLE
                 const node = await urlToNodeOriginal(uri)
                 if (!node)
                     return HTTP_NOT_FOUND
-                const parent = dirname(uri)
-                const parentNode = await urlToNodeOriginal(parent)
-                if (!parentNode) // shouldn't happen
+                if (isRoot(node))
+                    return HTTP_NOT_ACCEPTABLE
+                const parentNode = await urlToNodeOriginal(dirname(uri))
+                const c = parentNode?.children // since node is not root, parentNode must exist and have children
+                if (!c) // inconsistent state
                     return HTTP_SERVER_ERROR
-                const { children } = parentNode
-                if (!children) // shouldn't happen
+                const idx = c.indexOf(node)
+                if (idx < 0) // inconsistent state
                     return HTTP_SERVER_ERROR
-                const idx = children.indexOf(node)
-                children.splice(idx, 1)
-                if (!children.length)
+                c.splice(idx, 1)
+                if (!c.length)
                     parentNode.children = undefined
                 return 0 // error code 0 is OK
             })).finally(saveVfs)
