@@ -1,6 +1,7 @@
 node_modules
 .idea
 .vscode
+hfs.plist
 dist
 .DS_Store
 #produced by running
