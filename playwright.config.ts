@@ -13,7 +13,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
-  timeout: 25_000,
+  timeout: 30_000,
   fullyParallel: true, // Run tests in files in parallel
   forbidOnly: !!process.env.CI, // Fail the build on CI if you accidentally left test.only in the source code.
   retries: process.env.CI ? 2 : 0, // Retry on CI only
@@ -94,7 +94,7 @@ export default defineConfig({
   },
   /* Run your local dev server before starting the tests */
    webServer: [{
-     command: 'npm run server-for-test',
+     command: 'npm run server-for-test', // you can run server-for-test-dev instead, but then you need frontend and admin to be running too
      url: 'http://127.0.0.1:81',
      reuseExistingServer: !process.env.CI,
    }, { // launch a second server for tests with an empty/default config

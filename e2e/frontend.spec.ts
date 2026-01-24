@@ -253,6 +253,17 @@ test('admin1', async ({ page }) => {
         await expect(page.getByText('Expire', { exact: true })).toBeVisible() // wait for layout of 'block' table
     await page.mouse.click(1, 1) // avoid focus inconsistencies
     await screenshot(page)
+    { // regression test on dialog navigation not properly working
+        const blockTable = page.getByRole('grid').filter({ has: page.getByText('Blocked IP', { exact: true }) }).first()
+        await blockTable.getByRole('button', { name: 'Add' }).click()
+        const addDialog = page.getByRole('dialog').filter({ hasText: 'Add' })
+        await addDialog.getByRole('textbox', { name: 'Blocked IP' }).fill('1.2.3.4')
+        await addDialog.getByRole('button').last().click()
+        await expect(addDialog).not.toBeVisible()
+        await expect(page.getByRole('heading', { name: 'Options', exact: true })).toBeVisible() // still on the same page
+        await expect(blockTable.getByText('1.2.3.4')).toBeVisible()
+        await page.getByRole('button', { name: 'Reload' }).click() // cancel
+    }
 
     await clickMenu('Logs')
     await dataTableLoading()

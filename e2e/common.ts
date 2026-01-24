@@ -1,4 +1,4 @@
-import { test } from '@playwright/test'
+import { Page, test } from '@playwright/test'
 import fs from 'fs'
 
 export const username = 'rejetto'
@@ -18,4 +18,8 @@ export function clearUploads() {
 export function resetTimestamp() {
     fs.utimesSync('tests', t, t);
     fs.utimesSync('tests/alfa.txt', t, t);
+}
+
+export function forwardConsole(page: Page) {
+    page.on('console', msg => console.log(msg.type(), msg.text()));
 }

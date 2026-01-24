@@ -77,13 +77,18 @@ let waitClosing = Promise.resolve()
 let ignorePopState = false
 async function back() {
     ignorePopState = true
-    let was = history.state
+    const was = history.state
     return waitClosing = waitClosing.then(() => new Promise<void>(async res => {
-        const started = Date.now()
+        const timeout = Date.now() + 1000
+        let lastBack = 0
         while (was === history.state) { // history.back seems to not always be effective, so we loop for it
-            if (Date.now() - started > 1000) break // emergency brake
-            history.back()
-            await wait(10)
+            const now = Date.now()
+            if (now > timeout) break // emergency brake
+            if (now - lastBack > 500) { // after this long time we try again
+                history.back()
+                lastBack = now
+            }
+            await wait(10) // we wait shorter and loop faster so to exit/resolve asap
         }
         res()
     }))

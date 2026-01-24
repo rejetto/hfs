@@ -36,6 +36,7 @@ test('upload1', async ({ page, context, browserName }) => {
     await page.getByRole('button', { name: 'Edit' }).click();
     await page.getByRole('textbox').fill(uploadName);
     await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page.getByText(uploadName)).toBeVisible() // rename was effective
     await page.getByRole('button', { name: 'Send 1 file' }).click();
     await wait(1500)
     await pageAdmin.getByRole('cell', { name: uploadName }).click();

@@ -134,7 +134,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                         const res = await login(u, password, {
                             [ALLOW_SESSION_IP_CHANGE]: ipRef.current?.checked,
                             ...rest
-                        })
+                        }).finally(() => going = false)
                         await close(true)
                         toast(t`Logged in`, 'success')
                         if (res?.redirect)
@@ -145,8 +145,6 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                     } catch (err: any) {
                         await alertDialog(err)
                         usrRef.current?.focus()
-                    } finally {
-                        going = false
                     }
                 }
 
