@@ -18,7 +18,10 @@ import { preventAdminAccess, favicon } from './adminApis'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
-import { asyncGeneratorToReadable, filterMapGenerator, isValidFileName, loadFileCached, pathEncode, try_ } from './misc'
+import {
+    asyncGeneratorToReadable, filterMapGenerator, isValidFileName, loadFileCached, pathEncode, safeDecodeURIComponent,
+    try_,
+} from './misc'
 import XXH from 'xxhashjs'
 import fs from 'fs'
 import { rm } from 'fs/promises'
@@ -59,7 +62,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const { get } = ctx.query
     const getUploadTempHash = get === UPLOAD_TEMP_HASH
     if (ctx.method === 'PUT' || getUploadTempHash) { // PUT is what you get with `curl -T file url/`
-        const decPath = decodeURIComponent(path)
+        const decPath = safeDecodeURIComponent(path, '')
         const fn = basename(decPath)
         const folderUri = pathEncode(dirname(decPath)) // re-encode to get readable urls
         const folder = await urlToNode(folderUri, ctx, vfs, true)

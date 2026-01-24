@@ -276,6 +276,7 @@ describe('after-login', () => {
     test('move.dest is file', reqApi('move_files', { uri_from: [UPLOAD_DEST], uri_to: UPLOAD_DEST }, 405))
     test('upload.dot name', reqUpload(`${UPLOAD_ROOT}%2e`, 418))
     test('upload.unreadable', reqUpload(`${UPLOAD_ROOT}%0a`, 418))
+    test('upload.bad encoding', reqUpload(`${UPLOAD_ROOT}%E0%A4%A`, 404))
     test('upload.temp hash traversal', req(`${UPLOAD_ROOT}%2e%2e?get=${UPLOAD_TEMP_HASH}`, 404))
     test('upload.temp hash requires auth', async () => {
         const rel = `${UPLOAD_DIR}/partial.png`
