@@ -14,7 +14,7 @@ vfs:
       can_list: false
   children:
     - source: ../alfa.txt
-      name: x%#x
+      name: x%25#x
     - name: protectFromAbove
       children:
         - name: child

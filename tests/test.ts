@@ -27,6 +27,8 @@ const BASE_URL = 'http://[::1]:81'
 const BASE_URL_127 = 'http://127.0.0.1:81'
 const UPLOAD_ROOT = '/for-admins/upload/'
 const VIRTUAL_UPLOAD_ROOT = '/renameChild/'
+const FUNNY_NAME = 'x%25#x'
+const FUNNY_NAME_ENCODED = '/x%2525%23x'
 const UPLOAD_DIR = 'temp'
 const CANT_OVERWRITE_NAME = 'cant-overwrite'
 const CANT_OVERWRITE_URI = `/for-admins/${CANT_OVERWRITE_NAME}/`
@@ -78,7 +80,9 @@ describe('basics', () => {
     test('traversal.overlong-utf8', req('/f1/page/%c0%ae%c0%ae/%c0%ae%c0%ae/README.md', 404))
     test('bad url encoding', req('/f1/%E0%A4%A', 404))
     test('custom mime from above', req('/tests/page/index.html', { status: 200, mime:'text/plain' }))
-    test('name encoding', req('/x%25%23x', 200))
+    test('name encoding', req(FUNNY_NAME_ENCODED, 200))
+    test('name encoding list', reqList('/', { inList: [FUNNY_NAME] }))
+    test('name encoding search', reqList('/', { inList: [FUNNY_NAME] }, { search: FUNNY_NAME }))
 
     test('missing perm', reqList('/for-admins/', 401))
     test('missing perm.file', req('/for-admins/alfa.txt', 401))
@@ -485,6 +489,34 @@ describe('admin', () => {
             if (res?.msg === 'already stopped')
                 throw "plugin didn't start"
         }, { auth })()
+    })
+    test('plugins.download-counter percent name', async () => {
+        const id = 'download-counter'
+        await reqApi('start_plugin', { id }, 200, { auth })()
+        try {
+            const before = await getHits()
+            await req(FUNNY_NAME_ENCODED, 200)()
+            let after = 0
+            for (const _x of _.range(10)) {
+                await wait(100)
+                after = await getHits()
+                if (after > before)
+                    break
+            }
+            if (after <= before)
+                throw `counter not incremented (before ${before}, after ${after})`
+        }
+        finally {
+            await reqApi('stop_plugin', { id }, 200, { auth })()
+        }
+
+        async function getHits() {
+            const listRes = await reqList('/', { status: 200 })()
+            const entry = _.find(listRes?.list, { n: FUNNY_NAME })
+            if (!entry)
+                throw "missing entry in list"
+            return entry.hits || 0
+        }
     })
 })
 
