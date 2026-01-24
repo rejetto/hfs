@@ -95,7 +95,7 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
    webServer: [{
      command: 'npm run server-for-test', // you can run server-for-test-dev instead, but then you need frontend and admin to be running too
-     url: 'http://127.0.0.1:81',
+     url: 'http://127.0.0.1:8081',
      reuseExistingServer: !process.env.CI,
    }, { // launch a second server for tests with an empty/default config
        command: 'rm -rf tests/work2 && node dist/src --cwd tests/work2 --debug --port 82 --open_browser_at_start false',

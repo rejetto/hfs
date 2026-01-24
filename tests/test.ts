@@ -1,10 +1,11 @@
 import test, { describe, before, after } from 'node:test';
 import { promisify } from 'util'
 import { srpClientSequence } from '../src/srp'
-import { createReadStream, existsSync, statfsSync, statSync } from 'fs'
+import { createReadStream, existsSync, readFileSync, statfsSync, statSync } from 'fs'
 import { basename, dirname, resolve } from 'path'
 import { exec } from 'child_process'
 import _ from 'lodash'
+import yaml from 'yaml'
 import { findDefined, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, wait } from '../src/cross'
 import { httpStream, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
@@ -23,8 +24,9 @@ const password = 'password'
 const auth = `${username}:${password}`
 const API = '/~/api/'
 const ROOT = 'tests/'
-const BASE_URL = 'http://[::1]:81'
-const BASE_URL_127 = 'http://127.0.0.1:81'
+const TEST_PORT = Number(yaml.parse(readFileSync(resolve(__dirname, 'config.yaml'), 'utf8')).port)
+const BASE_URL = `http://[::1]:${TEST_PORT}`
+const BASE_URL_127 = `http://127.0.0.1:${TEST_PORT}`
 const UPLOAD_ROOT = '/for-admins/upload/'
 const VIRTUAL_UPLOAD_ROOT = '/renameChild/'
 const FUNNY_NAME = 'x%25#x'

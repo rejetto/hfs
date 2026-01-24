@@ -3,7 +3,7 @@ import fs from 'fs'
 
 export const username = 'rejetto'
 export const password = 'password'
-export const URL = 'http://[::1]:81/'
+export const URL = 'http://[::1]:8081/'
 export const uploadName = 'uploaded'
 
 const t = Date.UTC(2025, 0, 20, 3, 0, 0, 0) / 1000 // a fixed timestamp, for visual comparison
