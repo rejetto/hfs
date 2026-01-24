@@ -66,9 +66,11 @@ Runs on: Windows, Linux, macOS, FreeBSD, Android
 
 ## Installation
 
-If you need [Docker installation](https://github.com/damienzonly/hfs-docker) or [Service installation](https://github.com/rejetto/hfs/wiki/Service-installation), click the links.
+For Docker, see https://github.com/rejetto/hfs/wiki/Docker . 
 
-Minimum Windows version required is 10 or Server 2019.
+For service installation, see https://github.com/rejetto/hfs/wiki/Service-installation.
+
+The minimum Windows version required is 10 or Server 2019.
 
 1. Download the zip file for your operating system from https://github.com/rejetto/hfs/releases
    - ⚠️ Antivirus problems on Windows? [READ THIS](https://github.com/rejetto/hfs/wiki/Antivirus)

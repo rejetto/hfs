@@ -1,0 +1,16 @@
+.git
+.github
+.node_modules
+node_modules
+admin/node_modules
+frontend/node_modules
+shared/node_modules
+mui-grid-form/node_modules
+**/*.log
+**/*.zip
+**/*.tgz
+**/*.exe
+dist
+playwright-report
+test-results
+tests/work
