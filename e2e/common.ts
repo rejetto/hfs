@@ -17,4 +17,5 @@ export function clearUploads() {
 
 export function resetTimestamp() {
     fs.utimesSync('tests', t, t);
+    fs.utimesSync('tests/alfa.txt', t, t);
 }
