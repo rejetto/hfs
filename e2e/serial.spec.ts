@@ -1,13 +1,18 @@
-import { test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { wait } from '../src/cross'
 import { clearUploads, password, uploadName, URL, username } from './common'
 
 // this test is separated to run serially, as it will modify folder timestamp for a few seconds, during which other tests may fail
+test.describe.configure({ mode: 'serial' }) // to disconnect the upload consistently, i need only 1 upload at a time
 
-export const fileToUpload = 'dev-plugins.md'
+export const fileToUpload = {
+    name: 'upload-test.bin',
+    mimeType: 'application/octet-stream',
+    buffer: Buffer.alloc(100_000),
+}
 
 test('upload1', async ({ page, context, browserName }) => {
-    if (page.viewportSize()?.width! < 1000 || browserName !== 'chromium') return // test only for desktop, as only chromium has cdpSession, and to disconnect i need only 1 upload at a time
+    if (browserName !== 'chromium') return // only chromium has cdpSession
     await page.goto(URL);
     await page.getByRole('button', { name: 'Login' }).click();
     await page.getByRole('textbox', { name: 'Username' }).fill(username);
