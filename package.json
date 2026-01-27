@@ -89,7 +89,7 @@
     "koa-mount": "^4.2.0",
     "koa-session": "^7.0.2",
     "limiter": "^3.0.0",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "mime-types": "*",
     "minimist": "^1.2.8",
     "nat-upnp-rejetto": "^2.1.1",
