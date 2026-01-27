@@ -28,10 +28,11 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         const params = isPost ? ctx.state.params || {} : ctx.query
         const apiName = ctx.path
         console.debug('API', ctx.method, apiName, { ...params })
-        const noBrowser = ctx.get('user-agent')?.startsWith('curl')
-        const safe = noBrowser || isPost && ctx.get('x-hfs-anti-csrf') // POST is safe because browser will enforce SameSite cookie
+        const csrfSafe = !isPost
+            || ctx.get('x-hfs-anti-csrf') // automatic browser actions won't carry this header
             || apiName.startsWith('get_') // "get_" apis are safe because they make no change
-        if (!safe)
+            || /^(curl|wget|python|go-|java|axios|postman|httpie|insomnia|bruno)/i.test(ctx.get('user-agent') || '') // only browser are subject to CSRF
+        if (!csrfSafe)
             return send(HTTP_FOOL, "missing header x-hfs-anti-csrf=1")
         const customApiRest = apiName.startsWith(PLUGIN_CUSTOM_REST_PREFIX) && apiName.slice(PLUGIN_CUSTOM_REST_PREFIX.length)
         const apiFun = customApiRest && firstPlugin(pl => pl.getData().customRest?.[customApiRest])
