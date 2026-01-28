@@ -166,9 +166,21 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
   You can read more in [the ctx object](#the-ctx-object) section.
 
 - `unload: function` called when unloading a plugin. This is a good place for example to clearInterval().
-- `onDirEntry: ({ entry: DirEntry, listUri: string, ctx, node: VfsNode  }) => Promisable<void | false>` 
+- `onDirEntry: ({ entry: DirEntryBackend, listUri: string, ctx, node: VfsNode  }) => Promisable<void | false>` 
   by providing this callback you can manipulate the record that is sent to the frontend (`entry`),
-  or you can return false to exclude this entry from the results. Refer to source `frontend/src/state.ts`.
+  or you can return false to exclude this entry from the results.
+  `DirEntryBackend` fields:
+  - `n: string` name of the entry. (May include relative path when searching in sub-folders.)
+  - `s?: number` size of the entry, in bytes. It may be missing, for example for folders.
+  - `m?: Date` modified-time.
+  - `c?: Date` creation-time.
+  - `p?: string` permissions.
+  - `comment?: string` comment for the entry.
+  - `web?: boolean` true for web links.
+  - `url?: string` target url for links.
+  - `target?: string` target for links.
+  - `icon?: string | true` icon override or true for "specific for this file".
+  - `order?: number` custom sort order.
 - `config: Functionable<{ [key]: FieldDescriptor }, values:object>` declare a set of admin-configurable values owned by the plugin
   that will be displayed inside Admin-panel for change. Each property is identified by its key,
   and the descriptor is another object with options about the field. 
@@ -527,16 +539,11 @@ This is a list of available frontend-events, with respective object parameter an
 
 - `additionalEntryDetails`
   - use this to add HTML at the beginning of the `entry-details` container.
-  - parameter `{ entry: DirEntry }` current entry. The `DirEntry` type is an object with the following properties:
+  - parameter `{ entry: DirEntry }` current entry. `DirEntry` extends `DirEntryBackend` and adds:
     - `name: string` name of the entry.
     - `ext: string` just the extension part of the name, dot excluded and lowercase.
     - `isFolder: boolean` true if it's a folder.
-    - `n: string` name of the entry, including relative path when searched in sub-folders.
     - `uri: string` absolute uri of the entry.
-    - `s?: number` size of the entry, in bytes. It may be missing, for example for folders.
-    - `c?: Date` creation-time.
-    - `m?: Date` modified-time.
-    - `p?: string` permissions missing
     - `cantOpen: boolean` true if current user has no permission to open this entry
     - `getNext/getPrevious: ()=>DirEntry` return next/previous DirEntry in list
     - `getNextFiltered/getPreviousFiltered: ()=>DirEntry` as above, but considers the filtered-list instead

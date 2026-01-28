@@ -22,7 +22,7 @@ Access your files via web, directly from your disk.
 
 - Be your own server: share files **fresh from your disk** with **unlimited** space and bandwidth.
 - **Fast:** try zipping 100GB – download starts immediately.
-- **Smart:** HFS detects problems and suggest solutions.
+- **Smart:** HFS detects problems and suggests solutions.
 - Present things the way you want: share **even a single file**, even with a different name, with our *virtual file system*.
 - **Monitor** all activities in real-time.
 - **Bandwidth throttling**: decide how much to give.
@@ -61,7 +61,7 @@ Runs on: Windows, Linux, macOS, FreeBSD, Android
 - [reverse-proxy support](https://github.com/rejetto/hfs/wiki/Reverse-proxy)
 - comments in file descript.ion
 - integrated media player
-- [customizable with html, css and javascript](https://github.com/rejetto/hfs/wiki/Customization)
+- [customizable with html, css, and javascript](https://github.com/rejetto/hfs/wiki/Customization)
 - dynamic-dns updater
 
 ## Installation
@@ -75,17 +75,17 @@ The minimum Windows version required is 10 or Server 2019.
 1. Download the zip file for your operating system from https://github.com/rejetto/hfs/releases
    - ⚠️ Antivirus problems on Windows? [READ THIS](https://github.com/rejetto/hfs/wiki/Antivirus)
    - ⚠️ If you have Linux ARM or other unlisted/unsupported platforms, please see the [Other systems](#other-systems) section.
-2. Unzip and launch `hfs` file. 
+2. Unzip and launch the `hfs` file.
    - ⚠️ Mac: if you get *"cannot be opened because it is from an unidentified developer"*,
      you can hold `control` key while clicking, then click `open`.
-3. The browser should automatically open on `localhost` address, so you can configure the rest in the Admin-panel.
+3. The browser should automatically open at `localhost`, so you can configure the rest in the Admin-panel.
 
 Troubleshooting
-   - if a browser cannot be opened on the computer where you are installing HFS, 
+   - If a browser cannot be opened on the computer where you are installing HFS, 
      you should enter this command in the HFS console: `create-admin <PASSWORD>`
-   - if you cannot access the console (like when you are running as a service), 
+   - If you cannot access the console (like when you are running as a service), 
        you can [edit the config file to add your admin account](config.md#accounts)
-   - if you don't want to use an editor you can create the file with this command: 
+   - If you don't want to use an editor, you can create the file with this command: 
      
      `echo "create-admin: PASSWORD" > config.yaml` 
 
@@ -94,10 +94,10 @@ If you don't like this behavior, disable it in the Admin-panel or enter this con
 
 ### Other systems
 
-If can't or don't want to run our binary versions, you can try this:
+If you can't or don't want to run our binary versions, you can try this:
 
  1. [install node.js](https://nodejs.org) version 20 (or greater, but then compatibility is not guaranteed)
-2. execute at command line `npx hfs@latest`
+2. run at the command line `npx hfs@latest`
 
 The `@latest` part is optional, and ensures that you are always up to date.
 
@@ -138,6 +138,7 @@ If your language is missing, please consider [translating yourself](https://gith
 - `--consoleFile PATH` to also output all stdout/stderr to a file
 - Set env.var. `DISABLE_UPDATE=1` (for containers)
 - Launch with `--debug` or env.var. `HFS_DEBUG=1` to generate additional console logs 
+- Launch with `--no-central` to skip fetching updated info from GitHub (uses built-in data only)
 
 ## Contribute
 
@@ -171,6 +172,8 @@ There are several ways to contribute
   A plugin can change the look (a theme), and/or introduce a new functionality.
 
 ## More
+
+- [Additional information (Wiki)](https://github.com/rejetto/hfs/wiki)
 
 - [APIs](https://github.com/rejetto/hfs/wiki/APIs)
 
