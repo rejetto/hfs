@@ -94,7 +94,7 @@ export default defineConfig({
   },
   /* Run your local dev server before starting the tests */
    webServer: [{
-     command: 'npm run server-for-test', // you can run server-for-test-dev instead, but then you need frontend and admin to be running too
+     command: 'npm run server-for-test' + (process.env.TEST_WITH_UI ? '-dev' : ''), // use server-for-test-dev only for "test-with-ui"
      url: 'http://127.0.0.1:8081',
      reuseExistingServer: !process.env.CI,
    }, { // launch a second server for tests with an empty/default config
