@@ -16,6 +16,7 @@ export const MAX_TILE_SIZE = 10
 export const FRONTEND_OPTIONS = {
     file_menu_on_link: true,
     tile_size: 0,
+    page_size: 100,
     sort_by: 'name',
     invert_order: false,
     folders_first: true,

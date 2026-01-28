@@ -204,8 +204,9 @@ export default function OptionsPage() {
             { k: 'folders_first', comp: BoolField, xs: 6, md: 3 },
             { k: 'sort_numerics', comp: BoolField, xs: 6, md: 3, label: "Sort numeric names" },
             { k: 'title_with_path', comp: BoolField, xs: 6, md: 3 },
-            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, xs: 12,
+            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, xs: 12, sm: 9,
                 helperText: "The icon associated to your website" },
+            { k: 'page_size', comp: NumberField, xs: true, min: 1, required: true, helperText: "Entries per page" },
 
             h(Section, { title: "Uploads" }),
             { k: 'dont_overwrite_uploading', comp: BoolField, md: 4, label: "Uploads don't overwrite",

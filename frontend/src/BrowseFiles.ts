@@ -63,15 +63,15 @@ export function BrowseFiles() {
 }
 
 function FilesList() {
-    const { filteredList, list, loading, searchManuallyInterrupted } = useSnapState()
-    const midnight = useMidnight() // as an optimization we calculate this only once per list and pass it down
-    const pageSize = 100
+    const snap = useSnapState()
+    const midnight = useMidnight() // as an optimization, we calculate this only once per list and pass it down
+    const pageSize = Math.max(1, Math.floor(snap.page_size ?? 100))
     const [page, setPage] = useState(0)
     const [extraPages, setExtraPages] = useState(0)
     const [scrolledPages, setScrolledPages] = useState(0)
     const [atBottom, setAtBottom] = useState(false)
     const offset = page * pageSize
-    const theList = filteredList || list
+    const theList = snap.filteredList || snap.list
     const total = theList.length
     const nPages = Math.ceil(total / pageSize)
     const pageEnd = offset + pageSize * (1+extraPages) - 1
@@ -206,8 +206,9 @@ function FilesList() {
 
     const {t} = useI18N()
 
-    const msgInstead = !list.length ? (!loading && (searchManuallyInterrupted ? t('stopped_before', "Stopped before finding anything") : t('empty_list', "Nothing here")))
-        : filteredList && !filteredList.length && t('filter_none', "No match for this filter")
+    const msgInstead = snap.list.length ? snap.filteredList && !snap.filteredList.length && t('filter_none', "No match for this filter")
+        : !snap.loading && (snap.searchManuallyInterrupted ? t('stopped_before', "Stopped before finding anything")
+        : t('empty_list', "Nothing here"))
 
     const focusHint = `${t('focus_hint', "By typing on your keyboard, you search and focus elements of the list.")}\n\nESC: ${t`Cancel`}`
     return h(Fragment, {},
@@ -222,7 +223,7 @@ function FilesList() {
                         separator: idx > 0 && !(idx % pageSize) ? String(offset + idx) : undefined,
                         entry,
                     })),
-            loading && h(Spinner),
+            snap.loading && h(Spinner),
         ),
         total > pageSize && h(Paging, {
             nPages,
