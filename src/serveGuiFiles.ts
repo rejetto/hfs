@@ -106,7 +106,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         session: session instanceof ApiError ? null : session,
                         plugins,
                         loadScripts: Object.fromEntries(mapPlugins((p, id) =>  [id, p.frontend_js?.map(f => f.includes('//') ? f : pub + id + '/' + f)])),
-                        prefixUrl: ctx.state.revProxyPath,
+                        prefixUrl: ctx.state.revProxyPath || '',
                         proxyDetected: Boolean(getProxyDetected()),
                         dontOverwriteUploading: dontOverwriteUploading.get(),
                         splitUploads: splitUploads.get(),

@@ -5,6 +5,7 @@ import { Btn, Flex, FlexV, iconBtn, Select } from './components'
 import {
     basename, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, selectFiles, working, copyTextToClipboard,
     HTTP_CONFLICT, formatSpeed, getHFS, onlyTruthy, cpuSpeedIndex, closeDialog, prefix, operationSuccessful, pathEncode,
+    getPrefixUrl,
 } from './misc'
 import _ from 'lodash'
 import { INTERNAL_Snapshot, ref, useSnapshot } from 'valtio'
@@ -227,7 +228,7 @@ export function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snaps
             asText: true,
             successFeedback: true,
             async onClick() {
-                await copyTextToClipboard(done.map(x => location.origin + x.response.uri).join('\n'))
+                await copyTextToClipboard(done.map(x => location.origin + getPrefixUrl() + x.response.uri).join('\n'))
                 operationSuccessful()
             }
         }),
