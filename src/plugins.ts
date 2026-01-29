@@ -332,7 +332,7 @@ const serverCode = defineConfig('server_code', '', async (script, { k }) => {
     catch {}
     const res: any = {}
     try {
-        new Function('exports', script)(res) // parse
+        new Function('exports,require', script)(res, require) // parse
         await initPlugin(res)
         res.getCustomHtml = () => callable(res.customHtml) || {}
         return new Plugin(SERVER_CODE_ID, '', res, _.noop)
