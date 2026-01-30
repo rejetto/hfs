@@ -10,6 +10,7 @@ import {
 } from 'react'
 import _ from 'lodash'
 import i18n from './i18n'
+import { alertDialog } from './dialog'
 const { t } = i18n
 
 export function Spinner(props: any) {
@@ -148,13 +149,13 @@ export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, 
             if (!onClick) return
             if (onClickAnimation !== false)
                 setWorking(true)
-            Promise.resolve(onClick()).finally(() => setWorking(false))
+            Promise.resolve().then(onClick).finally(() => setWorking(false))
                 .then(() => {
                     if (!successFeedback) return
                     setSuccess(true)
                     clearTimeout(t.current)
                     t.current = setTimeout(() => setSuccess(false), 1000)
-                }, () => {})
+                }, e => alertDialog(e, 'error'))
         },
         ...rest,
         ...asText ? { role: 'button', style: { cursor: 'pointer', ...rest.style } } : undefined,
