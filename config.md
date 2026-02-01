@@ -137,14 +137,27 @@ Configuration can be done in several ways
 
 The virtual file system is a tree of files and folders, collectively called *nodes*.
 By default, a node is a folder, unless you provide for it a source that's a file.
+The `vfs` config is a single root node. You can either bind a disk path directly to the root, like so
+```
+vfs:
+  source: /data
+```
+or expose paths as children of the root:
+```
+vfs:
+  children:
+    - source: /data
+```
+In the first example, the root of HFS shows the contents of `/data`.
+In the second example, HFS shows a folder named "data" at the root (name inferred from the path).
+
 Valid keys in a node are:
 - `name`: this is the name we'll use to display this file/folder. If not provided, HFS will infer it from the source. At least `name` or `source` must be provided.
 - `source`: absolute or relative path of where to get the content
 - `children`: just for folders, specify its virtual children.
   Value is a list and its entries are nodes.
-- `rename`: similar to name, but it's  from the parent node point.
-  Use this to change the name of  entries that are read from the source, not listed in the VFS.
-  Value is a dictionary, where the key is the original name. No UI.
+- `rename`: when `source` is a folder, you can rename entries *virtually* as they are read from disk.
+  Value is a map "original name" → "new name". No UI.
 - `mime`: specify what mime to use for this resource. Use "auto" for automatic detection.
 - `url`: when this value is present, the element is a link to the URL you specify.
 - `order`: a number that you can set if you want to force the position of this element to the top or the bottom of the list. 
