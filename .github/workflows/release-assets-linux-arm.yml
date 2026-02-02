@@ -1,0 +1,55 @@
+name: release-assets-linux-arm
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v3.0.2-test)'
+        required: true
+        type: string
+      commitish:
+        description: 'Target branch or commit (optional)'
+        required: false
+        type: string
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  linux_arm:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commitish || github.ref }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build server and UIs
+        run: |
+          npm run build-server
+          npm run build-frontend
+          npm run build-admin
+
+      - name: Prepare dist dependencies
+        run: npm run dist-modules
+
+      - name: Build Linux arm64 binary
+        run: npm run dist-bin-linux-arm
+
+      - name: Upload Linux arm64 package
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets-linux-arm64
+          path: dist/hfs-linux-arm64-*.zip

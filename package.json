@@ -33,7 +33,7 @@
     "dist-bin-mac-arm": "cd dist && pkg . --public -C gzip -t node20-macos-arm64 && zip hfs-mac-arm64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
     "dist-bin-mac": "cd dist && pkg . --public -C gzip -t node20-macos-x64 && zip hfs-mac-x64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
     "dist-bin-linux": "cd dist && pkg . --public -C gzip -t node20-linux-x64 && zip hfs-linux-x64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
-    "dist-bin-linux-arm": "cd dist && pkg . --public -C gzip -t node20-linux-arm64 && zip hfs-linux-arm64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
+    "dist-bin-linux-arm": "cd dist && pkg . --public -C gzip -t node20-linux-arm64 ${GITHUB_ACTIONS:+--public-packages \"*\"} && zip hfs-linux-arm64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
     "dist-win": "npm run dist-modules && npm run dist-bin-win",
     "dist-mac-arm": "npm run dist-modules && npm run dist-bin-mac-arm",
     "dist-mac": "npm run dist-modules && npm run dist-bin-mac",
@@ -64,7 +64,10 @@
       "admin/**/*",
       "frontend/**/*",
       "**/node_modules/fswin/x64/*",
-      "**/node_modules/axios/dist/node/*"
+      "**/node_modules/axios/dist/node/*",
+      "**/node_modules/buffers/**",
+      "**/node_modules/binary/**",
+      "**/node_modules/unzip-stream/**"
     ],
     "targets": [
       "node20-win-x64",
