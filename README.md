@@ -92,6 +92,8 @@ Troubleshooting
 By default, HFS does not require a login when you access the *Admin-panel* from localhost.
 If you don't like this behavior, disable it in the Admin-panel or enter this console command `config localhost_admin false`.
 
+To uninstall, remove the files you unzipped and the configuration/data directory (see `config.md` for the location).
+
 ### Other systems
 
 If you can't or don't want to run our binary versions, you can try this:
@@ -170,6 +172,14 @@ There are several ways to contribute
 - [Make a plugin](dev-plugins.md)
 
   A plugin can change the look (a theme), and/or introduce a new functionality.
+
+## Code Signing Policy
+
+Free code signing 🙏 provided by SignPath.io, certificate by [SignPath Foundation](https://signpath.org).
+
+Author/Reviewer/Approver: Massimo Melina.
+
+Privacy: Update checks are opt-out; other outbound connections are user-triggered.
 
 ## More
 

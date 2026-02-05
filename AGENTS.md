@@ -3,6 +3,14 @@
 ## Project Structure & Module Organization
 Core server logic sits in `src/` (TypeScript, Koa middleware, plugins). Shared React packages live under the workspace folders `frontend/`, `admin/`, `shared/`, and `mui-grid-form/`. Runtime assets (icons, central metadata) are in the repo root; packaged plugins reside in `plugins/`. Tests use `tests/` for Node-based suites and `e2e/` + `playwright.config.ts` for UI regression coverage. Build outputs land in `dist/`; avoid committing its contents manually.
 
+## Docs Map
+- `README.md` — overview, installation, and general usage.
+- `config.md` — configuration keys and where config files are stored (includes `server_code` for backend scripting).
+- `dev.md` — build, dev environment, tests, and coding guidelines.
+- `dev-plugins.md` — plugin development and API reference (backend and frontend APIs).
+- `SECURITY.md` — security policy and reporting.
+- Wiki — some topics are documented only on the project wiki.
+
 ## Build, Test, and Development Commands
 - `npm run watch-server` — start the TypeScript server with hot reload (set `FRONTEND_PROXY`/`ADMIN_PROXY` when pairing with dev UIs).
 - `npm run watch-server-full` — boot both React apps plus the API server for integrated development.
