@@ -63,7 +63,7 @@ Configuration can be done in several ways
 - `max_kbps_per_ip` throttle output speed on a per-ip basis. Default is Infinity.
 - `zip_calculate_size_for_seconds` how long should we wait before the zip archive starts streaming, trying to understand its finale size. Default is 1.
 - `open_browser_at_start` should HFS open browser on localhost on start? Default is true.
-- `https_port` listen on a specific port. Default is 443.
+- `https_port` listen on a specific port. Default is -1 (disabled).
 - `cert` use this file for https certificate. Minimum to start https is to give a cert and a private_key. Default is none.
 - `private_key` use this file for https private key. Default is none.
 - `allowed_referer` you can decide what domains can link to your files. Wildcards supported. Default is any.

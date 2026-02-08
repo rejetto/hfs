@@ -94,7 +94,33 @@ Let's first look at the things you can export:
 
 All the following properties are optional unless otherwise specified.
 
-- `description: string` try to explain what this plugin is for. (JSON syntax)
+### How to write fields marked *[STATIC JSON]*
+
+These fields are **statically parsed from source code** (for plugin discovery/update checks), so treat them as JSON literals, not generic JavaScript.
+
+- Use double quotes for strings and for object keys.
+- Do not use single quotes, template strings, variables, function calls, comments, or trailing commas.
+- Keep these values in the form `exports.<field> = <valid JSON literal>` (not returned from `init`).
+
+Examples:
+
+```js
+// valid
+exports.description = "My plugin"
+exports.repo = "user/repo"
+exports.preview = ["https://example.com/p1.png", "https://example.com/p2.png"]
+exports.depend = [{ "repo": "rejetto/file-icons", "version": 1 }]
+
+// invalid for fields marked *[STATIC JSON]* in this doc
+exports.description = 'My plugin'           // single quotes
+exports.repo = SOME_VAR                     // variable
+exports.preview = getPreviewList()          // function call
+exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
+```
+
+### The actual list
+
+- `description: string` try to explain what this plugin is for. *[STATIC JSON]*
 - `version: number` use progressive numbers to distinguish each release
 - `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed. Mandatory.
   A single number represents the minimum required version; an array of two defines the min/max supported versions.
@@ -114,11 +140,11 @@ All the following properties are optional unless otherwise specified.
 - `isTheme: boolean | "light" | "dark"` set true if this is a theme that's not supposed to work together with other themes. 
   Running a theme will cause other themes to be stopped. Missing this, HFS will check if the name of the plugin ends with `-theme`.
   Special values "light" and "dark" to declare whether the theme is (for example) dark and forces HFS to use dark-theme as a base.   
-- `preview: string | string[]` one or more URLs to images you want to show before your plugin is downloaded. (JSON syntax) 
-- `depend: { repo: string, version: number }[]` declare what other plugins this depends on. (JSON syntax)
+- `preview: string | string[]` one or more URLs to images you want to show before your plugin is downloaded. *[STATIC JSON]* 
+- `depend: { repo: string, version: number }[]` declare what other plugins this depends on. *[STATIC JSON]*
 - `beforePlugin: string` control the order this plugin is executed relative to another
 - `afterPlugin: string` control the order this plugin is executed relative to another
-- `repo: string | object` pointer to a GitHub repo where this plugin is hosted. (JSON syntax)
+- `repo: string | object` pointer to a GitHub repo where this plugin is hosted. *[STATIC JSON]*
     - the string form is for GitHub repos. Example: "rejetto/file-icons"
     - the object form will point to other custom repo. Object properties:
         - `web: string` link to a web page
@@ -139,11 +165,7 @@ All the following properties are optional unless otherwise specified.
       complicated object form to link github, use the string form.
       Plugins with custom repos are not included in search results, but the update feature will still work.
 - `changelog: { version: number, message: string }[]` the UI will show only entries with version greater than currently installed.
-  You can use `md` syntax inside the message. (JSON syntax)
-
-**WARNING:** All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
-used must be strictly JSON (thus, no single quotes, only double quotes for strings and objects), and must fit one line.
-
+  You can use `md` syntax inside the message. *[STATIC JSON]*
 - `init: (api: object) => (void | object | function)` described in the previous section. If an object is returned, 
   it will be merged with other "exported" properties described in this section, so you can return `{ unload }` for example.
   If you return a function, this is just a shorter way to return the `unload`.
@@ -714,7 +736,7 @@ This section is still partially documented, and you may need to have a look at t
   - preventable
 - `login`
   - parameters: { ctx }
-- `logout`
+- `logout` called just before the logout is done
   - parameters: { ctx }
 - `attemptingLogin` called when the login process starts
   - parameters: { ctx, username, via? }
@@ -898,7 +920,7 @@ While you may just put a zip on any website, that would require manual installat
 If you want to appear in the Admin-panel, for easier finding and installation, please do as follows.
 
 Be sure that you are exporting (not returning) the essential properties, like `apiRequired`.
-Find the full list in the [Things a plugin can export](#things-a-plugin-can-export) section, marked with "JSON syntax".
+Find the full list in the [Things a plugin can export](#things-a-plugin-can-export) section, tagged *[STATIC JSON]*.
 
 Suggested method for publishing is to have a dedicated repository on GitHub, with topic `hfs-plugin`.
 To set the topic go on the repo home and click on the gear icon near the "About" box.
