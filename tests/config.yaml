@@ -34,6 +34,10 @@ vfs:
         - name: page
           source: ../page
           default: index.html
+        - name: protected
+          source: ../page/gpl.png
+          can_read:
+            - rejetto
     - name: for-admins
       can_read:
         - admins

@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import Koa from 'koa'
-import { createReadStream, stat } from 'fs'
+import { createReadStream, stat, Stats } from 'fs'
 import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND, HTTP_NOT_MODIFIED,
     HTTP_OK, HTTP_PARTIAL_CONTENT, HTTP_RANGE_NOT_SATISFIABLE, HTTP_TOO_MANY_REQUESTS, MIME_AUTO } from './const'
 import { getNodeName, VfsNode } from './vfs'
@@ -130,6 +130,10 @@ declare module "koa" {
         opProgress?: number
         opTotal?: number
         opOffset?: number
+        vfsNode?: VfsNode
+        includesLastByte?: boolean
+        fileSource?: string
+        fileStats?: Stats
     }
 }
 
@@ -167,12 +171,6 @@ export function applyRange(ctx: Koa.Context, totalSize=ctx.response.length) {
     return { start, end }
 }
 
-declare module "koa" {
-    interface DefaultState {
-        vfsNode?: VfsNode
-        includesLastByte?: boolean
-    }
-}
 function downloadLimiter<T>(configMax: { get: () => number | undefined }, cbKey: (ctx: Koa.Context) => T | undefined) {
     const map = new Map<T, number>()
     return (ctx: Koa.Context) => {

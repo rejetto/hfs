@@ -243,11 +243,30 @@ describe('sessions', () => {
         return login(username).then(() => { throw "in" }, () => {})
             .finally(() => defaultBaseUrl = BASE_URL)
     })
+    test('allow_net.cantLogin.url', reqList('protected', 401, {}, { baseUrl: BASE_URL_127, auth }))
     test('httpStream.jar isolates host cookies', async () => {
         const jar = {}
         await reqApi('loginSrp1', { username }, res => Boolean(res?.salt && res?.pubKey), { jar })()
         await reqApi('loginSrp2', { pubKey: '1', proof: '1' }, 409, { baseUrl: BASE_URL_127, jar })()
         await reqApi('loginSrp2', { pubKey: '1', proof: '1' }, 401, { jar })()
+    })
+    test('allow_net.recovers after restriction is removed', async () => {
+        const user = `allow-net-${randomId(6)}`.toLowerCase()
+        const pwd = `pw-${randomId(8)}`
+        const userAuth = `${user}:${pwd}`
+        const userJar = {}
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: user, overwrite: true, password: pwd }, res => res?.username === user, adminReq)()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar: userJar, auth: userAuth })()
+            await reqApi('set_account', { username: user, changes: { allow_net: '127.0.0.1' } }, 200, adminReq)() // block
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: userJar })() // kicked out
+            await reqApi('set_account', { username: user, changes: { allow_net: '' } }, 200, adminReq)() // re-enable
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar: userJar, auth: userAuth })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
     })
 })
 
@@ -650,9 +669,11 @@ type Tester = number
         cb?: TesterFunction
     }
 
+type ReqOptions = XRequestOptions & { throttle?: number, baseUrl?: string }
+
 const jar = {}
 
-function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }: XRequestOptions & { throttle?: number, baseUrl?: string }={}) {
+function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }: ReqOptions={}) {
     // passing 'path' keeps it as it is, avoiding internal resolving
     let abortable // copy abortable interface to returned promise
     return () => Object.assign(
@@ -738,7 +759,7 @@ async function readEventStreamOnce(url: string, { baseUrl, ...requestOptions }: 
     return { status: res.statusCode, data }
 }
 
-function reqApi(api: string, params: object, test:Tester, options:any={}) {
+function reqApi(api: string, params: object, test:Tester, options?: ReqOptions) {
     const isGet = api.startsWith('/')
     return req(API+api, test, {
         body: JSON.stringify(params),
@@ -747,8 +768,8 @@ function reqApi(api: string, params: object, test:Tester, options:any={}) {
     })
 }
 
-function reqList(uri:string, tester:Tester, params?: object) {
-    return reqApi('get_file_list', { uri, ...params }, tester)
+function reqList(uri:string, tester:Tester, params?: object, options?: ReqOptions) {
+    return reqApi('get_file_list', { uri, ...params }, tester, options)
 }
 
 function isInList(res:any, name:string) {

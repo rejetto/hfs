@@ -224,3 +224,9 @@ export async function changeSrpHelper(account: Account, salt: string, verifier: 
         saveSrpInfo(account, salt, verifier) )
     return {}
 }
+
+declare module "koa" {
+    interface DefaultState {
+        usernames?: string[]
+    }
+}

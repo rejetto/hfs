@@ -8,7 +8,7 @@ import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, getAccount, getFromAccount } from './perm'
 import { Connection, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
-import { clearTextLogin, invalidateSessionBefore } from './auth'
+import { clearTextLogin, invalidateSessionBefore, setLoggedIn } from './auth'
 import { constants } from 'zlib'
 import { getHttpsWorkingPort } from './listen'
 import { defineConfig } from './config'
@@ -82,7 +82,7 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
 
 // limited to http proxies
 export function getProxyDetected() {
-    if (proxyDetected?.state.whenProxyDetected < Date.now() - DAY) // detection is reset after a day
+    if (Number(proxyDetected?.state.whenProxyDetected) < Date.now() - DAY) // detection is reset after a day
         proxyDetected = undefined
     return proxyDetected && { from: proxyDetected.socket.remoteAddress, for: proxyDetected.get('X-Forwarded-For') }
 }
@@ -97,7 +97,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     ctx.state.connection = socket2connection(ctx.socket)!
     const a = ctx.state.account = await urlLogin() || await getHttpAccount() || getAccount(ctx.session?.username, false)
     if (a && (!accountCanLogin(a) || failAllowNet(ctx, a))) // enforce allow_net also after login
-        ctx.state.account = undefined
+        await setLoggedIn(ctx, false)
     ctx.state.revProxyPath = ctx.get('x-forwarded-prefix')
     updateConnectionForCtx(ctx)
     await next()
@@ -139,6 +139,7 @@ declare module "koa" {
         account?: Account // user logged in
         revProxyPath: string // must not have final slash
         connection: Connection
+        whenProxyDetected?: Date
     }
 }
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {

@@ -57,8 +57,10 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
     const s = ctx.session
     if (!s)
         return ctx.throw(HTTP_SERVER_ERROR,'session')
+    delete ctx.state.usernames
     if (username === false) {
         events.emit('logout', ctx)
+        delete ctx.state.account
         delete s.username
         delete s.allowNet
         return
