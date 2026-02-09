@@ -73,6 +73,7 @@ const debounce = _.debounce(cb => cb(), 1000) // with this technique, i'll be ab
 
 export const logMw: Koa.Middleware = async (ctx, next) => {
     const now = new Date() // request start
+    const userAtStart = getCurrentUsername(ctx)
     // do it now so it's available for returning plugins
     ctx.state.completed = Promise.race([ once(ctx.res, 'finish'), once(ctx.res, 'close') ])
     await next()
@@ -118,7 +119,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         const format = '%s - %s [%s] "%s %s HTTP/%s" %d %s %s\n' // Apache's Common Log Format
         const a = now.toString().split(' ') // like nginx, our default log contains the time of log writing
         const date = a[2]+'/'+a[1]+'/'+a[3]+':'+a[4]+' '+a[5]?.slice(3)
-        const user = getCurrentUsername(ctx)
+        const user = getCurrentUsername(ctx) || userAtStart
         const length = ctx.state.length ?? ctx.length
         const uri = ctx.originalUrl
         const duration = (Date.now() - Number(now)) / 1000
