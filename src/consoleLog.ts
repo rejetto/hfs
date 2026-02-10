@@ -4,7 +4,7 @@ import { createWriteStream } from 'fs'
 import { argv } from './argv'
 
 export const consoleLog: Array<{ ts: Date, k: string, msg: string }> = []
-const f = argv.consoleFile ? createWriteStream(argv.consoleFile, 'utf-8') : null
+const f = argv.consoleFile ? createWriteStream(argv.consoleFile, { flags: 'a', encoding: 'utf8' }) : null
 for (const k of ['log','warn','error','debug']) {
     const original = console[k as 'log']
     console[k as 'log'] = (...args: any[]) => {
