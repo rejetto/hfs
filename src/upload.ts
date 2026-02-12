@@ -8,7 +8,7 @@ import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
 import {
     isValidFileName, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter, pathEncode,
-    enforceFinal, Timeout,
+    enforceFinal, Timeout, waitFor,
 } from './misc'
 import { defineConfig } from './config'
 import { getDiskSpaceSync } from './util-os'
@@ -192,7 +192,11 @@ export function uploadWriter(base: VfsNode, baseUri: string, filename: string, c
                     while (fs.existsSync(dest))
                 }
                 try {
-                    await rename(tempName, dest)
+                    const done = await waitFor( // an antivirus may lock the temp file to scan it
+                        () => rename(tempName, dest).then(() => true, e => e?.code !== 'EBUSY' && Promise.reject(e)),
+                        { timeout: 10_000 })
+                    if (!done)
+                        throw 'EBUSY'
                     if (mtime) // so we use it to touch the file
                         await utimes(dest, Date.now() / 1000, mtime / 1000)
                     cancelDeletion(tempName) // not necessary, as deletion's failure is silent, but still
