@@ -65,12 +65,10 @@ describe('basics', () => {
             throw "missing etag"
         await req('/f1/f2/alfa.txt', /a[^d]+$/, { headers: { Range: 'bytes=0-2', 'If-Range': etag } })() // only "abc" is expected
     })
-    test('download.partial', req('/f1/f2/alfa.txt', /a[^d]+$/, { // only "abc" is expected
-        headers: { Range: 'bytes=0-2' }
-    }))
-    test('bad range', req('/f1/f2/alfa.txt', 416, {
-        headers: { Range: 'bytes=7-' }
-    }))
+    test('download.partial', req('/f1/f2/alfa.txt', /a[^d]+$/, { headers: { Range: 'bytes=0-2' } })) // only "abc" is expected
+    test('bad range', req('/f1/f2/alfa.txt', 416, { headers: { Range: 'bytes=7-' } }))
+    test('bad range.inverted', req('/f1/f2/alfa.txt', 416, { headers: { Range: 'bytes=3-2' } }))
+    test('bad range.malformed', req('/f1/f2/alfa.txt', 400, { headers: { Range: 'bytes=abc-def' } }))
     test('roots', req('/f2/alfa.txt', 200, { baseUrl: BASE_URL_127 })) // host 127.0.0.1 is rooted in /f1
     test('website', req('/f1/page/', { re:/This is a test/, mime:'text/html' }))
     test('traversal', req('/f1/page/.%2e/.%2e/README.md', 404))

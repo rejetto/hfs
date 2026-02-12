@@ -7,7 +7,7 @@ import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONT
 import { getNodeName, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
 import { defineConfig } from './config'
-import { CFG, Dict, makeMatcher, matches, try_, with_ } from './misc'
+import { CFG, Dict, makeMatcher, matches, throw_, try_, with_, xlate } from './misc'
 import _ from 'lodash'
 import { basename } from 'path'
 import { promisify } from 'util'
@@ -103,12 +103,21 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
             ctx.set('Cache-Control', `max-age=${cc}`)
         const { size } = stats
         const range = applyRange(ctx, size)
-        ctx.body = createReadStream(source, range)
+        if (ctx.status >= 400) return // applyRange may have set an error
+        ctx.body = createReadStream(source, range || undefined)
         if (ctx.state.vfsNode)
             monitorAsDownload(ctx, size, range?.start)
     }
     catch (e: any) {
-        return ctx.status = HTTP_NOT_FOUND
+        const status = {
+            ENOENT: HTTP_NOT_FOUND,
+            ENOTDIR: HTTP_NOT_FOUND,
+            EACCES: HTTP_FORBIDDEN,
+            EPERM: HTTP_FORBIDDEN,
+        }[String(e?.code)]
+        if (!status)
+            throw e
+        ctx.status = status
     }
 }
 
@@ -137,7 +146,7 @@ declare module "koa" {
     }
 }
 
-export function applyRange(ctx: Koa.Context, totalSize=ctx.response.length) {
+export function applyRange(ctx: Koa.Context, totalSize=ctx.response.length): { start: number, end: number } | void {
     ctx.set('Accept-Ranges', 'bytes')
     const { range } = ctx.request.header
     if (!range || isNaN(totalSize)) {
@@ -148,27 +157,33 @@ export function applyRange(ctx: Koa.Context, totalSize=ctx.response.length) {
     }
     const [unit, ranges] = range.split('=')
     if (unit !== 'bytes')
-        return ctx.throw(HTTP_BAD_REQUEST, 'bad range unit')
+        return badRequest('bad range unit')
     if (ranges?.includes(','))
-        return ctx.throw(HTTP_BAD_REQUEST, 'multi-range not supported')
-    let bytes = ranges?.split('-')
-    if (!bytes?.length)
-        return ctx.throw(HTTP_BAD_REQUEST, 'bad range')
+        return badRequest('multi-range not supported')
+    const bytes = ranges?.split('-')
+    if (bytes?.length !== 2)
+        return badRequest('bad range')
     const max = totalSize - 1
-    const start = bytes[0] ? Number(bytes[0]) : Math.max(0, totalSize-Number(bytes[1])) // a negative start is relative to the end
-    const end = (bytes[0] && bytes[1]) ? Math.min(max, Number(bytes[1])) : max
+    const [startTxt, endTxt] = bytes
+    const start = startTxt ? Number(startTxt) : Math.max(0, totalSize-Number(endTxt)) // a negative start is relative to the end
+    const end = (startTxt && endTxt) ? Math.min(max, Number(endTxt)) : max
+    if (isNaN(start) || startTxt && endTxt && isNaN(end))
+        return badRequest('bad range')
     // we don't support last-bytes without knowing max
-    if (isNaN(end) && isNaN(max) || end > max || start > max) {
-        ctx.status = HTTP_RANGE_NOT_SATISFIABLE
+    if (isNaN(end) && isNaN(max) || end > max || start > max || start > end) {
         ctx.set('Content-Range', `bytes */${totalSize}`)
-        ctx.body = 'Requested Range Not Satisfiable'
-        return
+        return badRequest('Requested Range Not Satisfiable', HTTP_RANGE_NOT_SATISFIABLE)
     }
     ctx.state.includesLastByte = end === max
     ctx.status = HTTP_PARTIAL_CONTENT
     ctx.set('Content-Range', `bytes ${start}-${isNaN(end) ? '' : end}/${isNaN(totalSize) ? '*' : totalSize}`)
     ctx.response.length = end - start + 1
     return { start, end }
+
+    function badRequest(message: string, status=HTTP_BAD_REQUEST) {
+        ctx.status = status
+        ctx.body = message
+    }
 }
 
 function downloadLimiter<T>(configMax: { get: () => number | undefined }, cbKey: (ctx: Koa.Context) => T | undefined) {
