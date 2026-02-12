@@ -43,11 +43,7 @@ export async function clearTextLogin(ctx: Context, u: string, p: string, via: st
     if ((await events.emitAsync('attemptingLogin', { ctx, username: u, via }))?.isDefaultPrevented()) return
     const plugins = await events.emitAsync('clearTextLogin', { ctx, username: u, password: p, via }) // provide clear password to plugins
     const a = plugins?.some(x => x === true) ? getAccount(u) : await srpCheck(u, p)
-    if (a) {
-        await setLoggedIn(ctx, a.username)
-        ctx.headers['x-username'] = a.username // give an easier way to determine if the login was successful
-    }
-    else if (u)
+    if (!a && u)
         events.emit('failedLogin', { ctx, username: u, via })
     return a
 }
@@ -59,7 +55,8 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
         return ctx.throw(HTTP_SERVER_ERROR,'session')
     delete ctx.state.usernames
     if (username === false) {
-        events.emit('logout', ctx)
+        if (s.username)
+            events.emit('logout', ctx)
         delete ctx.state.account
         delete s.username
         delete s.allowNet

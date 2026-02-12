@@ -27,6 +27,7 @@ export const login: ApiHandler = async ({ username, password }, ctx) => {
         const account = await clearTextLogin(ctx, username, password, 'api')
         if (!account)
             return new ApiError(HTTP_UNAUTHORIZED)
+        await setLoggedIn(ctx, account.username)
     }
     catch (e) {
         return new ApiError(HTTP_UNAUTHORIZED, String(e))

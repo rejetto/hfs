@@ -88,16 +88,26 @@ export function getProxyDetected() {
 }
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {
-    if (ctx.session?.username) {
-        if (ctx.session.ts < invalidateSessionBefore.get(ctx.session.username)!)
-            delete ctx.session.username
-        ctx.session.maxAge = sessionDuration.compiled()
+    const s = ctx.session
+    if (s?.username) {
+        if (s.ts < invalidateSessionBefore.get(s?.username)!)
+            delete s.username
+        s.maxAge = sessionDuration.compiled()
     }
     // calculate these once and for all
     ctx.state.connection = socket2connection(ctx.socket)!
-    const a = ctx.state.account = await urlLogin() || await getHttpAccount() || getAccount(ctx.session?.username, false)
-    if (a && (!accountCanLogin(a) || failAllowNet(ctx, a))) // enforce allow_net also after login
-        await setLoggedIn(ctx, false)
+    let a = await urlLogin() || await getHttpAccount()
+    const loggedInNotBySession = a
+    ctx.state.account = a ||= getAccount(s?.username, false) // with least precedence, we consider session
+    if (a)
+        if (!accountCanLogin(a) || failAllowNet(ctx, a)) // enforce allow_net also after login
+            await setLoggedIn(ctx, false)
+        else if (loggedInNotBySession) {
+            if (a.username)
+            await setLoggedIn(ctx, a.username)
+            ctx.headers['x-username'] = a.username // give an easier way to determine if the login was successful
+        }
+
     ctx.state.revProxyPath = ctx.get('x-forwarded-prefix')
     updateConnectionForCtx(ctx)
     await next()
@@ -115,7 +125,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
         if (!b64) return
         try {
             const [u, p] = atob(b64).split(':')
-            if (!u || u === ctx.session?.username) return // providing credentials, but not needed
+            if (!u || u === s?.username) return // providing credentials, but not needed
             return clearTextLogin(ctx, u, p||'', 'header')
         }
         catch {}
