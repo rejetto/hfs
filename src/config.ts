@@ -75,7 +75,7 @@ export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler
             return events.on(CONFIG_CHANGE_EVENT_PREFIX + k, (v, was, version, onlyCompileChanged) => {
                 if (stack.includes(cb)) return // avoid infinite loop in case a subscriber changes the value
                 stack.push(cb)
-                try { cb(v, { k, was, version, defaultValue, object, onlyCompileChanged }) }
+                try { return cb(v, { k, was, version, defaultValue, object, onlyCompileChanged }) }
                 finally { stack.pop() }
             }, { warnAfter: 1000 }) // e.g. each plugin watch enable_plugins
         },
@@ -96,7 +96,7 @@ export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler
     if (compiler)
         object.sub((v, more) => {
             if (!more.onlyCompileChanged)
-                compiled = compiler(v, more)
+                return compiled = compiler(v, more)
         })
     return object
 }
