@@ -210,13 +210,6 @@ describe('basics', () => {
     test('delete.no perm', req('/for-admins/', 405, { method: 'delete' }))
     test('delete.need account', req(UPLOAD_ROOT + 'alfa.txt', 401, { method: 'delete'}))
     test('rename.no perm', reqApi('rename', { uri: '/for-admins', dest: 'any' }, 403))
-    test('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw "in" }, () => {}))
-    test('allow_net.canLogin', () => login(username))
-    test('allow_net.cantLogin', () => {
-        defaultBaseUrl = BASE_URL_127 // 127.0.0.1 is not allowed for this account
-        return login(username).then(() => { throw "in" }, () => {})
-            .finally(() => defaultBaseUrl = BASE_URL)
-    })
 
     test('create_folder.bad encoding', reqApi('comment', { uri: '%a' }, 400))
     test('comment.bad encoding', reqApi('comment', { uri: '%a', comment: 'anything' }, 400))
@@ -240,6 +233,22 @@ describe('limits', () => {
     before(() => writeFile(fn, BIG_CONTENT))
     test('max_dl', () => testMaxDl('/' + fn, 1, 2))
     after(() => rm(fn))
+})
+
+describe('sessions', () => {
+    test('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw "in" }, () => {}))
+    test('allow_net.canLogin', () => login(username))
+    test('allow_net.cantLogin', () => {
+        defaultBaseUrl = BASE_URL_127 // 127.0.0.1 is not allowed for this account
+        return login(username).then(() => { throw "in" }, () => {})
+            .finally(() => defaultBaseUrl = BASE_URL)
+    })
+    test('httpStream.jar isolates host cookies', async () => {
+        const jar = {}
+        await reqApi('loginSrp1', { username }, res => Boolean(res?.salt && res?.pubKey), { jar })()
+        await reqApi('loginSrp2', { pubKey: '1', proof: '1' }, 409, { baseUrl: BASE_URL_127, jar })()
+        await reqApi('loginSrp2', { pubKey: '1', proof: '1' }, 401, { jar })()
+    })
 })
 
 describe('accounts', () => {

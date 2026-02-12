@@ -25,7 +25,7 @@ export interface XRequestOptions extends https.RequestOptions {
     body?: string | Buffer | Readable
     proxy?: string // url format
     // very basic cookie store
-    jar?: Record<string, string>
+    jar?: { [host: string]: { [cookieName: string]: string } }
     noRedirect?: boolean
     // throw for http-level errors. Default is true.
     httpThrow?: boolean
@@ -47,10 +47,12 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
             if (!(body instanceof Readable))
                 options.headers['content-length'] ??= Buffer.byteLength(body)
         }
-        if (jar)
-            options.headers.cookie = _.map(jar, (v,k) => `${k}=${v}; `).join('')
-                + (options.headers.cookie || '') // preserve parameter
         const { auth, ...parsed } = parse(url)
+        const hostJar = jar && (jar[parsed.hostname || ''] ||= {})
+        if (hostJar) {
+            options.headers.cookie = _.map(hostJar, (v,k) => `${k}=${v}; `).join('')
+                + (options.headers.cookie || '') // preserve parameter
+        }
         const proxyParsed = proxy ? parse(proxy) : null
         Object.assign(options, _.pick(proxyParsed || parsed, ['hostname', 'port', 'path', 'protocol']))
         if (auth) {
@@ -72,11 +74,11 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
         const proto = options.protocol === 'https:' ? https : http
         const req = proto.request(options, res => {
             console.debug("http responded", res.statusCode, "to", url)
-            if (jar) for (const entry of res.headers['set-cookie'] || []) {
+            if (hostJar) for (const entry of res.headers['set-cookie'] || []) {
                 const [, k, v] = /(.+?)=([^;]+)/.exec(entry) || []
                 if (!k) continue
-                if (v) jar[k] = v
-                else delete jar[k]
+                if (v) hostJar[k] = v
+                else delete hostJar[k]
             }
             if (!res.statusCode || httpThrow && res.statusCode >= 400)
                 return reject(new Error(String(res.statusCode), { cause: res }))
