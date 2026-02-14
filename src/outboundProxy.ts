@@ -1,13 +1,13 @@
 import { configReady, defineConfig } from './config'
-import { parse } from 'node:url'
-import { httpStream, httpString } from './util-http'
+import { httpStream, httpString, parseHttpUrl } from './util-http'
 import { reg } from './util-os'
 import { IS_WINDOWS } from './const'
 import { CFG, prefix } from './cross'
 
 const outboundProxy = defineConfig(CFG.outbound_proxy, '', v => {
+    if (!v) return
     try {
-        parse(v) // just validate
+        parseHttpUrl(v) // just validate
         httpStream.defaultProxy = v
         if (!v || process.env.HFS_SKIP_PROXY_TEST) return
         const test = 'https://google.com'

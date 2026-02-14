@@ -1,12 +1,13 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { parse } from 'node:url'
+import { urlToHttpOptions } from 'node:url'
 import https from 'node:https'
 import http, { IncomingMessage } from 'node:http'
 import { Readable } from 'node:stream'
 import _ from 'lodash'
 import { text as stream2string, buffer } from 'node:stream/consumers'
 import * as tls from 'node:tls'
+import { enforceStarting } from './cross'
 export { stream2string }
 
 export async function httpString(url: string, options?: XRequestOptions): Promise<string> {
@@ -47,13 +48,13 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
             if (!(body instanceof Readable))
                 options.headers['content-length'] ??= Buffer.byteLength(body)
         }
-        const { auth, ...parsed } = parse(url)
+        const { auth, ...parsed } = parseHttpUrl(url)
         const hostJar = jar && (jar[parsed.hostname || ''] ||= {})
         if (hostJar) {
             options.headers.cookie = _.map(hostJar, (v,k) => `${k}=${v}; `).join('')
                 + (options.headers.cookie || '') // preserve parameter
         }
-        const proxyParsed = proxy ? parse(proxy) : null
+        const proxyParsed = proxy ? parseHttpUrl(proxy) : null
         Object.assign(options, _.pick(proxyParsed || parsed, ['hostname', 'port', 'path', 'protocol']))
         if (auth) {
             options.auth = auth
@@ -62,7 +63,7 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
         }
         if (proxy) {
             options.path = url // full url as path
-            options.headers.host ??= parse(url).host || undefined // keep original host header
+            options.headers.host ??= parsed.host || undefined // keep original host header
         }
         // this needs the prefix "proxy-"
         const proxyAuth = proxyParsed?.auth ? { 'proxy-authorization': `Basic ${Buffer.from(proxyParsed.auth, 'utf8').toString('base64')}` } : undefined
@@ -135,4 +136,17 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
     }), {
         abort() { controller.abort() }
     })
+}
+
+// works the same way as the now deprecated url.parse()
+export function parseHttpUrl(url: string) {
+    const parsed = new URL(url)
+    const options = urlToHttpOptions(parsed)
+    const withoutHash = url.split('#', 1)[0]!
+    const authority = /^[a-z][a-z\d+.-]*:\/\/[^/?#]*/i.exec(withoutHash)?.[0]
+    return {
+        ...options,
+        host: parsed.host,
+        path: !authority ? '/' : enforceStarting('/', withoutHash.slice(authority.length)), // unresolved paths are useful in our tests
+    }
 }
