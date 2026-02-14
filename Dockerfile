@@ -25,6 +25,7 @@ RUN cat <<'EOF' > /opt/hfs/docker-entrypoint.sh \
     && chmod +x /opt/hfs/docker-entrypoint.sh
 #!/bin/sh
 set -e
+export DISABLE_UPDATE=1
 
 bootstrap_config() {
   cwd="$1"
