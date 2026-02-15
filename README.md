@@ -70,6 +70,8 @@ For Docker, see https://github.com/rejetto/hfs/wiki/Docker .
 
 For service installation, see https://github.com/rejetto/hfs/wiki/Service-installation.
 
+For Homebrew, just `brew install rejetto/hfs/hfs`
+
 The minimum Windows version required is 10 or Server 2019.
 
 1. Download the zip file for your operating system from https://github.com/rejetto/hfs/releases

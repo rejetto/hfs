@@ -1,0 +1,62 @@
+name: sync-homebrew-tap
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "HFS release tag to sync (e.g. v3.0.3). Leave empty for current/latest."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve release tag
+        id: release
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          tag="${INPUT_TAG:-}"
+          [ -n "${RELEASE_TAG:-}" ] && tag="${tag:-$RELEASE_TAG}"
+          if [ -z "$tag" ]; then
+            tag="$(curl -fsSL https://api.github.com/repos/rejetto/hfs/releases/latest | jq -r '.tag_name')"
+          fi
+          [ "$tag" != "null" ] && [ -n "$tag" ] || { echo "Unable to resolve release tag"; exit 1; }
+          case "$tag" in
+            v*) ;;
+            *) tag="v$tag" ;;
+          esac
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Dispatching Homebrew sync for $tag"
+
+      - name: Dispatch update to tap repository
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag }}
+          SOURCE_REPO: ${{ github.repository }}
+          SOURCE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "Missing secret HOMEBREW_TAP_TOKEN"
+            exit 1
+          fi
+          payload="$(jq -n \
+            --arg tag "$TAG" \
+            --arg source_repo "$SOURCE_REPO" \
+            --arg source_run_url "$SOURCE_RUN_URL" \
+            '{event_type:"hfs-release", client_payload:{tag:$tag, source_repo:$source_repo, source_run_url:$source_run_url}}')"
+          curl -fsSL -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/rejetto/homebrew-hfs/dispatches \
+            -d "$payload"
