@@ -210,10 +210,10 @@ export default function OptionsPage() {
 
             h(Section, { title: "Uploads" }),
             { k: 'dont_overwrite_uploading', comp: BoolField, md: 4, label: "Uploads don't overwrite",
-                helperText: "Files will be numbered to avoid overwriting" },
+                helperText: "Files are automatically numbered (frontend only)" },
             { k : CFG.split_uploads, comp: NumberField, unit: 'MB', md: 2, step: .1,
                 fromField: x => x * 1E6, toField: x => x ? x / 1E6 : null,
-                placeholder: "disabled", label: "Split uploads in chunks", helperText: "Overcome proxy limits" },
+                placeholder: "disabled", label: "Split uploads in chunks", helperText: "Overcome proxy limits (frontend only)" },
             { k: 'delete_unfinished_uploads_after', comp: NumberField, md: 3, min : 0, unit: "seconds", required: true },
             { k: 'min_available_mb', comp: NumberField, md: 3, min : 0, unit: "MBytes", placeholder: "None",
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },

@@ -25,6 +25,7 @@ Use TypeScript/ES2022 with 4-space indentation and single quotes except when JSO
 ## Testing Guidelines
 Node-side tests rely on the built-in `node --test` runner via `npm test`. Place fixtures under `tests/work` where scripts already expect them. UI coverage uses Playwright (`tests-ui`/`frontend` suites); target critical upload/download flows and plugin management. Name new tests after the behavior they assert (e.g., `plugin-disable.test.ts`). Before pushing, run at least `npm test` and, when touching UI, the relevant Playwright suite.
 When you want to run fewer tests, use `npm run test-with-server -- --test-name-pattern="<pattern>"`.
+If port `8081` is already in use, run the filtered suite with `npm test -- --test-name-pattern="<pattern>"` instead of `test-with-server`.
 For long-running commands like tests/builds, use a 30s timeout unless a different value is requested.
 Changes to the config are automatically reloaded and applied asap, no need to restart.
 
