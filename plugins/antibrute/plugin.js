@@ -1,4 +1,4 @@
-exports.version = 3
+exports.version = 3.1
 exports.description = "Introduce increasing delays between login attempts."
 exports.apiRequired = 9.6 // addBlock
 
@@ -7,6 +7,7 @@ exports.config = {
     max: { type: 'number', min: 1, defaultValue: 60, label: "Max delay", unit: "seconds", helperText: "Max seconds to delay before next login is allowed" },
     blockAfter: { type: 'number', xs: 6, min: 1, max: 9999, defaultValue: 100, label: "Block IP after", unit: "attempts", helperText: "localhost excluded" },
     blockForHours: { type: 'number', xs: 6, min: 0, defaultValue: 24, label: "Block for", unit: "hours" },
+    exclude: { type: 'string', defaultValue: '', label: "Exclude IPs", helperText: "Net mask syntax" },
 }
 exports.configDialog = {
     maxWidth: 'xs',
@@ -15,7 +16,7 @@ exports.configDialog = {
 const byIp = {}
 
 exports.init = api => {
-    const { isLocalHost, HOUR } = api.misc
+    const { isLocalHost, HOUR, netMatches } = api.misc
     api.events.multi({
         async attemptingLogin({ ctx }) {
             const { ip } = ctx
@@ -25,7 +26,7 @@ exports.init = api => {
             const delay = Math.min(max, 1000 * api.getConfig('increment') * ++rec.attempts)
             const wait = rec.next - now
             rec.next = new Date(+rec.next + delay)
-            if (rec.attempts > api.getConfig('blockAfter') && !isLocalHost(ctx)) {
+            if (rec.attempts > api.getConfig('blockAfter') && !isLocalHost(ctx) && !isExcluded(ip)) {
                 const hours = api.getConfig('blockForHours')
                 api.addBlock({ ip, comment: "From antibrute plugin", expire: hours ? new Date(now.getTime() + hours * HOUR) : undefined })
             }
@@ -42,4 +43,14 @@ exports.init = api => {
                 delete byIp[ctx.ip] // reset if login was successful
         }
     })
+
+    function isExcluded(ip) {
+        const mask = api.getConfig('exclude')
+        if (!mask) return false
+        try { return netMatches(ip, mask) }
+        catch (e) {
+            api.log("bad exclude mask:", String(e))
+            return false
+        }
+    }
 }
