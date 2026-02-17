@@ -58,7 +58,7 @@ export default {
                     return list.ready()
                 }
                 // for other logs we only provide updates. Use get_log_file to download past content
-                if (_.some(files, x => !_.find(loggers, { name: x })) )
+                if (_.some(files, x => !_.some(loggers, { name: x })) )
                     return list.error(HTTP_NOT_FOUND, true)
                 list.ready()
                 // unsubscribe when connection is interrupted

@@ -927,7 +927,7 @@ function reqList(uri:string, tester:Tester, params?: object, options?: ReqOption
 }
 
 function isInList(res:any, name:string) {
-    return Array.isArray(res?.list) && Boolean((res.list as any[]).find(x => x.n===name))
+    return Array.isArray(res?.list) && (res.list as any[]).some(x => x.n===name)
 }
 
 function rmAny(path: string) {
