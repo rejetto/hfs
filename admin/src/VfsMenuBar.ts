@@ -74,7 +74,7 @@ function SystemIntegrationButton({ platform }: { platform: string | undefined })
     const { data: integrated, reload } = useApi<typeof adminApis.windows_integrated>(isWindows && 'windows_integrated')
     const sm = useBreakpoint('sm')
     return !isWindows ? null : h(Btn, {
-        icon: osIcon('win'),
+        icon: osIcon('Windows'),
         variant: 'outlined',
         doneMessage: true,
         ...(!integrated?.is ? {
