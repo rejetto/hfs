@@ -222,7 +222,7 @@ const frpDebounced = debounceAsync(async () => {
 }, { retain: 10_000 })
 
 export function anyAccountCanLoginAdmin() {
-    return Boolean(_.find(accounts.get(), accountCanLoginAdmin))
+    return _.some(accounts.get(), accountCanLoginAdmin)
 }
 
 export function preventAdminAccess(ctx: Koa.Context) {

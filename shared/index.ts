@@ -80,7 +80,7 @@ export function domOn<
     options?: O
 ) {
     const target = options && 'target' in options ? options.target : window
-    if (!target) return
+    if (!target) return () => {}
     target.addEventListener(eventName, cb as EventListener, options)
     return () => target.removeEventListener(eventName, cb as EventListener, options)
 }
@@ -233,7 +233,7 @@ export async function copyTextToClipboard(text: string) {
             if (!document.execCommand('copy'))
                 throw Error('unknown')
         }
-        finally { undo?.() }
+        finally { undo() }
     }
 }
 

@@ -198,7 +198,7 @@ export function Form<Values extends Dict>({
                 variant: 'contained',
                 startIcon: h(Save),
                 children: "Save",
-                loading: useDebounce(phase !== Phase.Idle), // debounce fixes click being ignored at state change, and flickering
+                loading: useDebounce(phase !== Phase.Idle), // debounce fixes click being ignored at state change and flickering
                 ...saveBtn,
                 onClick: pleaseSubmit,
             }) }),
@@ -206,7 +206,7 @@ export function Form<Values extends Dict>({
         )
     )
 
-    function pleaseSubmit() { // we use state here to let outer component perform its state changes
+    function pleaseSubmit() { // we use state here to let the outer component perform its state changes
         submitAfterValidation.current = true
         pleaseValidate()
     }
@@ -215,7 +215,7 @@ export function Form<Values extends Dict>({
         if (phase !== Phase.Idle) return
         validateUpTo.current = k
         setTimeout(() => // starting validation immediately will lose clicks on the saveBtn, so delay just a bit
-            setPhase(cur => cur === Phase.Idle ? Phase.WaitValues : cur)) // don't interfere with ongoing process
+            setPhase(cur => cur === Phase.Idle ? Phase.WaitValues : cur)) // don't interfere with the ongoing process
     }
 
     function getValueFor(k : string) {
@@ -240,7 +240,7 @@ export function Form<Values extends Dict>({
                     || false
             }
             catch(e) {
-                err = String(e) // keep exception as error
+                err = String(e)
             }
             errs[k] = err
             if (!submitAfterValidation.current && k === validateUpTo.current) break
@@ -273,5 +273,5 @@ export function Form<Values extends Dict>({
 
 export function labelFromKey(k: string) {
     return _.upperFirst(k.indexOf('_') > 0 ? k.replace(/_/g, ' ')
-        : k.replace(/([a-z])([A-Z])/g, (all,a,b) => a + ' ' + b.toLowerCase()))
+        : k.replace(/([a-z])([A-Z])/g, (_all, a, b) => a + ' ' + b.toLowerCase()))
 }

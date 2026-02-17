@@ -52,7 +52,7 @@ export default {
                 ...node.original || node,
                 inherited,
                 byMasks: _.isEmpty(byMasks) ? undefined : byMasks,
-                website: Boolean(node.children?.find(isSameFilenameAs('index.html')))
+                website: node.children?.some(isSameFilenameAs('index.html'))
                     || isFolder && source && await statWithTimeout(join(source, 'index.html')).then(() => true, () => undefined)
                     || undefined,
                 name: getNodeName(node),
@@ -70,6 +70,7 @@ export default {
         if (props.name && props.name !== getNodeName(n)) {
             if (!isValidFileName(props.name))
                 return new ApiError(HTTP_BAD_REQUEST, 'bad name')
+            // check for siblings with the same name
             const parent = await urlToNodeOriginal(dirname(uri))
             if (parent?.children?.find(x => getNodeName(x) === props.name))
                 return new ApiError(HTTP_CONFLICT, 'name already present')
