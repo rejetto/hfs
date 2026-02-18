@@ -514,13 +514,23 @@ export function inCommon<T extends string | unknown[]>(a: T, b: T) {
     return i
 }
 
-export function mapFilter<T=unknown, R=T>(arr: T[], map: (x:T, idx: number) => R, filter=(x: R) => x === undefined, invert=false) {
+type MapFilterResult<R, F> = F extends undefined ? Exclude<R, undefined>[]
+    : F extends (x: R) => x is (infer S extends R) ? S[]
+    : R[]
+
+export function mapFilter<T=unknown, R=T, F extends ((x: R) => unknown) | undefined=undefined>(
+    arr: T[],
+    map: (x:T, idx: number) => R,
+    filter?: F,
+    invert=false
+): MapFilterResult<R, F> {
+    const keep = filter ?? ((x: R) => x !== undefined)
     return arr[invert ? 'reduceRight' : 'reduce']((ret, x, idx) => {
         const y = map(x, idx)
-        if (filter(y))
-            ret.push(y) // push is much faster than unshift, therefore invert using reduceRight https://measurethat.net/Benchmarks/Show/29/0/array-push-vs-unshift
+        if (keep(y))
+            ret.push(y) // push is much faster than unshift, therefore, invert using reduceRight https://measurethat.net/Benchmarks/Show/29/0/array-push-vs-unshift
         return ret
-    }, [] as R[])
+    }, [] as R[]) as MapFilterResult<R, F>
 }
 
 export function callable<T>(x: Functionable<T>, ...args: unknown[]) {
