@@ -103,7 +103,7 @@ export default defineConfig({
      url: 'http://127.0.0.1:8081',
      reuseExistingServer: !process.env.CI,
    }, { // launch a second server for tests with an empty/default config
-       command: 'rm -rf tests/work2 && node dist/src --cwd tests/work2 --debug --open_browser_at_start false',
+       command: 'rm -rf tests/work2 && node dist/src --cwd tests/work2 --debug --port 8082 --open_browser_at_start false', // the port here is just to avoid getting the "port busy" console warning
        reuseExistingServer: !process.env.CI,
    }]
 });
