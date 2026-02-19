@@ -13,7 +13,7 @@ import { onlyTruthy, pathEncode, prefix, toMutable, wantArray, Who, with_ } from
 import { Flex, iconTooltip, useToggleButton } from './mui'
 import VfsMenuBar from './VfsMenuBar'
 import { ApiObject } from './api'
-import { alertDialog, confirmDialog } from './dialog'
+import { alertDialog, toast } from './dialog'
 import _ from 'lodash'
 
 export const FolderIcon = Folder
@@ -51,8 +51,9 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
                     async onDrop() {
                         const from = dragging.current
                         if (!from) return
-                        if (await confirmDialog(`Moving ${from} under ${id}`))
-                            await moveVfs(from, id)
+                        const fromName = id2node.get(from)?.name // won't work after moving
+                        if (moveVfs(from, id))
+                            toast(`Moved "${fromName}" under "${id2node.get(id)?.name}"`, 'success')
                     },
                     sx: {
                         display: 'flex',
@@ -149,19 +150,19 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
 export function moveVfs(from: string, to: string) {
     const fromNode = id2node.get(from)
     if (!fromNode)
-        return alertDialog("Item to move not found", 'error').then(() => false)
+        return !alertDialog("Item to move not found", 'error')
     if (fromNode.isRoot)
-        return alertDialog("Cannot move root", 'error').then(() => false)
+        return !alertDialog("Cannot move root", 'error')
     const toNode = id2node.get(to)
     if (!toNode || toNode.type !== 'folder')
-        return alertDialog("Destination folder not found", 'error').then(() => false)
+        return !alertDialog("Destination folder not found", 'error')
     if (isDescendantUri(to, from))
-        return alertDialog("Cannot move inside itself", 'error').then(() => false)
+        return !alertDialog("Cannot move inside itself", 'error')
     if (toNode.children?.find(x => x.name === fromNode.name))
-        return alertDialog("Item with same name already present in destination", 'error').then(() => false)
+        return !alertDialog("Item with same name already present in destination", 'error')
     const oldSiblings = fromNode.parent?.children
     if (!oldSiblings)
-        return alertDialog("Source parent not found", 'error').then(() => false)
+        return !alertDialog("Source parent not found", 'error')
     const fromParent = fromNode.parent
     const movedName = fromNode.name
     const movedIsFolder = fromNode.type === 'folder'
@@ -174,7 +175,7 @@ export function moveVfs(from: string, to: string) {
     const movedId = prefix(to, pathEncode(movedName), movedIsFolder ? '/' : '')
     reindexVfs({ select: [movedId] })
     state.expanded = _.uniq([...state.expanded, ...destinationAncestors])
-    return Promise.resolve(true)
+    return true
 
     function getAncestorIds(node: VfsNodeAdmin) {
         const ret: string[] = []

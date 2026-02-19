@@ -114,7 +114,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
                     || file.id === movingFile.replace(/[^/]+\/?$/,''), // can't move to the same parent
                 title: movingFile,
                 async onClick() {
-                    if (await moveVfs(movingFile, file.id))
+                    if (moveVfs(movingFile, file.id))
                         state.movingFile = ''
                 },
             }),

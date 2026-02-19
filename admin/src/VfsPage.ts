@@ -14,7 +14,7 @@ import _ from 'lodash'
 import apiAccounts from '../../src/api.accounts'
 import FileForm from './FileForm'
 import { Add, Delete } from '@mui/icons-material'
-import { alertDialog, confirmDialog } from './dialog'
+import { toast } from './dialog'
 import { PageProps } from './App'
 
 let selectOnReload: string[] | undefined
@@ -202,8 +202,8 @@ export function reloadVfs(pleaseSelect?: string[]) {
 async function deleteFiles() {
     const f = state.selectedFiles
     if (!f.length) return
-    if (!await confirmDialog(`Delete ${f.length} item(s)?`)) return
     deleteVfs(f.map(x => x.id))
+    toast(`${f.length} item(s) deleted`, 'success')
 }
 
 export function deleteVfs(uris: string[]) {
