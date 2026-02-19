@@ -5,7 +5,7 @@ import { createElement as h, Fragment } from 'react'
 import { Box } from '@mui/material'
 import { reindexVfs, VfsNodeAdmin } from './VfsPage'
 import { addToChildrenOf } from './VfsTree'
-import { state } from './state'
+import { prepareVfsUndo, state } from './state'
 import FilePicker from './FilePicker'
 import { basename, extname, focusSelector } from '@hfs/shared'
 
@@ -41,6 +41,7 @@ function addNodes(parent: VfsNodeAdmin, nodes: VfsNodeAdmin[]) {
         n.id ||= parent.id + n.name + (n.type === 'folder' ? '/' : '')
         n.parent = parent
     }
+    prepareVfsUndo()
     addToChildrenOf(parent, nodes)
     reindexVfs({ select: nodes })
 }

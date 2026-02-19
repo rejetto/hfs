@@ -2,13 +2,13 @@
 
 import { createElement as h, ReactNode } from 'react'
 import { Alert, Box, ButtonProps, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
-import { Add, Save, Storage } from '@mui/icons-material'
+import { Add, Save, Storage, Undo } from '@mui/icons-material'
 import addFiles, { addLink, addVirtual } from './addFiles'
 import MenuButton from './MenuButton'
 import { osIcon } from './LogsPage'
 import { reloadVfs } from './VfsPage'
 import { prefix, VFS_STORED_KEYS } from './misc'
-import { state, useSnapState } from './state'
+import { state, undoVfs, useSnapState } from './state'
 import _ from 'lodash'
 import { Btn, Flex, reloadBtn, useBreakpoint } from './mui'
 import { apiCall, ApiObject, useApi } from './api'
@@ -19,7 +19,7 @@ import { getDiskSpaces } from '../../src/util-os'
 import { adminApis } from '../../src/adminApis'
 
 export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusApi: ApiObject }) {
-    const { vfsModified } = useSnapState()
+    const { vfsModified, vfsUndo } = useSnapState()
     return h(Flex, {
         zIndex: 2,
         gap: 1,
@@ -33,6 +33,12 @@ export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusA
             disabled: !vfsModified && "No changes to save",
             modified: vfsModified,
             onClick: saveVfs
+        }),
+        h(Btn, {
+            icon: Undo,
+            title: "Undo/redo last change",
+            disabled: !vfsUndo && "No changes to undo",
+            onClick: undoVfs,
         }),
         reloadBtn(() => reloadVfs()),
         h(Btn, {
