@@ -175,8 +175,9 @@ accounts:
   admins:
     allow_net: ::1
     admin: true
-version: 3.0.7
+version: 3.1.0-alpha1
 max_downloads_per_account: 2
 max_downloads: 1
 roots:
   127.0.0.1:*: f1/
+platform: darwin-arm64-node

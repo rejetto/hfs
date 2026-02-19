@@ -2,8 +2,7 @@ This file is mostly aimed to developers.
 
 # Building instructions
 
-0. Install [Node.js](https://nodejs.org/) 18.15+
-   - 18.15 is required for statfs function 
+0. Install [Node.js](https://nodejs.org/) 22
 1. Launch `npm run build-all` in the root
 
 At this stage you have a javascript output. For binary files you'll also have to `npm run dist-bin`.
