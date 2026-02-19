@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { markVfsModified, state, useSnapState } from './state'
+import { markVfsModified, prepareVfsUndo, state, useSnapState } from './state'
 import { createElement as h, forwardRef, ReactElement, ReactNode, useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList, useTheme } from '@mui/material'
 import {
@@ -140,6 +140,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
                     throw Error("Selected node not found")
                 const props = _.omit(values, ['birthtime','mtime','size','id'])
                 const wasId = node.id
+                prepareVfsUndo()
                 Object.assign(node, props)
                 if (props.name !== undefined)
                     reindexVfs({ node, clearMap: false, select: [node] })

@@ -3,7 +3,7 @@
 import { createElement as h, Fragment, useEffect, useMemo, useRef } from 'react'
 import { useApiEx } from './api'
 import { Alert, Box, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
-import { markVfsModified, state, useSnapState } from './state'
+import { markVfsModified, prepareVfsUndo, state, useSnapState } from './state'
 import VfsTree, { vfsNodeIcon } from './VfsTree'
 import {
     CFG, matches, newDialog, normalizeHost, onlyTruthy, pathEncode, prefix, VfsNodeAdminSend, HIDE_IN_TESTS, wait
@@ -131,6 +131,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         if (!root) return
         root.isRoot = true
         state.vfs = root
+        state.vfsUndo = undefined
         reindexVfs({ sortChildren: true, select: consumeSelectOnReload() })
         state.vfsModified = false
 
@@ -210,6 +211,7 @@ export function deleteVfs(uris: string[]) {
     const topLevelUris = sorted.filter((uri, idx) => uri !== '/'
         && (idx === 0 || _.findLastIndex(sorted, parentUri => isDescendantUri(uri, parentUri), idx - 1) < 0))
     if (!topLevelUris.length) return
+    prepareVfsUndo()
     for (const uri of topLevelUris) {
         const node = id2node.get(uri)!
         const siblings = node.parent!.children!

@@ -156,6 +156,61 @@ test('delete virtual folder updates tree and marks modified', async ({ page }) =
     })
 })
 
+test('admin.vfs undo toggles with single-level redo behavior', async ({ page }) => {
+    await page.goto(URL + '~/admin/')
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('textbox', { name: 'Password' }).press('Enter')
+    await page.getByRole('link', { name: 'Shared files' }).click()
+    await page.getByText('zipNoList', { exact: true }).waitFor({ timeout: 10_000 })
+
+    const folderName = 'for-disabled'
+    const undoButton = page.locator('svg[data-testid="UndoIcon"]').first().locator('xpath=ancestor::button[1]')
+    await expect(undoButton).toBeDisabled()
+
+    await selectVfsNode(page, folderName, '/for-disabled/')
+    await page.getByRole('button', { name: 'Delete' }).first().click()
+    const confirm = page.locator('.dialog-confirm')
+    await expect(confirm).toBeVisible()
+    await confirm.locator('a').first().click()
+    await expect(undoButton).toBeEnabled()
+
+    await expect.poll(() => page.evaluate(name => {
+        const root = (window as any).state?.vfs
+        return {
+            hasFolder: (root?.children || []).some((x: any) => x.name === name),
+            modified: (window as any).state?.vfsModified,
+        }
+    }, folderName)).toEqual({
+        hasFolder: false,
+        modified: true,
+    })
+
+    await undoButton.click()
+    await expect.poll(() => page.evaluate(name => {
+        const root = (window as any).state?.vfs
+        return {
+            hasFolder: (root?.children || []).some((x: any) => x.name === name),
+            modified: (window as any).state?.vfsModified,
+        }
+    }, folderName)).toEqual({
+        hasFolder: true,
+        modified: true,
+    })
+
+    await undoButton.click()
+    await expect.poll(() => page.evaluate(name => {
+        const root = (window as any).state?.vfs
+        return {
+            hasFolder: (root?.children || []).some((x: any) => x.name === name),
+            modified: (window as any).state?.vfsModified,
+        }
+    }, folderName)).toEqual({
+        hasFolder: false,
+        modified: true,
+    })
+})
+
 test('undo toggles with single-level redo behavior', async ({ page }) => {
     await page.goto(URL + '~/admin/')
     await page.getByRole('textbox', { name: 'Username' }).fill(username)

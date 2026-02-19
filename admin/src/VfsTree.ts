@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { markVfsModified, state, useSnapState } from './state'
+import { markVfsModified, prepareVfsUndo, state, useSnapState } from './state'
 import { createElement as h, ReactElement, useCallback, useEffect, useRef, MouseEvent } from 'react'
 import { TreeItem, TreeView } from '@mui/x-tree-view'
 import {
@@ -166,6 +166,7 @@ export function moveVfs(from: string, to: string) {
     const movedName = fromNode.name
     const movedIsFolder = fromNode.type === 'folder'
     const destinationAncestors = getAncestorIds(toNode)
+    prepareVfsUndo()
     _.remove(oldSiblings, { id: fromNode.id })
     if (!oldSiblings.length && fromParent)
         fromParent.children = undefined

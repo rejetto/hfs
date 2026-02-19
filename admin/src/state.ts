@@ -15,6 +15,7 @@ const INIT = {
     accountsAsTree: false,
     movingFile: '',
     vfs: undefined as VfsNodeAdmin | undefined,
+    vfsUndo: undefined as VfsNodeAdmin | undefined,
     vfsModified: false,
     expanded: [] as string[],
     loginRequired: false as boolean | number,
@@ -52,7 +53,31 @@ export function markVfsModified() {
     reindexVfs()
 }
 
+export function prepareVfsUndo() {
+    if (!state.vfs) return
+    state.vfsUndo = cloneVfs(state.vfs)
+}
+
+export function undoVfs() {
+    if (!state.vfs || !state.vfsUndo) return
+    // Swap current/snapshot so pressing undo again restores the state we just replaced (single-level redo behavior).
+    const current = cloneVfs(state.vfs)
+    state.vfs = state.vfsUndo
+    state.vfsUndo = current
+    state.vfsModified = true
+    reindexVfs()
+}
+
 // use this to reflect a deep change in an object to its root, so that valtio is triggered
 export function updateStateObject(obj: any, k: string, cb: (x: any) => void) {
     obj[k] = produce(obj[k], cb)
+}
+
+function cloneVfs(node: VfsNodeAdmin): VfsNodeAdmin {
+    const { parent, children, ...rest } = node
+    // Parent links create cycles in the live tree; omit them so snapshots can be cloned and restored safely.
+    const copy = _.cloneDeep(rest) as VfsNodeAdmin
+    if (children)
+        copy.children = children.map(cloneVfs)
+    return copy
 }
