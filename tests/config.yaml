@@ -75,6 +75,16 @@ vfs:
           rename:
             alfa.txt: renamed1
             page/gpl.png: renamed2
+        - name: orderTest
+          can_see: true
+          children:
+            - name: A
+              order: -2
+              url: asd
+            - name: B
+              order: -1
+            - name: C
+              order: -3
     - name: cantListBut
       source: ..
       can_list: false

@@ -357,3 +357,9 @@ test('anew', async ({ page, browserName }) => {
     const page2 = await page2Promise
     await page2.getByText(/folder1/).click()
 })
+
+test('order field', async ({ page }) => {
+    await page.goto(URL + 'renameChild/orderTest/')
+    const names = await page.locator('.entry-name').allInnerTexts()
+    expect(names).toEqual(['B', 'A', 'C'])
+})

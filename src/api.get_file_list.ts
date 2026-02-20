@@ -111,8 +111,6 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry | null> {
         const { source, url } = node
         const name = getNodeName(node)
-        if (url)
-            return name ? { n: name, url, target: node.target } : null
         const isFolder = nodeIsFolder(node)
         try {
             const st = source ? await (node.stats || statWithTimeout(source).catch(e => {
@@ -137,6 +135,8 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
                 m: !st || Math.abs(st.mtimeMs - st.birthtimeMs) < 1000 ? undefined : st.mtime,
                 s: isFolder ? undefined : st?.size,
                 p: (pr + pl + pd + pa + pu) || undefined,
+                url,
+                target: node.target,
                 order: node.order,
                 comment: node.comment ?? await getCommentFor(source),
                 icon: getNodeIcon(node),
