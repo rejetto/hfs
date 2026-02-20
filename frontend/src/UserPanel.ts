@@ -49,7 +49,7 @@ export async function changePassword(required=false) {
         helperText: required && t('required_change_password', "You are required to change your password")
     })
     if (!pwd) return
-    const check = await promptDialog(t('enter_pass2', "RE-enter same new password"), { type: 'password' })
+    const check = await promptDialog(t('enter_pass2', "Re-enter the same new password"), { type: 'password' })
     if (!check) return
     if (check !== pwd)
         return alertDialog(t('pass2_mismatch', "The second password you entered did not match the first. Procedure aborted."), 'warning')

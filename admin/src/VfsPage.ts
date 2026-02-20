@@ -70,7 +70,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     }), [nothingShared, urls])
 
     setTitleSide(useMemo(() => h(Box, { sx: { display: { xs: 'none', md: 'block' }  } },
-        h(Alert, { severity: 'info' }, "If you rename or delete here, it's virtual, and only affects what is presented to the users"),
+        h(Alert, { severity: 'info' }, "This is what your users will see. Edit it freely – files on disk won’t be changed."),
         hintElement,
     ), [hintElement]))
 

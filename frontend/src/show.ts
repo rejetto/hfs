@@ -411,7 +411,7 @@ function showHelp() {
                 "A": t`Auto-play`,
             }, (v,k) => h('div', { key: k }, h('kbd', {}, t('showHelp_' + k, k)), ' ', v) ),
             h('div', { style: { marginTop: '1em' } },
-                t('showHelpListShortcut', { key: isMac ? 'SHIFT' : 'WIN' }, "From the file list, click holding {key} to show")
+                t('showHelpListShortcut', { key: isMac ? 'SHIFT' : 'WIN' }, "From the file list, click while holding {key} to Show")
             )
         )
     })

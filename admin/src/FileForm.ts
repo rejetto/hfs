@@ -169,7 +169,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
                         : isDir ? "Files from this path on disk will be listed, but you can add more" : undefined,
             },
             { k: 'id', comp: LinkField, statusApi, xs: 12 },
-            { k: 'order', comp: NumberField, min: -1E5, max: 1E5, placeholder: 'default', sm: 4, helperText: wikiLink('Virtual-file-system#order', "To force position") },
+            { k: 'order', comp: NumberField, min: -1E5, max: 1E5, label: "Priority (order in the frontend)", placeholder: 'default', sm: 4, helperText: wikiLink('Virtual-file-system#order', "To force position") },
             {
                 k: 'iconType',
                 comp: SelectField,
@@ -189,9 +189,9 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
                     label: "Icon file", placeholder: "default", comp: FileField, fileMask: IMAGE_FILEMASK,
                 }
             },
-            perm('can_read', "Who can see but not download will be asked to login"),
+            perm('can_read', "Who can see but not download will be asked to log in"),
             perm('can_archive', "Should this be included when user downloads as ZIP"),
-            perm('can_list', "Permission to requests the list of a folder. The list will include only things you can see.", { contentText: "subfolders" }),
+            perm('can_list', "Permission to request the list of a folder. The list will include only things you can see.", { contentText: "subfolders" }),
             perm('can_delete', [needSourceWarning, "Those who can delete can also rename and cut/move"]),
             perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
             perm('can_see', ["See this item in the list. ", wikiLink('Permissions', "More help.")]),
@@ -349,7 +349,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
 function who2desc(who: any) {
     return who === false ? "No one"
         : who === true ? "Anyone"
-            : who === '*' ? "Any account login"
+            : who === '*' ? "Any logged-in account"
                 : Array.isArray(who) ? who.join(', ')
                     : typeof who === 'string' ? `As "can ${perm2word(who)}"`
                         : "*UNKNOWN*" + JSON.stringify(who)
