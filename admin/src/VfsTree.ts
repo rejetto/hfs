@@ -8,7 +8,7 @@ import {
     RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff, UnfoldMore, UnfoldLess
 } from '@mui/icons-material'
 import { Box, Typography } from '@mui/material'
-import { id2node, isDescendantUri, reindexVfs, VfsNodeAdmin } from './VfsPage'
+import { id2vfsNode, isDescendantUri, reindexVfs, VfsNodeAdmin } from './VfsPage'
 import { onlyTruthy, pathEncode, prefix, toMutable, wantArray, Who, with_ } from './misc'
 import { Flex, iconTooltip, useToggleButton } from './mui'
 import VfsMenuBar from './VfsMenuBar'
@@ -21,12 +21,14 @@ export const FileIcon = InsertDriveFileOutlined
 
 let once = true
 
+const SPECIAL_TREE_ITEM = '?'
+
 export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
     const { vfs, selectedFiles, expanded } = useSnapState()
     const dragging = useRef<string>()
     const Branch = useCallback(function({ node }: { node: Readonly<VfsNodeAdmin> }): ReactElement {
         let { id, name, isRoot } = node
-        const folder = node.type === 'folder'
+        const isFolder = node.type === 'folder'
         const ref = useRef<HTMLLIElement | null>()
         if (isRoot && ref.current)
             ref.current.firstElementChild?.classList.toggle('Mui-selected', !(selectedFiles.length && !_.find(selectedFiles, { id: '/' })))
@@ -43,7 +45,7 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
                         dragging.current = id
                     },
                     onDragOver(ev) {
-                        if (!folder) return
+                        if (!isFolder) return
                         const src = dragging.current
                         if (src?.startsWith(id) && !src.slice(id.length + 1, -1).includes('/')) return // dragging node (src) must not be direct child of destination (id)
                         ev.preventDefault()
@@ -51,9 +53,9 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
                     async onDrop() {
                         const from = dragging.current
                         if (!from) return
-                        const fromName = id2node.get(from)?.name // won't work after moving
+                        const fromName = id2vfsNode.get(from)?.name // won't work after moving
                         if (moveVfs(from, id))
-                            toast(`Moved "${fromName}" under "${id2node.get(id)?.name}"`, 'success')
+                            toast(`Moved "${fromName}" under "${id2vfsNode.get(id)?.name}"`, 'success')
                     },
                     sx: {
                         display: 'flex',
@@ -87,8 +89,9 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
             collapseIcon: h(ExpandMore, { onClick: toggle }),
             expandIcon: h(ChevronRight, { onClick: toggle }),
             nodeId: id
-        }, isRoot && !node.children?.length ? h(TreeItem, { nodeId: '?', label: h('i', {}, "nothing here") })
-            : node.children?.map(x => h(Branch, { key: x.id, node: x })) )
+        }, with_(node.source && isFolder ? "files from " + node.source : !node.children?.length && isRoot && "nothing here", x => x && h(TreeItem, { nodeId: SPECIAL_TREE_ITEM + id, label: h('i', {}, x) })),
+            ...node.children?.map(x => h(Branch, { key: x.id, node: x })) || []
+        )
 
         function isRestricted(who: Who | undefined) {
             return who != null && who !== true
@@ -102,7 +105,7 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
         }
     }, [statusApi.data])
     const ref = useRef<HTMLUListElement>(null)
-    const allExpanded = id2node.size > 0 && expanded.length === id2node.size
+    const allExpanded = id2vfsNode.size > 0 && expanded.length === id2vfsNode.size
     const initialExpansion = ['/', ...vfs?.children?.length === 1 ? [vfs.children[0].id] : []] // in case there's only one child, expand that too
     if (once) {
         once = false
@@ -112,7 +115,7 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
         icon: exp ? UnfoldLess : UnfoldMore,
         sx: { rotate: exp ? 0 : '180deg' },
         onClick() {
-            state.expanded = allExpanded ? initialExpansion : Array.from(id2node.keys())
+            state.expanded = allExpanded ? initialExpansion : Array.from(id2vfsNode.keys())
         }
     }), allExpanded)
     useEffect(() => {
@@ -141,19 +144,20 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
                 '& ul': { borderLeft: '1px dashed #444', marginLeft: '15px', paddingLeft: '15px' },
             },
             onNodeSelect(_ev, ids) {
-                state.selectedFiles = onlyTruthy(wantArray(ids).map(id => id2node.get(id)))
+                state.selectedFiles = onlyTruthy(wantArray(ids).map(id => id2vfsNode.get(id)))
+                state.vfsShowDiskContentFor = ids.length === 1 && ids[0]?.[0] === SPECIAL_TREE_ITEM && id2vfsNode.get(ids[0].slice(1))?.source || ''
             }
         }, h(Branch, { node: vfs as Readonly<VfsNodeAdmin> }))
     )
 }
 
 export function moveVfs(from: string, to: string) {
-    const fromNode = id2node.get(from)
+    const fromNode = id2vfsNode.get(from)
     if (!fromNode)
         return !alertDialog("Item to move not found", 'error')
     if (fromNode.isRoot)
         return !alertDialog("Cannot move root", 'error')
-    const toNode = id2node.get(to)
+    const toNode = id2vfsNode.get(to)
     if (!toNode || toNode.type !== 'folder')
         return !alertDialog("Destination folder not found", 'error')
     if (isDescendantUri(to, from))

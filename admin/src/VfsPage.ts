@@ -1,12 +1,16 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useEffect, useMemo, useRef } from 'react'
-import { useApiEx } from './api'
-import { Alert, Box, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
+import { useApiEx, useApiList } from './api'
+import {
+    Alert, Box, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography
+} from '@mui/material'
+import { LsEntry } from '../../src/api.vfs'
+import { ListLsItem } from './FilePicker'
 import { markVfsModified, prepareVfsUndo, state, useSnapState } from './state'
 import VfsTree, { vfsNodeIcon } from './VfsTree'
 import {
-    CFG, matches, newDialog, normalizeHost, onlyTruthy, pathEncode, prefix, VfsNodeAdminSend, HIDE_IN_TESTS, wait
+    CFG, matches, newDialog, normalizeHost, onlyTruthy, pathEncode, prefix, VfsNodeAdminSend, HIDE_IN_TESTS, wait,
 } from './misc'
 import { Flex, useBreakpoint } from './mui'
 import { reactJoin } from '@hfs/shared'
@@ -19,10 +23,10 @@ import { PageProps } from './App'
 
 let selectOnReload: string[] | undefined
 let exposeVfsLoading: Promise<unknown> | undefined
-export const id2node = new Map<string, VfsNodeAdmin>()
+export const id2vfsNode = new Map<string, VfsNodeAdmin>()
 
 export default function VfsPage({ setTitleSide }: PageProps) {
-    const { vfs, selectedFiles, movingFile } = useSnapState()
+    const { vfs, selectedFiles, movingFile, vfsShowDiskContentFor } = useSnapState()
     const { data, reload, element, loading } = useApiEx('get_vfs')
     exposeVfsLoading = loading
     useEffect(() => {
@@ -48,6 +52,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     }, [status, config])
     const accountsApi = useApiEx<typeof apiAccounts.get_accounts>('get_accounts') // load accounts once and for all, or !isSideBreakpoint will cause a call for each selection
     const accounts = useMemo(() => _.sortBy(accountsApi?.data?.list, 'username'), [accountsApi.data])
+    const diskContent = useApiList<LsEntry>(vfsShowDiskContentFor && 'get_ls', { path: vfsShowDiskContentFor })
 
     // this will take care of closing the dialog, for the user's convenience, after "cut" button is pressed
     const closeDialogRef = useRef(_.noop)
@@ -75,7 +80,14 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     ), [hintElement]))
 
     const single = selectedFiles?.length < 2 && selectedFiles[0] as VfsNodeAdmin
-    const sideContent = accountsApi.element || !vfs || !selectedFiles.length ? null
+    const sideContent = useMemo(() => accountsApi.element || !vfs ? null
+        : diskContent.enabled ? diskContent.element || h(Box, {},
+            h(Box, { fontSize: 'xx-large', sx: { wordBreak: 'break-all' } }, "From ", vfsShowDiskContentFor),
+            h(List, { dense: true },
+                diskContent.list.map(it =>
+                    h(ListItem, { key: it.n, sx: { borderTop: '1px solid #8888' } }, h(ListLsItem, { it })))
+            )
+        )
         : single ? h(FileForm, {
             key: single.id,
             isSideBreakpoint,
@@ -85,6 +97,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
             accounts: accounts ?? [],
             file: single
         })
+        : !selectedFiles.length ? null
         : h(Fragment, {},
             h(Flex, {},
                 h(Typography, {variant: 'h6'}, selectedFiles.length + ' selected'),
@@ -95,9 +108,10 @@ export default function VfsPage({ setTitleSide }: PageProps) {
                     h(ListItemText, { primary: f.name, secondary: f.source }) ))
             )
         )
+    , [accountsApi.element, vfs, diskContent.list, single, selectedFiles])
 
     useEffect(() => {
-        if (isSideBreakpoint || !sideContent || !selectedFiles.length) return
+        if (isSideBreakpoint || !sideContent) return
         const ancestors = ['']
         {
             let r = single && single.parent
@@ -107,7 +121,8 @@ export default function VfsPage({ setTitleSide }: PageProps) {
             }
         }
         const { close } = newDialog({
-            title: selectedFiles.length > 1 ? "Multiple selection" :
+            title: vfsShowDiskContentFor ? "Disk content"
+                : selectedFiles.length > 1 ? "Multiple selection" :
                 h(Flex, {},
                     vfsNodeIcon(selectedFiles[0] as VfsNodeAdmin),
                     h(Flex, { flexWrap: 'wrap', gap: '0 0.5em' },
@@ -117,13 +132,15 @@ export default function VfsPage({ setTitleSide }: PageProps) {
                 ),
             dialogProps: { sx: { justifyContent: 'flex-end' } },
             Content: () => sideContent,
-            onClose() {
+            onClose(auto) {
+                if (auto) return
                 state.selectedFiles = []
+                state.vfsShowDiskContentFor = ''
             },
         })
         closeDialogRef.current = close
-        return () => void close() // auto-close dialog if we are switching to side-panel
-    }, [isSideBreakpoint, _.last(selectedFiles)?.id])
+        return () => void close(true) // true = auto-closing
+    }, [isSideBreakpoint, _.last(selectedFiles)?.id, sideContent])
 
     useEffect(() => {
         if (state.vfs || !data) return
@@ -145,7 +162,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
 
     }, [data])
     if (element && !state.vfs) {
-        id2node.clear()
+        id2vfsNode.clear()
         return element
     }
     const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
@@ -171,20 +188,20 @@ export function reindexVfs({
 } = {}) {
     if (!node) return
     if (clearMap)
-        id2node.clear()
+        id2vfsNode.clear()
     recur(node, node.parent?.id || '/', node.parent)
     // Reindex can update ids/references; remap caller-provided selections to canonical nodes from id2node.
     if (select)
-        state.selectedFiles = onlyTruthy(select.map(x => id2node.get(typeof x === 'string' ? x : x.id)))
+        state.selectedFiles = onlyTruthy(select.map(x => id2vfsNode.get(typeof x === 'string' ? x : x.id)))
 
     function recur(node: VfsNodeAdmin, pre: string, parent: VfsNodeAdmin | undefined) {
         const oldId = node.id
         node.parent = parent
         const newId = node.isRoot ? '/' : prefix(pre, pathEncode(node.name), node.type === 'folder' ? '/' : '')
         if (oldId && oldId !== newId)
-            id2node.delete(oldId)
+            id2vfsNode.delete(oldId)
         node.id = newId
-        id2node.set(newId, node)
+        id2vfsNode.set(newId, node)
         if (!node.children) return
         if (sortChildren)
             node.children = _.sortBy(node.children, ['type', x => x.name?.toLocaleLowerCase()])
@@ -213,7 +230,7 @@ export function deleteVfs(uris: string[]) {
     if (!topLevelUris.length) return
     prepareVfsUndo()
     for (const uri of topLevelUris) {
-        const node = id2node.get(uri)!
+        const node = id2vfsNode.get(uri)!
         const siblings = node.parent!.children!
         _.remove(siblings, { id: node.id })
         if (!siblings.length)

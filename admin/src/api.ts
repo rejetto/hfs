@@ -171,7 +171,22 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
                 Object.assign(res, change)
         })
     }, [updateList])
-    return { list: pausedList ?? list, props, loading, error, initializing, connecting, setList, updateList, updateEntry, reload }
+    return {
+        list: pausedList ?? list,
+        props,
+        loading,
+        error,
+        initializing,
+        connecting,
+        setList,
+        updateList,
+        updateEntry,
+        reload,
+        enabled: Boolean(cmd),
+        element: connecting || initializing || loading ? spinner()
+            : error ? h(Alert, { severity: 'error', sx: { flex: 1 } }, err2msg(error))
+            : null
+    }
 
     function reload() {
         setReloader(x => x + 1)

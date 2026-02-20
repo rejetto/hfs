@@ -54,7 +54,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
 
     const sm = useBreakpoint('sm')
     const [listHeight, setListHeight] = useState(0)
-    const filteredList = useMemo(() => _.sortBy(list.filter(it => filterMatch(it.n)), ['k', 'n']), [list,filterMatch])
+    const filteredList = useMemo(() => _.sortBy(list.filter(it => filterMatch(it.n)), ['k', 'n']), [list, filterMatch])
     const root = isWindows.current ? '' : '/'
     const pathDelimiter = isWindows.current ? '\\' : '/'
     const cwdDelimiter = enforceFinal(pathDelimiter, cwd)
@@ -135,13 +135,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                                             ev.stopPropagation()
                                         },
                                     }),
-                                    h(ListItemIcon, {}, h(it.k ? FolderIcon : FileIcon)),
-                                    h(ListItemText, { sx: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }, it.n),
-                                    !isFolder && it.s !== undefined && h(Typography, {
-                                        variant: 'body2',
-                                        color: 'text.secondary',
-                                        ml: 4, mr: 1,
-                                    }, formatBytes(it.s))
+                                    h(ListLsItem, { it }),
                                 )
                             }
                         })
@@ -188,4 +182,16 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
 
 export function formatDiskSpace({ free, total }: { free: number, total: number }) {
     return `${formatBytes(free)} available (${formatPerc(free / total)}) of ${formatBytes(total)}`
+}
+
+export function ListLsItem({ it }: { it: LsEntry }) {
+    return h(Fragment, {},
+        h(ListItemIcon, {}, h(it.k ? FolderIcon : FileIcon)),
+        h(ListItemText, { sx: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }, it.n),
+        !it.k && it.s !== undefined && h(Typography, {
+            variant: 'body2',
+            color: 'text.secondary',
+            ml: 4, mr: 1,
+        }, formatBytes(it.s))
+    )
 }

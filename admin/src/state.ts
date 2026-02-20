@@ -12,6 +12,7 @@ const INIT = {
     title: '',
     config: {} as Dict,
     selectedFiles: [] as VfsNodeAdmin[],
+    vfsShowDiskContentFor: '',
     accountsAsTree: false,
     movingFile: '',
     vfs: undefined as VfsNodeAdmin | undefined,

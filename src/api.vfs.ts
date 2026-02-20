@@ -190,7 +190,7 @@ export default {
 
     get_disk_spaces: getDiskSpaces,
 
-    get_ls({ path, files, fileMask }, ctx) {
+    get_ls({ path, files=true, fileMask }, ctx) {
         return new SendListReadable<LsEntry>({
             async doAtStart(list) {
                 if (!path && IS_WINDOWS) {

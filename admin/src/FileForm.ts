@@ -15,7 +15,7 @@ import {
 } from './misc'
 import { isModifiedConfig } from './AccountForm'
 import { Btn, Flex, IconBtn, LinkBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'
-import { deleteVfs, id2node, reindexVfs, VfsNodeAdmin } from './VfsPage'
+import { deleteVfs, id2vfsNode, reindexVfs, VfsNodeAdmin } from './VfsPage'
 import _ from 'lodash'
 import FileField from './FileField'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
@@ -136,7 +136,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
             children: "Apply",
             startIcon: h(Check),
             async onClick() {
-                const node = state.selectedFiles[0] || id2node.get(values.id)
+                const node = state.selectedFiles[0] || id2vfsNode.get(values.id)
                 if (!node)
                     throw Error("Selected node not found")
                 const props = _.omit(values, ['birthtime','mtime','size','id'])
