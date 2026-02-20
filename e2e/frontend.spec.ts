@@ -317,9 +317,9 @@ test('anew', async ({ page, browserName }) => {
     await addBtn.click()
     await adminPage.getByRole('menuitem', { name: 'from disk' }).click()
     await adminPage.getByRole('textbox', { name: /Filter results/ }).fill('data')
-    await expect(adminPage.getByText('Filter results (1/')).toBeVisible()
-    await adminPage.getByRole('checkbox').check()
-    await adminPage.getByText('data.kv').click()
+    await expect(adminPage.getByText('Filter results (2/')).toBeVisible()
+    await adminPage.getByRole('checkbox').first().check()
+    await adminPage.getByText('data.kv').first().click()
     await addBtn.click()
     await adminPage.getByRole('menuitem', { name: 'from disk' }).click()
     await adminPage.getByRole('button', { name: 'Select this folder' }).click()
@@ -360,6 +360,7 @@ test('anew', async ({ page, browserName }) => {
 
 test('order field', async ({ page }) => {
     await page.goto(URL + 'renameChild/orderTest/')
+    await expect(page.getByText('orderTest')).toBeVisible()
     const names = await page.locator('.entry-name').allInnerTexts()
     expect(names).toEqual(['B', 'A', 'C'])
 })
