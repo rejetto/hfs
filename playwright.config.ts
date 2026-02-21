@@ -102,8 +102,7 @@ export default defineConfig({
      url: 'http://127.0.0.1:8081',
      reuseExistingServer: !process.env.CI,
    }, { // launch a second server for tests with an empty/default config
-       command: 'rm -rf tests/work2 && node dist/src --cwd tests/work2 --debug --port 82 --open_browser_at_start false',
-       url: 'http://127.0.0.1:82',
+       command: 'rm -rf tests/work2 && node dist/src --cwd tests/work2 --debug --open_browser_at_start false',
        reuseExistingServer: !process.env.CI,
    }]
 });

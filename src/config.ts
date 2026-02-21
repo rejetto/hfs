@@ -202,6 +202,7 @@ export const configFile = watchLoad(filePath, text => {
     try { return setConfig(yaml.parse(text, { uniqueKeys: false }) || {}, false) }
     catch(e: any) { console.error("Error in", filePath, ':', e.message || String(e)) }
 }, {
+    immediateFirst: true,
     failedOnFirstAttempt(){
         startedWithoutConfig = true
         console.log("No config file, using defaults")
