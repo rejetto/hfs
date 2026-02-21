@@ -13,6 +13,7 @@ import {
 } from './misc'
 import {
     iconTooltip, InLink, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported,
+    execDoneMessage,
 } from './mui'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
@@ -45,6 +46,7 @@ export default function OptionsPage() {
     useEffect(() => void reloadStatus(), [data]) //eslint-disable-line
     useEffect(() => () => exposedReloadStatus = undefined, []) // clear on unmount
     const sm = useBreakpoint('sm')
+    const saveBtnRef = useRef<HTMLButtonElement>(null)
 
     const admins = useApiEx('get_admins').data?.list
 
@@ -87,6 +89,7 @@ export default function OptionsPage() {
         stickyBar: true,
         onError: alertDialog,
         save: {
+            ref: saveBtnRef,
             onClick: save,
             ...propsForModifiedValues( Object.keys(changes).length>0),
         },
@@ -312,7 +315,7 @@ export default function OptionsPage() {
         setTimeout(reloadStatus, portChange || certChange ? 1000 : 0) // give some time to apply news
         Object.assign(loaded!, changes) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
         recalculateChanges()
-        toast("Changes applied", 'success')
+        execDoneMessage(false, saveBtnRef.current)
     }
 }
 

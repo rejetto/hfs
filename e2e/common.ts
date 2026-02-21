@@ -25,7 +25,7 @@ export function forwardConsole(page: Page) {
 }
 
 export async function clickAdminMenu(page: Page, sectionName: string | RegExp) {
-    const isPhone = await page.evaluate(() => window.matchMedia('(max-width: 600px)').matches)
+    const isPhone = (page as any).isPhone ??= await page.evaluate(() => window.matchMedia('(max-width: 600px)').matches)
     if (isPhone) {
         // On phones, admin navigation links are rendered inside a drawer that must be opened first.
         await page.getByRole('button', { name: 'menu' }).nth(0).click()
@@ -33,4 +33,19 @@ export async function clickAdminMenu(page: Page, sectionName: string | RegExp) {
     await page.getByRole('link', { name: sectionName }).click()
     // The admin page content updates asynchronously after route changes; this avoids transient flakiness across tests.
     await page.waitForTimeout(100)
+}
+
+// only for admin-panel
+export function clickIconBtn(title: string | RegExp, page: Page) {
+    return page.getByLabel(title).getByRole('button').click()
+}
+
+export async function loginAdmin(page: Page) {
+    await page.goto(URL + '~/admin/')
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('textbox', { name: 'Password' }).press('Enter')
+    const isPhone = await page.evaluate(() => window.matchMedia("(max-width: 600px)").matches)
+    ;(page as any).isPhone = isPhone
+    return isPhone
 }

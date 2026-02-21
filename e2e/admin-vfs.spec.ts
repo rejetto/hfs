@@ -1,5 +1,5 @@
 import { expect, Page, test } from '@playwright/test'
-import { clickAdminMenu, URL, username, password } from './common'
+import { clickAdminMenu, URL, username, password, clickIconBtn } from './common'
 
 async function selectVfsNode(page: Page, name: string, expectedId: string) {
     await page.getByRole('treeitem', { name, exact: true }).click()
@@ -8,7 +8,7 @@ async function selectVfsNode(page: Page, name: string, expectedId: string) {
 }
 
 async function pasteMovingNode(page: Page, movingName: string) {
-    await page.getByRole('button', { name: new RegExp(movingName) }).click()
+    await clickIconBtn(new RegExp(movingName), page)
 }
 
 async function expandVfsNode(page: Page, nodeId: string) {
@@ -31,8 +31,8 @@ test('move via cut/paste keeps node visible', async ({ page }) => {
     await page.getByText('zipNoList', { exact: true }).waitFor({ timeout: 10_000 })
 
     await selectVfsNode(page, 'zipNoList', '/zipNoList/')
-    await page.getByRole('button', { name: 'Cut' }).click()
-    await page.getByRole('button', { name: 'Close' }).click()
+    await clickIconBtn('Cut', page)
+    await clickIconBtn('Close', page)
     await selectVfsNode(page, 'f1', '/f1/')
     await pasteMovingNode(page, 'zipNoList')
 
@@ -69,8 +69,8 @@ test('move to nested destination expands ancestors', async ({ page }) => {
     await page.getByText('zipNoList', { exact: true }).waitFor({ timeout: 10_000 })
 
     await selectVfsNode(page, 'zipNoList', '/zipNoList/')
-    await page.getByRole('button', { name: 'Cut' }).click()
-    await page.getByRole('button', { name: 'Close' }).click()
+    await clickIconBtn('Cut', page)
+    await clickIconBtn('Close', page)
     await expandVfsNode(page, '/protectFromAbove/')
     await selectVfsNode(page, 'child', '/protectFromAbove/child/')
     await pasteMovingNode(page, 'zipNoList')
@@ -111,8 +111,8 @@ test('move into empty folder keeps node visible', async ({ page }) => {
     await page.getByText('zipNoList', { exact: true }).waitFor({ timeout: 10_000 })
 
     await selectVfsNode(page, 'zipNoList', '/zipNoList/')
-    await page.getByRole('button', { name: 'Cut' }).click()
-    await page.getByRole('button', { name: 'Close' }).click()
+    await clickIconBtn('Cut', page)
+    await clickIconBtn('Close', page)
     await selectVfsNode(page, 'for-disabled', '/for-disabled/')
     await pasteMovingNode(page, 'zipNoList')
 
@@ -150,7 +150,7 @@ test('delete virtual folder updates tree and marks modified', async ({ page }) =
 
     const folderName = 'for-disabled'
     await selectVfsNode(page, folderName, '/for-disabled/')
-    await page.getByRole('button', { name: 'Delete' }).first().click()
+    await clickIconBtn('Delete', page)
     const confirm = page.locator('.dialog-confirm')
     await expect(confirm).toBeVisible()
     await confirm.locator('a').first().click()
@@ -180,7 +180,7 @@ test('undo toggles with single-level redo behavior', async ({ page }) => {
     await expect(undoButton).toBeDisabled()
 
     await selectVfsNode(page, folderName, '/for-disabled/')
-    await page.getByRole('button', { name: 'Delete' }).first().click()
+    await clickIconBtn('Delete', page)
     const confirm = page.locator('.dialog-confirm')
     await expect(confirm).toBeVisible()
     await confirm.locator('a').first().click()

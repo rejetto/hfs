@@ -32,6 +32,7 @@ export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusA
             title: "Save",
             disabled: !vfsModified && "No changes to save",
             modified: vfsModified,
+            doneAnimation: true,
             onClick: saveVfs
         }),
         h(Btn, {
@@ -106,15 +107,14 @@ function SystemIntegrationButton({ platform }: { platform: string | undefined })
     })
 }
 
-function saveVfs() {
-    apiCall('set_vfs', { uri: '/', props: recur() })
-        .then(() => {
-            state.vfsModified = false
-        })
-        //.then(() => toast("Changes saved"))
-    function recur(n=state.vfs) {
-        const ret = _.pick(n, VFS_STORED_KEYS)
-        ret.children = n?.children?.map(recur) as any
-        return ret
-    }
+async function saveVfs() {
+    await apiCall('set_vfs', {
+        uri: '/',
+        props: (function recur(n=state.vfs) {
+            const ret = _.pick(n, VFS_STORED_KEYS)
+            ret.children = n?.children?.map(recur) as any
+            return ret
+        })()
+    })
+    state.vfsModified = false
 }

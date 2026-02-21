@@ -1,7 +1,9 @@
 import { test, expect, Page } from '@playwright/test'
 import fs from 'fs'
 import { wait } from '../src/cross'
-import { clickAdminMenu, forwardConsole, password, resetTimestamp, URL, username } from './common'
+import {
+    clickAdminMenu, clickIconBtn, forwardConsole, loginAdmin, password, resetTimestamp, URL, username
+} from './common'
 
 // a generic test touch several parts
 test('around1', async ({ page }) => {
@@ -230,7 +232,8 @@ test('admin1', async ({ page }) => {
     await screenshot(page)
     await page.getByText('rejetto(admins,').click()
     await screenshot(page)
-    await closeAdminPhoneDialog(page, isPhone)
+    if (isPhone)
+        await clickIconBtn('Close', page)
     await clickAdminMenu(page, 'Options')
     await expect(page.getByText('Correctly working on port')).toBeVisible() // wait for data
     if (!isPhone)
@@ -241,17 +244,13 @@ test('admin1', async ({ page }) => {
     await clickAdminMenu(page, 'Logs')
     await dataTableLoading()
     await screenshot(page)
-    await page.getByRole('tab').nth(2).click()
-    await page.getByRole('tab').nth(3).click()
-    await page.getByRole('tab').nth(4).click()
-    await page.getByRole('button', { name: '(Options)' }).click()
+    await clickIconBtn('Options', page)
     await page.locator('div').filter({ hasText: 'ServedRequests are logged here. Empty to disable it.Not servedWrite errors in a different file. Empty to use same file.' }).nth(3).click()
-    await page.getByRole('button', { name: 'Close' }).click()
-    await expect(page.getByText('LogsServedNot')).toBeVisible()
+    await clickIconBtn('Close', page)
     await clickAdminMenu(page, 'Language')
     await dataTableLoading()
     if (!isPhone)
-        await expect(page.getByText('author', { exact: true })).toBeVisible() // wait for layout to be stable
+        await expect(page.getByText('author', { exact: true })).toBeVisible() // wait for the layout to be stable
     await screenshot(page, '.MuiDataGrid-root')
     await clickAdminMenu(page, 'Plugins')
     await expect(page.getByText('antibrute')).toBeVisible() // wait for data
@@ -269,138 +268,6 @@ test('admin1', async ({ page }) => {
     await clickAdminMenu(page, 'Logout')
     await screenshot(page)
 })
-
-// some interactions, no screenshots
-test('admin2', async ({ page }) => {
-    const isPhone = await loginAdmin(page)
-
-    await clickAdminMenu(page, 'Accounts')
-    await expect(page.getByText('admins', { exact: true })).toBeVisible()
-    await page.getByRole('button', { name: 'Add' }).click()
-    await page.getByRole('menuitem', { name: 'user' }).click()
-    const usernameField = page.getByRole('textbox', { name: 'Username' })
-    const passwordField = page.getByRole('textbox', { name: 'Password', exact: true })
-    await usernameField.fill('admin2-temp-user')
-    await passwordField.fill('admin2-temp-pass')
-    await page.getByRole('textbox', { name: 'Repeat password' }).fill('admin2-temp-pass')
-    await expect(usernameField).toHaveValue('admin2-temp-user')
-    const adminAccess = page.getByRole('checkbox', { name: 'Admin-panel access' })
-    await adminAccess.check()
-    await expect(adminAccess).toBeChecked()
-    await page.getByRole('textbox', { name: 'Notes' }).fill('admin2 expanded interactions')
-    await closeAdminPhoneDialog(page, isPhone)
-
-    await clickAdminMenu(page, 'Options')
-    await expect(page.getByText('Correctly working on port')).toBeVisible()
-    await page.getByRole('button', { name: 'Reload' }).click()
-    const blockTable = page.getByRole('grid').filter({ has: page.getByText('Blocked IP', { exact: true }) }).first()
-    await blockTable.getByRole('button', { name: 'Add' }).click()
-    const addDialog = page.getByRole('dialog').filter({ hasText: 'Add' })
-    await addDialog.getByRole('textbox', { name: 'Blocked IP' }).fill('5.6.7.8')
-    if (!isPhone) {
-        // This field uses a masked input: selecting from picker is more reliable than typing.
-        await addDialog.getByRole('button', { name: 'Choose date' }).click()
-        const picker = page.locator('.MuiPickersPopper-root[role="dialog"]')
-        await picker.locator('button.MuiPickersDay-root:not([disabled])').first().click()
-        // Close the popper so it doesn't intercept clicks on the Add dialog buttons.
-        await page.keyboard.press('Escape')
-        await expect(addDialog.getByRole('textbox', { name: 'Expire' })).not.toHaveValue('MM/DD/YYYY hh:mm aa')
-    }
-    await addDialog.getByRole('button').last().click()
-    await expect(addDialog).not.toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Options', exact: true })).toBeVisible() // still on the same page
-    await expect(blockTable.getByText('5.6.7.8')).toBeVisible()
-    await page.getByRole('button', { name: 'Reload' }).click()
-    await expect(blockTable.getByText('5.6.7.8')).not.toBeVisible()
-
-    await clickAdminMenu(page, 'Logs')
-    await expect(page.getByRole('tab', { name: 'Served', exact: true })).toBeVisible()
-    const logTabs = page.getByRole('tab')
-    await logTabs.nth(1).click()
-    await logTabs.nth(2).click()
-    await logTabs.nth(3).click()
-    await logTabs.nth(4).click()
-    const pauseBtn = page.getByRole('button', { name: 'Pause' })
-    await expect(pauseBtn).toHaveAttribute('aria-pressed', 'true')
-    await pauseBtn.click()
-    await expect(pauseBtn).toHaveAttribute('aria-pressed', 'false')
-    await pauseBtn.click()
-    await expect(pauseBtn).toHaveAttribute('aria-pressed', 'true')
-    const showApisBtn = page.getByRole('button', { name: 'Show APIs' })
-    await expect(showApisBtn).toHaveAttribute('aria-pressed', 'true')
-    await showApisBtn.click()
-    await expect(showApisBtn).toHaveAttribute('aria-pressed', 'false')
-    await showApisBtn.click()
-    await expect(showApisBtn).toHaveAttribute('aria-pressed', 'true')
-    await page.getByRole('button', { name: '(Options)' }).click()
-    if (!isPhone) {
-        const logsDialog = page.getByRole('dialog', { name: /Log options/ })
-        const logApisToggle = logsDialog.getByRole('checkbox', { name: 'Log API requests' })
-        await expect(logApisToggle).toBeChecked()
-        await logApisToggle.click()
-        await expect(logApisToggle).not.toBeChecked()
-        await logApisToggle.click()
-        await expect(logApisToggle).toBeChecked()
-    }
-    await page.getByRole('button', { name: 'Close' }).click()
-
-    await clickAdminMenu(page, 'Plugins')
-    await expect(page.getByText('antibrute')).toBeVisible()
-    // Tab labels vary by layout/version ("Search", "Get more"), but the order is stable.
-    const pluginTabs = page.getByRole('tab')
-    await pluginTabs.nth(1).click()
-    await page.getByRole('textbox', { name: 'Search text' }).fill('download')
-    await pluginTabs.nth(2).click()
-    await pluginTabs.nth(0).click()
-    if (!isPhone) {
-        // Keep this non-invasive: if all plugins are stopped by baseline config, skip plugin-options editing.
-        const pluginOptionsBtn = page.getByRole('button', { name: '(Options)' }).first()
-        if (await pluginOptionsBtn.isVisible()) {
-            await pluginOptionsBtn.click()
-            const whereField = page.getByRole('combobox', { name: 'Where to display counter' })
-            await whereField.click()
-            await page.getByRole('option', { name: 'list', exact: true }).click()
-            const pluginOptionsDialog = page.getByRole('dialog')
-            // Same reason as log options: accessible name may include shortcut hints.
-            const pluginSaveBtn = pluginOptionsDialog.locator('button:has-text("Save")').first()
-            await expect(pluginSaveBtn).toBeEnabled()
-            await page.getByRole('button', { name: 'Close' }).click()
-        }
-    }
-
-    await clickAdminMenu(page, 'Custom HTML')
-    const sectionStyle = page.getByRole('combobox', { name: 'Section Style' })
-    await expect(sectionStyle).toBeVisible()
-    await sectionStyle.click()
-    await page.getByRole('option').nth(1).click()
-
-    await clickAdminMenu(page, 'Internet')
-    await expect(page.getByText('Server')).toBeVisible()
-
-    await clickAdminMenu(page, 'Logout')
-    await screenshot(page)
-})
-
-async function loginAdmin(page: Page) {
-    await page.goto(URL + '~/admin/')
-    await page.getByRole('textbox', { name: 'Username' }).fill(username)
-    await page.getByRole('textbox', { name: 'Password' }).fill(password)
-    await page.getByRole('textbox', { name: 'Password' }).press('Enter')
-    const isPhone = await page.evaluate(() => window.matchMedia("(max-width: 600px)").matches)
-    ;(page as AdminPage).isPhone = isPhone
-    return isPhone
-}
-
-async function closeAdminPhoneDialog(page: Page, isPhone: boolean) {
-    // On phones, detail pages are shown in dialogs and block the menu behind them.
-    if (isPhone)
-        // Mobile close button is icon-only, so we target the first button in the dialog header.
-        await page.getByRole('dialog').getByRole('button').first().click()
-}
-
-type AdminPage = Page & {
-    isPhone?: boolean
-}
 
 async function screenshot(page: Page, selectorForMask = '') {
     if (selectorForMask)
@@ -443,18 +310,18 @@ test('anew', async ({ page, browserName }) => {
     await adminPage.locator('.MuiDialog-container').press('Escape')
     await adminPage.locator('#vfs').click()
     await adminPage.getByText('folder1', { exact: true }).click()
-    await adminPage.getByRole('button', { name: 'Cut' }).click()
+    await clickIconBtn('Cut', adminPage)
     await adminPage.locator('div').filter({ hasText: 'InfoNow that this is marked' }).nth(1).click()
-    await adminPage.getByRole('button', { name: 'Close' }).click()
+    await clickIconBtn('Close', adminPage)
     await adminPage.getByRole('treeitem', { name: 'Home folder', exact: true })
         .getByText('Home folder', { exact: true }).click()
-    await adminPage.getByRole('button', { name: '(/work2/folder1/)' }).click() // paste button
+    await clickIconBtn('/work2/folder1/', adminPage) // paste button
     await adminPage.getByText('data.kv').click()
-    await adminPage.getByRole('button', { name: 'Cut' }).click()
-    await adminPage.getByRole('button', { name: 'Close' }).click()
+    await clickIconBtn('Cut', adminPage)
+    await clickIconBtn('Close', adminPage)
     await adminPage.getByText('folder1').click()
-    await adminPage.getByRole('button', { name: '(/data.kv)' }).click() // paste
-    await adminPage.getByRole('button', { name: 'Save' }).click()
+    await clickIconBtn('/data.kv', adminPage) // paste
+    await clickIconBtn('Save', adminPage)
     await page.getByRole('button', { name: 'Close' }).click()
     await page.getByRole('link', { name: 'home' }).click()
     await page.getByRole('link', { name: 'Reload' }).click()

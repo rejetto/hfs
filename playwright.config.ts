@@ -110,7 +110,7 @@ export default defineConfig({
 
 function getSnapshotBranch() {
   // CI often runs in detached HEAD, so allow callers to force the logical branch name.
-  const branchName = process.env.PLAYWRIGHT_SNAPSHOT_BRANCH || getGitBranchName() || 'detached-head'
+  const branchName = process.env.PLAYWRIGHT_SNAPSHOT_BRANCH || getGitBranchName() || 'main'
   return branchName.replace(/[^a-zA-Z0-9._-]/g, '_')
 }
 

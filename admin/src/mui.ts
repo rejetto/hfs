@@ -153,7 +153,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
     if (link)
         onClick = () => window.open(link)
     const showLabel = useBreakpoint(_.isString(labelIf) ? labelIf : 'xs') && (_.isBoolean(labelIf) ? labelIf : true)
-    if (!showLabel)
+    if (!showLabel && children)
         title = children
     const ref = useRefPass<HTMLButtonElement>(forwarded)
     const common = _.merge(propsForModifiedValues(modified), {
@@ -164,11 +164,15 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
             if (loadingState) return
             if (confirm && !await confirmDialog(confirm === true ? "Are you sure?" : confirm)) return
             const ret = onClick?.apply(this, args as any)
-            if (ret && ret instanceof Promise) {
+            if (ret instanceof Promise) {
                 setLoadingState(true)
-                ret.then(x => x !== false && execDoneMessage(doneMessage, doneAnimation && ref.current), alertDialog)
-                    .finally(()=> setLoadingState(false))
+                ret.finally(()=> setLoadingState(false))
             }
+            try {
+                if (await ret !== false)
+                    execDoneMessage(doneMessage, doneAnimation && ref.current)
+            }
+            catch(e: any) { alertDialog(e) }
         },
     } as const, rest)
     const iconElement = isValidElement(icon) ? icon : (icon && h(icon))
@@ -181,7 +185,11 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
                 : h(CircularProgress, { size: '1rem', value: progress*100, variant: 'determinate' }),
             children: showLabel && children,
         } as const, common, (!showLabel || !children) && { sx: { minWidth: 'auto', px: 1, py: '7px', '& span': { mx:0 }, } }))
-        : h(IconButton, _.merge(common, { sx: { height: 'fit-content' }, TouchRippleProps: { 'aria-hidden': true } }),
+        : h(IconButton, _.merge(common, {
+            sx: { height: 'fit-content' }, TouchRippleProps: { 'aria-hidden': true },
+            // we need a direct accessible name on the actual clickable element for testing
+            'aria-label': !children || !showLabel ? rest['aria-label'] ?? (_.isString(title) ? title : undefined) : rest['aria-label'],
+        }),
             (progress || loadingState) && progress !== false  // false is also useful to inhibit behavior with loading
             && h(CircularProgress, {
                 ...(typeof progress === 'number' ? { value: progress*100, variant: 'determinate' } : null),
@@ -190,16 +198,18 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
             iconElement,
         )
 
-    const aria = rest['aria-label'] ?? with_(_.isString(title) && title, x => x ? `${children || ''} (${x})` : undefined)
+    const aria = rest['aria-label']
+        ?? with_(_.isString(title) && title, x =>
+            x ? `${prefix('', _.isString(children) && children, ' – ')}${x}` : undefined)
     if (title) {
-        if (disabled) // having this span-wrapper conditioned by if(disabled) is causing a (harmless?) warning by mui-popper if the element becomes disabled after you click (file cut button does), but otherwise we have a bigger problem with a11y, with this being seen as a button
-            ret = h('span', { role: 'button', 'aria-label': aria, 'aria-disabled': disabled }, ret)
+        // Keep a stable tooltip anchor while `disabled` toggles, otherwise MUI may keep a stale anchorEl and warn.pc
+        ret = h('span', disabled ? { role: 'button', 'aria-label': aria, 'aria-disabled': true } : undefined, ret)
         ret = hTooltip(title, aria, ret, tooltipProps)
     }
     return ret
 })
 
-function execDoneMessage(msg: boolean | string | undefined, el?: HTMLElement | null | false) {
+export function execDoneMessage(msg: boolean | string | undefined, el?: HTMLElement | null | false) {
     if (el)
         restartAnimation(el, 'success .5s')
     if (msg)
