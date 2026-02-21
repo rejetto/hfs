@@ -79,12 +79,12 @@ async function back() {
     ignorePopState = true
     const was = history.state
     return waitClosing = waitClosing.then(() => new Promise<void>(async res => {
-        const timeout = Date.now() + 1000
+        const timeout = Date.now() + 1500
         let lastBack = 0
         while (was === history.state) { // history.back seems to not always be effective, so we loop for it
             const now = Date.now()
             if (now > timeout) break // emergency brake
-            if (now - lastBack > 500) { // after this long time we try again
+            if (now - lastBack > 1000) { // after this long time we try again
                 history.back()
                 lastBack = now
             }
