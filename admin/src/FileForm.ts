@@ -9,9 +9,8 @@ import {
 import { apiCall, UseApi } from './api'
 import {
     basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, objSameKeys,
-    onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, xlate, md, Callback,
-    useRequestRender, splitAt, IMAGE_FILEMASK, copyTextToClipboard, normalizeHost, CFG, try_,
-    WHO_ANY_ACCOUNT
+    onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, xlate, md, Callback, MASK_IN_TESTS,
+    useRequestRender, splitAt, IMAGE_FILEMASK, copyTextToClipboard, normalizeHost, CFG, try_, WHO_ANY_ACCOUNT,
 } from './misc'
 import { isModifiedConfig } from './AccountForm'
 import { Btn, Flex, IconBtn, LinkBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'
@@ -385,7 +384,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
         !baseHost ? "Invalid baseUrl" : !urls ? 'error' : // check data is ok
         h(DisplayField, {
             label: "Link",
-            className: 'maskInTests',
+            className: MASK_IN_TESTS,
             value: link || `outside of configured main address (${baseHost})`,
             error,
             InputProps: link ? { inputComponent: RenderLink } : undefined,

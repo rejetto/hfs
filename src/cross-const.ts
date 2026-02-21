@@ -13,7 +13,8 @@ export const MTIME_CHECK = 'x-mtime-check'
 export const PREVIOUS_TAG = 'previous'
 export const ALLOW_SESSION_IP_CHANGE = 'allow_session_ip_change'
 export const HIDE_IN_TESTS = 'hideInTests' // elements that have variable size, where masking would produce changes, must be hidden
-export const EMBEDDED_LANGUAGE = 'en' // frontend includes this language in the code, and not need to import the translation json
+export const MASK_IN_TESTS = 'maskInTests'
+export const EMBEDDED_LANGUAGE = 'en' // frontend includes this language in the code, and not need to import the translation-json
 
 export const HTTP_OK = 200
 export const HTTP_CREATED = 201

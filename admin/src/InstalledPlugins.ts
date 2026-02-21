@@ -9,7 +9,7 @@ import {
 } from '@mui/icons-material'
 import {
     CFG, Html, HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate, formatTime, formatDate, replaceStringToReact,
-    callable, tryJson, useAutoScroll, NBSP, isPrimitive
+    callable, tryJson, useAutoScroll, NBSP, isPrimitive, HIDE_IN_TESTS
 } from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
@@ -63,6 +63,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 field: 'version',
                 width: 70,
                 hideUnder: 'sm',
+                cellInnerProps: { className: HIDE_IN_TESTS },
                 mergeRender: { installedVersion: { fontSize: 'x-small' } }
             },
             themeField,

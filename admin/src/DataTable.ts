@@ -17,6 +17,7 @@ export type DataTableColumn<R extends GridValidRowModel=any> = GridColDef<R> & {
     sx?: SxProps | Callback<GridRenderCellParams, SxProps>
     mergeRender?: { [other: string]: false | { override?: Partial<GridColDef<R>> } & BoxProps }
     mergeRenderSx?: SxProps
+    cellInnerProps?: BoxProps
 }
 export interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridProps<R>, 'columns'> {
     columns: Array<DataTableColumn<R> | Falsy>
@@ -65,7 +66,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                 originalRenderCell: col.renderCell || true,
                 renderCell(params: any) {
                     const { columns } = params.api.store.getSnapshot()
-                    return h(Box, { maxHeight: '100%', sx: { textWrap: 'wrap', ...callable(sx as any, params) } }, // wrap if necessary, but stay within the row
+                    return h(Box, { maxHeight: '100%', ...col.cellInnerProps, sx: { textWrap: 'wrap', ...callable(sx as any, params) } }, // wrap if necessary, but stay within the row
                         col.renderCell ? col.renderCell(params) : params.formattedValue,
                         col.mergeRender && h(Flex, { fontSize: 'smaller', flexWrap: 'wrap', mt: '2px', rowGap: 0, ...col.mergeRenderSx }, // wrap, normally causing overflow/hiding, if it doesn't fit
                             ...onlyTruthy(_.map(col.mergeRender, (props, other) => {
