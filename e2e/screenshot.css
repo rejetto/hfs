@@ -2,6 +2,12 @@
 *:focus { outline: none !important; box-shadow: none !important; }
 main *:hover { background: none !important; }
 * { animation: none !important; transition: none !important; }
+/* Disable typographic features that differ across rendering engines and cause screenshot noise. */
+*:not(svg):not(svg *) {
+    font-kerning: none !important;
+    font-variant-ligatures: none !important;
+    text-shadow: none !important;
+}
 
 .hideInTests, /* use for elements with variable size, where masking would produce changes anyway */
 .list-wrapper:not([uri="/"]) .entry-ts { display: none } /* ignore changing timestamps inside folders */

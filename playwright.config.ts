@@ -30,11 +30,6 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
     timezoneId: 'Europe/Rome',
-    launchOptions: {
-      args: [
-        '--disable-font-subpixel-positioning',
-      ]
-    },
   },
 
   /* Configure projects for major browsers */
@@ -56,8 +51,14 @@ export default defineConfig({
     },
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    }
+      use: {
+        ...devices['Desktop Firefox'],
+        launchOptions: {
+          // Firefox can purge localhost-like state during bounce-tracker heuristics in tests.
+          firefoxUserPrefs: { 'privacy.bounceTrackingProtection.mode': 0 },
+        },
+      },
+    },
 /*
     {
       name: 'firefox',
