@@ -1,4 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
+import { execSync } from 'node:child_process';
+
+const snapshotBranch = getSnapshotBranch()
 
 /**
  * Read environment variables from file.
@@ -13,6 +16,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
+  snapshotPathTemplate: `{testDir}/{testFilePath}-snapshots-${snapshotBranch}/{arg}-{projectName}-{platform}{ext}`,
   timeout: 30_000,
   fullyParallel: true, // Run tests in files in parallel
   forbidOnly: !!process.env.CI, // Fail the build on CI if you accidentally left test.only in the source code.
@@ -103,3 +107,18 @@ export default defineConfig({
        reuseExistingServer: !process.env.CI,
    }]
 });
+
+function getSnapshotBranch() {
+  // CI often runs in detached HEAD, so allow callers to force the logical branch name.
+  const branchName = process.env.PLAYWRIGHT_SNAPSHOT_BRANCH || getGitBranchName() || 'detached-head'
+  return branchName.replace(/[^a-zA-Z0-9._-]/g, '_')
+}
+
+function getGitBranchName() {
+  try {
+    return execSync('git branch --show-current', { encoding: 'utf8' }).trim()
+  }
+  catch {
+    return ''
+  }
+}

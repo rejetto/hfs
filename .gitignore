@@ -14,4 +14,4 @@ tests/config.yaml.bak
 /playwright-report/
 /blob-report/
 /playwright/.cache/
-e2e/frontend.spec.ts-snapshots
+e2e/frontend.spec.ts-snapshots*
