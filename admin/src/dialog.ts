@@ -24,13 +24,13 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
         const h = setTimeout(() => {
             const el = ref.current
             if (!el) return
-            el.focus()
             if (mobile) return
+            // Avoid forcing focus on passive dialogs: if nothing is focusable, we must not trigger page scrolling.
             focusSelector('[autofocus]', el) || focusSelector(focusableSelector, el)
         })
         return () => clearTimeout(h)
-    }, [ref.current])
-    const titleSx = useDialogBarColors() // don't move this hook inside the return. When closing+showing at once it throws about rendering with fewer hooks.
+    }, [mobile, ref.current])
+    const titleSx = useDialogBarColors() // don't move this hook inside the return. When closing+showing at once, it throws about rendering with fewer hooks.
     d = { ...dialogsDefaults, ...d }
     const { sx, root, ...rest } = d.dialogProps||{}
     if (d.noFrame)
@@ -149,7 +149,7 @@ export type FormDialog<T> = Omit<FormProps<T>, 'values' | 'save' | 'set'>
 export async function formDialog<T>(
     { form, values, Wrapper, ...options }: Omit<DialogOptions, 'Content'> & {
         values?: Partial<T>,
-        form: FormDialog<T> | ((values: Partial<T>) => FormDialog<T>), // allow callback form
+        form: FormDialog<T> | ((values: Partial<T>) => FormDialog<T>), // allow a callback form
         Wrapper?: FC
     },
 ) : Promise<T> {
@@ -227,7 +227,7 @@ export function toast(msg: string | ReactElement, type: AlertType | ReactElement
             fullScreen: false,
             PaperProps: {
                 sx: { transition: `opacity ${ms}ms ease-in` },
-                ref(x: HTMLElement) { // we need to set opacity later, to trigger transition
+                ref(x: HTMLElement) { // we need to set opacity later to trigger transition
                     if (x)
                         x.style.opacity = '0'
                 }
