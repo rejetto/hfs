@@ -8,6 +8,7 @@ import { Box, FormHelperText, FormLabel } from '@mui/material'
 import _ from 'lodash'
 import { Center, Flex, IconBtn, useBreakpoint } from './mui'
 import { DataTable, DataTableColumn } from './DataTable'
+import { DateTimeField } from './DateTimeField'
 
 type ArrayFieldProps<T> = FieldProps<T[] | Dict<T>> & {
     fields: Functionable<FieldDescriptor[] & {
@@ -204,6 +205,7 @@ const byType: Dict<{ field?: Partial<FieldDescriptor>, column?: Partial<GridColD
         column: { renderCell: ({ value }) => value && h(Check) },
     },
     dateTime: {
+        field: { comp: DateTimeField },
         column: {
             minWidth: 96, flex: 0.5,
             renderCell: ({ value }) => value && new Date(value).toLocaleString(),
