@@ -1,13 +1,13 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { ORIGINAL_CWD, VERSION, CONFIG_FILE } from './const'
+import { ORIGINAL_CWD, VERSION, CONFIG_FILE, IS_BINARY } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
-import { DAY, newObj, throw_, tryJson, wait, with_ } from './cross'
+import { DAY, newObj, prefix, throw_, tryJson, wait, with_ } from './cross'
 import { debounceAsync } from './debounceAsync'
 import { statSync } from 'fs'
-import { join, resolve } from 'path'
+import { basename, join, resolve } from 'path'
 import events from './events'
 import { copyFile } from 'fs/promises'
 import { produce, setAutoFreeze } from 'immer'
@@ -186,8 +186,11 @@ const saveDebounced = debounceAsync(async () => {
     if (await statWithTimeout(bak).then(x => aWeekAgo > x.mtimeMs, () => true))
         await copyFile(filePath, bak).catch(() => {}) // ignore errors
 
-    await configFile.save(stringify({ ...state, version: VERSION }))
-        .catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
+    await configFile.save(stringify({
+        ...state,
+        version: VERSION,
+        platform: `${process.platform}-${process.arch}${prefix('-', !IS_BINARY && basename(process.execPath))}`,
+    })).catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
 })
 export const saveConfigAsap = () => void saveDebounced()
 
