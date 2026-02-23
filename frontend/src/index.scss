@@ -408,8 +408,10 @@ ul.dir {
         padding: min(1vh, 0.5em) 0; // avoid wasting too much vertical space, and no need for horizontal padding as we are using flex to grow
     }
 }
+#search-clear-button { margin-right: .5em }
 #searched {
-    margin: .2em;
+    margin-bottom: 0.2em;
+    margin-top: 0.3em;
 }
 #user-panel {
     display:flex;
@@ -864,8 +866,8 @@ form label+input { margin-top: .2em; }
 @media (max-width: 42em) {
     :root { --ghost-contrast: #8883; } /* phones have different curve */
     body, button, select { font-size: 14pt; }
-    #menu-bar, #filter-bar, #clipBar {
-        button .icon + .label { display: none } /* icons only */
+    #menu-bar, #filter-bar, #clipBar, #search-clear-button {
+        .icon + .label { display: none } /* icons only */
     }
     #filter-bar {
         margin-top: 0.4em;

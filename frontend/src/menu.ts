@@ -87,7 +87,22 @@ export function MenuPanel() {
                 onClick() {
                     cut(onlyTruthy(Object.keys(selected).map(uri => _.find(state.list, { uri }))))
                 }
-            } : getSearchProps()),
+            } : stopSearch && justStarted ? { // don't change the state of the search button immediately to avoid it flicking at every folder change
+                id: 'search-stop-button',
+                icon: 'stop',
+                label: t`Stop list`,
+                className: 'ani-working',
+                onClick() {
+                    stopSearch()
+                    state.searchManuallyInterrupted = true
+                }
+            } : {
+                id: 'search-button',
+                icon: 'search',
+                label: t`Search`,
+                onClickAnimation: false,
+                onClick: searchDialog,
+            }),
             h(Btn, {
                 id: 'options-button',
                 icon: 'options',
@@ -123,37 +138,22 @@ export function MenuPanel() {
             h(CustomCode, { name: 'appendMenuBar' }),
         ),
         remoteSearch && h('div', { id: 'searched' },
+            !stopSearch && h(Btn, {
+                id: 'search-clear-button',
+                icon: 'search_off',
+                label: t`Clear search`,
+                className: 'small',
+                onClick() {
+                    state.remoteSearch = undefined
+                }
+            }),
             (stopSearch ? t`Searching` : t`Searched`) + ': ',
-            _.map({ search: t`Name`, searchComment: t`Comment` }, (v,k) => prefix(v + ': ', remoteSearch[k])).filter(Boolean).join(' and '),
-            prefix(' (', searchManuallyInterrupted && t`Interrupted`, ')')
+            _.map({ search: t`Name`, searchComment: t`Comment` } satisfies { [K in RSK]?: string },
+                (v,k) => prefix(v + ': ', remoteSearch[k as RSK])).filter(Boolean).join(' and '),
+            prefix(' (', searchManuallyInterrupted && t`Interrupted`, ')'),
         ),
     )
-
-    function getSearchProps() {
-        return stopSearch && justStarted ? { // don't change the state of the search button immediately to avoid it flicking at every folder change
-            id: 'search-stop-button',
-            icon: 'stop',
-            label: t`Stop list`,
-            className: 'ani-working',
-            onClick() {
-                stopSearch()
-                state.searchManuallyInterrupted = true
-            }
-        } : state.remoteSearch && !stopSearch ? {
-            id: 'search-clear-button',
-            icon: 'search_off',
-            label: t`Clear search`,
-            onClick() {
-                state.remoteSearch = undefined
-            }
-        } : {
-            id: 'search-button',
-            icon: 'search',
-            label: t`Search`,
-            onClickAnimation: false,
-            onClick: searchDialog,
-        }
-    }
+    type RSK = keyof typeof remoteSearch
 }
 
 function isAllSelected() {
@@ -216,6 +216,7 @@ export async function deleteFiles(uris: string[]) {
 }
 
 function searchDialog() {
+    const was = state.remoteSearch
     formDialog({
         title: t`Search`,
         dialogProps: { id: 'search-dialog' },
@@ -225,14 +226,14 @@ function searchDialog() {
                 t('search_msg', "Search this folder and sub-folders"),
                 h('div', { className: 'field name' },
                     h('label', { htmlFor: 'name' }, t`Name`),
-                    h('input', { name: 'name', style, autoFocus: true, }),
+                    h('input', { name: 'name', style, autoFocus: true, defaultValue: was?.search }),
                 ),
                 h('div', { className: 'field comment' },
                     h('label', { htmlFor: 'comment' }, t`Comment`),
-                    h('input', { name: 'comment', style, }),
+                    h('input', { name: 'comment', style, defaultValue: was?.searchComment }),
                 ),
                 h('div', { className: 'field wildcards' },
-                    h(Checkbox, { name: 'wild', defaultChecked: true }, t`Wildcards`,
+                    h(Checkbox, { name: 'wild', defaultChecked: !was?.wild }, t`Wildcards`,
                         h('a', { href: `${WIKI_URL}Wildcards`, target: 'doc' }, hIcon('info'))), // uncontrolled
                 ),
                 h('div', { className: 'submit' },
