@@ -9,7 +9,7 @@ tests/work
 tests/work2
 tests/config.yaml.bak
 
-# Playwright
+.ci/
 /test-results/
 /playwright-report/
 /blob-report/
