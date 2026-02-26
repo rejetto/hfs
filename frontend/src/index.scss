@@ -438,6 +438,7 @@ button .icon + .label {
 }
 .dialog-alert .dialog-content {
     text-align: center;
+    white-space: pre-wrap;
     p { text-align: left; display: inline-block; }
     ul { text-align: left; } // bullet points should be aligned
 }
