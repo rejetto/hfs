@@ -346,7 +346,7 @@ The `api` object you get as parameter of the `init` contains the following:
   ```js
   const { watchLoad } = api.require('./watchLoad')
   ```
-  You *should* try to keep this kind of behavior at its minimum, as name of sources and elements can change, and your
+  You *should* try to keep this kind of behavior at its minimum, as the name of sources and elements can change, and your
   plugin can become incompatible with future versions.
   If you need something for your plugin that's not covered by `api`, you can test it with this method, but you should
   then discuss it on the forum because an addition to `api` is your best option for making a future-proof plugin.
@@ -896,6 +896,10 @@ These files have a special meaning:
 - `public` folder, and its files will be accessible at `/~/plugins/PLUGIN_NAME/FILENAME`
 - `custom.html` file, that works exactly like the main `custom.html`. Even when same section is specified
   by 2 (or more) files, both contents are appended.
+
+## Node modules
+
+You can run `npm install` inside your plugin's folder. This creates a `node_modules` directory that will be included as part of your plugin package.
 
 ## Storage
 
