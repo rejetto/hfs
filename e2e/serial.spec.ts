@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test'
-import { wait } from '../src/cross'
 import { clearUploads, password, uploadName, URL, username } from './common'
 
 // this test is separated to run serially, as it will modify folder timestamp for a few seconds, during which other tests may fail
@@ -39,14 +38,19 @@ test('upload1', async ({ page, context, browserName }) => {
     const cdpSession = await context.newCDPSession(page)
     await cdpSession.send('Network.emulateNetworkConditions', NETWORK_PRESETS.Regular2G)
     await page.getByRole('button', { name: 'Edit' }).click();
-    await page.getByRole('textbox').fill(uploadName);
-    await page.getByRole('button', { name: 'Continue' }).click();
+    const renameDialog = page.locator('.dialog-prompt')
+    const renameInput = renameDialog.getByRole('textbox')
+    await expect(renameInput).toHaveValue(fileToUpload.name) // promptDialog initializes the field value in useEffect, so we wait for that init to avoid our fill being overwritten
+    await renameInput.fill(uploadName);
+    await renameDialog.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByText(uploadName)).toBeVisible() // rename was effective
     await page.getByRole('button', { name: 'Send 1 file' }).click();
-    await wait(1500)
-    await pageAdmin.getByRole('cell', { name: uploadName }).click();
-    await pageAdmin.getByRole('button', { name: '(Disconnect)' }).click();
-    await pageAdmin.getByRole('button', { name: '(Close)' }).click();
+    const uploadCells = pageAdmin.getByRole('cell', { name: `${uploadName} /for-admins/upload` })
+    await expect(uploadCells.first()).toBeVisible()
+    // during upload resume, monitoring can briefly show two rows for the same path
+    await uploadCells.last().click()
+    await pageAdmin.getByRole('button', { name: 'Disconnect' }).click();
+    await pageAdmin.getByRole('button', { name: 'Close' }).click();
     await pageAdmin.close()
     await page.getByText('Copy links').click();
     await page.getByText('Operation successful').click();

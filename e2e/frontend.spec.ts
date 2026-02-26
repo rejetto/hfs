@@ -245,7 +245,7 @@ test('admin1', async ({ page }) => {
     await page.getByRole('tab').nth(4).click()
     await page.getByRole('button', { name: '(Options)' }).click()
     await page.locator('div').filter({ hasText: 'ServedRequests are logged here. Empty to disable it.Not servedWrite errors in a different file. Empty to use same file.' }).nth(3).click()
-    await page.getByRole('button', { name: '(Close)' }).click()
+    await page.getByRole('button', { name: 'Close' }).click()
     await expect(page.getByText('LogsServedNot')).toBeVisible()
     await clickAdminMenu(page, 'Language')
     await dataTableLoading()
@@ -341,7 +341,7 @@ test('admin2', async ({ page }) => {
         await logApisToggle.click()
         await expect(logApisToggle).toBeChecked()
     }
-    await page.getByRole('button', { name: '(Close)' }).click()
+    await page.getByRole('button', { name: 'Close' }).click()
 
     await clickAdminMenu(page, 'Plugins')
     await expect(page.getByText('antibrute')).toBeVisible()
@@ -363,7 +363,7 @@ test('admin2', async ({ page }) => {
             // Same reason as log options: accessible name may include shortcut hints.
             const pluginSaveBtn = pluginOptionsDialog.locator('button:has-text("Save")').first()
             await expect(pluginSaveBtn).toBeEnabled()
-            await page.getByRole('button', { name: '(Close)' }).click()
+            await page.getByRole('button', { name: 'Close' }).click()
         }
     }
 
@@ -419,10 +419,10 @@ test('anew', async ({ page, browserName }) => {
     if (page.viewportSize()?.width! < 1000 || browserName !== 'chromium') return // test only for desktop chromium
     // reset config so each run starts from the same default workspace state
     const port = 8082
-    while (await page.goto(`http://localhost:${port}/`).then(() => 0, () => 1)) {
+    do {
         fs.writeFileSync('tests/work2/config.yaml', `port: ${port}\nopen_browser_at_start: false\n`)
-        await wait(100)
-    }
+        await wait(500)
+    } while (await page.goto(`http://localhost:${port}/`).then(() => 0, () => 1))
     await expect(page.getByText('Nothing here')).toBeVisible()
     await page.getByRole('button', { name: 'Options' }).click()
     const page1Promise = page.waitForEvent('popup')
@@ -452,12 +452,12 @@ test('anew', async ({ page, browserName }) => {
     await adminPage.getByText('folder1', { exact: true }).click()
     await adminPage.getByRole('button', { name: 'Cut' }).click()
     await adminPage.locator('div').filter({ hasText: 'InfoNow that this is marked' }).nth(1).click()
-    await adminPage.getByRole('button', { name: '(Close)' }).click()
+    await adminPage.getByRole('button', { name: 'Close' }).click()
     await adminPage.getByText('Home folder').click()
     await adminPage.getByRole('button', { name: '(/work2/folder1/)' }).click() // paste button
     await adminPage.getByText('data.kv').click()
     await adminPage.getByRole('button', { name: 'Cut' }).click()
-    await adminPage.getByRole('button', { name: '(Close)' }).click()
+    await adminPage.getByRole('button', { name: 'Close' }).click()
     await adminPage.getByText('folder1').click()
     await adminPage.getByRole('button', { name: '(/data.kv)' }).click() // paste
     await page.getByRole('button', { name: 'Close' }).click()
