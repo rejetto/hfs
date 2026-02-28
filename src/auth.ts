@@ -58,10 +58,10 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
         if (s.username)
             events.emit('logout', ctx)
         delete ctx.state.account
-        delete s.username
-        delete s.allowNet
+        ctx.session = null
         return
     }
+    delete s.loggingIn // clear pending SRP handshake state
     const a = ctx.state.account = getAccount(username)
     if (!a) return
     await events.emitAsync('finalizingLogin', { ctx, username, inputs: { ...ctx.state.params, ...ctx.query } })
