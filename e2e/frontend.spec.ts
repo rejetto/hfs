@@ -431,7 +431,7 @@ test('anew', async ({ page, browserName }) => {
     await addBtn.click()
     await adminPage.getByRole('menuitem', { name: 'from disk' }).click()
     await adminPage.getByRole('textbox', { name: /Filter results/ }).fill('data')
-    await expect(adminPage.getByText('Filter results (2/')).toBeVisible()
+    await expect(adminPage.getByText('Filter results (1/')).toBeVisible()
     await adminPage.getByRole('checkbox').first().check()
     await adminPage.getByText('data.kv').first().click()
     await addBtn.click()

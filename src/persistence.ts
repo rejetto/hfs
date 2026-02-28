@@ -1,6 +1,8 @@
 import { KvStorage } from '@rejetto/kvstorage'
 import { MINUTE } from './misc'
 import { onProcessExit } from './first'
+import glob from 'fast-glob'
+import { unlink } from 'fs/promises'
 
 export const storedMap = new KvStorage({
     defaultPutDelay: 5000,
@@ -10,7 +12,9 @@ export const storedMap = new KvStorage({
     bucketThreshold: 10_000,
 })
 storedMap.open('data.kv').catch(e => {
-    console.error(e?.message.includes('locked') ? `Check if another HFS is running on the same config folder – ${e.message}` : String(e))
-    process.exit(3)
+    console.error("Persistence won't work correctly", e)
+}).finally(async () => {
+    for (const x of await glob('*.kv.lock')) // legacy pre 3.0.5
+        unlink(x).catch(() => {})
 })
 onProcessExit(() => storedMap.flush())
