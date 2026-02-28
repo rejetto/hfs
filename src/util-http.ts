@@ -144,9 +144,10 @@ export function parseHttpUrl(url: string) {
     const options = urlToHttpOptions(parsed)
     const withoutHash = url.split('#', 1)[0]!
     const authority = /^[a-z][a-z\d+.-]*:\/\/[^/?#]*/i.exec(withoutHash)?.[0]
+    const unresolvedPath = !authority ? '/' : enforceStarting('/', withoutHash.slice(authority.length))
     return {
         ...options,
         host: parsed.host,
-        path: !authority ? '/' : enforceStarting('/', withoutHash.slice(authority.length)), // unresolved paths are useful in our tests
+        path: unresolvedPath.replace(/[\u0000-\u0020\u0100-\u{10FFFF}]/gu, encodeURIComponent), // keep unresolved paths for tests, but escape characters that Node request rejects as unescaped
     }
 }

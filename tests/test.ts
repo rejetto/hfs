@@ -7,7 +7,7 @@ import { exec } from 'child_process'
 import _ from 'lodash'
 import yaml from 'yaml'
 import { findDefined, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, wait } from '../src/cross'
-import { httpStream, stream2string, XRequestOptions } from '../src/util-http'
+import { httpStream, parseHttpUrl, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { mkdir, rm, rename, writeFile, access } from 'fs/promises'
 import { Readable } from 'stream'
@@ -44,6 +44,11 @@ let defaultBaseUrl = BASE_URL
 const execP = (cmd: string) => promisify(exec)(cmd).then(x => x.stdout)
 
 describe('basics', () => {
+    test('parseHttpUrl.path escapes invalid chars and keeps unresolved segments', () => {
+        const parsedPath = parseHttpUrl('https://example.com/a/../репо with space/%2e%2e/file').path
+        if (parsedPath !== '/a/../%D1%80%D0%B5%D0%BF%D0%BE%20with%20space/%2e%2e/file')
+            throw Error('unexpected path: ' + parsedPath)
+    })
     //before(async () => appStarted)
     test('frontend', req('/', /<body>/, { headers: { accept: '*/*' } })) // workaround: 'accept' is necessary when running server-for-test-dev, still don't know why
     test('force slash', req('/f1', 302, { noRedirect: true }))
