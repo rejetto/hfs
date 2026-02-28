@@ -12,7 +12,7 @@ export const ips = new KvStorage({
     maxPutDelay: 10 * MINUTE,
     maxPutDelayCreate: 0,
 })
-onProcessExit(() => ips.flush())
+onProcessExit(() => ips.close())
 
 export const trackIpsMw: Middleware = async (ctx, next) => {
     if (ips.isOpen() && !isLocalHost(ctx))

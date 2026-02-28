@@ -13,7 +13,7 @@ const fsx = try_(() => {
 }, () => console.warn('fs-x-attributes not available'))
 
 const fileAttrDb = new KvStorage({ defaultPutDelay: 1000, maxPutDelay: 5000 })
-onProcessExit(() => fileAttrDb.flush())
+onProcessExit(() => fileAttrDb.close())
 const FN = 'file-attr.kv'
 access(FN).then(() =>
     fileAttrDb.open(FN).catch(e =>

@@ -17,4 +17,4 @@ storedMap.open('data.kv').catch(e => {
     for (const x of await glob('*.kv.lock')) // legacy pre 3.0.5
         unlink(x).catch(() => {})
 })
-onProcessExit(() => storedMap.flush())
+onProcessExit(() => storedMap.close())
