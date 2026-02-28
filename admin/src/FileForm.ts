@@ -393,6 +393,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
                     icon: ContentCopy,
                     title: "Copy",
                     disabled: !link,
+                    doneAnimation: true,
                     onClick: () => copyTextToClipboard(link)
                 }),
                 h(IconBtn, { icon: QrCode2, title: "QR Code", onClick: showQr, disabled: !link }),
