@@ -7,7 +7,7 @@ import {
 } from './const'
 import { serveFile } from './serveFile'
 import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from './plugins'
-import { refresh_session } from './api.auth'
+import { authApis } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
 import {
@@ -70,7 +70,7 @@ const getFaviconTimestamp = debounceAsync(async () => {
 }, { retain: 5_000 })
 
 async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
-    const session = await refresh_session({}, ctx)
+    const session = await authApis.refresh_session({}, ctx)
     ctx.set('etag', '')
     ctx.set('Cache-Control', 'no-store, no-cache, must-revalidate')
     ctx.type = 'html'

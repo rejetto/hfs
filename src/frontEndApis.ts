@@ -2,7 +2,7 @@
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { get_file_list } from './api.get_file_list'
-import * as api_auth from './api.auth'
+import { authApis } from './api.auth'
 import events from './events'
 import Koa from 'koa'
 import { isValidFileName } from './util-files'
@@ -27,7 +27,7 @@ const partialFolderSize: any = {}
 
 export const frontEndApis: ApiHandlers = {
     get_file_list,
-    ...api_auth,
+    ...authApis,
 
     get_notifications({ channel }, ctx) {
         apiAssertTypes({ string: { channel } })
