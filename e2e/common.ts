@@ -1,9 +1,14 @@
 import { Page, test } from '@playwright/test'
 import fs from 'fs'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import yaml from 'yaml'
 
 export const username = 'rejetto'
 export const password = 'password'
-export const URL = 'http://[::1]:8081/'
+// keep e2e URL aligned with the same config file used by tests/test.ts and server-for-test
+const TEST_PORT = Number(yaml.parse(readFileSync(resolve(process.cwd(), 'tests/config.yaml'), 'utf8')).port)
+export const URL = `http://[::1]:${TEST_PORT}/`
 export const uploadName = 'uploaded'
 
 const t = Date.UTC(2025, 0, 20, 3, 0, 0, 0) / 1000 // a fixed timestamp, for visual comparison

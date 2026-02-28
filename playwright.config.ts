@@ -1,7 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import yaml from 'yaml';
 
 const snapshotBranch = getSnapshotBranch()
+// use the same test port source as tests/test.ts to avoid config drift
+const testPort = Number(yaml.parse(readFileSync(resolve(process.cwd(), 'tests/config.yaml'), 'utf8')).port)
 
 /**
  * Read environment variables from file.
@@ -100,7 +105,7 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
    webServer: [{
      command: 'npm run server-for-test' + (process.env.TEST_WITH_UI ? '-dev' : ''), // use server-for-test-dev only for "test-with-ui"
-     url: 'http://127.0.0.1:8081',
+     url: `http://127.0.0.1:${testPort}`,
      reuseExistingServer: !process.env.CI,
    }, { // launch a second server for tests with an empty/default config
        command: 'rm -rf tests/work2 && node dist/src --cwd tests/work2 --debug --port 8082 --open_browser_at_start false', // the port here is just to avoid getting the "port busy" console warning

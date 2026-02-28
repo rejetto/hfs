@@ -288,10 +288,11 @@ run_test() {
     
     # Modify port in worktree to avoid conflicts (only for detached HEAD or non-tip commits)
     if [ -z "$branch" ] || [ "$branch" = "detached" ]; then
-        log "Changing port from 8081 to $TEST_PORT in worktree files"
+        log "Changing tests/config.yaml port to $TEST_PORT in worktree files"
+        sed -i '' -E "s/^port:[[:space:]]*[0-9]+/port: $TEST_PORT/" "$worktree_path/tests/config.yaml" 2>/dev/null || true
+        # older commits can still hardcode 8081 in e2e files, so keep this fallback for compatibility
         sed -i '' "s/8081/$TEST_PORT/g" "$worktree_path/e2e/common.ts" 2>/dev/null || true
         sed -i '' "s/8081/$TEST_PORT/g" "$worktree_path/playwright.config.ts" 2>/dev/null || true
-        sed -i '' "s/port: 8081/port: $TEST_PORT/g" "$worktree_path/tests/config.yaml" 2>/dev/null || true
     fi
     
     local exit_code=0
