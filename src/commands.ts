@@ -15,8 +15,6 @@ import { downloadPlugin } from './github'
 import { Dict, formatBytes, formatSpeed, formatTimestamp, makeMatcher } from './cross'
 import apiMonitor from './api.monitor'
 import { argv } from './argv'
-import { consoleHint } from './consoleLog'
-import { debounceAsync } from './debounceAsync'
 
 if (!argv.updating && !showHelp) {
     try {
@@ -27,42 +25,30 @@ if (!argv.updating && !showHelp) {
             .on('SIGINT', () => process.emit('SIGINT')) // readline swallows the first ctrl+c unless we forward it to process-level handlers
 
         let isClean = true
-        let cleaning: undefined | Promise<void>
-        const showPrompt = tty && debounceAsync(async () => {
-            await cleaning
+        const showPrompt = tty && _.debounce(() => {
             if (quitting || !tty) return
             prompter.prompt(true)
             isClean = false
-        }, { wait: 100 })
+        }, 100)
         function clean() {
             if (isClean) return
-            return cleaning ||= new Promise(resolve => {
-                cursorTo(process.stdout, 0, undefined, () => { // we don't need to clean as long as the prompt is never longer than the printed line
-                    resolve()
-                    cleaning = undefined
-                    isClean = true
-                })
-            })
+            // keep console methods synchronous: reposition the cursor immediately and let stream ordering preserve output sequence
+            cursorTo(process.stdout, 0) // we don't need to clean as long as the prompt is never longer than the printed line
+            isClean = true
         }
 
         showPrompt?.()
-        // print this hint when we have not been printing anything else for a while, to not get mixed too much
-        let printHintOnce = tty && _.debounce(() => {
-            consoleHint("this is an interactive console, you can enter commands")
-            printHintOnce = undefined as any // never more
-        }, 2000)
-        setTimeout(() => _.each(console, (v: any, k) => {
-            if (!_.isFunction(v)) return
-            ;(console as any)[k] = async (...args: any[]) =>  {
+        for (const k of ['log', 'warn', 'error', 'debug'] as const) {
+            const v = console[k]
+            ;(console as any)[k] = (...args: any[]) =>  {
                 if (!quitting && tty)
-                    await clean()
+                    clean()
                 try { v(...args) }
                 finally {
                     showPrompt?.()
-                    printHintOnce?.()
                 }
             }
-        }), 1000) // avoid messing in making console methods async too soon and so preventing fatal errors to be printed before process.exit – TODO investigate how to avoid this async thing at all
+        }
 
     }
     catch {
