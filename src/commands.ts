@@ -71,8 +71,10 @@ if (!argv.updating && !showHelp) {
 }
 
 async function parseCommandLine(line: string) {
-    if (!line) return
-    let [name, ...params] = line.trim().split(/ +/)
+    const tokens = Array.from(line.trim().matchAll(/"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'|((?:\\.|[^\s"'\\])+)/g)).map(m =>
+        (m[1] ?? m[2] ?? m[3] ?? '').replace(/\\([\\ "'"])/g, '$1')) // unescape
+    if (!tokens.length) return
+    let [name, ...params] = tokens
     name = aliases[name!] || name
     let cmd = (commands as any)[name!]
     if (cmd?.alias)
