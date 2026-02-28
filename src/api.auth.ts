@@ -115,7 +115,7 @@ export const refresh_session: ApiHandler = async ({}, ctx) => {
         adminUrl: ctxAdminAccess(ctx) ? ctx.state.revProxyPath + ADMIN_URI : undefined,
         canChangePassword: accountCanChangePassword(ctx.state.account),
         requireChangePassword: ctx.state.account?.require_password_change,
-        exp: keepSessionAlive.get() ? new Date(Date.now() + sessionDuration.compiled()) : undefined,
+        exp: username && keepSessionAlive.get() ? new Date(Date.now() + sessionDuration.compiled()) : undefined,
         accountExp: ctx.state.account?.expire,
     }
 }

@@ -41,7 +41,7 @@ export function logout() {
     return apiCall('logout', {}, { modal: working }).catch(res => {
         if (res.code !== HTTP_UNAUTHORIZED) // we expect this error code
             throw res
-        state.username = ''
+        refreshSession()
         if (fallbackToBasicAuth())
             return location.reload() // reloading avoids nasty warnings with ff52
         reloadList()

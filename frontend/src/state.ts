@@ -38,9 +38,8 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
     canChangePassword: boolean
     uri: string
     uploadOnExisting: 'skip' | 'overwrite' | 'rename'
-    expandedUsername: string[]
+    expandedUsername?: string[]
 }>({
-    expandedUsername: [],
     uploadOnExisting: getHFS().dontOverwriteUploading ? 'rename' : 'skip',
     uri: '',
     canChangePassword: false,

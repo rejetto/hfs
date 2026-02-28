@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { apiCall } from './api'
-import { DAY, Dict, formatBytes, HOUR, MINUTE, objSameKeys, typedEntries, wantArray } from '../src/cross'
+import { DAY, Dict, formatBytes, HOUR, MINUTE, objFromKeys, objSameKeys, typedEntries, wantArray } from '../src/cross'
 export * from './react'
 export * from './dialogs'
 export * from './md'
@@ -32,7 +32,7 @@ Object.assign(HFS, {
     getPluginPublic: () => getScriptAttr('src')?.match(/^.*\//)?.[0],
     getPluginConfig: () => HFS.plugins[HFS.getPluginKey()] || {},
     loadScript: (uri: string) => loadScript(uri.includes('//') || uri.startsWith('/') ? uri : HFS.getPluginPublic() + uri),
-    userBelongsTo: (username: string | string[]) => wantArray(username).some(x => HFS.state.expandedUsername.includes(x)),
+    userBelongsTo: (username: string | string[]) => wantArray(username).some(x => HFS.state.expandedUsername?.includes(x)),
     cpuSpeedIndex,
     copyTextToClipboard,
     urlParams,
@@ -135,20 +135,19 @@ export function getPrefixUrl() {
 
 export function makeSessionRefresher(state: any) {
     let timeout: any
-    const initial = getHFS().session
-    refreshSession(initial)
+    refreshSession(getHFS().session)
     return refreshSession
 
-    function refreshSession(response: any) {
-        if (!response) return
+    function refreshSession(response?: any) {
+        clearTimeout(timeout)
+        const keys = ['username', 'adminUrl', 'canChangePassword', 'accountExp', 'expandedUsername', 'requireChangePassword']
+        response ??= objFromKeys(keys, () => undefined)
         const { exp } = response
-        Object.assign(initial, response) // keep it updated, not necessary, just in case someone is looking at this instead of the state
-        Object.assign(state, _.pick(response, ['username', 'adminUrl', 'canChangePassword', 'accountExp', 'expandedUsername']))
+        getHFS().session = Object.assign(state, _.pick(response, keys))
         if (!response.username || !exp) return
         const delta = new Date(exp).getTime() - Date.now()
         const t = _.clamp(delta - 30_000, 4_000, 600_000)
         console.debug('session refresh in', Math.round(t / 1000))
-        clearTimeout(timeout)
         timeout = setTimeout(() => apiCall('refresh_session').then(refreshSession), t)
     }
 }
