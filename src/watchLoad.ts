@@ -19,7 +19,6 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
     let retry: NodeJS.Timeout
     let last: string | undefined
     const emitter = new BetterEventEmitter()
-    install(true)
     const save = debounceAsync(async (data: string, { reparse=false }={}) => {
         await fs.writeFile(path, data, 'utf8')
         last = data
@@ -27,6 +26,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
             await parser(data)
         emitter.emit('change', last)
     })
+    install(true)
     return { unwatch, save, emitter, getText: () => last, getPath: () => path }
 
     function install(first=false) {
@@ -56,10 +56,12 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
         if (doing) return
         doing = true
         try {
+            await save.flush() // apply pending saves first
             const text = await readFileWithBusyRetry(path).catch(e => { // ignore read errors
                 if (e.code === 'EPERM')
                     console.error("missing permissions on file", path) // warn user, who could be clueless about this problem
-                return ''
+                // keep the last good content on transient read failures so we don't apply accidental "empty file" state
+                return e.code === 'ENOENT' ? '' : last
             })
             if (text === last)
                 return
