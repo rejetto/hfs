@@ -23,7 +23,8 @@ if (!argv.updating && !showHelp) {
         // Not sure if the try is necessary for when stdin is unavailable, but someone reported a problem using nohup https://github.com/rejetto/hfs/issues/74 and I've found this example try-catching https://github.com/DefinitelyTyped/DefinitelyTyped/blob/dda83a906914489e09ca28afea12948529015d4a/types/node/readline.d.ts#L489
         const tty = process.stdin.isTTY && process.stdout.isTTY || undefined
         const prompter = createInterface({ input: process.stdin, output: process.stdout, prompt: tty && 'command> ' })
-                .on('line', x => parseCommandLine(x).then(showPrompt))
+            .on('line', x => parseCommandLine(x).then(showPrompt))
+            .on('SIGINT', () => process.emit('SIGINT')) // readline swallows the first ctrl+c unless we forward it to process-level handlers
 
         let isClean = true
         let cleaning: undefined | Promise<void>
