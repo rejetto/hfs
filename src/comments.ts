@@ -1,13 +1,14 @@
 import { defineConfig } from './config'
 import { dirname, basename, join } from 'path'
 import { CFG } from './cross'
-import { parseFile, parseFileCache, createSafeWriteStream } from './util-files'
+import { parseFile, parseFileCache, createSafeWriteStream, exists } from './util-files'
 import { loadFileAttr, singleWorkerFromBatchWorker, storeFileAttr } from './misc'
 import _ from 'lodash'
 import iconv from 'iconv-lite'
 import { unlink } from 'node:fs/promises'
 
 export const DESCRIPT_ION = 'descript.ion'
+const DESCRIPT_ION_ALT = 'DESCRIPT.ION'
 const commentsStorage = defineConfig<'' | 'attr' | 'attr+ion'>(CFG.comments_storage, '',
         v => ['', 'attr+ion'].includes(v)) // compiled tell us if we are using descript.ion
 defineConfig('descript_ion', true, (v, more) => { // legacy: convert previous setting
@@ -52,7 +53,7 @@ const setCommentDescriptIon = singleWorkerFromBatchWorker(async (jobs: [path: st
             else
                 comments.set(file, comment)
         }
-        const path = join(folder, DESCRIPT_ION)
+        const path = await filePathHelper(folder)
         if (!comments.size)
             return unlink(path)
         // encode comments in descript.ion format
@@ -74,10 +75,16 @@ export function areCommentsEnabled() {
     return true // true since we introduced comments in file-attr
 }
 
+async function filePathHelper(folder: string) {
+    const main = join(folder, DESCRIPT_ION)
+    const alt = join(folder, DESCRIPT_ION_ALT)
+    return await exists(alt) && !await exists(main) ? alt : main
+}
+
 const MULTILINE_SUFFIX = Buffer.from([4, 0xC2])
-function readDescriptIon(path: string) {
+async function readDescriptIon(path: string) {
     // decoding could also be done with native TextDecoder.decode, but we need iconv for the encoding anyway
-    return parseFile(join(path, DESCRIPT_ION), raw => {
+    return parseFile(await filePathHelper(path), raw => {
         // for simplicity we "remove" the sequence MULTILINE_SUFFIX before iconv.decode messes it up
         for (let i=0; i<raw.length; i++)
             if (raw[i] === MULTILINE_SUFFIX[0] && raw[i+1] === MULTILINE_SUFFIX[1] && [undefined,13,10].includes(raw[i+2]))
@@ -97,6 +104,6 @@ function readDescriptIon(path: string) {
 
 descriptIonEncoding.sub(() => { // invalidate cache at encoding change
     for (const k of parseFileCache.keys())
-        if (k.endsWith(DESCRIPT_ION))
+        if (k.endsWith(DESCRIPT_ION) || k.endsWith(DESCRIPT_ION_ALT))
             parseFileCache.delete(k)
 })
