@@ -417,10 +417,12 @@ async function screenshot(page: Page, selectorForMask = '') {
 
 test('anew', async ({ page, browserName }) => {
     if (page.viewportSize()?.width! < 1000 || browserName !== 'chromium') return // test only for desktop chromium
-    await wait(500)
-    fs.writeFileSync('tests/work2/config.yaml', "port: 8082\nopen_browser_at_start: false\n")
-    await wait(2000)
-    await page.goto('http://localhost:8082/')
+    // reset config so each run starts from the same default workspace state
+    const port = 8082
+    while (await page.goto(`http://localhost:${port}/`).then(() => 0, () => 1)) {
+        fs.writeFileSync('tests/work2/config.yaml', `port: ${port}\nopen_browser_at_start: false\n`)
+        await wait(100)
+    }
     await expect(page.getByText('Nothing here')).toBeVisible()
     await page.getByRole('button', { name: 'Options' }).click()
     const page1Promise = page.waitForEvent('popup')
@@ -430,6 +432,7 @@ test('anew', async ({ page, browserName }) => {
     const addBtn = adminPage.getByRole('button').nth(1)
     await addBtn.click()
     await adminPage.getByRole('menuitem', { name: 'from disk' }).click()
+    await expect(adminPage.getByText('data.kv')).toBeVisible()
     await adminPage.getByRole('textbox', { name: /Filter results/ }).fill('data')
     await expect(adminPage.getByText('Filter results (1/')).toBeVisible()
     await adminPage.getByRole('checkbox').first().check()
