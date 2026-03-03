@@ -15,6 +15,7 @@ import { downloadPlugin } from './github'
 import { Dict, formatBytes, formatSpeed, formatTimestamp, makeMatcher } from './cross'
 import apiMonitor from './api.monitor'
 import { argv } from './argv'
+import { getServerStatus } from './listen'
 
 if (!argv.updating && !showHelp) {
     try {
@@ -180,6 +181,10 @@ const commands = {
     status: {
         params: '',
         async cb() {
+            const ports = await getServerStatus(false)
+            console.log(_.map(ports, (x, k) =>
+                `${k.toUpperCase()} ${x.configuredPort < 0 ? "disabled" : x.listening ? `on port ${x.port}` : (x.error || "not working")}`
+            ).join(" – "))
             const conn = (await apiMonitor.get_connection_stats().next()).value
             if (conn) {
                 const {sent_got: sg} = conn
