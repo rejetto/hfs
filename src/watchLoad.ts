@@ -15,7 +15,7 @@ interface WatchLoadReturn { unwatch:WatchLoadCanceller, save: WriteFile, emitter
 export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { failedOnFirstAttempt, immediateFirst }:Options={}): WatchLoadReturn {
     let doing = false
     let watcher: FSWatcher | undefined
-    const debounced = debounceAsync(load, { wait: 500, maxWait: 1000 })
+    const debounced = debounceAsync(load, { wait: 500, maxWait: 1000, reuseRunning: true })
     let retry: NodeJS.Timeout
     let last: string | undefined
     const emitter = new BetterEventEmitter()
@@ -36,7 +36,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
                     void debounced()
             })
             debounced().catch(x=>x)
-            if (immediateFirst)
+            if (immediateFirst && first)
                 void debounced.flush()
         }
         catch(e) {
@@ -61,7 +61,9 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
                 if (e.code === 'EPERM')
                     console.error("missing permissions on file", path) // warn user, who could be clueless about this problem
                 // keep the last good content on transient read failures so we don't apply accidental "empty file" state
-                return e.code === 'ENOENT' ? '' : last
+                if (e.code === 'ENOENT')
+                    return ''
+                throw e
             })
             if (text === last)
                 return
@@ -70,6 +72,9 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
             console.debug('loaded', path)
             unwatch(); install() // reinstall, as the original file could have been renamed. We watch by the name.
             await parser(text)
+        }
+        catch(e) {
+            console.error("error loading", path, String(e))
         }
         finally {
             doing = false
