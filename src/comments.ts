@@ -8,7 +8,7 @@ import iconv from 'iconv-lite'
 import { unlink } from 'node:fs/promises'
 
 export const DESCRIPT_ION = 'descript.ion'
-const DESCRIPT_ION_ALT = 'DESCRIPT.ION'
+export const DESCRIPT_ION_ALT = 'DESCRIPT.ION'
 const commentsStorage = defineConfig<'' | 'attr' | 'attr+ion'>(CFG.comments_storage, '',
         v => ['', 'attr+ion'].includes(v)) // compiled tell us if we are using descript.ion
 defineConfig('descript_ion', true, (v, more) => { // legacy: convert previous setting

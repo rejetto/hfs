@@ -16,7 +16,7 @@ import { ctxBelongsTo } from './perm'
 import { getCurrentUsername } from './auth'
 import { Stats } from 'node:fs'
 import fswin from 'fswin'
-import { DESCRIPT_ION, usingDescriptIon } from './comments'
+import { DESCRIPT_ION, DESCRIPT_ION_ALT, usingDescriptIon } from './comments'
 import { walkDir } from './walkDir'
 import { Readable } from 'node:stream'
 
@@ -373,7 +373,7 @@ export async function* walkNode(parent: VfsNode, {
                             stream.push(null)
                             return null
                         }
-                        if (usingDescriptIon() && entry.name === DESCRIPT_ION)
+                        if (usingDescriptIon() && (entry.name === DESCRIPT_ION || entry.name === DESCRIPT_ION_ALT))
                             return
                         const {path} = entry // this path is not the original deprecated property: we are overwriting/reusing it
                         const isFolder = entry.isDirectory()
