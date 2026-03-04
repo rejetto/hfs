@@ -24,8 +24,9 @@ export const sessionDuration = defineConfig('session_duration', Number(process.e
 
 export const gzipper = compress({
     threshold: 2048,
-    gzip: { flush: constants.Z_SYNC_FLUSH },
+    gzip: { flush: constants.Z_SYNC_FLUSH }, // flush is necessary for SSE, at least in Chrome145
     deflate: { flush: constants.Z_SYNC_FLUSH },
+    zstd: { flush: constants.Z_SYNC_FLUSH },
     br: false, // disable brotli
     filter(type) {
         return /text|javascript|style/i.test(type)
