@@ -171,7 +171,7 @@ export async function update(tagOrUrl: string='') {
             catch {}
             renameSync(bin, oldBin)
             console.log("launching new version in background", newBinFile)
-            launch(newBin, ['--updating', binFile, '--cwd .'], { sync: true }) // sync necessary to work on Mac by double-click
+            spawnSync(cmdEscape(newBin), ['--updating', binFile, '--cwd .'], { shell: true, stdio: [0,1,2] }) // sync necessary to work on Mac by double-click
         })
         console.log("quitting")
         setTimeout(() => process.exit()) // give time to return (and caller to complete, eg: rest api to reply)
@@ -180,10 +180,6 @@ export async function update(tagOrUrl: string='') {
         pluginsWatcher.unpause()
         throw e?.message || String(e)
     }
-}
-
-function launch(cmd: string, pars: string[]=[], options?: { sync: boolean } & Parameters<typeof spawn>[2]) {
-    return (options?.sync ? spawnSync : spawn)(cmdEscape(cmd), pars, { detached: true, shell: true, stdio: [0,1,2], ...options })
 }
 
 if (argv.updating) { // we were launched with a temporary name, restore original name to avoid breaking references
@@ -195,7 +191,7 @@ if (argv.updating) { // we were launched with a temporary name, restore original
     // if you change anything, be sure to test launching both double-clicking and in a terminal
     if (IS_WINDOWS) // windows-only; this method on Mac works only once, and without the console
         onProcessExit(() =>
-            launch(dest, ['--updated', '--cwd .']) ) // launch+sync here would cause the old process to stay open, locking ports
+            spawn(cmdEscape(dest), ['--updated', '--cwd .'], { detached: true, shell: true, stdio: [0,1,2] }) ) // launch+sync here would cause the old process to stay open, locking ports
     else if (process.stdin.isTTY && process.stdout.isTTY) // keep interactive terminal users attached to the restarted process
         spawnSync(dest, ['--updated', '--cwd', process.cwd()], { stdio: [0, 1, 2] })
     else

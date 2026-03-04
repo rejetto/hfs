@@ -74,7 +74,7 @@ export class ThrottleGroup {
 
     updateLimit(kBs: number) {
         if (kBs < 0)
-            throw new Error('invalid bytesPerSecond')
+            throw Error('invalid bytesPerSecond')
         kBs *= 1000
         return this.bucket = new TokenBucket({
             bucketSize: kBs,

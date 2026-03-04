@@ -906,7 +906,7 @@ async function readEventStreamOnce(url: string, { baseUrl, ...requestOptions }: 
     const data = await new Promise<string>((resolve, reject) => {
         const timer = setTimeout(() => {
             res.destroy()
-            reject(new Error('event stream timeout'))
+            reject(Error('event stream timeout'))
         }, 2000)
         res.once('data', chunk => {
             clearTimeout(timer)

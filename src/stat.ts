@@ -15,7 +15,7 @@ export function getStatWorker(key: string) {
     const requests = new Map<string, PendingPromise<Stats>>()
     worker.on('message', (msg: any) => { // request finished, good or bad
         const k = msg.path
-        requests.get(k)?.resolve(msg.error ? Promise.reject(new Error(msg.error))
+        requests.get(k)?.resolve(msg.error ? Promise.reject(Error(msg.error))
             : Object.setPrototypeOf(msg.result, Stats.prototype) )
         requests.delete(k)
     })
