@@ -12,16 +12,6 @@ export * from './cross-const'
 export const API_VERSION = 12.97
 export const COMPATIBLE_API_VERSION = 1 // the day we break with the past, we'll update this
 
-// you can add arguments with this file, currently used for the update process on mac/linux
-export const ARGS_FILE = join(homedir(), 'hfs-args')
-try {
-    const s = fs.readFileSync(ARGS_FILE, 'utf-8')
-    console.log('additional arguments', s)
-    _.defaults(argv, minimist(JSON.parse(s)))
-    fs.unlinkSync(ARGS_FILE)
-}
-catch {}
-
 export const DEV = process.env.DEV ? 'DEV' : ''
 export const ORIGINAL_CWD = process.cwd()
 export const HFS_STARTED = new Date()

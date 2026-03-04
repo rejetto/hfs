@@ -1,14 +1,13 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { apiGithubPaginated, getProjectInfo, getRepoInfo } from './github'
-import { ARGS_FILE, HFS_REPO, IS_BINARY, IS_WINDOWS, IS_MAC, PREVIOUS_TAG, RUNNING_BETA } from './const'
+import { HFS_REPO, IS_BINARY, IS_WINDOWS, PREVIOUS_TAG, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
 import { DAY, exists, debounceAsync, unzip, prefix, xlate, HOUR, httpStream, statWithTimeout } from './misc'
-import { createReadStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
+import { createReadStream, existsSync, renameSync, unlinkSync } from 'fs'
 import { pluginsWatcher } from './plugins'
 import { chmod, rename, writeFile, rm } from 'fs/promises'
-import open from 'open'
 import { currentVersion, defineConfig, versionToScalar } from './config'
 import { cmdEscape, RUNNING_AS_SERVICE } from './util-os'
 import { onProcessExit } from './first'
@@ -145,7 +144,7 @@ export async function update(tagOrUrl: string='') {
     }
     const bin = process.execPath
     const binPath = dirname(bin)
-    const binFile = 'hfs' + (IS_WINDOWS ? '.exe' : '') // currently running bin could have been renamed
+    const binFile = 'hfs' + (IS_WINDOWS ? '.exe' : '') // the bin we are currently running could have been renamed
     let newBinFile = binFile
     do { newBinFile = 'new-' + newBinFile }
     while (existsSync(join(binPath, newBinFile)))
@@ -194,22 +193,12 @@ if (argv.updating) { // we were launched with a temporary name, restore original
     // have to relaunch with the new name, or otherwise the next update will fail with EBUSY on hfs.exe
     console.log(`renamed binary file to "${argv.updating}" and now restarting`)
     // if you change anything, be sure to test launching both double-clicking and in a terminal
-    if (IS_WINDOWS) // windows-only; this method on Mac works only once, and without console
+    if (IS_WINDOWS) // windows-only; this method on Mac works only once, and without the console
         onProcessExit(() =>
-            launch(dest, ['--updated', '--cwd .']) ) // launch+sync here would cause old process to stay open, locking ports
-    else if (IS_MAC) {
-        // open() is the only consistent way that I could find working on macos preserving console input/output over relaunching,
-        // and it doesn't let us pass cli arguments, so we pass them through a temp file consumed at the next startup.
-        // For the record, on mac you can: write "./hfs arg1 arg2" to /tmp/tmp.sh with 0o700, and then spawn "open -a Terminal /tmp/tmp.sh"
-        try { writeFileSync(ARGS_FILE, JSON.stringify(['--updated', '--cwd', process.cwd().replaceAll(' ', '\\ ')])) }
-        catch {}
-        void open(dest)
-    }
-    else { // linux and other *nix
-        if (process.stdin.isTTY && process.stdout.isTTY) // in interactive terminals, block this bridge process on the restarted hfs so the terminal session stays attached
-            spawnSync(dest, ['--updated', '--cwd', process.cwd()], { stdio: [0, 1, 2] })
-        else
-            spawn(dest, ['--updated', '--cwd', process.cwd()], { detached: true, stdio: 'ignore' }).unref()
-    }
+            launch(dest, ['--updated', '--cwd .']) ) // launch+sync here would cause the old process to stay open, locking ports
+    else if (process.stdin.isTTY && process.stdout.isTTY) // keep interactive terminal users attached to the restarted process
+        spawnSync(dest, ['--updated', '--cwd', process.cwd()], { stdio: [0, 1, 2] })
+    else
+        spawn(dest, ['--updated', '--cwd', process.cwd()], { detached: true, stdio: 'ignore' }).unref()
     process.exit()
 }
