@@ -8,8 +8,6 @@ This file is mostly aimed to developers.
 
 At this stage you have a javascript output. For binary files you'll also have to `npm run dist-bin`.
 
-You could instead run `npm run dist` to run both *build-all* & *dist-bin*.
-
 ## Troubleshooting
 
 - If you get error "Rollup failed to resolve import "@mui/icons-material/..."
@@ -28,7 +26,7 @@ been built, so their files are available in `dist` folder.
 To run tests
 - `npm run build-all`
 - `npm run test-with-server` (backend tests)
-- `npx playwright test` (these are UI tests)
+- `npx playwright test` (UI tests)
 
 # File organization
 
