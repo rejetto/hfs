@@ -1,0 +1,284 @@
+/*!*****************************************************
+
+Freak Flags, Copyright ©2026 Michael P. Cohen. Freak flags is licensed under the MIT license.  
+
+For complete information visit: www.freakflagsprite.com 
+
+******************************************************/
+
+.fflag {
+    background-image:url(sprite.png);
+    background-repeat:no-repeat;
+    background-size: 100% 49494%;
+    display: inline-block;
+    overflow: hidden;
+    position: relative;
+    vertical-align: middle;
+    box-sizing: content-box;
+    border: 1px solid rgb(220,220,220);
+}
+.fflag-DZ {background-position:center 0.2287%}
+.fflag-AO {background-position:center 0.4524%}
+.fflag-BJ {background-position:center 0.6721%}
+.fflag-BW {background-position:center 0.8958%}
+.fflag-BF {background-position:center 1.1162%}
+.fflag-BI {background-position:center 1.3379%}
+.fflag-CM {background-position:center 1.5589%}
+.fflag-CV {background-position:center 1.7805%}
+.fflag-CF {background-position:center 2.0047%}
+.fflag-TD {background-position:center 2.2247%}
+.fflag-CD {background-position:left 2.4467%}
+.fflag-DJ {background-position:left 2.6674%}
+.fflag-EG {background-position:center 2.8931%}
+.fflag-GQ {background-position:center 3.1125%}
+.fflag-ER {background-position:left 3.3325%}
+.fflag-ET {background-position:center 3.5542%}
+.fflag-GA {background-position:center 3.7759%}
+.fflag-GM {background-position:center 4.0015%}
+.fflag-GH {background-position:center 4.2229%}
+.fflag-GN {background-position:center 4.441%}
+.fflag-GW {background-position:left 4.66663%}
+.fflag-CI {background-position:center 4.8844%}
+.fflag-KE {background-position:center 5.1061%}
+.fflag-LS {background-position:center 5.3298%}
+.fflag-LR {background-position:left 5.5495%}
+.fflag-LY {background-position:center 5.7712%}
+.fflag-MG {background-position:center 5.994%}
+.fflag-MW {background-position:center 6.2156%}
+.fflag-ML {background-position:center 6.4363%}
+.fflag-MR {background-position:center 6.658%}
+.fflag-MU {background-position:center 6.8805%}
+.fflag-YT {background-position:center 7.1038%}
+.fflag-MA {background-position:center 7.3231%}
+.fflag-MZ {background-position:left 7.5448%}
+.fflag-NA {background-position:left 7.7661%}
+.fflag-NE {background-position:center 7.98937%}
+.fflag-NG {background-position:center 8.2099%}
+.fflag-CG {background-position:center 8.4316%}
+.fflag-RE {background-position:center 8.6533%}
+.fflag-RW {background-position:right 8.875%}
+.fflag-SH {background-position:center 9.0967%}
+.fflag-ST {background-position:center 9.322%}
+.fflag-SN {background-position:center 9.5426%}
+.fflag-SC {background-position:left 9.7628%}
+.fflag-SL {background-position:center 9.9845%}
+.fflag-SO {background-position:center 10.2052%}
+.fflag-ZA {background-position:left 10.4269%}
+.fflag-SS {background-position:left 10.6486%}
+.fflag-SD {background-position:center 10.8703%}
+.fflag-SR {background-position:center 11.0945%}
+.fflag-SZ {background-position:center 11.3135%}
+.fflag-TG {background-position:left 11.5354%}
+.fflag-TN {background-position:center 11.7593%}
+.fflag-UG {background-position:center 11.9799%}
+.fflag-TZ {background-position:center 12.2005%}
+.fflag-EH {background-position:center 12.4222%}
+.fflag-YE {background-position:center 12.644%}
+.fflag-ZM {background-position:center 12.8664%}
+.fflag-ZW {background-position:left 13.0873%}
+.fflag-AI {background-position:center 13.309%}
+.fflag-AG {background-position:center 13.5307%}
+.fflag-AR {background-position:center 13.7524%}
+.fflag-AW {background-position:left 13.9741%}
+.fflag-BS {background-position:left 14.1958%}
+.fflag-BB {background-position:center 14.4175%}
+.fflag-BQ {background-position:center 14.6415%}
+.fflag-BZ {background-position:center 14.8609%}
+.fflag-BM {background-position:center 15.0826%}
+.fflag-BO {background-position:center 15.306%}
+.fflag-VG {background-position:center 15.528%}
+.fflag-BR {background-position:center 15.7496%}
+.fflag-CA {background-position:center 15.9694%}
+.fflag-KY {background-position:center 16.1911%}
+.fflag-CL {background-position:left 16.4128%}
+.fflag-CO {background-position:left 16.6345%}
+.fflag-KM {background-position:center 16.8562%}
+.fflag-CR {background-position:center 17.0779%}
+.fflag-CU {background-position:left 17.2996%}
+.fflag-CW {background-position:center 17.5213%}
+.fflag-DM {background-position:center 17.743%}
+.fflag-DO {background-position:center 17.968%}
+.fflag-EC {background-position:center 18.1864%}
+.fflag-SV {background-position:center 18.411%}
+.fflag-FK {background-position:center 18.6298%}
+.fflag-GF {background-position:center 18.8515%}
+.fflag-GL {background-position:left 19.0732%}
+.fflag-GD {background-position:center 19.2987%}
+.fflag-GP {background-position:center 19.518%}
+.fflag-GT {background-position:center 19.7383%}
+.fflag-GY {background-position:center 19.96%}
+.fflag-HT {background-position:center 20.1817%}
+.fflag-HN {background-position:center 20.4034%}
+.fflag-JM {background-position:center 20.6241%}
+.fflag-MQ {background-position:center 20.8468%}
+.fflag-MX {background-position:center 21.0685%}
+.fflag-MS {background-position:center 21.2902%}
+.fflag-NI {background-position:center 21.5119%}
+.fflag-PA {background-position:center 21.7336%}
+.fflag-PY {background-position:center 21.9553%}
+.fflag-PE {background-position:center 22.177%}
+.fflag-PR {background-position:left 22.4002%}
+.fflag-BL {background-position:center 22.6204%}
+.fflag-KN {background-position:center 22.8421%}
+.fflag-LC {background-position:center 23.0638%}
+.fflag-PM {background-position:center 23.2855%}
+.fflag-VC {background-position:center 23.5072%}
+.fflag-SX {background-position:left 23.732%}
+.fflag-TT {background-position:center 23.9506%}
+.fflag-TC {background-position:center 24.1723%}
+.fflag-US {background-position:center 24.394%}
+.fflag-VI {background-position:center 24.6157%}
+.fflag-UY {background-position:left 24.8374%}
+.fflag-VE {background-position:center 25.0591%}
+.fflag-AB {background-position:center 25.2808%}
+.fflag-AF {background-position:center 25.5025%}
+.fflag-AZ {background-position:center 25.7242%}
+.fflag-BD {background-position:center 25.9459%}
+.fflag-BT {background-position:center 26.1676%}
+.fflag-BN {background-position:center 26.3885%}
+.fflag-KH {background-position:center 26.611%}
+.fflag-CN {background-position:left 26.8327%}
+.fflag-GE {background-position:center 27.0544%}
+.fflag-HK {background-position:center 27.2761%}
+.fflag-IN {background-position:center 27.4978%}
+.fflag-ID {background-position:center 27.7195%}
+.fflag-JP {background-position:center 27.9412%}
+.fflag-KZ {background-position:center 28.1615%}
+.fflag-LA {background-position:center 28.3846%}
+.fflag-MO {background-position:center 28.6063%}
+.fflag-MY {background-position:center 28.829%}
+.fflag-MV {background-position:center 29.0497%}
+.fflag-MN {background-position:left 29.2714%}
+.fflag-MM {background-position:center 29.4931%}
+.fflag-NP {background-position:left 29.7148%}
+.fflag-KP {background-position:left 29.9365%}
+.fflag-MP {background-position:center 30.1582%}
+.fflag-PW {background-position:center 30.3799%}
+.fflag-PG {background-position:center 30.6016%}
+.fflag-PH {background-position:left 30.8233%}
+.fflag-SG {background-position:left 31.045%}
+.fflag-KR {background-position:center 31.2667%}
+.fflag-LK {background-position:right 31.4884%}
+.fflag-TW {background-position:left 31.7101%}
+.fflag-TJ {background-position:center 31.9318%}
+.fflag-TH {background-position:center 32.1535%}
+.fflag-TL {background-position:left 32.3752%}
+.fflag-TM {background-position:center 32.5969%}
+.fflag-VN {background-position:center 32.8186%}
+.fflag-AX {background-position:center 33.0403%}
+.fflag-AL {background-position:center 33.25975%}
+.fflag-AD {background-position:center 33.4837%}
+.fflag-AM {background-position:center 33.7054%}
+.fflag-AT {background-position:center 33.9271%}
+.fflag-BY {background-position:left 34.1488%}
+.fflag-BE {background-position:center 34.3705%}
+.fflag-BA {background-position:center 34.5922%}
+.fflag-BG {background-position:center 34.8139%}
+.fflag-HR {background-position:center 35.0356%}
+.fflag-CY {background-position:center 35.2555%}
+.fflag-CZ {background-position:left 35.479%}
+.fflag-DK {background-position:center 35.7007%}
+.fflag-EE {background-position:center 35.9224%}
+.fflag-FO {background-position:center 36.1441%}
+.fflag-FI {background-position:center 36.3658%}
+.fflag-FR {background-position:center 36.5875%}
+.fflag-DE {background-position:center 36.8092%}
+.fflag-GI {background-position:center 37.0309%}
+.fflag-GR {background-position:left 37.2526%}
+.fflag-GG {background-position:center 37.4743%}
+.fflag-HU {background-position:center 37.696%}
+.fflag-IS {background-position:center 37.9177%}
+.fflag-IE {background-position:center 38.1394%}
+.fflag-IM {background-position:center 38.3611%}
+.fflag-IT {background-position:center 38.5828%}
+.fflag-JE {background-position:center 38.8045%}
+.fflag-XK {background-position:center 39.0262%}
+.fflag-LV {background-position:center 39.2479%}
+.fflag-LI {background-position:left 39.4696%}
+.fflag-LT {background-position:center 39.6913%}
+.fflag-LU {background-position:center 39.913%}
+.fflag-MT {background-position:left 40.1347%}
+.fflag-MD {background-position:center 40.3564%}
+.fflag-MC {background-position:center 40.5781%}
+.fflag-ME {background-position:center 40.7998%}
+.fflag-NL {background-position:center 41.0215%}
+.fflag-MK {background-position:center 41.2432%}
+.fflag-NO {background-position:center 41.4649%}
+.fflag-PL {background-position:center 41.6866%}
+.fflag-PT {background-position:center 41.9083%}
+.fflag-RO {background-position:center 42.13%}
+.fflag-RU {background-position:center 42.3517%}
+.fflag-SM {background-position:center 42.5734%}
+.fflag-RS {background-position:center 42.7951%}
+.fflag-SK {background-position:center 43.0168%}
+.fflag-SI {background-position:center 43.2385%}
+.fflag-ES {background-position:left 43.4602%}
+.fflag-SE {background-position:center 43.6819%}
+.fflag-CH {background-position:center 43.9036%}
+.fflag-TR {background-position:center 44.1253%}
+.fflag-UA {background-position:center 44.347%}
+.fflag-GB {background-position:center 44.5687%}
+.fflag-VA {background-position:right 44.7904%}
+.fflag-BH {background-position:center 45.0121%}
+.fflag-IR {background-position:center 45.2338%}
+.fflag-IQ {background-position:center 45.4555%}
+.fflag-IL {background-position:center 45.6772%}
+.fflag-KW {background-position:left 45.897%}
+.fflag-JO {background-position:left 46.1206%}
+.fflag-KG {background-position:center 46.3423%}
+.fflag-LB {background-position:center 46.561%}
+.fflag-OM {background-position:left 46.7857%}
+.fflag-PK {background-position:center 47.0074%}
+.fflag-PS {background-position:center 47.2291%}
+.fflag-QA {background-position:center 47.4508%}
+.fflag-SA {background-position:center 47.6725%}
+.fflag-SY {background-position:center 47.8942%}
+.fflag-AE {background-position:center 48.1159%}
+.fflag-UZ {background-position:left 48.3376%}
+.fflag-AS {background-position:right 48.5593%}
+.fflag-AU {background-position:center 48.781%}
+.fflag-CX {background-position:center 49.002%}
+.fflag-CC {background-position:center 49.2244%}
+.fflag-CK {background-position:center 49.4445%}
+.fflag-FJ {background-position:center 49.6678%}
+.fflag-PF {background-position:center 49.8895%}
+.fflag-GU {background-position:center 50.1112%}
+.fflag-KI {background-position:center 50.3329%}
+.fflag-MH {background-position:left 50.5546%}
+.fflag-FM {background-position:center 50.7763%}
+.fflag-NC {background-position:center 50.998%}
+.fflag-NZ {background-position:center 51.2197%}
+.fflag-NR {background-position:left 51.4414%}
+.fflag-NU {background-position:center 51.6631%}
+.fflag-NF {background-position:center 51.8848%}
+.fflag-WS {background-position:left 52.1065%}
+.fflag-SB {background-position:left 52.3282%}
+.fflag-TK {background-position:center 52.5499%}
+.fflag-TO {background-position:left 52.7716%}
+.fflag-TV {background-position:center 52.9933%}
+.fflag-VU {background-position:left 53.215%}
+.fflag-WF {background-position:center 53.4315%}
+
+.fflag.ff-sm {width: 18px;height: 11.5px}
+.fflag.ff-md {width: 27px;height: 17px}
+.fflag.ff-lg {width: 42px;height: 27px}
+.fflag.ff-xl {width: 60px;height: 37px}
+.fflag-CH.ff-sm {width: 11.5px;height: 11.5px}
+.fflag-CH.ff-md {width: 17px;height: 17px}
+.fflag-CH.ff-lg {width: 27px;height: 27px}
+.fflag-CH.ff-xl {width: 37px;height: 37px}
+.fflag-CH {background-size: 153% 49494%}
+.fflag-NP.ff-lt {background-color: rgb(220,220,220);clip-path: polygon(-5% -12%, 0 100%, 100% 119%, 49% 61%, 101% 61%)}
+.fflag-NP.ff-dk {background-color: rgb(90,90,90);clip-path: polygon(-5% -12%, 0 100%, 100% 119%, 49% 61%, 101% 61%)}
+.fflag-NP.ff-sm {width: 14px;height: 11.5px}
+.fflag-NP.ff-md {width: 20px;height: 17px}
+.fflag-NP.ff-lg {width: 31px;height: 27px}
+.fflag-NP.ff-xl {width: 42px;height: 37px}
+.fflag-NP {background-size: 136% 49494%}
+.fflag-NP {clip-path: polygon(-6% -9%, 0 100%, 86% 114%, 37% 56.5%, 86% 56.5%)}
+.fflag-NP.ff-orb,
+.fflag-NP.ff-sphere,
+.fflag-NP.ff-app,
+.fflag-NP.ff-leaf {clip-path: none;
+background-color: transparent}
+.fflag-NP.ff-round {clip-path: polygon(-5% -11%, 0 100%, 100% 106%, 55% 61.5%, 115% 61.5%)}

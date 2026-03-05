@@ -314,11 +314,10 @@ export function Country({ code, ip, def, long, short }: { code: string, ip?: str
     const country = code && _.find(COUNTRIES, { code })
     return !country ? h(Fragment, {}, def)
         : hTooltip(long ? undefined : country.name, undefined, h('span', {},
-            h('img', {
-                className: 'flag icon-w-text',
-                src: `flags/${code.toLowerCase()}.png`,
-                alt: country.name,
-                ...long && { 'aria-hidden': true },
+            h(Box, {
+                className: `fflag fflag-${code.toUpperCase()}`,
+                component: 'span',
+                mr: 1,
             }),
             long ? country.name + prefix(' (', short && code, ')') : code
         ) )

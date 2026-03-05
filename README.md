@@ -193,4 +193,4 @@ Privacy: Update checks are opt-out; other outbound connections are user-triggere
 
 - [License](LICENSE.txt)
 
-- Flag images are public-domain, downloaded from https://flagpedia.net
+- Flag images under MIT license from https://www.freakflagsprite.com
