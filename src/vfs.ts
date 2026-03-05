@@ -5,7 +5,7 @@ import { basename, dirname, join, resolve } from 'path'
 import {
     makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who, debounceAsync,
     isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_, matches,
-    statWithTimeout, safeDecodeURIComponent,
+    statWithTimeout, safeDecodeURIComponent, getUncHost,
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -190,9 +190,12 @@ export async function getNodeByName(name: string, parent: VfsNode, assumeMissing
     }
 }
 
+const smartUncFolderDetection = defineConfig('smart_unc_folder_detection', true)
+
 async function setIsFolder(node: VfsNode) {
     if (!node.source) return
-    const isFolder = /[\\/]$/.test(node.source) || await nodeStats(node).then(x => x?.isDirectory(), () => undefined)
+    const isFolder = smartUncFolderDetection.get() && getUncHost(node.source) ? !basename(node.source).includes('.') // no dot = folder – not very reliable but fast for unreachable unc hosts, and you can opt-out
+        : /[\\/]$/.test(node.source) || await nodeStats(node).then(x => x?.isDirectory(), () => undefined)
     setHidden(node, { isFolder })
     return isFolder
 }

@@ -25,7 +25,7 @@ export async function statWithTimeout(path: string) {
     return haveTimeout(fileTimeout.compiled(), op)
 }
 
-function getUncHost(path: string) {
+export function getUncHost(path: string) {
     return /^\\\\([^\\]+)\\/.exec(path)?.[1]
 }
 

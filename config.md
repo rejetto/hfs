@@ -130,6 +130,8 @@ Configuration can be done in several ways
 - `auto_basic` automatically detect (based on user-agent) when the basic web interface should be served, to support legacy browsers. Default is true. No UI.
   You can disable it setting it to `false`, or recognize additional user-agents by setting a regular expression. 
 - `file_timeout` number of seconds to wait before giving up when accessing a file. Default is 3. No UI.
+- `smart_unc_folder_detection` Windows-only optimization for UNC paths in VFS. When enabled, if the name of the element has no dot, it is assumed to be a folder without doing a stat call.
+  This is faster with unreachable SMB shares, but heuristic and not fully reliable. Disable to always use regular detection. Default is true. No UI.
 - `authorization_header` enable support for the HTTP `Authorization` header. Default is true. No UI.
 - `cache_control_disk_files` number of seconds after which the browser should bypass the cache and check the server for an updated version of the file. Default is 5. No UI.
 - `disable_custom_html` disable the content of `custom_html`. Default is false.
@@ -250,4 +252,4 @@ For each account entries, this is the list of properties you can have:
 
 Do you need to load a different config file that's not `config.yaml`?
 Use this parameter at command line `--config PATH` or similarly with an env `HFS_CONFIG`.
-The path you specify can be either a folder, or full-path to the file.
+The path you specify can be either a folder or full-path to the file.

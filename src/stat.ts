@@ -1,12 +1,15 @@
 import { Worker } from 'node:worker_threads'
 import { Stats } from 'node:fs'
 import { PendingPromise, pendingPromise } from './cross'
+import { quitting } from './first'
 
 // all stat requests for the same worker are serialized, potentially introducing extra latency
 
 const pool = new Map<string, (path: string) => Promise<Stats>>()
 
 export function getStatWorker(key: string) {
+    if (quitting)
+        return () => Promise.reject('quitting')
     const existing = pool.get(key)
     if (existing)
         return existing

@@ -9,14 +9,15 @@ export function onProcessExit(cb: ProcessExitHandler) {
 }
 
 export let quitting = false
-onProcessExit(() => quitting = true)
-
 // 'exit' event is handled as the last resort, but it's not compatible with async callbacks
-onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT', 'SIGHUP'], signal =>
-    Promise.allSettled(Array.from(cbsOnExit).map(cb => cb(signal))).then(() => {
-        console.log('quitting', signal||'')
+onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT', 'SIGHUP'], signal => {
+    quitting = true
+    console.log('quitting', signal || '')
+    return Promise.allSettled(Array.from(cbsOnExit).map(cb => cb(signal))).then(() => {
+        console.debug('process exit')
         process.exit(0)
-    }))
+    })
+})
 
 // keep calling cb in a sync fashion – returning a promise instead would break the code for argv.updating (update.ts)
 export function onFirstEvent(emitter:EventEmitter, events: string[], cb: (...args:any[])=> void) {
