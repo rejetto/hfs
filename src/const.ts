@@ -9,7 +9,7 @@ import { formatTimestamp } from './cross'
 import { argv } from './argv'
 export * from './cross-const'
 
-export const API_VERSION = 12.97
+export const API_VERSION = 13
 export const COMPATIBLE_API_VERSION = 1 // the day we break with the past, we'll update this
 
 export const DEV = process.env.DEV ? 'DEV' : ''

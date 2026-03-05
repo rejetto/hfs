@@ -6,7 +6,7 @@ import { basename, dirname, resolve } from 'path'
 import { exec } from 'child_process'
 import _ from 'lodash'
 import yaml from 'yaml'
-import { findDefined, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, wait } from '../src/cross'
+import { findDefined, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, wait, waitFor } from '../src/cross'
 import { httpStream, parseHttpUrl, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { mkdir, rm, rename, writeFile, access } from 'fs/promises'
@@ -737,6 +737,22 @@ describe('admin', () => {
             if (res?.msg === 'already stopped')
                 throw "plugin didn't start"
         }, { auth })()
+    })
+    test('plugins.dirEntry event', async () => {
+        const script = `exports.init = api => api.events.on('dirEntry', ({ entry }) => entry.n === 'f2/' && api.events.stop)`
+        await switchIt(true).finally(() => switchIt(false).catch(() => {}))
+
+        async function switchIt(on: boolean) {
+            let lastNames: any
+            await reqApi('set_config', { values: { server_code: on ? script : '' } }, 200, { auth })()
+            const good = await waitFor(async () => {
+                const res = await reqList('/f1/', { status: 200 })()
+                lastNames = res?.list?.map((x: any) => x.n)
+                return on === !isInList(res, 'f2/')
+            }, { interval: 100, timeout: 3000 })
+            if (!good)
+                throw Error("condition not met on list: " + JSON.stringify(lastNames))
+        }
     })
     test('plugins.download-counter percent name', async () => {
         const id = 'download-counter'

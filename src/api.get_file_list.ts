@@ -15,6 +15,7 @@ import { updateConnectionForCtx } from './connections'
 import { ctxAdminAccess } from './adminApis'
 import { dontOverwriteUploading } from './upload'
 import { SendListReadable } from './SendList'
+import events from './events'
 
 export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string, target?: string, icon?: string | true, order?: number }
 
@@ -88,6 +89,8 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
             try {
                 const res = await Promise.all(onDirEntryHandlers.map(cb => cb(cbParams)))
                 if (res.some(x => x === false))
+                    continue
+                if ((await events.emitAsync('dirEntry', cbParams))?.isDefaultPrevented())
                     continue
             }
             catch(e) {

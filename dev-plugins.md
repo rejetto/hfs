@@ -189,20 +189,9 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
 
 - `unload: function` called when unloading a plugin. This is a good place for example to clearInterval().
 - `onDirEntry: ({ entry: DirEntryBackend, listUri: string, ctx, node: VfsNode  }) => Promisable<void | false>` 
-  by providing this callback you can manipulate the record that is sent to the frontend (`entry`),
-  or you can return false to exclude this entry from the results.
-  `DirEntryBackend` fields:
-  - `n: string` name of the entry. (May include relative path when searching in sub-folders.)
-  - `s?: number` size of the entry, in bytes. It may be missing, for example for folders.
-  - `m?: Date` modified-time.
-  - `c?: Date` creation-time.
-  - `p?: string` permissions.
-  - `comment?: string` comment for the entry.
-  - `web?: boolean` true for web links.
-  - `url?: string` target url for links.
-  - `target?: string` target for links.
-  - `icon?: string | true` icon override or true for "specific for this file".
-  - `order?: number` custom sort order.
+  legacy callback for compatibility. For new plugins prefer the backend event `dirEntry`, so all plugin hooks follow the same event-based DX.
+  You can manipulate the record that will be sent to the frontend (`entry`), or return false to exclude this entry from the results.
+
 - `config: Functionable<{ [key]: FieldDescriptor }, values:object>` declare a set of admin-configurable values owned by the plugin
   that will be displayed inside Admin-panel for change. Each property is identified by its key,
   and the descriptor is another object with options about the field. 
@@ -809,6 +798,27 @@ This section is still partially documented, and you may need to have a look at t
     - parameters: { node, ctx }
     - async supported
     - stoppable
+- `dirEntry` called for each entry before it is sent to the frontend list
+  - parameters: { entry, listUri, ctx, node }
+    - `entry: DirEntryBackend`
+    - `listUri: string`
+    - `ctx: Context`
+    - `node: VfsNode`
+  - async supported
+  - preventable
+  - note: legacy `onDirEntry` hooks run first; use this event for new code
+  - types `DirEntryBackend` fields:
+    - `n: string` name of the entry. (May include the relative path when searching in subfolders.)
+    - `s?: number` size of the entry, in bytes. It may be missing, for example, for folders.
+    - `m?: Date` modified-time.
+    - `c?: Date` creation-time.
+    - `p?: string` permissions.
+    - `comment?: string` comment for the entry.
+    - `web?: boolean` true for web links.
+    - `url?: string` target url for links.
+    - `target?: string` target for links.
+    - `icon?: string | true` icon override or true for "specific for this file".
+    - `order?: number` custom sort order.  
 - `listDiskFolder` called when a list is read from the disk; useful to implement a cache
   - parameters: { path, ctx? } 
   - async supported 
@@ -1166,3 +1176,5 @@ If you want to override a text regardless of the language, use the special langu
   - api.normalizeFilename
 - 12.97 (v0.57.28)
   - HFS.customizeText 
+- 13 (v3.1.0)
+  - backend event: dirEntry 
