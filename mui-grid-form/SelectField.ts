@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, ReactNode, useId, useMemo } from 'react'
+import { createElement as h, Fragment, ReactNode, useId, useMemo, useCallback } from 'react'
 import { FieldProps } from '.'
 import {
     FormControl, FormControlLabel, FormLabel, MenuItem, Radio, InputLabel, Select, LinearProgress,
@@ -99,10 +99,13 @@ export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectField
             !isMobile && normalizedOptions?.length! > 20 && h(Box, {
                 sx: { float: 'right' }, fontSize: 'small', width: '8em', textAlign: 'right', marginRight: '.5em'
             }, "ⓘ You can type the name"),
-            normalizedOptions?.length! > 1 && h(Button, {
+            h(Button, {
                 size: 'small',
-                sx: { ml: 1 },
-                ref: x => x && Object.assign(x, { role: undefined }) && setTimeout(() => x.focus()), // cancel the role=option on this
+                sx: { ml: 1, display: normalizedOptions?.length! > 1 ? undefined : 'none' },
+                ref: useCallback((x:  HTMLButtonElement | null) =>
+                    x && Object.assign(x, { role: undefined }) // cancel the role=option on this
+                        && setTimeout(() => x.focus()),
+                    []),
                 onClickCapture(event) {
                     event.stopPropagation()
                     onChange(isEmpty ? normalizedOptions!.map(x => x.value) : [], { was: value, event })
@@ -158,4 +161,3 @@ export function RadioField<T>({ label, options, value, onChange }: FieldProps<T>
         })
     )
 }
-
