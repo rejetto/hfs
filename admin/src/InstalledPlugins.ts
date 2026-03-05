@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { apiCall, useApiEx, useApiList } from './api'
-import { createElement as h, Fragment, useEffect } from 'react'
+import { createElement as h, Fragment, useEffect, useState } from 'react'
 import { Box, Breakpoint, Link, Paper, Table, TableCell, TableRow, useTheme } from '@mui/material'
 import { DataTable, DataTableColumn } from './DataTable'
 import {
@@ -9,7 +9,7 @@ import {
 } from '@mui/icons-material'
 import {
     CFG, Html, HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate, formatTime, formatDate, replaceStringToReact,
-    callable, tryJson, useAutoScroll, NBSP, isPrimitive, HIDE_IN_TESTS
+    callable, tryJson, useAutoScroll, NBSP, isPrimitive, HIDE_IN_TESTS, wait
 } from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
@@ -31,13 +31,19 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, error, setList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins', {}, {
         map(x: any) { x.config &&= tryJson(x.config, s => evalWrapper('()=>('+s+')')()) }
     })
+    const [sortAgain, setSortAgain] = useState(0)
     useEffect(() => {
         setList(list =>
             _.sortBy(list, x => (x.error ? 0 : x.started ? 1 : 2) + treatPluginName(x.repo?.split('/').reverse().join('/') || x.id).toLowerCase()))
-    }, [list.length]);
+    }, [list.length, sortAgain]);
     const size = 'small'
     const { pause, pauseButton } = usePauseButton("plugins", () => getSingleConfig(CFG.suspend_plugins).then(x => !x), {
-        onClick: () => apiCall('set_config', { values: { [CFG.suspend_plugins]: !pause } })
+        async onClick() {
+            await apiCall('set_config', { values: { [CFG.suspend_plugins]: !pause } })
+            if (!pause) return
+            await wait(3000)
+            setSortAgain(Date.now())
+        }
     })
     const theme = useTheme()
     return h(DataTable, {
@@ -124,7 +130,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             } : {
                 icon: PlayCircle,
                 title: `Start ${id}`,
-                disabled: pause,
+                disabled: pause && "All plugins are paused – Click the Resume button below",
                 size,
                 onClick: () => startPlugin(id),
             }),
