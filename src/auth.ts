@@ -1,6 +1,6 @@
 import { Account, getAccount, normalizeUsername, updateAccount } from './perm'
 import { ALLOW_SESSION_IP_CHANGE, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './cross-const'
-import { SRPParameters, SRPRoutines, SRPServerSession } from 'tssrp6a'
+import * as srp from 'tssrp6a'
 import { Context } from 'koa'
 import { srpClientPart } from './srp'
 import { DAY } from './cross'
@@ -8,7 +8,7 @@ import { expiringCache } from './expiringCache'
 import { createHash } from 'node:crypto'
 import events from './events'
 
-const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
+const srp6aNimbusRoutines = new srp.SRPRoutines(new srp.SRPParameters())
 
 export async function srpServerStep1(account: Account) {
     if (!account.srp)
@@ -16,7 +16,7 @@ export async function srpServerStep1(account: Account) {
     const [salt, verifier] = account.srp.split('|')
     if (!salt || !verifier)
         throw Error("malformed account")
-    const srpSession = new SRPServerSession(srp6aNimbusRoutines)
+    const srpSession = new srp.SRPServerSession(srp6aNimbusRoutines)
     const srpServer = await srpSession.step1(account.username, BigInt(salt), BigInt(verifier))
     return { srpServer, salt, pubKey: String(srpServer.B) } // cast to string cause bigint can't be jsonized
 }
@@ -28,7 +28,7 @@ export async function srpCheck(username: string, password: string) {
     const k = createHash('sha256').update(username + password + account.srp).digest("hex")
     const good = await cache.try(k, async () => {
         const { srpServer, salt, pubKey } = await srpServerStep1(account)
-        const client = await srpClientPart(username, password, salt, pubKey)
+        const client = await srpClientPart(srp, username, password, salt, pubKey)
         return srpServer.step2(client.A, client.M1).then(() => true, () => false)
     })
     return good ? account : undefined

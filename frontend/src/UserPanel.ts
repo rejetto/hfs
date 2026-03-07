@@ -6,7 +6,7 @@ import { alertDialog, newDialog, promptDialog } from './dialog'
 import { apiCall } from '@hfs/shared/api'
 import { logout } from './login'
 import { Btn, CustomCode } from './components'
-import { formatTimestamp, hIcon, fallbackToBasicAuth, working } from './misc'
+import { formatTimestamp, hIcon, fallbackToBasicAuth, working, apiNewPassword } from './misc'
 import i18n from './i18n'
 const { t } = i18n
 
@@ -53,14 +53,9 @@ export async function changePassword(required=false) {
     if (!check) return
     if (check !== pwd)
         return alertDialog(t('pass2_mismatch', "The second password you entered did not match the first. Procedure aborted."), 'warning')
-    const { createVerifierAndSalt, SRPParameters, SRPRoutines } = await import('tssrp6a')
-    const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
-    const res = await createVerifierAndSalt(srp6aNimbusRoutines, state.username, pwd)
-    try {
-        await apiCall('change_my_srp', { salt: String(res.s), verifier: String(res.v) }, { modal: working })
-        return alertDialog(t('password_changed', "Password changed"))
-    }
-    catch(e) {
-        return alertDialog(e as Error)
-    }
+
+    const modal = working()
+    await apiNewPassword(state.username, pwd)
+        .then(() => alertDialog(t('password_changed', "Password changed")), alertDialog)
+        .finally(modal)
 }

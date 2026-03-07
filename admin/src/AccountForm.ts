@@ -5,10 +5,9 @@ import { BoolField, Form, MultiSelectField, NumberField, SelectField } from '@hf
 import { Alert, Box } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, useDialogBarColors } from './dialog'
-import { formatTimestamp, isEqualLax, prefix, reactJoin, useIsMobile, wantArray } from './misc'
+import { apiNewPassword, formatTimestamp, isEqualLax, prefix, reactJoin, useIsMobile, wantArray } from './misc'
 import { Btn, Flex, IconBtn, NetmaskField, propsForModifiedValues } from './mui'
 import { Account } from './AccountsPage'
-import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { AutoDelete, Delete } from '@mui/icons-material'
 import { state, useSnapState } from './state'
 import VfsPathField from './VfsPathField'
@@ -145,11 +144,4 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
 
 export function isModifiedConfig(a: any, b: any) {
     return !isEqualLax(a, b, (a,b) => !a && !b || undefined)
-}
-
-// you can set password directly in add/set_account, but using this api instead will add extra security because it is not sent as clear-text, so it's especially good if you are not in localhost and not using https
-export async function apiNewPassword(username: string, password: string) {
-    const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
-    const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, password)
-    return apiCall('change_srp', { username, salt: String(res.s), verifier: String(res.v) })
 }

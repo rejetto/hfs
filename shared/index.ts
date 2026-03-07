@@ -6,7 +6,6 @@ import { DAY, Dict, formatBytes, HOUR, MINUTE, objFromKeys, objSameKeys, typedEn
 export * from './react'
 export * from './dialogs'
 export * from './md'
-export * from '../src/srp'
 export * from '../src/cross'
 // code in this file is shared among frontends, but not backend
 
@@ -246,6 +245,18 @@ export function downloadFileWithContent(name: string, content: Blob | string) {
     document.body.append(a)
     a.click()
     setTimeout(() => a.remove(), 100) // Chrome needs this timeout
+}
+
+export function withSrpLib<Args extends unknown[], Res>(cb: (srp: typeof import('tssrp6a'), ...args: Args) => Res) {
+    return (...args: Args) => import('tssrp6a').then(srp => cb(srp, ...args))
+}
+
+// you can set password directly in add/set_account, but using this api instead will add extra security because it is not sent as clear-text, so it's especially good if you are not in localhost and not using https
+export async function apiNewPassword(username: string, password: string) {
+    const { createVerifierAndSalt, SRPParameters, SRPRoutines } = await import('tssrp6a')
+    const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
+    const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, password)
+    return apiCall('change_srp', { username, salt: String(res.s), verifier: String(res.v) })
 }
 
 Element.prototype.replaceChildren ||= function(this:Element, addNodes) { // polyfill

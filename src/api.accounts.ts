@@ -3,7 +3,7 @@
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import {
     Account, accountCanLoginAdmin, accountHasPassword, accounts, addAccount, delAccount, getAccount,
-    changeSrpHelper, updateAccount, accountCanLogin, accountCanChangePassword, normalizeUsername
+    updateAccount, accountCanLogin, accountCanChangePassword, normalizeUsername
 } from './perm'
 import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
@@ -95,12 +95,5 @@ export default  {
         invalidateSessionBefore.set(normalizeUsername(username), Date.now())
         return {}
     },
-
-    async change_srp({ username, salt, verifier }) {
-        apiAssertTypes({ string: { username, salt, verifier } })
-        const a = getAccount(username)
-        return a ? changeSrpHelper(a, salt, verifier)
-            : new ApiError(HTTP_NOT_FOUND)
-    }
 
 } satisfies ApiHandlers

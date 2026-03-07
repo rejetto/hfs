@@ -4,20 +4,21 @@ import { apiCall } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
 import { alertDialog, newDialog, toast } from './dialog'
 import {
-    getHFS, hIcon, makeSessionRefresher, srpClientSequence, working, fallbackToBasicAuth, hfsEvent,
+    getHFS, hIcon, makeSessionRefresher, working, fallbackToBasicAuth, hfsEvent, withSrpLib,
     HTTP_CONFLICT, HTTP_UNAUTHORIZED, HTTP_METHOD_NOT_ALLOWED, ALLOW_SESSION_IP_CHANGE,
 } from './misc'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
 import { reloadList } from './useFetchList'
 import { Checkbox, CustomCode } from './components'
 import { changePassword } from './UserPanel'
+import { srpClientSequence } from '../../src/srp'
 import _ from 'lodash'
 import i18n from './i18n'
 const { t, useI18N } = i18n
 
 async function login(username:string, password:string, extra?: object) {
     const stopWorking = working()
-    return srpClientSequence(username, password, apiCall, extra).catch(err => {
+    return withSrpLib(srpClientSequence)(username, password, apiCall, extra).catch(err => {
         if (err.code == HTTP_METHOD_NOT_ALLOWED || !password) // allow alternative authentications without a password
             return apiCall('login', { username, password, ...extra })
         throw err

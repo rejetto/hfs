@@ -2,10 +2,10 @@
 
 import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
-import { ALLOW_SESSION_IP_CHANGE, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, makeSessionRefresher } from './misc'
+import { ALLOW_SESSION_IP_CHANGE, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, makeSessionRefresher, withSrpLib } from './misc'
 import { BoolField, Form } from '@hfs/mui-grid-form'
 import { apiCall } from './api'
-import { srpClientSequence } from '@hfs/shared'
+import { srpClientSequence } from '../../src/srp'
 import { Alert, Box } from '@mui/material'
 import { Center } from './mui'
 
@@ -63,7 +63,7 @@ function LoginForm() {
 }
 
 async function login(username: string, password: string, extra?: object) {
-    const res = await srpClientSequence(username, password, apiCall, extra).catch(err => {
+    const res = await withSrpLib(srpClientSequence)(username, password, apiCall, extra).catch(err => {
         throw err?.code === HTTP_UNAUTHORIZED ? err.message || "Wrong username or password"
             : err === 'trust' ? "Login aborted: server identity cannot be trusted"
             : err?.name === 'AbortError' ? "Server didn't respond"

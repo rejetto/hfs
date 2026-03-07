@@ -1,6 +1,7 @@
 import test, { describe, before, after } from 'node:test';
 import { promisify } from 'util'
 import { srpClientSequence } from '../src/srp'
+import * as srp from 'tssrp6a'
 import { createReadStream, existsSync, readFileSync, statfsSync, statSync } from 'fs'
 import { basename, dirname, resolve } from 'path'
 import { exec } from 'child_process'
@@ -51,6 +52,7 @@ const WEBDAV_PROPPATCH_BODY = `<?xml version="1.0" encoding="utf-8"?>
 let defaultBaseUrl = BASE_URL
 
 const execP = (cmd: string) => promisify(exec)(cmd).then(x => x.stdout)
+const srp6aNimbusRoutines = new srp.SRPRoutines(new srp.SRPParameters())
 
 describe('basics', () => {
     test('parseHttpUrl.path escapes invalid chars and keeps unresolved segments', () => {
@@ -384,6 +386,33 @@ describe('sessions', () => {
         }
         finally {
             await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
+    test('change_srp enforces self/admin permissions', async () => {
+        const selfUser = `change-srp-self-${randomId(6)}`.toLowerCase()
+        const otherUser = `change-srp-other-${randomId(6)}`.toLowerCase()
+        const selfPwd = `pw-${randomId(8)}`
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: selfUser, overwrite: true, password: selfPwd }, res => res?.username === selfUser, adminReq)()
+            await reqApi('add_account', { username: otherUser, overwrite: true, password: randomId(8) }, res => res?.username === otherUser, adminReq)()
+
+            const selfChange = await makeSrpChange(selfUser)
+            const jar = {}
+            await reqApi('change_srp', selfChange, 401, { jar })() // no account
+            await reqApi('refresh_session', {}, res => res?.username === selfUser, { jar, auth: `${selfUser}:${selfPwd}` })()
+            await reqApi('change_srp', selfChange, 200, { jar })() // my account
+            const otherChange = await makeSrpChange(otherUser)
+            await reqApi('change_srp', otherChange, 401, { jar })() // another account but no admin
+            await reqApi('change_srp', otherChange, 200, adminReq)() // another account and i'm admin
+        }
+        finally {
+            await reqApi('del_account', { username: [selfUser, otherUser] }, 200, adminReq)().catch(() => {})
+        }
+
+        async function makeSrpChange(username: string, password=`next-${randomId(8)}`) {
+            const res = await srp.createVerifierAndSalt(srp6aNimbusRoutines, username, password)
+            return { salt: String(res.s), verifier: String(res.v), username }
         }
     })
 })
@@ -785,7 +814,7 @@ describe('admin', () => {
 })
 
 function login(usr: string, pwd=password) {
-    return srpClientSequence(usr, pwd, (cmd: string, params: any) =>
+    return srpClientSequence(srp, usr, pwd, (cmd: string, params: any) =>
         reqApi(cmd, params, (x,res)=> res.statusCode < 400)())
 }
 

@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    accountCanLogin, accountIsDisabled, accountCanChangePassword, changeSrpHelper, expandUsername, getAccount
+    accountCanLogin, accountIsDisabled, accountCanChangePassword, expandUsername, getAccount, updateAccount, saveSrpInfo
 } from './perm'
 import { ApiError, ApiHandler, ApiHandlers } from './apiMiddleware'
 import { SRPServerSessionStep1 } from 'tssrp6a'
@@ -126,11 +126,17 @@ export const authApis = {
 
     refresh_session,
 
-    async change_my_srp({ salt, verifier }, ctx) {
-        const a = ctx.state.account
-        return !a || !accountCanChangePassword(a) ? new ApiError(HTTP_UNAUTHORIZED)
-            : changeSrpHelper(a, salt, verifier).then(() => {
-                delete a.require_password_change
-            })
+    async change_srp({ username, salt, verifier }, ctx) {
+        const a = username && getAccount(username)
+        const can = a && (ctxAdminAccess(ctx) || username === getCurrentUsername(ctx) && accountCanChangePassword(a))
+        if (!can)
+            return new ApiError(HTTP_UNAUTHORIZED)
+        if (!salt || !verifier)
+            return new ApiError(HTTP_BAD_REQUEST, 'missing parameters')
+        await updateAccount(a, a =>
+            saveSrpInfo(a, salt, verifier) )
+        delete a.require_password_change
+        return {}
     }
+
 } as const satisfies ApiHandlers
