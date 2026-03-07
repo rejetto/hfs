@@ -29,3 +29,5 @@ window.BigInt ||= Number; // avoid crash at boot for chrome66
 )) {"Symbol"in self&&"iterator"in Symbol&&"function"==typeof Array.prototype[Symbol.iterator]?CreateMethodProperty(Array.prototype,"values",Array.prototype[Symbol.iterator]):CreateMethodProperty(Array.prototype,"values",function r(){var t=ToObject(this);return new ArrayIterator(t,"value")});}if (!("Symbol"in self&&"iterator"in self.Symbol&&!!Array.prototype[self.Symbol.iterator]
 )) {CreateMethodProperty(Array.prototype,Symbol.iterator,Array.prototype.values);}if (!("fromEntries"in Object
 )) {CreateMethodProperty(Object,"fromEntries",function r(e){RequireObjectCoercible(e);var t={},o=function(r,e){var t=this,o=ToPropertyKey(r);CreateDataPropertyOrThrow(t,o,e)};return AddEntriesFromIterable(t,e,o)});}})('object' === typeof window && window || 'object' === typeof self && self || 'object' === typeof global && global || {});
+// wouter emits Array#flatMap – only used with multiple route-s
+Array.prototype.flatMap || Object.defineProperty(Array.prototype, 'flatMap', { configurable: true, writable: true, value(callback, thisArg) { return this.map(callback, thisArg).flat() } });
