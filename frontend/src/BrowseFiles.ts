@@ -201,7 +201,7 @@ function FilesList() {
         i -= page + 1
         const el = i < 0 ? ref.current?.querySelector('*')
             : document.querySelectorAll('.' + PAGE_SEPARATOR_CLASS)[i]
-        el?.scrollIntoView({ block: 'center' })
+        scrollIntoView(el, 'center')
     }, [page, extraPages])
 
     const {t} = useI18N()
@@ -247,7 +247,7 @@ const Paging = memo(({ nPages, current, pageSize, changePage, atBottom }: Paging
         return () => { document.body.style.overflowY = '' }
     }, [])
     const ref = useRef<HTMLElement>()
-    useEffect(() => ref.current?.scrollIntoView({ block: 'nearest' }), [current])
+    useEffect(() => scrollIntoView(ref.current, 'nearest'), [current])
     const shrink = nPages > 20
     const from = _.floor(current, -1)
     const to = from + 10
@@ -273,6 +273,14 @@ const Paging = memo(({ nPages, current, pageSize, changePage, atBottom }: Paging
         }, hIcon('to_end')),
     )
 })
+
+function scrollIntoView(el: Element | undefined | null, block: ScrollLogicalPosition) {
+    if (!el) return
+    try { el.scrollIntoView({ block }) }
+    catch { // firefox 52 rejects modern scrollIntoView options, so we fall back to the legacy boolean signature
+        el.scrollIntoView(block === 'center')
+    }
+}
 
 export function useMidnight() {
     const [midnight, setMidnight] = useState(calcMidnight)
