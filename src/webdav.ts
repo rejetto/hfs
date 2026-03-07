@@ -4,7 +4,8 @@ import {
 } from './vfs'
 import {
     HTTP_BAD_REQUEST, HTTP_CREATED, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND, HTTP_SERVER_ERROR,
-    enforceFinal, pathEncode, prefix, getOrSet, Dict, Timeout, HTTP_UNAUTHORIZED, CFG, HTTP_LOCKED, HTTP_FORBIDDEN, DAY
+    enforceFinal, pathEncode, prefix, getOrSet, Dict, Timeout, HTTP_UNAUTHORIZED, CFG, HTTP_LOCKED, HTTP_FORBIDDEN, DAY,
+    join as crossJoin
 } from './cross'
 import { PassThrough } from 'stream'
 import { mkdir, rm } from 'fs/promises'
@@ -123,8 +124,9 @@ export async function handledWebdav(ctx: Koa.Context) {
         const i = dest.indexOf('//')
         if (i >= 0)
             dest = dest.slice(dest.indexOf('/', i + 2))
+        dest = crossJoin(ctx.state.root || '', dest) // on Windows, we must use / as the delimiter to be able to compare with `path` below
         if (isLocked(dest, ctx)) return true
-        if (dirname(path) === dirname(dest)) // rename. `path` is is encoded, so we test before decoding `dest`
+        if (dirname(path) === dirname(dest)) // rename case. `path` is is encoded, so we test before decoding `dest`
             try {
                 await requestedRename(node, basename(decodeURI(dest)), ctx)
                 return ctx.status = HTTP_CREATED
