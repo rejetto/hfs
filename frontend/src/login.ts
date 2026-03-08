@@ -73,9 +73,6 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                 const pwdRef = useRef<HTMLInputElement>()
                 const ipRef = useRef<HTMLInputElement>()
                 const [showPassword, setShowPassword] = useState(false)
-                useEffect(() => {
-                    setTimeout(() => usrRef.current?.focus()) // setTimeout workarounds problem due to double-mount while in dev
-                }, [])
                 const {t} = useI18N() // this dialog can be displayed before anything else, accessing protected folder, and needs to be rendered after languages loading
                 return h('form', {
                     onSubmit(ev:any) {
@@ -91,6 +88,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                             id: 'login_username',
                             name: 'username',
                             autoComplete: 'username',
+                            autoFocus: true,
                             required: true,
                             onKeyDown
                         }),

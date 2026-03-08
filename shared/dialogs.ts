@@ -131,6 +131,7 @@ function Dialog(d: DialogOptions) {
         const el = ref.current?.querySelector('.dialog') as HTMLElement | undefined
         if (!el) return
         tabCycle(el) // focus first thing inside dialog. This makes JAWS behave
+        ;(el.querySelector('[autofocus]') as HTMLElement)?.focus() // if any
         if (!d.position) return
         // not the nicest of solutions, but short, effective, and used only by short-lived context menus
         let y = 0
