@@ -55,7 +55,9 @@ function hasToken(header: string, token: string) {
 }
 
 export async function handledWebdav(ctx: Koa.Context) {
-    const {path} = ctx
+    let {path} = ctx
+    path = path.replace(/^\/+/, '/') // double-slash is causing empty listing in filezilla pro
+
     const isWebdavAuthRequest = WEBDAV_METHODS.has(ctx.method) || WEBDAV_HINT_HEADERS.some(h => !!ctx.get(h))
     const ua = ctx.get('user-agent')
     if (isWebdavAuthRequest && getCurrentUsername(ctx)) {
