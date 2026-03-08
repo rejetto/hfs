@@ -85,6 +85,7 @@
     "busboy": "^1.6.0",
     "crc-32": "^1.2.2",
     "fast-glob": "^3.3.3",
+    "fast-xml-parser": "^5.4.2",
     "find-process": "^2.0.0",
     "fs-x-attributes": "^1.0.2",
     "fswin": "^3.24.829",

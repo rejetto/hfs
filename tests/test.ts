@@ -41,14 +41,17 @@ const BIG_CONTENT = _.repeat(randomId(10), 300_000) // 3MB, big enough to satura
 const throttle = BIG_CONTENT.length /1000 /0.8 // KB, finish in 0.8s, quick but still overlapping downloads
 const SAMPLE_FILE_PATH = resolve(__dirname, 'page/gpl.png')
 const WEBDAV_UA = 'Microsoft-WebDAV-MiniRedir/10.0.22000'
-const WEBDAV_PROPPATCH_BODY = `<?xml version="1.0" encoding="utf-8"?>
-<propertyupdate xmlns="DAV:">
-  <set>
-    <prop>
-      <displayname>patched</displayname>
-    </prop>
-  </set>
-</propertyupdate>`
+const TOKEN_HEADER = 'lock-token'
+const WEBDAV_LOCK_BODY = `<?xml version="1.0" encoding="utf-8"?>
+<lockinfo xmlns="DAV:">
+  <lockscope><exclusive/></lockscope>
+  <locktype><write/></locktype>
+</lockinfo>`
+const WEBDAV_SHARED_LOCK_BODY = `<?xml version="1.0" encoding="utf-8"?>
+<lockinfo xmlns="DAV:">
+  <lockscope><shared/></lockscope>
+  <locktype><write/></locktype>
+</lockinfo>`
 let defaultBaseUrl = BASE_URL
 
 const execP = (cmd: string) => promisify(exec)(cmd).then(x => x.stdout)
@@ -294,27 +297,35 @@ describe('webdav', () => {
             await rmAny(destPath)
         }
     })
-    test('webdav.proppatch file', async () => {
-        const name = `wd-proppatch-${randomId(6)}.txt`
+    test('webdav.lock refresh keeps token', async () => {
+        const name = `wd-lock-${randomId(6)}.txt`
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        let destPath = ''
+        let token = ''
+        try {
+            destPath = await webdavUpload(uri, x => x?.uri === uri, 'test')()
+            await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            if (!token)
+                throw "missing lock token"
+            await webdavLock(uri, (_data, res) =>
+                res.statusCode === 200 && res.headers?.[TOKEN_HEADER] === token, '', { If: `(<${token}>)` })()
+        }
+        finally {
+            if (token)
+                await webdavUnlock(uri, token)().catch(() => {})
+            await rmAny(destPath)
+        }
+    })
+    test('webdav.lock rejects shared lock', async () => {
+        const name = `wd-lock-shared-${randomId(6)}.txt`
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
         let destPath = ''
         try {
             destPath = await webdavUpload(uri, x => x?.uri === uri, 'test')()
-            await webdavProppatch(uri)()
+            await webdavLock(uri, 409, WEBDAV_SHARED_LOCK_BODY)()
         }
         finally {
             await rmAny(destPath)
-        }
-    })
-    test('webdav.proppatch folder', async () => {
-        const folder = `wd-proppatch-dir-${randomId(6)}`
-        const uri = `${UPLOAD_ROOT}${folder}/`
-        try {
-            await reqApi('create_folder', { uri: UPLOAD_ROOT, name: folder }, 200, { auth, jar })()
-            await webdavProppatch(uri)()
-        }
-        finally {
-            await req(uri, 200, { method: 'delete', auth, jar })().catch(() => {})
         }
     })
 
@@ -331,17 +342,30 @@ describe('webdav', () => {
         })().then(res => uploadUriToPath(res?.uri || uri))
     }
 
-    function webdavProppatch(uri: string, tester: Tester=207, body=WEBDAV_PROPPATCH_BODY, userAgent=WEBDAV_UA) {
+    function webdavLock(uri: string, tester: Tester=200, body=WEBDAV_LOCK_BODY, headers?: Record<string, string>) {
         return req(uri, tester, {
-            method: 'PROPPATCH',
+            method: 'LOCK',
             auth,
             jar,
             headers: {
                 'content-type': 'text/xml',
                 'content-length': Buffer.byteLength(body),
-                'user-agent': userAgent,
+                'user-agent': WEBDAV_UA,
+                ...headers,
             },
             body,
+        })
+    }
+
+    function webdavUnlock(uri: string, token: string, tester: Tester=204) {
+        return req(uri, tester, {
+            method: 'UNLOCK',
+            auth,
+            jar,
+            headers: {
+                'user-agent': WEBDAV_UA,
+                [TOKEN_HEADER]: `<${token}>`,
+            },
         })
     }
 

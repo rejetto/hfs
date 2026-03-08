@@ -1,11 +1,12 @@
 import Koa from 'koa'
+import { text as stream2string } from 'node:stream/consumers'
 import {
     getNodeName, nodeIsFolder, nodeIsLink, nodeStats, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, walkNode
 } from './vfs'
 import {
-    HTTP_BAD_REQUEST, HTTP_CREATED, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND, HTTP_SERVER_ERROR,
-    enforceFinal, pathEncode, prefix, getOrSet, Dict, Timeout, HTTP_UNAUTHORIZED, CFG, HTTP_LOCKED, HTTP_FORBIDDEN, DAY,
-    join as crossJoin
+    HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_CREATED, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND,
+    HTTP_PRECONDITION_FAILED, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED, HTTP_LOCKED, HTTP_FORBIDDEN,
+    DAY, CFG, enforceFinal, pathEncode, prefix, getOrSet, Dict, Timeout, join as crossJoin, try_
 } from './cross'
 import { PassThrough } from 'stream'
 import { mkdir, rm } from 'fs/promises'
@@ -18,6 +19,8 @@ import { exec } from 'child_process'
 import { getCurrentUsername } from './auth'
 import { defineConfig } from './config'
 import { expiringCache } from './expiringCache'
+import { XMLParser } from 'fast-xml-parser'
+import _ from 'lodash'
 
 const forceWebdavLogin = defineConfig<boolean|string, null|RegExp>(CFG.force_webdav_login, true, compileWebdavAgentRegex)
 const webdavInitialAuth = defineConfig<boolean|string, null|RegExp>(CFG.webdav_initial_auth, 'WebDAVFS', compileWebdavAgentRegex)
@@ -25,12 +28,15 @@ const webdavPrompted = expiringCache<boolean>(DAY)
 const webdavDetectedAgents = new Set<string>()
 
 const TOKEN_HEADER = 'lock-token'
-const WEBDAV_METHODS = new Set(['PROPFIND', 'PROPPATCH', 'MKCOL', 'MOVE', 'LOCK', 'UNLOCK'])
+const WEBDAV_METHODS = new Set(['PROPFIND', 'MKCOL', 'MOVE', 'LOCK', 'UNLOCK'])
 const WEBDAV_HINT_HEADERS = ['depth', 'destination', 'overwrite', 'translate', 'if', TOKEN_HEADER, 'x-expected-entity-length']
 const KNOWN_UA = /webdav|miniredir|davclnt/i
+const LOCK_DEFAULT_SECONDS = 3600
+const LOCK_MAX_SECONDS = DAY / 1000
+const xmlParser = new XMLParser({ ignoreAttributes: false, removeNSPrefix: true, trimValues: true })
 
 const canOverwrite = new Set()
-const locks = new Map<string, { token: string, timeout: NodeJS.Timeout }>()
+const locks = new Map<string, { token: string, timeout: NodeJS.Timeout, seconds: number }>()
 
 function isLocked(path: string, ctx: Koa.Context) {
     const lock = locks.get(path)
@@ -57,7 +63,7 @@ export async function handledWebdav(ctx: Koa.Context) {
             webdavDetectedAgents.add(ua)
     }
 
-    if (ctx.path.includes('/._') && ua?.startsWith('WebDAVFS')) {// too much spam from Finder for these files that can contain metas
+    if (path.includes('/._') && ua?.startsWith('WebDAVFS')) {// too much spam from Finder for these files that can contain metas
         ctx.state.dontLog = true
         return ctx.status = HTTP_FORBIDDEN
     }
@@ -160,22 +166,65 @@ export async function handledWebdav(ctx: Koa.Context) {
     }
     if (ctx.method === 'LOCK') {
         setWebdavHeaders()
+        const body = ctx.length || ctx.get('content-length') || ctx.get('transfer-encoding') ? await stream2string(ctx.req) : ''
+        const token = getProvidedLockToken(ctx)
+        let seconds = Number(ctx.get('timeout').split(',').find(x => /^Second-\d+$/i.test(x.trim()))?.trim().split('-', 2)[1])
+        seconds = _.clamp(seconds || LOCK_DEFAULT_SECONDS, 1, LOCK_MAX_SECONDS)
+
+        if (!body) {
+            // Finder and similar clients refresh an existing lock by sending LOCK without a body
+            if (!token)
+                return ctx.status = HTTP_BAD_REQUEST
+            const lock = locks.get(path)
+            if (token !== lock?.token)
+                return ctx.status = HTTP_PRECONDITION_FAILED
+            // refresh lock – keep the same token on refresh so clients can continue using the lock they already hold
+            clearTimeout(lock.timeout)
+            lock.timeout = setTimeout(() => locks.delete(path), seconds * 1000)
+            lock.seconds = seconds
+            locks.set(path, lock)
+
+            ctx.set(TOKEN_HEADER, lock.token)
+            ctx.body = renderLockResponse(lock.token, lock.seconds)
+            return true
+        }
+        const lockinfo = try_(() => xmlParser.parse(body).lockinfo)
+        const scope = _.keys(lockinfo?.lockscope)[0]
+        const type = _.keys(lockinfo?.locktype)[0]
+        if (!scope || !type)
+            return ctx.status = HTTP_BAD_REQUEST
+        if (ctx.get('depth') && ctx.get('depth') !== '0')
+            return ctx.status = HTTP_CONFLICT
+        if (scope !== 'exclusive' || type !== 'write')
+            return ctx.status = HTTP_CONFLICT
         if (locks.has(path))
-            return ctx.status = 423
-        const token = 'urn:uuid:' + randomUUID()
-        ctx.set(TOKEN_HEADER, token)
-        const seconds = 3600
+            return ctx.status = HTTP_LOCKED
+        const newToken = 'urn:uuid:' + randomUUID()
         const timeout = setTimeout(() => locks.delete(path), seconds * 1000)
-        locks.set(path, { token, timeout })
-        ctx.body = `<?xml version="1.0" encoding="utf-8"?><prop xmlns="DAV:"><lockdiscovery><activelock>
-            <locktype><write/></locktype>
-            <lockscope><exclusive/></lockscope>
-            <locktoken><href>${token}</href></locktoken>
-            <lockroot><href>${path}</href></lockroot>
-            <depth>0</depth>
-            <timeout>Second-${seconds}</timeout>
-        </activelock></lockdiscovery></prop>`
+        locks.set(path, { token: newToken, timeout, seconds })
+        ctx.set(TOKEN_HEADER, newToken)
+        ctx.body = renderLockResponse(newToken, seconds)
         return true
+
+        function getProvidedLockToken(ctx: Koa.Context) {
+            const direct = ctx.get(TOKEN_HEADER).replace(/[<>]/g, '')
+            if (direct)
+                return direct
+            const ifHeader = ctx.get('If')
+            return /<([^>]+)>/.exec(ifHeader)?.[1] || ''
+        }
+
+        function renderLockResponse(token: string, seconds: number) {
+            return `<?xml version="1.0" encoding="utf-8"?><prop xmlns="DAV:"><lockdiscovery><activelock>
+                <locktype><write/></locktype>
+                <lockscope><exclusive/></lockscope>
+                <locktoken><href>${token}</href></locktoken>
+                <lockroot><href>${path}</href></lockroot>
+                <depth>0</depth>
+                <timeout>Second-${seconds}</timeout>
+            </activelock></lockdiscovery></prop>`
+        }
+
     }
     if (ctx.method === 'PROPFIND') {
         setWebdavHeaders()
@@ -226,33 +275,13 @@ export async function handledWebdav(ctx: Koa.Context) {
     }
     if (ctx.method === 'PROPPATCH') {
         setWebdavHeaders()
-        if (isLocked(path, ctx)) return true
-        const node = await urlToNode(path, ctx)
-        if (!node) return
-        if (statusCodeForMissingPerm(node, 'can_see', ctx)) {
-            if (ctx.status === HTTP_UNAUTHORIZED)
-                setWebdavHeaders(true)
-            return true
-        }
-        ctx.type = 'xml'
-        ctx.status = 207
-        ctx.body = `<?xml version="1.0" encoding="utf-8"?>
-            <multistatus xmlns="DAV:">
-              <response>
-                <href>${path}</href>
-                <propstat>
-                  <status>HTTP/1.1 200 OK</status>
-                  <prop/>
-                </propstat>
-              </response>
-            </multistatus>`
-        return true
+        return ctx.status = HTTP_METHOD_NOT_ALLOWED
     }
 
     function setWebdavHeaders(authenticate=false) {
         ctx.set('DAV', '1,2')
         ctx.set('MS-Author-Via', 'DAV')
-        ctx.set('Allow', 'PROPFIND,PROPPATCH,OPTIONS,DELETE,MOVE,LOCK,UNLOCK,MKCOL,PUT')
+        ctx.set('Allow', 'PROPFIND,OPTIONS,DELETE,MOVE,LOCK,UNLOCK,MKCOL,PUT')
         if (authenticate)
             ctx.set('WWW-Authenticate', `Basic realm="HFS WebDAV"`) // keep a dedicated realm for WebDAV so Windows credential cache is isolated from other basic-auth flows
     }
