@@ -25,7 +25,7 @@ import _ from 'lodash'
 const forceWebdavLogin = defineConfig<boolean|string, null|RegExp>(CFG.force_webdav_login, true, compileWebdavAgentRegex)
 const webdavInitialAuth = defineConfig<boolean|string, null|RegExp>(CFG.webdav_initial_auth, 'WebDAVFS', compileWebdavAgentRegex)
 const webdavPrompted = expiringCache<boolean>(DAY)
-const webdavDetectedAgents = new Set<string>()
+const webdavDetectedAgents = expiringCache<boolean>(DAY)
 
 const TOKEN_HEADER = 'lock-token'
 const WEBDAV_METHODS = new Set(['PROPFIND', 'MKCOL', 'MOVE', 'LOCK', 'UNLOCK'])
@@ -56,19 +56,17 @@ function hasToken(header: string, token: string) {
 
 export async function handledWebdav(ctx: Koa.Context) {
     let {path} = ctx
-    path = path.replace(/^\/+/, '/') // double-slash is causing empty listing in filezilla pro
+    path = path.replace(/^\/+/, '/') // double-slash is causing empty listing in filezilla-pro
 
-    const isWebdavAuthRequest = WEBDAV_METHODS.has(ctx.method) || WEBDAV_HINT_HEADERS.some(h => !!ctx.get(h))
     const ua = ctx.get('user-agent')
-    if (isWebdavAuthRequest && getCurrentUsername(ctx)) {
-        if (ua)
-            webdavDetectedAgents.add(ua)
-    }
-
     if (path.includes('/._') && ua?.startsWith('WebDAVFS')) {// too much spam from Finder for these files that can contain metas
         ctx.state.dontLog = true
         return ctx.status = HTTP_FORBIDDEN
     }
+    const isWebdavAuthRequest = WEBDAV_METHODS.has(ctx.method) || WEBDAV_HINT_HEADERS.some(h => ctx.get(h))
+    if (isWebdavAuthRequest && ua && getCurrentUsername(ctx))
+        webdavDetectedAgents.try(webdavAgentKey(ctx, ua), () => true)
+
     if (ctx.method === 'OPTIONS') {
         if (ctx.get('Access-Control-Request-Method')) return // it's a preflight cors request, not webdav
         setWebdavHeaders()
@@ -94,7 +92,7 @@ export async function handledWebdav(ctx: Koa.Context) {
         if (x && ctx.length === undefined) // missing length can make PUT fail
             ctx.req.headers['content-length'] = x
 
-        if (KNOWN_UA.test(ua) || webdavDetectedAgents.has(ua))
+        if (KNOWN_UA.test(ua) || webdavDetectedAgents.has(webdavAgentKey(ctx, ua)))
             ctx.query.existing ??= 'overwrite' // with webdav this is our default
         return // default handling
     }
@@ -315,6 +313,11 @@ export async function handledWebdav(ctx: Koa.Context) {
 
 function compileWebdavAgentRegex(v: boolean|string) {
     return !v ? null : v === true ? /.*/ : new RegExp(v.trim(), 'i')
+}
+
+function webdavAgentKey(ctx: Koa.Context, ua: string) {
+    // tying detection to source IP avoids promoting one spoofed UA to global WebDAV behavior
+    return `${ctx.ip}|${ua}`
 }
 
 // Finder will upload special attributes as files with name ._* that can be merged using system utility "dot_clean"
