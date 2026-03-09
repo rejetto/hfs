@@ -37,10 +37,11 @@ export default function VfsPathField({ value='', onChange, helperText, setApi, a
             helperText,
             onChange(event) {
                 const v = event.target.value
-                if (v.endsWith('/') || !v)
+                if (files || !v || v.endsWith('/'))
                     onChange(v, { was: value, event })
             },
             onBlur(event) {
+                // if the user specified a folder without the final slash, try to enforce it
                 const v = enforceFinal('/', event.target.value)
                 if (options.includes(v))
                     onChange(v, { was: value, event })

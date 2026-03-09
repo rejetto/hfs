@@ -41,7 +41,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
         async onClick() {
             await apiCall('set_config', { values: { [CFG.suspend_plugins]: !pause } })
             if (!pause) return
-            await wait(3000)
+            await wait(2000)
             setSortAgain(Date.now())
         }
     })
