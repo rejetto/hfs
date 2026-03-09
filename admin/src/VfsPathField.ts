@@ -1,4 +1,5 @@
-import { dirname, enforceFinal } from './misc'
+import { dirname, enforceFinal, join } from './misc'
+import _ from 'lodash'
 import { useApiList } from './api'
 import { createElement as h, useMemo } from 'react'
 import { Autocomplete, AutocompleteProps, TextField } from '@mui/material'
@@ -9,7 +10,7 @@ interface VfsPathFieldProps extends FieldProps<string> {
 }
 
 export default function VfsPathField({ value='', onChange, helperText, setApi, autocompleteProps, folders=true, files=true, ...props }: VfsPathFieldProps) {
-    const uri = dirname(value)
+    const uri = dirname(value.replace(/\/{2,}/g, '/'))
     const { list, loading } = useApiList('get_file_list', {
         uri,
         admin: true,
@@ -17,8 +18,9 @@ export default function VfsPathField({ value='', onChange, helperText, setApi, a
         onlyFolders: !files
     })
     const options = useMemo(() => {
-        const ret = [uri && (dirname(uri) + '/'), uri + '/'].filter(Boolean).concat(list.map(x => uri + '/' + x.n))
-        if (value && !ret.includes(value)) ret.push(value) // console warning otherwise
+        const ret = _.uniq([uri && (dirname(uri) + '/'), enforceFinal('/', uri)].filter(Boolean))
+            .concat(list.map(x => join(uri, x.n)))
+        if (value && !ret.includes(value)) ret.push(value) // allow re-selection of the same value without issuing a console warning
         return ret
     }, [list, uri])
     setApi?.({
