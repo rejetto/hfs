@@ -240,7 +240,7 @@ export async function handledWebdav(ctx: Koa.Context) {
         }
         ctx.type = 'xml'
         ctx.status = 207
-        const pathSlash = enforceFinal('/', path)
+        const outPath = enforceFinal('/', path.slice(Math.max(0, (ctx.state.root?.length ?? 0) - 1)), true)
         const res = ctx.body = new PassThrough({ encoding: 'utf8' })
         res.write(`<?xml version="1.0" encoding="utf-8" ?><multistatus xmlns="DAV:">`)
         await sendEntry(node)
@@ -259,7 +259,7 @@ export async function handledWebdav(ctx: Koa.Context) {
             const isDir = await nodeIsFolder(node)
             const st = await nodeStats(node)
             res.write(`<response>
-              <href>${pathSlash + (append ? pathEncode(name, true) + (isDir ? '/' : '') : '')}</href>
+              <href>${outPath + (append ? pathEncode(name, true) + (isDir ? '/' : '') : '')}</href>
               <propstat>
                 <status>HTTP/1.1 200 OK</status>
                 <prop>

@@ -11,7 +11,7 @@ import _ from 'lodash'
 export const roots = defineConfig(CFG.roots, {} as { [hostMask: string]: string }, map => {
     const list = Object.keys(map)
     const matchers = list.map(hostMask => makeMatcher(hostMask))
-    const values = Object.values(map).map(x => enforceFinal('/', enforceStarting('/', x)))
+    const values = Object.values(map).map(x => enforceFinal('/', enforceStarting('/', x.replace(/\/{2,}/g, '/'))))
     return (host: string) => values[matchers.findIndex(m => m(host))]
 })
 const forceAddress = defineConfig(CFG.force_address, false)
