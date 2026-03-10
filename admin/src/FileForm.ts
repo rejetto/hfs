@@ -183,7 +183,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
                     comp: SelectField, // uniqBy to avoid same icon (with different names), but it works only on array, so first step is to convert the object
                     options: _.map(_.uniqBy(_.map(SYS_ICONS, (v,k) => [k, v[0], v[1] ?? k] as const), x => x[2]), ([k, emoji]) =>
                         ({ value: k, label: h(Flex, { gap: '.5em' }, hIcon(k), hIcon(emoji), ' ', k) }) ), // show both font-icon and emoji versions
-                    helperText: "Second icon you see is the fallback"
+                    helperText: "The second icon is the fallback"
                 } : {
                     label: "Icon file", placeholder: "default", comp: FileField, fileMask: IMAGE_FILEMASK,
                 }

@@ -233,8 +233,6 @@ export function deleteVfs(uris: string[]) {
         const node = id2vfsNode.get(uri)!
         const siblings = node.parent!.children!
         _.remove(siblings, { id: node.id })
-        if (!siblings.length)
-            node.parent!.children = undefined
     }
     if (state.movingFile && topLevelUris.some(uri => state.movingFile === uri || isDescendantUri(state.movingFile, uri)))
         state.movingFile = ''
