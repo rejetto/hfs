@@ -46,13 +46,11 @@ if (DEV) {
     console.clear()
     process.env.DEBUG = 'acme-client'
 }
-else if (!argv.debug && !process.env.HFS_DEBUG) console.debug = ()=>{}
 console.log(`HFS ~ HTTP File Server`)
 console.log(`© Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt`)
 console.log('started', formatTimestamp(HFS_STARTED), DEV)
 console.log('version', VERSION||'-')
 console.log('build', BUILD_TIMESTAMP||'-')
-console.debug('arguments', argv)
 // still considering whether to use ".hfs" with Windows users, who may be less accustomed to it
 const dir = argv.cwd || useHomeDir() && join(homedir(), '.hfs')
 if (dir) {

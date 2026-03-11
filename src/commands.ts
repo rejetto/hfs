@@ -17,6 +17,8 @@ import apiMonitor from './api.monitor'
 import { argv } from './argv'
 import { getServerStatus } from './listen'
 
+let debugEnabled = argv.debug || process.env.HFS_DEBUG
+
 if (!argv.updating && !showHelp) {
     try {
         // Not sure if the try is necessary for when stdin is unavailable, but someone reported a problem using nohup https://github.com/rejetto/hfs/issues/74 and I've found this example try-catching https://github.com/DefinitelyTyped/DefinitelyTyped/blob/dda83a906914489e09ca28afea12948529015d4a/types/node/readline.d.ts#L489
@@ -27,7 +29,7 @@ if (!argv.updating && !showHelp) {
 
         let isClean = true
         const showPrompt = tty && _.debounce(() => {
-            if (quitting || !tty) return
+            if (quitting || !tty || !isClean) return
             prompter.prompt(true)
             isClean = false
         }, 100)
@@ -40,11 +42,12 @@ if (!argv.updating && !showHelp) {
 
         showPrompt?.()
         for (const k of ['log', 'warn', 'error', 'debug'] as const) {
-            const v = console[k]
+            const original = console[k]
             ;(console as any)[k] = (...args: any[]) =>  {
+                if (k === 'debug' && !debugEnabled) return
                 if (!quitting && tty)
                     clean()
-                try { v(...args) }
+                try { original(...args) }
                 finally {
                     showPrompt?.()
                 }
@@ -54,6 +57,8 @@ if (!argv.updating && !showHelp) {
     }
     catch {
         console.log("console commands not available")
+        const original = console.debug
+        console.debug = (...args: any[]) => debugEnabled && original(...args)
     }
 }
 
@@ -153,6 +158,13 @@ const commands = {
         params: '',
         cb() {
             console.log(VERSION, 'build', BUILD_TIMESTAMP)
+        }
+    },
+    debug: {
+        params: '',
+        cb() {
+            debugEnabled = !debugEnabled
+            console.log(`debug messages ${debugEnabled ? "on" : "off"}`)
         }
     },
     'start-plugin': {
