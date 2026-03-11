@@ -344,7 +344,7 @@ export async function* walkNode(parent: VfsNode, {
             const { source } = parent
             const taken = new Set()
             const maskApplier = parentMaskApplier(parent)
-            const visitLater: any = []
+            const visitLater: [VfsNode, string][] = []
             const childrenWorking = parent.children?.length && Promise.all(parent.children.map(async child => {
                 const nodeName = getNodeName(child)
                 const name = prefixPath + nodeName
@@ -370,6 +370,7 @@ export async function* walkNode(parent: VfsNode, {
                     && !masksCouldGivePermission(parent.masks, requiredPerm))
                     return
 
+                const pathMaskApplier = parentMaskApplier(parent, true)
                 try {
                     await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion }, async entry => {
                         if (ctx?.isAborted()) {
@@ -391,6 +392,8 @@ export async function* walkNode(parent: VfsNode, {
                             return false // false just in case it's a folder
 
                         const item: VfsNode = { name, isFolder, source: join(source, path), parent }
+                        // masks containing '/' must be matched against the relative path while keeping walkDir recursion enabled
+                        await pathMaskApplier(item, renamed || path)
                         if (await cantSee(item)) // can't see: don't produce and don't recur
                             return false
                         if (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
@@ -435,36 +438,48 @@ export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof V
         props[perm] || masksCouldGivePermission(props.masks, perm))
 }
 
-export function parentMaskApplier(parent: VfsNode) {
+export function parentMaskApplier(parent: VfsNode, pathBased=false) {
     // rules are met in the parent.masks object from nearest to farthest, but since we finally apply with _.defaults, the nearest has precedence in the final result
-    const matchers = onlyTruthy(_.map(parent.masks, (mods, k) => {
+    const matchers = onlyTruthy(_.map(parent.masks, (mods, mask) => {
         if (!mods) return
         const mustBeFolder = (() => { // undefined if no restriction is requested
-            if (k.at(-1) !== '|') return // parse special flag syntax as suffix |FLAG| inside the key. This allows specifying different flags with the same mask using separate keys. To avoid syntax conflicts with the rest of the file-mask, we look for an ending pipe, as it has no practical use. Ending-pipe was preferred over starting-pipe to leave the rest of the logic (inheritMasks) untouched.
-            const i = k.lastIndexOf('|', k.length - 2)
+            if (mask.at(-1) !== '|') return // parse special flag syntax as suffix |FLAG| inside the key. This allows specifying different flags with the same mask using separate keys. To avoid syntax conflicts with the rest of the file-mask, we look for an ending pipe, as it has no practical use. Ending-pipe was preferred over starting-pipe to leave the rest of the logic (inheritMasks) untouched.
+            const i = mask.lastIndexOf('|', mask.length - 2)
             if (i < 0) return
-            const type = k.slice(i + 1, -1)
-            k = k.slice(0, i) // remove
+            const type = mask.slice(i + 1, -1)
+            mask = mask.slice(0, i) // remove
             return type === 'folders'
         })()
-        const m = /^(!?)\*\*\//.exec(k) // ** globstar matches also zero subfolders, so this mask must be applied here too
-        k = m ? m[1] + k.slice(m[0].length) : !k.includes('/') ? k : ''
-        return k && { mods, matcher: makeMatcher(k), mustBeFolder }
+        if (pathBased) {
+            if (!mask.includes('/')) return
+            // avoid evaluating twice masks like **/*.png because parentMaskApplier already handles them by basename
+            const m = /^(!?)\*\*\//.exec(mask)
+            // this keeps the fast basename path as source-of-truth for patterns that collapse to a filename after **/
+            if (m && !mask.slice(m[0].length).includes('/')) return
+        }
+        else {
+            const m = /^(!?)\*\*\//.exec(mask) // ** globstar matches also zero subfolders, so this mask must be applied here too
+            mask = m ? m[1] + mask.slice(m[0].length) : !mask.includes('/') ? mask : ''
+            if (!mask) return
+        }
+        return mask && { matcher: makeMatcher(mask), mods, mustBeFolder }
     }))
-    return async (item: VfsNode, virtualBasename=basename(getNodeName(item))) => { // we basename for depth>0
+    return async (item: VfsNode, virtualName=(pathBased ? _.identity : basename)(getNodeName(item))!) => {
+        // depth traversal passes full relative paths, while node traversal still matches only basenames
         let isFolder: boolean | undefined = undefined
         for (const { matcher, mods, mustBeFolder } of matchers) {
             if (mustBeFolder !== undefined) {
                 isFolder ??= nodeIsFolder(item)
                 if (mustBeFolder !== isFolder) continue
             }
-            if (!matcher(virtualBasename)) continue
+            if (!matcher(virtualName)) continue
             item.masks &&= _.merge(_.cloneDeep(mods.masks), item.masks) // item.masks must take precedence
             _.defaults(item, mods)
         }
     }
 }
 
+// propagates masks, don't apply
 function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename=getNodeName(item)) {
     const { masks } = parent
     if (!masks) return

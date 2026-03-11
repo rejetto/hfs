@@ -104,6 +104,44 @@ vfs:
             - name: mid
               children:
                 - source: ../alfa.txt
+    - name: cantSearchForMasksDeep
+      source: ..
+      can_see:
+        this: false
+      rename:
+        alfa.txt: gpl-visible.png
+      masks:
+        page/gpl.png:
+          can_see: false
+    - name: maskOverlap
+      source: ..
+      can_see:
+        this: false
+      rename:
+        alfa.txt: gpl-visible.png
+      masks:
+        "*.png":
+          can_see: true
+          can_read: false
+        page/gpl.png:
+          can_see: false
+    - name: maskOnRenamedPath
+      source: ..
+      can_see:
+        this: false
+      rename:
+        page/gpl.png: renamed-gpl.png
+      masks:
+        page/renamed*:
+          can_see: false
+      children:
+        - name: nested
+          source: ..
+          rename:
+            page/gpl.png: renamed-gpl-nested.png
+          masks:
+            page/renamed*:
+              can_see: false
     - name: cantReadBut
       source: ..
       can_read: false
