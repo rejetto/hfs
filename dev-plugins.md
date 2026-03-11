@@ -145,7 +145,8 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
 - `beforePlugin: string` control the order this plugin is executed relative to another
 - `afterPlugin: string` control the order this plugin is executed relative to another
 - `repo: string | object` pointer to a GitHub repo where this plugin is hosted. *[STATIC JSON]*
-    - the string form is for GitHub repos. Example: "rejetto/file-icons"
+    - the string form is for GitHub repos. This is optional, as HFS will automatically set this at installation time.
+      Example: "rejetto/file-icons"
     - the object form will point to other custom repo. Object properties:
         - `web: string` link to a web page
         - `main: string` link to the plugin.js (can be relative to `web`)
