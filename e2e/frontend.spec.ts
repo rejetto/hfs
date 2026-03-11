@@ -306,8 +306,6 @@ test('anew', async ({ page, browserName }) => {
     await adminPage.getByRole('menuitem', { name: 'virtual folder' }).click()
     await adminPage.getByRole('textbox').fill('folder1')
     await adminPage.getByRole('textbox').press('Enter')
-    await adminPage.getByRole('dialog').locator('div').nth(1).click()
-    await adminPage.locator('.MuiDialog-container').press('Escape')
     await adminPage.locator('#vfs').click()
     await adminPage.getByText('folder1', { exact: true }).click()
     await clickIconBtn('Cut', adminPage)

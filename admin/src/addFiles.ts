@@ -43,7 +43,7 @@ function addNodes(parent: VfsNodeAdmin, nodes: VfsNodeAdmin[]) {
     }
     prepareVfsUndo()
     addToChildrenOf(parent, nodes)
-    reindexVfs({ select: nodes })
+    reindexVfs({ select: nodes, sortChildren: true })
 }
 
 function getFreeName(parent: VfsNodeAdmin, name: string) {
@@ -73,7 +73,6 @@ export async function addVirtual() {
         name = getFreeName(parent, name)
         if (!name) return
         addNodes(parent, [{ name, id: '', type: 'folder' }])
-        toast(`Folder "${name}" created`, 'success') // the name may have a number appended
     }
     catch(e) {
         await alertDialog(e as Error)
