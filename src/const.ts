@@ -12,6 +12,20 @@ export * from './cross-const'
 export const API_VERSION = 13
 export const COMPATIBLE_API_VERSION = 1 // the day we break with the past, we'll update this
 
+// you can add arguments with this file, currently used for the update process on mac/linux.
+// we are using homedir because it's the only stable path both the old and new process can agree on (open() doesn't preserve cwd)
+export const ARGS_FILE = join(homedir(), 'hfs-args')
+try {
+    const s = fs.readFileSync(ARGS_FILE, 'utf-8')
+    console.log('additional arguments', s)
+    _.defaults(argv, minimist(JSON.parse(s)))
+    fs.unlinkSync(ARGS_FILE)
+}
+catch(e: any) {
+    if (e?.code !== 'ENOENT')
+        console.error(ARGS_FILE, String(e))
+}
+
 export const DEV = process.env.DEV ? 'DEV' : ''
 export const ORIGINAL_CWD = process.cwd()
 export const HFS_STARTED = new Date()
