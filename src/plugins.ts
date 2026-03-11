@@ -174,13 +174,6 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>
     return pl
 }
 
-const already = new Set()
-function warnOnce(msg: string) {
-    if (already.has(msg)) return
-    already.add(msg)
-    console.log('Warning: ' + msg)
-}
-
 export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
     const after: Dict<CallMeAfter> = {}
     // run middleware plugins
