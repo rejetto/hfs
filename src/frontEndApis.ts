@@ -138,12 +138,17 @@ export const frontEndApis: ApiHandlers = {
             return new ApiError(ctx.status)
         let bytes = 0
         let files = 0
-        for await (const n of walkNode(folder, { ctx, onlyFiles: true, depth: Infinity })) {
-            bytes += await nodeStats(n).then(x => x?.size || 0, () => 0)
-            files++
-            partialFolderSize[id] = { bytes, files }
+        let folders = 0
+        for await (const n of walkNode(folder, { ctx, depth: Infinity })) {
+            if (n.isFolder)
+                folders++
+            else {
+                bytes += await nodeStats(n).then(x => x?.size || 0, () => 0)
+                files++
+            }
+            partialFolderSize[id] = { bytes, files, folders }
         }
-        return popKey(partialFolderSize, id) || { bytes, files }
+        return popKey(partialFolderSize, id) || { bytes, files, folders }
     },
 }
 
