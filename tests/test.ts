@@ -115,6 +115,7 @@ describe('basics', () => {
     test('cantListBut.parent', reqList('/', { permInList: { 'cantListBut/': 'l' } }))
     test('cantListBut.child masked', reqList('/cantListBut/page', 200))
     test('cantSearchForMasks', reqList('/', { outList: ['cantSearchForMasks/page/gpl.png'] }, { search: 'gpl' }))
+    test('onlyFiles.deep', reqList('/onlyFilesDeep', { outList: ['top/mid/'] }, { onlyFiles: true, search: 'mid' }))
     test('cantReadBut', reqList('/cantReadBut/', 403))
     test('cantReadBut.can', req('/cantReadBut/alfa.txt', 200))
     test('cantReadBut.parent', reqList('/', { permInList: { 'cantReadBut/': '!r' } }))
