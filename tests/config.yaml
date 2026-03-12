@@ -95,6 +95,15 @@ vfs:
       can_archive: true
     - name: cantSearchForMasks
       source: ..
+    - name: onlyFilesDeep
+      can_see:
+        this: false
+      children:
+        - name: top
+          children:
+            - name: mid
+              children:
+                - source: ../alfa.txt
     - name: cantReadBut
       source: ..
       can_read: false

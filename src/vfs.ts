@@ -406,7 +406,7 @@ export async function* walkNode(parent: VfsNode, {
             finally {
                 await childrenWorking
                 for (const [item, name] of visitLater)
-                    for await (const x of walkNode(item, { depth: depth - 1, prefixPath: name + '/', ctx, requiredPerm, onlyFolders, parallelizeRecursion }))
+                    for await (const x of walkNode(item, { depth: depth - 1, prefixPath: name + '/', ctx, requiredPerm, onlyFolders, onlyFiles, parallelizeRecursion }))
                         stream.push(x)
                 stream.push(null)
             }
