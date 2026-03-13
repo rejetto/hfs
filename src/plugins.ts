@@ -179,6 +179,11 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
     // run middleware plugins
     let lastStatus = ctx.status
     let lastBody = ctx.body
+    const res = await events.emitAsync('request', { ctx })
+    if (ctx.isAborted() || res?.isDefaultPrevented())
+        return
+    if (res?.length)
+        after['/event'] = () => res.forEach(callable)
     await Promise.all(mapPlugins(async (pl, id) => {
         try {
             const res = await pl.middleware?.(ctx)

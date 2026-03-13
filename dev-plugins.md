@@ -834,6 +834,11 @@ This section is still partially documented, and you may need to have a look at t
     - `who: Who` is like `node[perm]`, that is the configured permission on the node, 
       but without references to other permissions or the object form, as they have already been translated
   - return: an http error as number >= 400, or 0 or undefined
+- `request` called for every incoming HTTP request, as an alternative to plugin `middleware` callbacks
+  - parameters: { ctx }
+  - async supported
+  - preventable
+  - return: callback(s) to run after request handling is completed, similar to `middleware` upstream
 
 # Notifications (backend-to-frontend events)
 
@@ -1178,4 +1183,4 @@ If you want to override a text regardless of the language, use the special langu
 - 12.97 (v0.57.28)
   - HFS.customizeText 
 - 13 (v3.1.0)
-  - backend event: dirEntry 
+  - backend events: dirEntry, request
