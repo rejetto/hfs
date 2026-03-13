@@ -262,7 +262,7 @@ test('admin1', async ({ page }) => {
     await screenshot(page)
     await page.getByRole('main').click()
     await clickAdminMenu(page, 'Internet')
-    await expect(page.getByText('Server')).toBeVisible({ timeout: 10000 }) // wait for data (get_nat can be very slow)
+    await expect(page.getByText('Server')).toBeVisible({ timeout: 15000 }) // wait for data (get_nat can be very slow)
     await page.mouse.click(1, 1) // avoid focus inconsistencies
     await screenshot(page)
     await clickAdminMenu(page, 'Logout')

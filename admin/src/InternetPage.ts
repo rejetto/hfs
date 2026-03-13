@@ -38,7 +38,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     const localColor = with_([status.data?.http?.error, status.data?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
     const nat = useApiEx<typeof adminApis.get_nat>('get_nat', {}, { timeout: 20 })
-    const { data: publicIps } = useApiEx<typeof adminApis.get_public_ips>('get_public_ips')
+    const { data: publicIps } = useApiEx<typeof adminApis.get_public_ips>('get_public_ips', { timeout: 20 })
     const { data } = nat
     const port = data?.internalPort
     const wrongMap = data?.mapped && data.mapped.private.port !== port && data.mapped.private.port
