@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { access, mkdir, readFile, stat } from 'fs/promises'
+import { access, chmod, mkdir, readFile, stat } from 'fs/promises'
 import { Promisable, try_, wait, isWindowsDrive, haveTimeout } from './cross'
 import { defineConfig } from './config'
 import { createWriteStream, mkdirSync, watch, ftruncate } from 'fs'
@@ -94,7 +94,7 @@ export function escapeGlobPath(path: string) {
 export async function unzip(stream: Readable, cb: (path: string) => Promisable<false | string>) {
     let chain: Promise<any> = Promise.resolve()
     return new Promise((resolve, reject) =>
-        stream.pipe(unzipper.Parse())
+        stream.pipe(unzipper.Extract())
             .on('end', () => chain.then(resolve))
             .on('error', reject)
             .on('entry', (entry: any) =>
@@ -107,6 +107,10 @@ export async function unzip(stream: Readable, cb: (path: string) => Promisable<f
                     const thisFile = entry.pipe(await createSafeWriteStream(dest))
                     await once(thisFile, 'finish')
                 }) )
+            .on('entryInCentral', (entry: any) => {
+                if (entry.unixAttrs)
+                    chmod(entry.path, entry.unixAttrs)
+            })
     )
 }
 
