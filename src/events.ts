@@ -65,6 +65,7 @@ export class BetterEventEmitter {
         const output: any[] = []
         let prevented = false
         const extra = {
+            event,
             output,
             preventDefault() { prevented = true }
         }

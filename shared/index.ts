@@ -2,7 +2,10 @@
 
 import _ from 'lodash'
 import { apiCall } from './api'
-import { DAY, Dict, formatBytes, HOUR, MINUTE, objFromKeys, objSameKeys, typedEntries, wantArray } from '../src/cross'
+import {
+    DAY, Dict, formatBytes, HOUR, MINUTE, objFromKeys, objSameKeys, typedEntries, wantArray, stringBefore,
+    PLUGINS_PUB_URI
+} from '../src/cross'
 export * from './react'
 export * from './dialogs'
 export * from './md'
@@ -27,7 +30,8 @@ export const urlParams = Object.fromEntries(new URLSearchParams(window.location.
 
 const HFS = getHFS()
 Object.assign(HFS, {
-    getPluginKey: () => getScriptAttr('plugin'),
+    getPluginKey: (quiet=false) =>
+        getScriptAttr('plugin') ?? detectPluginId() ?? (quiet ? undefined : console.error("this function must be called synchronously during initial script evaluation")),
     getPluginPublic: () => getScriptAttr('src')?.match(/^.*\//)?.[0],
     getPluginConfig: () => HFS.plugins[HFS.getPluginKey()] || {},
     loadScript: (uri: string) => loadScript(uri.includes('//') || uri.startsWith('/') ? uri : HFS.getPluginPublic() + uri),
@@ -37,6 +41,10 @@ Object.assign(HFS, {
     urlParams,
 })
 formatBytes.k = HFS.kb
+
+function detectPluginId() {
+    return stringBefore('/', Error().stack?.split(PLUGINS_PUB_URI)[1] || '') // generically search for the url – tested on recent versions of chrome, safari, firefox, edge
+}
 
 export const IMAGE_FILEMASK = '*.jpg|*.jpeg|*.png|*.gif|*.svg'
 
@@ -48,7 +56,6 @@ if (import.meta.env.PROD) {
 
 function getScriptAttr(k: string) {
     return document.currentScript?.getAttribute(k)
-        || console.error("this function must be called at the very top of your file")
 }
 
 export function buildUrlQueryString(params: Dict) { // not using URLSearchParams.toString as it doesn't work on firefox50

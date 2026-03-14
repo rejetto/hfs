@@ -58,7 +58,7 @@ function installScript() {
     const el = document.createElement('script')
     el.type = 'text/javascript'
     el.text = s
-    el.id = 'customHtmlScript'
+    el.setAttribute('plugin', el.id = '?customHtmlScript')
     document.head.appendChild(el)
 }
 
