@@ -13,7 +13,7 @@ import {
 import {
     NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, Country,
     hTooltip, Btn, wikiLink
-} from './mui';
+} from './mui'
 import _ from 'lodash'
 import {
     AutoDelete, LinkOff, ClearAll, Delete, Download, Settings, SmartToy, Terminal, ContentCopy
@@ -21,7 +21,7 @@ import {
 import { ConfigForm } from './ConfigForm'
 import { BoolField, SelectField } from '@hfs/mui-grid-form'
 import { toast, useDialogBarColors } from './dialog'
-import { BlockIpBtn } from './blockIp';
+import { BlockIpBtn } from './blockIp'
 import { ALL as COUNTRIES } from './countries'
 
 const logLabels = {
@@ -160,7 +160,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
         headerName: "Timestamp",
         type: 'dateTime',
         width: 96,
-        valueGetter: ({ value }) => new Date(value as string),
+        valueGetter: (value) => new Date(value as string),
         renderCell: ({ value }) => h(Fragment, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
     }
     const ipColumn: DataTableColumn = {
@@ -236,7 +236,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 field: 'msg',
                 headerName: "Message",
                 flex: 1,
-                mergeRender: { k: { override: { valueFormatter: ({ value }) => value !== 'log' && value } } }
+                mergeRender: { k: { override: { valueFormatter: (value) => value !== 'log' && value } } }
             }
         ] : isIps || file === 'disconnections' ? [
             tsColumn,
@@ -246,7 +246,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 field: 'country',
                 flex: 1,
                 hideUnder: !showCountry || 'md',
-                valueGetter: ({ value }) => _.find(COUNTRIES, { code: value })?.name || value,
+                valueGetter: (value) => _.find(COUNTRIES, { code: value })?.name || value,
                 renderCell: ({ row }) => h(Country, { code: row.country, long: true, def: '-' }),
             },
             !isIps && {
@@ -259,7 +259,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             {
                 headerName: "Country",
                 field: 'country',
-                valueGetter: ({ row }) => row.extra?.country,
+                valueGetter: (_value: any, row: any) => row.extra?.country,
                 hideUnder: !showCountry || 'xl',
                 renderCell: ({ value }) => h(Country, { code: value, def: '-' }),
             },
@@ -284,21 +284,21 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 width: 70,
                 hideUnder: 'xl',
                 renderCell: ({ value }) => hTooltip(prefix(value + ' - ', httpCodes[value]) || "Unknown", undefined,
-                    h(Box, { bgcolor: '#888a', color: '#fff', borderRadius: '.3em', p: '.05em .2em' }, value))
+                    h(Box, { bgcolor: '#888a', color: '#fff', borderRadius: '.3em', p: '.05em .3em', lineHeight: '1.2em' }, value))
             },
             {
                 field: 'length',
                 headerName: "Size",
                 type: 'number',
                 hideUnder: 'md',
-                valueFormatter: ({ value }) => formatBytes(value as number)
+                valueFormatter: (value) => formatBytes(value as number)
             },
             {
                 headerName: "Agent",
                 field: 'ua',
                 width: 60,
                 hideUnder: !showAgent || 'md',
-                valueGetter: ({ row }) => row.extra?.ua,
+                valueGetter: (_value: any, row: any) => row.extra?.ua,
                 renderCell: ({ value }) => agentIcons(value),
             },
             {
@@ -322,7 +322,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                     if (_.isArray(ul))
                         return path + ul.join(' + ')
                     if (!path.startsWith(API_URL))
-                        return [path, query && h(Box, { key: 0, component: 'span', color: 'text.secondary', fontSize: 'smaller' }, '?', query)]
+                        return [path, query && h(Box as any, { key: 0, component: 'span', color: 'text.secondary', fontSize: 'smaller' }, '?', query)]
                     const name = path.slice(API_URL.length)
                     const params = query && ': ' + Array.from(new URLSearchParams(query)).map(x => `${x[0]}=${tryJson(x[1]) ?? x[1]}`).join(' ; ')
                     return "API " + name + params
@@ -330,7 +330,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             },
             {
                 field: 'agentText',
-                valueGetter: ({ row }) => row.extra?.ua,
+                valueGetter: (_value: any, row: any) => row.extra?.ua,
                 headerName: "Agent text",
                 flex: 2,
                 hideUnder: true,

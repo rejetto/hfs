@@ -101,7 +101,7 @@ function Routed() {
             })),
         h(Box, { display: 'flex', flex: 1, }, // horizontal layout for menu-content
             sideMenu && h(MainMenu, { itemTitle, onSelect(){} }),
-            h(Box, {
+            h(Box as any, {
                 component: 'main',
                 sx: {
                     background: 'url(cup.svg) no-repeat right fixed',
@@ -156,7 +156,7 @@ function StickyBar({ title, titleSide, openMenu, props }: { props?: BoxProps, ti
                     '& .MuiAlert-message': { py: '1px' }
                 }
             },
-                h(Box, { component: 'h2', m: 0, whiteSpace: 'nowrap' }, title),
+                h(Box as any, { component: 'h2', m: 0, whiteSpace: 'nowrap' }, title),
                 titleSide
             ),
         )

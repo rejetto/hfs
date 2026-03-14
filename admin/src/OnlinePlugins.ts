@@ -53,7 +53,7 @@ export default function OnlinePlugins() {
                 {
                     field: 'pushed_at',
                     headerName: "last update",
-                    valueGetter: ({ value }) => new Date(value).toLocaleDateString(),
+                    valueGetter: (value) => new Date(value).toLocaleDateString(),
                 },
                 {
                     field: 'license',

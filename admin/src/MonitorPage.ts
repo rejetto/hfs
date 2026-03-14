@@ -189,7 +189,7 @@ function Connections() {
                             type: 'dateTime',
                             width: 96,
                             hideUnder: 'lg',
-                            valueFormatter: ({ value }) => new Date(value as string).toLocaleTimeString()
+                            valueFormatter: (value) => new Date(value as string).toLocaleTimeString()
                         },
                         {
                             field: 'path',
@@ -197,17 +197,19 @@ function Connections() {
                             flex: 1.5,
                             renderCell({ value, row }) {
                                 if (!value || !row.op) return
+                                const rowContentSx = { display: 'flex', alignItems: 'center', height: '100%', minWidth: 0, gap: 1 } as const
                                 if (row.op === 'browsing')
-                                    return h(Box, {}, value, h(Box, { fontSize: 'x-small' }, "browsing"))
-                                return h(Fragment, {},
+                                    return h(Box, { sx: rowContentSx }, h(Box, {}, value, h(Box, { fontSize: 'x-small' }, "browsing")))
+                                // keep icon and filename on the same row: datagrid v7 wraps cell content differently than before
+                                return h(Box, { sx: rowContentSx },
                                     h(IconProgress, {
                                         icon: row.archive ? FolderZip : row.op === 'upload' ? Upload : Download,
                                         progress: row.opProgress ?? row.opOffset,
                                         offset: row.opOffset,
                                         title: md(formatPerc(row.opProgress) + (row.opTotal ? "\nTotal: " + formatBytes(row.opTotal) : '')),
-                                        sx: { mr: 1 }
                                     }),
-                                    row.archive ? h(Box, {}, value, h(Box, {
+                                    // clamp line-height locally so this cell doesn't inherit tall line metrics from datagrid wrappers
+                                    h(Box, { lineHeight: '1.2em', minWidth: 0 }, row.archive ? h(Box, {}, value, h(Box, {
                                             fontSize: 'x-small',
                                             color: 'text.secondary'
                                         }, row.archive))
@@ -216,7 +218,7 @@ function Connections() {
                                                 fontSize: 'x-small',
                                                 color: 'text.secondary'
                                             }, value.slice(0, i))
-                                        )),
+                                        ))),
                                 )
                             }
                         },

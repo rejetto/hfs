@@ -1,5 +1,6 @@
-import { DataGrid, DataGridProps, enUS, getGridStringOperators, GridColDef, GridFooter, GridFooterContainer,
+import { DataGrid, DataGridProps, getGridStringOperators, GridColDef, GridFooter, GridFooterContainer,
     GridValidRowModel, useGridApiRef, GridRenderCellParams } from '@mui/x-data-grid'
+import { enUS } from '@mui/x-data-grid/locales'
 import { Alert, Box, BoxProps, Breakpoint, LinearProgress, useTheme } from '@mui/material'
 import { createElement as h, Fragment, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { callable, Callback, Falsy, newDialog, onlyTruthy, useGetSize } from '@hfs/shared'
@@ -52,10 +53,6 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                             const res = op.getApplyFilterFn(item, col)
                             return res && _.negate(res)
                         },
-                        ...op.getApplyFilterFnV7 && { getApplyFilterFnV7(item, col) {
-                            const res = op.getApplyFilterFnV7?.(item, col)
-                            return res ? _.negate(res) : null
-                        } },
                         label: "(not) " + (localeText['filterOperator' + _.upperFirst(op.value)] || op.value)
                     } satisfies typeof op
                 ])
@@ -66,13 +63,14 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                 originalRenderCell: col.renderCell || true,
                 renderCell(params: GridRenderCellParams) {
                     const { columns } = params.api.store.getSnapshot()
-                    return h(Box, { maxHeight: '100%', ...col.cellInnerProps, sx: { textWrap: 'wrap', ...callable(sx as any, params) } }, // wrap if necessary, but stay within the row
+                    return h(Box, { maxHeight: '100%', ...col.cellInnerProps, sx: { textWrap: 'wrap', lineHeight: '1.2em', ...callable(sx as any, params) } }, // wrap if necessary, but stay within the row
                         col.renderCell ? col.renderCell(params) : params.formattedValue,
                         col.mergeRender && h(Flex, { fontSize: 'smaller', flexWrap: 'wrap', mt: '1px', rowGap: 0, ...col.mergeRenderSx }, // wrap, normally causing overflow/hiding, if it doesn't fit
                             ...onlyTruthy(_.map(col.mergeRender, (props, other) => {
                                 if (!props || columns.columnVisibilityModel[other] !== false) return null
                                 const rendered = renderCell({ ...columns.lookup[other], ...props.override }, params.row)
-                                return rendered && h(Box, { ...props, ...{ override: undefined }, ...compact && { lineHeight: '1em' } }, rendered)
+                                // keep mergeRender permissive for editor autocomplete, then narrow only at the render boundary
+                                return rendered && h(Box as any, { ...props, ...{ override: undefined }, ...compact && { lineHeight: '1em' } }, rendered)
                             }))
                         )
                     )
@@ -152,10 +150,9 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             },
             slots: {
                 noRowsOverlay: () => initializing ? null : h(Center, {}, noRows || "No entries"),
-                footer: CustomFooter,
+                footer: () => h(CustomFooter, { add: wrappedFooterSide }),
             },
             slotProps: {
-                footer: { add: wrappedFooterSide } as any, // 'add' is introduced by CustomFooter
                 pagination: {
                     labelRowsPerPage: "Rows",
                     ...!causingScrolling && {
@@ -217,11 +214,12 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
     function renderCell(col: GridColDef, row: any) {
         const api = apiRef.current
         let value = row[col.field]
-        if (col.valueGetter)
-            value = col.valueGetter({ value, api, row, field: col.field, id: row.id } as any)
+        if (col.valueGetter) // @ts-ignore
+            value = col.valueGetter(value, row, col, api)
         const render = (col as any).originalRenderCell || col.renderCell
         return render && render !== true ? render({ value, row, api, ...row })
-            : col.valueFormatter ? col.valueFormatter({ value, ...row })
+            // @ts-ignore
+            : col.valueFormatter ? col.valueFormatter(value, row, col, api)
                 : value
     }
 }
