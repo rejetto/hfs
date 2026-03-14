@@ -14,6 +14,7 @@ export default function FileField({ value, onChange, files=true, folders=false, 
         ...props,
         value,
         onChange,
+        size: 'small',
         wrap: true,
         end: h(IconBtn, {
             icon: Eject,

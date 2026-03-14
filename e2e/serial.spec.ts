@@ -12,52 +12,54 @@ export const fileToUpload = {
 
 test('upload1', async ({ page, context, browserName }) => {
     if (browserName !== 'chromium') return // only chromium has cdpSession
-    await page.goto(URL);
-    await page.getByRole('button', { name: 'Login' }).click();
-    await page.getByRole('textbox', { name: 'Username' }).fill(username);
-    await page.getByRole('textbox', { name: 'Password' }).fill(password);
-    await page.getByRole('button', { name: 'Continue' }).click();
-    await page.locator('div').filter({ hasText: 'Logged in' }).nth(3).click();
+    await page.goto(URL)
+    await page.getByRole('button', { name: 'Login' }).click()
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.locator('div').filter({ hasText: 'Logged in' }).nth(3).click()
 
-    await page.getByRole('link', { name: 'for-admins, Folder' }).click();
-    await page.getByRole('link', { name: 'upload, Folder' }).click();
+    await page.getByRole('link', { name: 'for-admins, Folder' }).click()
+    await page.getByRole('link', { name: 'upload, Folder' }).click()
 
-    await page.getByRole('button', { name: 'Options' }).click();
-    const pageAdminPromise = page.waitForEvent('popup');
-    await page.getByRole('button', { name: 'Admin-panel' }).click();
-    const pageAdmin = await pageAdminPromise;
+    await page.getByRole('button', { name: 'Options' }).click()
+    const pageAdminPromise = page.waitForEvent('popup')
+    await page.getByRole('button', { name: 'Admin-panel' }).click()
+    const pageAdmin = await pageAdminPromise
     await pageAdmin.goto(URL + '~/admin/#/monitoring'); // cross-device way of changing page
-    await page.locator('div').filter({ hasText: 'xOptionsAdmin-panelSort by:' }).nth(2).click();
-    await page.getByRole('button', { name: 'Close' }).click();
-    await page.getByRole('button', { name: 'Upload' }).click();
-    const fileChooserPromise = page.waitForEvent('filechooser');
-    await page.getByRole('button', { name: 'Pick files' }).click();
-    const fileChooser = await fileChooserPromise;
-    await fileChooser.setFiles(fileToUpload);
+    await page.locator('div').filter({ hasText: 'xOptionsAdmin-panelSort by:' }).nth(2).click()
+    await page.getByRole('button', { name: 'Close' }).click()
+    await page.getByRole('button', { name: 'Upload' }).click()
+    const fileChooserPromise = page.waitForEvent('filechooser')
+    await page.getByRole('button', { name: 'Pick files' }).click()
+    const fileChooser = await fileChooserPromise
+    await fileChooser.setFiles(fileToUpload)
     // can't do without. I tried using route.continue, but i can't send half-body keeping the full content-length, and i also cannot pass a stream (to throttle)
     const cdpSession = await context.newCDPSession(page)
     await cdpSession.send('Network.emulateNetworkConditions', NETWORK_PRESETS.Regular2G)
-    await page.getByRole('button', { name: 'Edit' }).click();
+    await page.getByRole('button', { name: 'Edit' }).click()
     const renameDialog = page.locator('.dialog-prompt')
     const renameInput = renameDialog.getByRole('textbox')
     await expect(renameInput).toHaveValue(fileToUpload.name) // promptDialog initializes the field value in useEffect, so we wait for that init to avoid our fill being overwritten
-    await renameInput.fill(uploadName);
-    await renameDialog.getByRole('button', { name: 'Continue' }).click();
+    await renameInput.fill(uploadName)
+    await renameDialog.getByRole('button', { name: 'Continue' }).click()
     await expect(page.getByText(uploadName)).toBeVisible() // rename was effective
-    await page.getByRole('button', { name: 'Send 1 file' }).click();
-    const uploadCells = pageAdmin.getByRole('cell', { name: `${uploadName} /for-admins/upload` })
+    await page.getByRole('button', { name: 'Send 1 file' }).click()
+    const uploadCells = pageAdmin.locator('.MuiDataGrid-cell')
+        .filter({ hasText: uploadName })
+        .filter({ hasText: '/for-admins/upload' })
     await expect(uploadCells.first()).toBeVisible()
     // during upload resume, monitoring can briefly show two rows for the same path
     await uploadCells.last().click()
     await clickIconBtn('Disconnect', pageAdmin)
     await clickIconBtn('Close', pageAdmin)
     await pageAdmin.close()
-    await page.getByText('Copy links').click();
-    await page.getByText('Operation successful').click();
-    await page.getByRole('button', { name: 'Close' }).click();
+    await page.getByText('Copy links').click()
+    await page.getByText('Operation successful').click()
+    await page.getByRole('button', { name: 'Close' }).click()
     await cdpSession?.send('Network.emulateNetworkConditions', NETWORK_PRESETS.NoThrottle)
     clearUploads()
-});
+})
 
 const NETWORK_PRESETS = {
     Offline: {
@@ -80,7 +82,7 @@ const NETWORK_PRESETS = {
         latency: 300,
         connectionType: 'cellular2g',
     },
-} as const;
+} as const
 
 // some interactions, no screenshots
 test('admin2', async ({ page }) => {

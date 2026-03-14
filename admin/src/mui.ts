@@ -8,14 +8,13 @@ import {
     ForwardedRef, useState, useMemo, isValidElement, ElementType
 } from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
-    Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
+    Tooltip, TooltipProps, useMediaQuery, Button } from '@mui/material'
 import {
     anyDialogOpen, closeDialog, formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL, with_, Functionable, callable
 } from './misc'
 import { dontBotherWithKeys, restartAnimation, useBatch, useStateMounted } from '@hfs/shared'
 import { Promisable, StringField } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
-import { LoadingButton } from '@mui/lab'
 import { Link as RouterLink, LinkProps as RouterLinkProps, useNavigate } from 'react-router-dom'
 import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
 import _ from 'lodash'
@@ -68,15 +67,15 @@ export function IconProgress({ icon, progress, offset, title, sx }: IconProgress
                 value: (offset || 1e-7) * 100,
                 variant: 'determinate',
                 size: 32,
-                sx: { display: 'flex', ...sx }, // workaround: without this the element has 0 width when the space is crammy (monitor/file)
+                sx: _.defaults(sx as any, { display: 'flex' }) as any, // workaround: without this the element has 0 width when the space is crammy (monitor/file)
             }),
         )
     )
 }
 
-type FlexProps = SxProps & { vert?: boolean, center?: boolean, children?: ReactNode, props?: BoxProps, component?: ElementType }
+type FlexProps = { vert?: boolean, center?: boolean, children?: ReactNode, props?: BoxProps, component?: ElementType } & Record<string, any>
 export function Flex({ vert=false, center=false, children=null, props={}, component, ...rest }: FlexProps) {
-    return h(Box, {
+    return h(Box as any, {
         sx: {
             display: 'flex',
             gap: '.8em',
@@ -84,7 +83,7 @@ export function Flex({ vert=false, center=false, children=null, props={}, compon
             alignItems: vert ? undefined : 'center',
             ...center && { justifyContent: 'center' },
             ...rest,
-        },
+        } as any,
         component,
         ...props
     }, children)
@@ -140,7 +139,7 @@ export interface BtnProps extends Omit<ButtonProps & IconButtonProps,'disabled'|
     doneAnimation?: boolean
     tooltipProps?: Partial<TooltipProps>
     modified?: boolean
-    loading?: boolean
+    loading?: boolean | null
     onClick?: (...args: Parameters<NonNullable<ButtonProps['onClick']>>) => Promisable<any>
 }
 
@@ -176,7 +175,8 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
         },
     } as const, rest)
     const iconElement = isValidElement(icon) ? icon : (icon && h(icon))
-    let ret: ReactElement = children && showLabel ? h(LoadingButton, _.merge({
+    let ret: ReactElement = children && showLabel ? h(Button as any, _.merge({
+            // mui v6 moved LoadingButton behavior into Button, but current typings here still miss loading props
             variant: 'contained',
             startIcon: iconElement,
             loading: Boolean(loading || loadingState || progress),
@@ -184,7 +184,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
             loadingIndicator: typeof progress !== 'number' ? undefined
                 : h(CircularProgress, { size: '1rem', value: progress*100, variant: 'determinate' }),
             children: showLabel && children,
-        } as const, common, (!showLabel || !children) && { sx: { minWidth: 'auto', px: 1, py: '7px', '& span': { mx:0 }, } }))
+        } as const, common, (!showLabel || !children) && { sx: { minWidth: 'auto', px: 1, py: '7px', '& span': { mx:0 }, } }) as any)
         : h(IconButton, _.merge(common, {
             sx: { height: 'fit-content' }, TouchRippleProps: { 'aria-hidden': true },
             // we need a direct accessible name on the actual clickable element for testing
@@ -314,7 +314,7 @@ export function Country({ code, ip, def, long, short }: { code: string, ip?: str
     const country = code && _.find(COUNTRIES, { code })
     return !country ? h(Fragment, {}, def)
         : hTooltip(long ? undefined : country.name, undefined, h('span', {},
-            h(Box, {
+            h(Box as any, {
                 className: `fflag fflag-${code.toUpperCase()}`,
                 component: 'span',
                 mr: 1,
@@ -331,8 +331,8 @@ async function ip2countryBatch(ips: string[]) {
 // force you to think of aria when adding a tooltip
 export function hTooltip(title: ReactNode, ariaLabel: string | undefined, children: ReactElement, props?: Omit<TooltipProps, 'title' | 'children'> & { key?: any }) {
     return h(Tooltip, { title, children,
-        ...ariaLabel === '' ? { 'aria-hidden': true } : { 'aria-label': ariaLabel || _.isString(title) && title || undefined },
-        componentsProps: { popper: { sx: { whiteSpace: 'pre-wrap', ...props?.sx } } },
+        ...(ariaLabel === '' ? { 'aria-hidden': true } : { 'aria-label': ariaLabel || _.isString(title) && title || undefined }),
+        componentsProps: { popper: { sx: { whiteSpace: 'pre-wrap', ...props?.sx } } } as any,
         ...props
     })
 }

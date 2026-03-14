@@ -2,7 +2,7 @@ import { DateTimePicker } from '@mui/x-date-pickers'
 import dayjs from 'dayjs'
 import { FieldProps } from '@hfs/mui-grid-form'
 import { createElement as h } from 'react'
-import { Box, FormHelperText } from '@mui/material'
+import { Box } from '@mui/material'
 import { isTimestampString, objSameKeys } from './misc'
 
 export function DateTimeField({ onChange, error, helperText, ...rest }: FieldProps<Date>) {
@@ -13,10 +13,12 @@ export function DateTimeField({ onChange, error, helperText, ...rest }: FieldPro
             onChange(v: any) {
                 onChange(v && new Date(v), { was: rest.value, event: undefined })
             },
-            slotProps: { // under 400, not all buttons fit, so we sacrifice 'cancel' as you can  still tap outside the dialog
-                actionBar: { actions: ['clear', ...window.innerWidth < 400 ? [] : ['cancel'] as const, 'today', 'accept'] }
+            slotProps: {
+                // keep the same field look as StringField (filled variant) for visual consistency
+                textField: { variant: 'filled', error, helperText },
+                // under 400, not all buttons fit, so we sacrifice 'cancel' as you can still tap outside the dialog
+                actionBar: { actions: ['clear', ...(window.innerWidth < 400 ? [] : ['cancel'] as const), 'today', 'accept'] }
             }
         }),
-        helperText && h(FormHelperText, { error }, helperText),
     )
 }

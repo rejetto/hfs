@@ -127,7 +127,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
                     vfsNodeIcon(selectedFiles[0] as VfsNodeAdmin),
                     h(Flex, { flexWrap: 'wrap', gap: '0 0.5em' },
                         selectedFiles[0].name || "Home",
-                        h(Box, { component: 'span', color: 'text.secondary' }, ancestors.join(' /'))
+                        h(Box, { component: 'span', color: 'text.secondary' } as any, ancestors.join(' /'))
                     )
                 ),
             dialogProps: { sx: { justifyContent: 'flex-end' } },

@@ -8,7 +8,7 @@ import {
 } from '@mui/icons-material'
 import { newDialog, with_, md, Jsonify } from './misc'
 import { Btn, Flex, IconBtn, iconTooltip, reloadBtn, useBreakpoint, useToggleButton } from './mui'
-import { TreeItem, TreeView } from '@mui/x-tree-view'
+import { TreeItem, SimpleTreeView } from '@mui/x-tree-view'
 import MenuButton from './MenuButton'
 import AccountForm from './AccountForm'
 import _ from 'lodash'
@@ -19,6 +19,9 @@ import apiAccounts from '../../src/api.accounts'
 
 export type Account = Jsonify<ReturnType<typeof apiAccounts.get_accounts>['list'][0]>
 
+const SEP = '\t'
+const userFromItemId = (itemId?: string) => itemId?.split(SEP).at(-1)
+
 export default function AccountsPage() {
     const { username, accountsAsTree } = useSnapState()
     const { data, reload, element } = useApiEx<typeof apiAccounts.get_accounts>('get_accounts')
@@ -26,10 +29,10 @@ export default function AccountsPage() {
     const selectionMode = Array.isArray(sel)
     useEffect(() => { // if accounts are reloaded, review the selection to remove elements that don't exist anymore
         if (Array.isArray(data?.list) && selectionMode)
-            setSel( sel.filter(u => data!.list.find((e:any) => e?.username === u)) ) // remove elements that don't exist anymore
+            setSel( sel.filter(x => data!.list.find((e:any) => e?.username === userFromItemId(x))) ) // remove elements that don't exist anymore
     }, [data]) //eslint-disable-line -- Don't fall for its suggestion to add `sel` here: we modify it and declaring it as a dependency would cause a logical loop
     const list = useMemo(() => data && _.sortBy(data.list, [x => !x.isGroup, x => !x.adminActualAccess, 'username']), [data])
-    const selectedAccount = selectionMode && _.find(list, { username: sel[0] })
+    const selectedAccount = selectionMode && _.find(list, { username: userFromItemId(sel[0]) })
     const sideBreakpoint = 'md'
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
 
@@ -40,7 +43,7 @@ export default function AccountsPage() {
                     h(Btn, { onClick: deleteAccounts, icon: Delete }, "Remove"),
                 ),
                 h(List, {},
-                    sel.map(username =>
+                    _.uniq(sel.map(userFromItemId)).map(username =>
                         h(ListItem, { key: username },
                             h(ListItemText, {}, username))))
             )
@@ -107,22 +110,24 @@ export default function AccountsPage() {
                 list?.length! > 0 && h(Typography, { p: 1 }, `${list!.length} account(s)`),
             ),
             !list?.length && h(Alert, { severity: 'info' }, md`To access administration <u>remotely</u> you will need to create a user account with admin permission`),
-            h(TreeView<true>, { // true because it's not detecting multiSelect correctly (ts495)
+            h(SimpleTreeView<true>, { // true because it's not detecting multiSelect correctly (ts495)
                     multiSelect: true,
                     sx: { pr: 4, pb: 2, minWidth: '15em' },
-                    selected: selectionMode ? sel : [],
-                    defaultCollapseIcon: h(ExpandMore),
-                    defaultExpandIcon: h(ChevronRight),
-                    onNodeSelect(ev, ids) {
-                        if (!(ev.target as any)?.closest?.('.MuiTreeItem-iconContainer')) // don't select if clicked the expansion button, mostly for mobile users
+                    selectedItems: selectionMode ? sel : [],
+                    slots: {
+                        collapseIcon: ExpandMore,
+                        expandIcon: ChevronRight,
+                    },
+                    onSelectedItemsChange(ev, ids) {
+                        if (!(ev?.target as any)?.closest?.('.MuiTreeItem-iconContainer')) // don't select if clicked the expansion button, mostly for mobile users
                             setSel(ids)
                     }
                 },
-                list && (function recur(thisLevel): ReactNode {
+                list && (function recur(thisLevel, prefixPath=''): ReactNode {
                     return thisLevel.map(ac =>
                         h(TreeItem, {
                             key: ac.username,
-                            nodeId: ac.username,
+                            itemId: prefixPath + ac.username,
                             label: h(Box, {
                                     sx: {
                                         display: 'flex',
@@ -141,7 +146,7 @@ export default function AccountsPage() {
                                 Boolean(ac.belongs?.length) && h(Box, { sx: { color: 'text.secondary', fontSize: 'small' } },
                                     '(', ac.belongs?.join(', '), ')')
                             ),
-                        }, showTree && recur(list.filter(x => ac.directMembers?.includes(x.username)))))
+                        }, showTree && recur(list.filter(x => ac.directMembers?.includes(x.username)), prefixPath+ac.username+SEP)))
                 })(showTree ? list.filter(ac => !list.some(x => x.members?.includes(ac.username))) : list)
             )
         ),
@@ -169,7 +174,8 @@ export default function AccountsPage() {
     }
 
     async function deleteAccounts() {
-        const toDelete = _.without(sel, username)
+        if (typeof sel === 'string') return
+        const toDelete = _.without(_.uniq(sel.map(userFromItemId)), username)
         if (sel.length > toDelete.length)
             if (!await confirmDialog(`You cannot ask to delete the account you are using. Continue with the rest?`)) return
         if (!toDelete.length)

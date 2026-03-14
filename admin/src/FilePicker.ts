@@ -108,7 +108,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                     },
                     sx: { flex: 1, display: 'flex', flexDirection: 'column' }
                 },
-                    !list.length ? h(Center, { flex: 1, mt: '4em' }, connecting ? spinner() : "No elements in this folder")
+                    !list.length ? h(Center as any, { sx: { flex: 1 }, mt: '4em' }, connecting ? spinner() : "No elements in this folder")
                         : h(FixedSizeList, {
                             width: '100%', height: listHeight,
                             itemSize: 46, itemCount: filteredList.length, overscanCount: 5,

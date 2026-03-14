@@ -23,7 +23,7 @@ import {
     Check, ContentCopy, ContentCut, ContentPaste, Delete, Edit, QrCode2, Save, RestartAlt
 } from '@mui/icons-material'
 import { moveVfs } from './VfsTree'
-import QrCreator from 'qr-creator';
+import QrCreator from 'qr-creator'
 import { AddVfsBtn } from './VfsMenuBar'
 import { SYS_ICONS } from '@hfs/frontend/src/sysIcons'
 import { hIcon } from '@hfs/frontend/src/misc'
@@ -69,7 +69,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
     const barColors = useDialogBarColors()
     const { movingFile } = useSnapState()
 
-    const needSourceWarning = !hasSource && h(Box, { color: 'warning.main', component: 'span' }, "Works only on folders with disk source! ")
+    const needSourceWarning = !hasSource && h(Box as any, { color: 'warning.main', component: 'span' }, "Works only on folders with disk source! ")
     const show: Record<keyof VfsPerms, boolean> = {
         can_read: !isLink,
         can_see: true,
@@ -424,9 +424,9 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
                 fill: color, // foreground color
                 background: null, // color or null for transparent
                 size: 300 // in pixels
-            }, canvas);
+            }, canvas)
         } catch (error) {
-            console.error('Error generating QR code:', error);
+            console.error('Error generating QR code:', error)
         }
     }
 }

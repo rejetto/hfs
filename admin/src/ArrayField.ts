@@ -82,9 +82,7 @@ export function ArrayField<T extends object>({
                             field: f.k,
                             headerName: f.headerName ?? (typeof f.label === 'string' ? f.label : labelFromKey(f.k)),
                             disableColumnMenu: true,
-                            valueGetter({ value }: any) {
-                                return (f.toField || _.identity)(value)
-                            },
+                            valueGetter: (v: any) => (f.toField || _.identity)(v),
                             ...f.$width ? { [f.$width >= 8 ? 'width' : 'flex']: f.$width } : (!def?.width && !def?.flex && { flex: 1 }),
                             renderCell: f.$render,
                             mergeRender: f.$mergeRender,

@@ -6,11 +6,9 @@ import {
 } from 'react'
 import { Box, BoxProps, Button, Tooltip } from '@mui/material'
 import { Save } from '@mui/icons-material'
-import { LoadingButton } from '@mui/lab'
 import _ from 'lodash'
 import { StringField } from './StringField'
-import Grid from '@mui/material/Unstable_Grid2'
-import { GridProps } from '@mui/material/Grid/Grid'
+import Grid, { Grid2Props as GridProps } from '@mui/material/Grid2'
 import { useDebounce } from 'usehooks-ts'
 export * from './SelectField'
 export * from './misc-fields'
@@ -145,12 +143,13 @@ export function Form<Values extends Dict>({
                 if (!row)
                     return null
                 if (isValidElement(row))
-                    return h(Grid, { key: idx, xs: 12 }, row)
+                    return h(Grid, { key: idx, size: 12 }, row)
                 if (defaults)
                     row = { ...defaults?.(row), ...row }
                 const { k, fromField=_.identity, toField=_.identity, getError, error,
                     xs=12, sm, md, lg, xl, comp=StringField, before, after, parentProps,
                     ...field } = row
+                const size = legacySpanToGridSize({ xs, sm, md, lg, xl })
                 let errMsg = errors[k] || error || fieldExceptions[k]
                 if (errMsg === true)
                     errMsg = "Not valid"
@@ -183,8 +182,8 @@ export function Form<Values extends Dict>({
                         field.helperText = h(Fragment, {}, ...field.helperText)
                     if (errMsg) // special rendering when we have both error and helperText. "hr" would be nice but issues a warning because contained in a <p>
                         field.helperText = !field.helperText ? errMsg
-                            : h(Box, { color: 'text.primary', component: 'span' },
-                                h(Box, {
+                            : h(Box as any, { color: 'text.primary', component: 'span' },
+                                h(Box as any, {
                                     color: 'error.main',
                                     style: { borderBottom: '1px solid' },
                                     component: 'span', display: 'block' // avoid console warning, but keep it on separate line
@@ -195,7 +194,7 @@ export function Form<Values extends Dict>({
                         field.label = labelFromKey(k)
                 }
                 const n = (keyMet[k] = (keyMet[k] || 0) + 1)
-                return h(Grid, { key: k ? k + n : idx, xs, sm, md, lg, xl, className: anyError && ERROR_CLASS, ...parentProps },
+                return h(Grid, { key: k ? k + n : idx, size, className: anyError && ERROR_CLASS, ...parentProps },
                     before,
                     isValidElement(comp) ? comp : h(comp, field),
                     after
@@ -211,7 +210,8 @@ export function Form<Values extends Dict>({
                     position: 'sticky', bottom: 0, p: 1, m: -1, boxShadow: '0px 0px 15px #000',
                 },
                 barSx)
-        }, h(Tooltip, { title: "ctrl + enter", children: h(LoadingButton, {
+        }, h(Tooltip, { title: "ctrl + enter", children: h(Button as any, {
+                // mui v6 moved LoadingButton behavior into Button, but current typings here still miss loading props
                 variant: 'contained',
                 startIcon: h(Save),
                 children: "Save",
@@ -220,7 +220,7 @@ export function Form<Values extends Dict>({
                 onClick() {
                     pleaseSubmitAndValidate()
                 },
-            }) }),
+            } as any) }),
             ...addToBar,
         )
     )
@@ -254,8 +254,8 @@ export function Form<Values extends Dict>({
             const v = getValueFor(k)
             let err: ReactNode
             try {
-                err = await apis[k]?.getError?.(v, { values, fields })
-                    || await f.getError?.(v, { values, fields })
+                err = (await apis[k]?.getError?.(v, { values, fields }))
+                    || (await f.getError?.(v, { values, fields }))
                     || fieldExceptions[k]
                     || false
             }
@@ -300,4 +300,25 @@ export function Form<Values extends Dict>({
 export function labelFromKey(k: string) {
     return _.upperFirst(k.indexOf('_') > 0 ? k.replace(/_/g, ' ')
         : k.replace(/([a-z])([A-Z])/g, (_all, a, b) => a + ' ' + b.toLowerCase()))
+}
+
+function legacySpanToGridSize({ xs, sm, md, lg, xl }: { xs?: unknown, sm?: unknown, md?: unknown, lg?: unknown, xl?: unknown }) {
+    // keep compatibility with existing form descriptors still using xs/sm/md while grid2 expects size
+    const sizeByBreakpoint = {
+        xs: normalizeLegacySpan(xs),
+        sm: normalizeLegacySpan(sm),
+        md: normalizeLegacySpan(md),
+        lg: normalizeLegacySpan(lg),
+        xl: normalizeLegacySpan(xl),
+    }
+    if (sm === undefined && md === undefined && lg === undefined && xl === undefined)
+        return sizeByBreakpoint.xs
+    return sizeByBreakpoint as any
+}
+
+function normalizeLegacySpan(span: unknown) {
+    // in legacy Grid, `true` means auto-grow width; in grid2 this is expressed with `size="grow"`
+    if (span === true)
+        return 'grow'
+    return span
 }

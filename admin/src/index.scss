@@ -36,12 +36,18 @@ form { max-width: 100%; } // make fields with unbreakable text (LinkField) to no
 .MuiSvgIcon-root {
   vertical-align: bottom;
 }
-div.MuiTreeItem-content { padding: 0; } // remove wasting horizontal padding
+div.MuiTreeItem-content {
+  padding-top: 1px; // denser
+  padding-bottom: 0;
+}
 .MuiDataGrid-columnHeaders {
   background-color: #8882;
 }
+.MuiDataGrid-virtualScrollerRenderZone .MuiDataGrid-row // make it heavier
 .MuiDataGrid-cell {
   line-height: 1.2em;
+  display: flex;
+  align-items: center;
 }
 .MuiDataGrid-filterForm { flex-wrap: wrap; justify-content: space-evenly; row-gap: 1em; } // fit on mobile
 

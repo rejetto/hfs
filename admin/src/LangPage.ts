@@ -35,7 +35,7 @@ export default function LangPage({ setTitleSide }: PageProps) {
                     {
                         field: 'code',
                         width: 110,
-                        valueFormatter: ({ value }) => value?.toUpperCase(),
+                        valueFormatter: (value: string | undefined) => value?.toUpperCase(),
                     },
                     {
                         field: 'version',
