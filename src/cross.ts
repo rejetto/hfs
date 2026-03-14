@@ -185,6 +185,11 @@ export function stringAfter(sub: string, all: string) {
     return i < 0 ? '' : all.slice(i + sub.length)
 }
 
+export function stringBefore(sub: string, all: string, returnEmptyWhenSubMissing=true) {
+    const i = all.indexOf(sub)
+    return i >= 0 ? all.slice(0, i + sub.length - 1) : returnEmptyWhenSubMissing ? '' : all
+}
+
 export function truthy<T>(value: T): value is Truthy<T> {
     return Boolean(value)
 }

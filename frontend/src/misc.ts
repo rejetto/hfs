@@ -4,7 +4,7 @@ import React, { createElement as h } from 'react'
 import { Btn, iconBtn, Spinner } from './components'
 import { newDialog, toast } from './dialog'
 import { Icon, IconProps } from './icons'
-import { Callback, Dict, domOn, getHFS, getOrSet, Html, HTTP_MESSAGES, urlParams, useBatch } from '@hfs/shared'
+import { Callback, Dict, domOn, getHFS, getOrSet, Html, HTTP_MESSAGES, prefix, urlParams, useBatch } from '@hfs/shared'
 import * as cross from '../../src/cross'
 import * as shared from '@hfs/shared'
 import { apiCall, getNotifications, useApi } from '@hfs/shared/api'
@@ -70,7 +70,9 @@ export function hfsEvent(name: string, params?:Dict) {
     })
 }
 
-export function onHfsEvent(name: string, cb: (params:any, extra: { output: any[], setOrder: Callback<number>, preventDefault: Callback }) => any, options?: { once?: boolean }) {
+type HfsEventCallback = (params:any, extra: { output: any[], setOrder: Callback<number>, preventDefault: Callback }) => any
+export function onHfsEvent(pluginId: string, name: string, cb: HfsEventCallback, options?: { once?: boolean }) {
+    if (!_.isFunction(cb)) return
     const key = 'hfs.' + name
     document.addEventListener(key, wrapper, options)
     return () => document.removeEventListener(key, wrapper)
@@ -78,15 +80,25 @@ export function onHfsEvent(name: string, cb: (params:any, extra: { output: any[]
     function wrapper(ev: Event) {
         const { params, output, order } = (ev as CustomEvent).detail
         let thisOrder
-        const res = cb(params, {
-            output,
-            setOrder(x) { thisOrder = x },
-            preventDefault: () => ev.preventDefault()
-        })
-        if (res !== undefined && Array.isArray(output)) {
-            output.push(res)
-            if (thisOrder)
-                order[output.length - 1] = thisOrder
+        try {
+            const res = cb(params, {
+                output,
+                setOrder(x) { thisOrder = x },
+                preventDefault: () => ev.preventDefault()
+            })
+            if (res === undefined) return
+            if (Array.isArray(output)) {
+                output.push(res instanceof Promise ? res.catch(printError) : res)
+                if (thisOrder)
+                    order[output.length - 1] = thisOrder
+            }
+        }
+        catch(e) {
+            printError(e)
+        }
+
+        function printError(e: any) {
+            console.error(`plugin ${pluginId} on event ${name}: ${e}`)
         }
     }
 }
@@ -109,7 +121,8 @@ Object.assign(getHFS(), {
     isShowSupported: getShowComponent,
     misc: { ...cross, ...shared, ...thisModule },
     emit: hfsEvent,
-    onEvent: onHfsEvent,
+    onEvent: (...args: Parameters<typeof onHfsEvent> extends [any, ...infer R] ? R : []) =>
+        onHfsEvent(getHFS().getPluginKey(true) || '???', ...args),
     watchState(k: string, cb: (v: any) => void, callNow=false) {
         const up = k.split('upload.')[1]
         const thisState = up ? uploadState : state as any

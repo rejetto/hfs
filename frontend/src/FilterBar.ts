@@ -15,7 +15,7 @@ export function FilterBar() {
     const {t} = useI18N()
 
     state.patternFilter = useDebounce(showFilter ? filter : '', 300)
-    useEffect(() => onHfsEvent('entryToggleSelection', () => setAll(false)), [])
+    useEffect(() => onHfsEvent('', 'entryToggleSelection', () => setAll(false)), [])
 
     const tabIndex = showFilter ? undefined : -1
     return h('div', { id: 'filter-bar', style: { display: showFilter ? undefined : 'none' } },
