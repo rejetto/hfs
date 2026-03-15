@@ -64,7 +64,8 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
         if (outSpeed || !closed)
             conn[SymTimeout] = setTimeout(update, DELAY)
     }, DELAY, { leading: true, maxWait:DELAY })
-    ts.on('sent', (n: number) => {
+    ts.on('sent', async (n: number) => {
+        await totalSent.ready()
         totalSent.set(x => x + n)
         update()
     })

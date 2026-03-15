@@ -285,7 +285,8 @@ export const getProjectInfo = debounceAsync(
     () => argv.central === false ? Promise.resolve(builtIn) : readGithubFile(`${HFS_REPO}/${branch}/${FN}`)
         .catch(e => RUNNING_BETA ? readGithubFile(`${HFS_REPO}/main/${FN}`) : Promise.reject(e)) // for beta versions, try again with 'main'
         .then(JSON.parse, () => null)
-        .then(o => {
+        .then(async o => {
+            await cachedCentralInfo.ready()
             if (o)
                 cachedCentralInfo.set(o)
             o ||= { ...cachedCentralInfo.get() || builtIn } // fall back to built-in
