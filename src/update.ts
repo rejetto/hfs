@@ -134,13 +134,16 @@ export async function update(tagOrUrl: string='') {
     }
     if (url) {
         console.log("downloading", url)
+        const temp = LOCAL_UPDATE + '-temp'
+        await rm(temp, { force: true })
         try {
-            await writeFile(LOCAL_UPDATE, await httpStream(url))
+            await writeFile(temp, await httpStream(url))
         }
         catch(e: any) {
-            await rm(LOCAL_UPDATE).catch(() => {}) // no leftovers
+            await rm(temp).catch(() => {}) // no leftovers
             throw "Download failed for " + url + prefix(' – ', e?.message)
         }
+        await rename(temp, LOCAL_UPDATE)
         console.debug("download finished")
     }
     const bin = process.execPath
