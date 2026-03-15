@@ -23,10 +23,14 @@ import { defaultBaseUrl } from './nat'
 import { storedMap } from './persistence'
 import { argv } from './argv'
 import { consoleHint } from './consoleLog'
+import { onProcessExit } from './first'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
 let httpsSrv: undefined | http.Server & ServerExtra
+
+// update relaunch can keep a bridge process alive, so we proactively close listeners here to release ports before the next binary binds
+onProcessExit(() => Promise.all([stopServer(httpSrv), stopServer(httpsSrv)]))
 
 const openBrowserAtStart = defineConfig('open_browser_at_start', true)
 
