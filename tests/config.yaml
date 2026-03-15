@@ -37,6 +37,11 @@ vfs:
           source: ../page/gpl.png
           can_read:
             - rejetto
+        - name: hidden
+          can_see:
+            this: false
+          children:
+            - name: a<&>;#'z
     - name: for-admins
       can_read:
         - admins

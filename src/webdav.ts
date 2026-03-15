@@ -218,8 +218,8 @@ export async function handledWebdav(ctx: Koa.Context) {
             return `<?xml version="1.0" encoding="utf-8"?><prop xmlns="DAV:"><lockdiscovery><activelock>
                 <locktype><write/></locktype>
                 <lockscope><exclusive/></lockscope>
-                <locktoken><href>${token}</href></locktoken>
-                <lockroot><href>${path}</href></lockroot>
+                <locktoken><href>${escapeXml(token)}</href></locktoken>
+                <lockroot><href>${escapeXml(path)}</href></lockroot>
                 <depth>0</depth>
                 <timeout>Second-${seconds}</timeout>
             </activelock></lockdiscovery></prop>`
@@ -259,7 +259,7 @@ export async function handledWebdav(ctx: Koa.Context) {
             const isDir = await nodeIsFolder(node)
             const st = await nodeStats(node)
             res.write(`<response>
-              <href>${outPath + (append ? pathEncode(name, true) + (isDir ? '/' : '') : '')}</href>
+              <href>${escapeXml(outPath + (append ? pathEncode(name, true) + (isDir ? '/' : '') : ''))}</href>
               <propstat>
                 <status>HTTP/1.1 200 OK</status>
                 <prop>
@@ -309,6 +309,10 @@ export async function handledWebdav(ctx: Koa.Context) {
         }
     }
 
+}
+
+function escapeXml(value: string) {
+    return value.replace(/[<>&'\"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;', }[c] || c))
 }
 
 function compileWebdavAgentRegex(v: boolean|string) {

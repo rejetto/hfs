@@ -12,6 +12,7 @@ import { httpStream, parseHttpUrl, stream2string, XRequestOptions } from '../src
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { mkdir, rm, rename, writeFile, access } from 'fs/promises'
 import { Readable } from 'stream'
+import { XMLValidator } from 'fast-xml-parser'
 /*
 import { PORT, srv } from '../src'
 
@@ -343,6 +344,7 @@ describe('webdav', () => {
             await rmAny(destPath)
         }
     })
+    test('webdav.escaping', req('/f1/hidden', data => XMLValidator.validate(data) === true, { method: 'PROPFIND', auth, jar: {}, headers: { depth: '1' } }))
 
     function webdavUpload(uri: string, tester: Tester, body: string, userAgent=WEBDAV_UA) {
         return () => req(uri, tester, {
