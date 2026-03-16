@@ -85,7 +85,7 @@ function FilesList() {
         setScrolledPages(0)
     }, [page])
 
-    // infinite scrolling
+    // continuous-scrolling
     const calcScrolledPages = useMemo(() =>
         _.throttle(() => {
             const i = _.findLastIndex(document.querySelectorAll('.' + PAGE_SEPARATOR_CLASS), el =>
@@ -102,7 +102,7 @@ function FilesList() {
             setExtraPages(extraPages+1)
         calcScrolledPages()
     }), [page, extraPages, canAddPage])
-    // when the list is not filling the screen, but we got more pages, introduce an artificial scrolling (via extra padding) so let the user trigger the infinite-scrolling
+    // when the list is not filling the screen, but we got more pages, introduce an artificial scrolling (via extra padding) so let the user trigger the continuous-scrolling
     const { height: windowHeight } = useWindowSize()
     useEffect(() => {
         const filler = document.getElementById('afterListFiller')
@@ -259,8 +259,13 @@ const Paging = memo(({ nPages, current, pageSize, changePage, atBottom }: Paging
         document.body.style.overflowY = 'scroll'
         return () => { document.body.style.overflowY = '' }
     }, [])
+    const lastScrollTimeRef = useRef(0)
+    useEffect(() => domOn('scroll', () => lastScrollTimeRef.current = Date.now()), [])
     const ref = useRef<HTMLElement>()
-    useEffect(() => scrollIntoView(ref.current, 'nearest'), [current])
+    useEffect(() => { // in case the page changed using the continuous-scrolling, we want to re-center, but only if it happened for a user interaction different from the scrolling
+        if (Date.now() - lastScrollTimeRef.current > 500)
+            scrollIntoView(ref.current, 'nearest')
+    }, [current])
     const shrink = nPages > 20
     const from = _.floor(current, -1)
     const to = from + 10
