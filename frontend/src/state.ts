@@ -63,7 +63,7 @@ export function useSnapState() {
 
 const SETTINGS_KEY = 'hfs_settings'
 type StateKey = keyof typeof state
-const SETTINGS_WITHOUT_GUI: StateKey[] = ['file_menu_on_link']
+const SETTINGS_WITHOUT_GUI: StateKey[] = ['file_menu_on_link', 'page_size', 'title_with_path']
 const SETTINGS_TO_STORE: StateKey[] = _.difference(typedKeys(FRONTEND_OPTIONS), SETTINGS_WITHOUT_GUI)
     .concat(['uploadOnExisting']) // not adding this to FRONTEND_OPTIONS, as its possible values vary with the user permissions, but still makes sense to save on a single browser, supposedly for a single user
 
