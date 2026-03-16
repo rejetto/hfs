@@ -259,13 +259,16 @@ const Paging = memo(({ nPages, current, pageSize, changePage, atBottom }: Paging
             onClick() { changePage(0) },
         }, hIcon('to_start')),
         h('div', { id: 'paging-middle' },  // using sticky first/last would prevent scrollIntoView from working
-            _.range(1, nPages).map(i =>
-                (!shrink || !(i%10) || (i >= from && i < to)) // if shrinking, we show thousands or hundreds for current thousand
-                    && h('button', {
-                        key: i,
-                        ...i === current && { className: 'toggled', ref },
-                        onClick: () => changePage(i),
-                    }, shrink && !(i%10) ? (i/10) + 'K' : i * pageSize) )
+            _.range(1, nPages).map(i => {
+                if (shrink && i % 10 && (i < from || i >= to))
+                    return false
+                const pageStart = i * pageSize
+                return h('button', {
+                    key: i,
+                    ...i === current && { className: 'toggled', ref },
+                    onClick: () => changePage(i),
+                }, shrink && !(i % 10) && pageStart >= 1000 ? (pageStart / 1000) + 'K' : pageStart)
+            })
         ),
         h('button', {
             title: t('go_last', "Go to last item"),
