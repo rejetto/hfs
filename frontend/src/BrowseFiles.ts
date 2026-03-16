@@ -55,7 +55,7 @@ export function BrowseFiles() {
             props?.comment && h('div', { className: 'entry-comment' }, props.comment),
             error ? h(ErrorMsg, { err: error }) : h(FilesList),
             h(CustomCode, { name: 'afterList' }),
-            h('div', { style: { flex: 1 }}),
+            h('div', { id: 'afterListFiller', style: { flex: 1 }}),
             h(ClipBar),
             h(CustomCode, { name: 'footer' }),
         )
@@ -94,13 +94,25 @@ function FilesList() {
             setAtBottom(window.innerHeight + Math.ceil(window.scrollY) >= document.body.offsetHeight)
         }, 200),
         [])
+    const canAddPage = page + extraPages < nPages - 1
     useEffect(() => domOn('scroll', () => {
         if (!theList.length) return
         const timeToAdd = window.innerHeight * 1.3 + window.scrollY >= document.body.offsetHeight // 30vh before the end
-        if (timeToAdd && page + extraPages < nPages -1)
+        if (timeToAdd && canAddPage)
             setExtraPages(extraPages+1)
         calcScrolledPages()
-    }), [page, extraPages, nPages])
+    }), [page, extraPages, canAddPage])
+    // when the list is not filling the screen, but we got more pages, introduce an artificial scrolling (via extra padding) so let the user trigger the infinite-scrolling
+    const { height: windowHeight } = useWindowSize()
+    useEffect(() => {
+        const filler = document.getElementById('afterListFiller')
+        const wrapper = filler?.closest('.list-wrapper') as HTMLElement | null
+        if (!filler || !wrapper) return
+        // when the after-list filler is still stretching, we add a tiny bottom padding so the page can overflow and trigger scrolling
+        const shouldPad = canAddPage && filler.getBoundingClientRect().height > 0
+        wrapper.style.paddingBottom = shouldPad ? '10px' : ''
+        return () => { wrapper.style.paddingBottom = '' }
+    }, [canAddPage, windowHeight, total, page, extraPages])
 
     // type to focus
     const [focus, setFocus] = useState('')
