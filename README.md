@@ -8,9 +8,7 @@
 - [How does it work](#how-does-it-work)
 - [Features](#features)
 - [Installation](#installation)
-  - [Other systems](#other-systems)
 - [Configuration](#configuration)
-  - [Where is it stored](#where-is-it-stored)
 - [Internationalization](#internationalization)
 - [Hidden features](#hidden-features)
 - [Contribute](#contribute)
@@ -18,16 +16,14 @@
 
 ## Introduction
 
-Access your files via web, directly from your disk.
+Turn your computer into a file-sharing server in seconds.
 
-- Be your own server: share files **fresh from your disk** with **unlimited** space and bandwidth.
-- **Fast:** try zipping 100GB – download starts immediately.
-- **Smart:** HFS detects problems and suggests solutions.
-- Present things the way you want: share **even a single file**, even with a different name, with our *virtual file system*.
-- **Monitor** all activities in real-time.
-- **Bandwidth throttling**: decide how much to give.
-- **Direct transfers**: share large files with friends without having to upload them first.
-- **Expandable**: install plugins for additional features.
+* **Unlimited space and bandwidth** — no cloud upload, files come directly from your disk
+* **Instant ZIP downloads**, even for huge folders
+* **Virtual file system** to organize what you share
+* **Real-time activity monitoring**
+* **Bandwidth throttling** to control transfer speed
+* **Plugin system** to extend functionality
 
 Runs on: Windows, Linux, macOS, FreeBSD, Android
 
