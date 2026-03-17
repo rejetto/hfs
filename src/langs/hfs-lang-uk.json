@@ -154,7 +154,7 @@
         "Repeat": "Повтор",
         "showHelpListShortcut": "Зі списку файлів натисніть {key} щоб швидко відкрити Перегляд файлу",
         "Invalid value": "Недійсне значення",
-        "upload_skipped": "{n,plural, one{# пропущено} other{# пропущено}}",
+        "upload_interrupted": "{n} Перервано",
         "Overwrite policy": "Правило перезапису",
         "Rename to avoid overwriting": "Перейменувати, щоб уникнути перезапису",
         "Overwrite existing files": "Перезаписати існуючі файли",

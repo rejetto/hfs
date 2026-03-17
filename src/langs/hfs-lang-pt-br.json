@@ -158,7 +158,7 @@
         "Repeat": "Repetir",
         "showHelpListShortcut": "Na lista de arquivos, clique segurando {key} para Mostrar rapidamente",
         "Invalid value": "Valor inválido",
-        "upload_skipped": "{n} ignorado(s)",
+        "upload_interrupted": "{n} Interrompida",
         "Overwrite policy": "Política de sobrescrita",
         "Rename to avoid overwriting": "Renomear para evitar sobrescrita",
         "Overwrite existing files": "Sobrescrever arquivos existentes",

@@ -159,7 +159,7 @@
         "Repeat": "Tekrarlar (Repeat)",
         "showHelpListShortcut": "Dosya Listesinde {key} tuşuna basılı durumda tıklayarak, hızlıca Göster yapabilirsiniz",
         "Invalid value": "Geçersiz değer",
-        "upload_skipped": "{n} atlandı",
+        "upload_interrupted": "{n} Yarıda kesildi",
         "Overwrite policy": "Üzerine Yazma politikası",
         "Rename to avoid overwriting": "Üzerine Yazmadan kaçınmak için Yeniden Adlandır",
         "Overwrite existing files": "Mevcut Dosyaların üzerine yaz",

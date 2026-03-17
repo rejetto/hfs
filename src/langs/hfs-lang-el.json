@@ -160,7 +160,7 @@
         "Repeat": "Επανάληψη",
         "showHelpListShortcut": "Από τη λίστα αρχείων, κρατήστε πατημένο το {key} για γρήγορη προβολή",
         "Invalid value": "Μη έγκυρη τιμή",
-        "upload_skipped": "{n} παραλείφθηκαν",
+        "upload_interrupted": "{n} Διακόπηκε",
         "Overwrite policy": "Πολιτική αντικατάστασης",
         "Rename to avoid overwriting": "Μετονομασία για αποφυγή αντικατάστασης",
         "Overwrite existing files": "Αντικατάσταση υπαρχόντων αρχείων",

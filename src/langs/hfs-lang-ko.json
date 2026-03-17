@@ -159,7 +159,7 @@
         "Repeat": "반복",
         "showHelpListShortcut": "파일 목록을 빠르게 넘기려면 {key}를 길게 클릭하세요.",
         "Invalid value": "잘못된 값",
-        "upload_skipped": "{n} 건너뜀",
+        "upload_interrupted": "{n} 중단됨",
         "Overwrite policy": "덮어쓰기 정책",
         "Rename to avoid overwriting": "덮어쓰지 않도록 이름 바꾸기",
         "Overwrite existing files": "기존 파일 덮어쓰기",

@@ -159,7 +159,7 @@
         "Repeat": "Repetă",
         "showHelpListShortcut": "Din lista de fișiere, fă clic ținând apăsat {key} pentru a arăta rapid",
         "Invalid value": "Valoare invalidă",
-        "upload_skipped": "{n} sărit",
+        "upload_interrupted": "{n} Intrerupt",
         "Overwrite policy": "Politică de suprascriere",
         "Rename to avoid overwriting": "Redenumește pentru a evita suprascrierea",
         "Overwrite existing files": "Suprascrie fișierele existente",

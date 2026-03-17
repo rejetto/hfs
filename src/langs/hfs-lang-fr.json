@@ -163,7 +163,7 @@
         "Repeat": "Répéter",
         "showHelpListShortcut": "Afficher le raccourci de la liste d’aide",
         "Invalid value": "Valeur non valide",
-        "upload_skipped": "{n} télé-versement(s)ignoré(s)",
+        "upload_interrupted": "{n} Interrompu",
         "Overwrite policy": "Stratégie de remplacement",
         "Rename to avoid overwriting": "Renommer pour éviter l'écrasement",
         "Overwrite existing files": "Écraser les fichiers existants",

@@ -120,7 +120,7 @@
         "Repeat": "Ulang",
         "showHelpListShortcut": "Daripada senarai fail, klik sambil menahan {key} untuk paparan cepat",
         "Invalid value": "Nilai tidak sah",
-        "upload_skipped": "{n} dilangkau",
+        "upload_interrupted": "{n} Dihentikan",
         "Overwrite policy": "Dasar menulis ganti",
         "Rename to avoid overwriting": "Namakan semula untuk elak ganti",
         "Overwrite existing files": "Tulis ganti fail sedia ada",

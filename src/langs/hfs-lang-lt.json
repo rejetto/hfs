@@ -158,7 +158,7 @@
         "Repeat": "Kartoti",
         "showHelpListShortcut": "Failų sąraše spustelėkite laikydami {key}, kad greitai parodytumėte",
         "Invalid value": "Neteisinga vertė",
-        "upload_skipped": "{n} praleista",
+        "upload_interrupted": "{n} Nutraukta",
         "Overwrite policy": "Perrašymo politika",
         "Rename to avoid overwriting": "Pervadinti, kad išvengtumėte perrašymo",
         "Overwrite existing files": "Perrašyti esamus failus",

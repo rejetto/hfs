@@ -150,7 +150,7 @@
         "Repeat": "Wiederholen",
         "showHelpListShortcut": "In der Dateiliste, {key} gedrückt halten beim Klicken für schnelle Anzeige.",
         "Invalid value": "Ungültiger Wert",
-        "upload_skipped": "{n} übersprungen",
+        "upload_interrupted": "{n} Unterbrochen",
         "Overwrite policy": "Überschreibungsrichtlinie",
         "Rename to avoid overwriting": "Umbenennen, um Überschreiben zu vermeiden.",
         "Overwrite existing files": "Existierende Dateien überschreiben.",

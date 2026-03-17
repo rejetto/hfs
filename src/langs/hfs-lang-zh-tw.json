@@ -159,7 +159,7 @@
         "Repeat": "重複播放",
         "showHelpListShortcut": "在檔案清單中，按一下 {key} 即可快速顯示",
         "Invalid value": "無效值",
-        "upload_skipped": "{n} 跳過",
+        "upload_interrupted": "{n} 中止",
         "Overwrite policy": "覆蓋規則",
         "Rename to avoid overwriting": "重新命名以避免覆蓋",
         "Overwrite existing files": "覆蓋已存在的檔案",

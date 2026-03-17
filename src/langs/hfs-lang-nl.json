@@ -158,7 +158,7 @@
 		"Repeat": "Herhaal",
 		"showHelpListShortcut": "In de bestanden lijst, klik de bestandsnaam aan met de {key} ingedrukt om het snel te tonen",
 		"Invalid value": "Foutieve waarde",
-		"upload_skipped": "{n} overgeslagen",
+		"upload_interrupted": "{n} Onderbroken",
 		"Overwrite policy": "Overschrijf beleid",
 		"Rename to avoid overwriting": "Hernoem om overschrijven te vermijden",
 		"Overwrite existing files": "Overschrijf bestaande bestanden",

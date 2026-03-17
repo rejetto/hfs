@@ -158,7 +158,7 @@
         "Repeat": "Powtarzaj",
         "showHelpListShortcut": "Z listy plików kliknij i przytrzymaj {key}, aby szybko pokazać",
         "Invalid value": "Nieprawidłowa wartość",
-        "upload_skipped": "{n} pominiętych",
+        "upload_interrupted": "{n} Przerwane",
         "Overwrite policy": "Polityka nadpisania",
         "Rename to avoid overwriting": "Zmień nazwę, aby uniknąć nadpisania",
         "Overwrite existing files": "Nadpisz istniejące pliki",

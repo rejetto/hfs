@@ -159,7 +159,7 @@
         "Repeat": "リピート",
         "showHelpListShortcut": "{key} を押しながらクリックするとファイルの内容を確認することができます",
         "Invalid value": "無効な値です",
-        "upload_skipped": "{n}個スキップ",
+        "upload_interrupted": "{n} 中断されました",
         "Overwrite policy": "上書きの設定",
         "Rename to avoid overwriting": "上書きを防ぐため、名前を変更する",
         "Overwrite existing files": "既にあるファイルを上書きする",

@@ -163,7 +163,7 @@
         "Repeat": "重复",
         "showHelpListShortcut": "在文件列表中，按住 {key} 点击可快速显示",
         "Invalid value": "无效值",
-        "upload_skipped": "{n} 个已跳过",
+        "upload_interrupted": "{n} 中断",
         "Overwrite policy": "覆盖策略",
         "Rename to avoid overwriting": "重命名以避免覆盖",
         "Overwrite existing files": "覆盖已存在的文件",

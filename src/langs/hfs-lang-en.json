@@ -158,7 +158,7 @@
         "Repeat": "Repeat",
         "showHelpListShortcut": "From the file list, click while holding {key} to Show",
         "Invalid value": "Invalid value",
-        "upload_skipped": "{n} skipped",
+        "upload_interrupted": "{n} interrupted",
         "Overwrite policy": "Overwrite policy",
         "Rename to avoid overwriting": "Rename to avoid overwriting",
         "Overwrite existing files": "Overwrite existing files",

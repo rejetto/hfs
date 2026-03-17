@@ -159,7 +159,7 @@
         "Repeat": "ทำซ้ำ",
         "showHelpListShortcut": "จากรายการไฟล์ คลิกค้าง {key} เพื่อแสดงอย่างรวดเร็ว",
         "Invalid value": "ค่าที่ไม่ถูกต้อง",
-        "upload_skipped": "{n} ข้าม",
+        "upload_interrupted": "{n} ถูกขัดจังหวะ",
         "Overwrite policy": "นโยบายการเขียนทับ",
         "Rename to avoid overwriting": "เปลี่ยนชื่อเพื่อหลีกเลี่ยงการเขียนทับ",
         "Overwrite existing files": "เขียนทับไฟล์ที่มีอยู่",

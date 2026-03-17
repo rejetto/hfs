@@ -157,7 +157,7 @@
     "Repeat": "Повтори",
     "showHelpListShortcut": "В списъка с файлове, задръж {key} и клик за бързо показване",
     "Invalid value": "Невалидна стойност",
-    "upload_skipped": "{n} пропуснати",
+    "upload_interrupted": "{n} Прекъснато",
     "Overwrite policy": "Политика за презаписване",
     "Rename to avoid overwriting": "Преименувай за да избегнеш презаписване",
     "Overwrite existing files": "Презапиши съществуващите файлове",

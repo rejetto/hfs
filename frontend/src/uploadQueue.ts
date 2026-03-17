@@ -18,7 +18,7 @@ export const uploadState = proxy<{
     done: (ToUpload & { response?: any })[] // res will contain the response from the server,
     doneByte: number
     errors: ToUpload[]
-    skipped: ToUpload[]
+    interrupted: ToUpload[]
     adding: ToUpload[]
     qs: { to: string, entries: ToUpload[] }[]
     paused: boolean
@@ -38,7 +38,7 @@ export const uploadState = proxy<{
     paused: false,
     qs: [],
     adding: [],
-    skipped: [],
+    interrupted: [],
     errors: [],
     doneByte: 0,
     done: [],
@@ -146,7 +146,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
                     if (req.responseText === 'retry') // it's our previous request that didn't release the lock yet
                         return await wait(2000) // wait before resolving `finished`
                     toUpload.error = status ? t('upload_conflict', "already exists") : t`Interrupted` // the I is uppercase because we are just recycling an old string (with all its translations)
-                    uploadState.skipped.push(toUpload)
+                    uploadState.interrupted.push(toUpload)
                 }
                 else if (status >= 400)
                     error(status)
@@ -223,7 +223,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         resetCounters()
         const msg = h('div', {}, t(['upload_concluded', "Upload terminated"], "Upload concluded:"),
             h(UploadStatus, { snapshot: snap, display: 'flex', flexDirection: 'column' }) )
-        if (snap.errors.length || snap.skipped.length)
+        if (snap.errors.length || snap.interrupted.length)
             alertDialog(msg, 'warning')
         else
             toast(msg, 'success')
@@ -276,7 +276,7 @@ export function resetCounters() {
         errors: [],
         done: [],
         doneByte: 0,
-        skipped: [],
+        interrupted: [],
     })
 }
 

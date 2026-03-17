@@ -159,7 +159,7 @@
         "Repeat": "تكرار",
         "showHelpListShortcut": "من قائمة الملفات، اضغط مع الاستمرار على {key} للعرض بسرعة",
         "Invalid value": "قيمة غير صالحة",
-        "upload_skipped": "{n} تم تجاوزهم",
+        "upload_interrupted": "{n} مُتوقف",
         "Overwrite policy": "سياسة الكتابة فوق",
         "Rename to avoid overwriting": "إعادة التسمية لتجنب الكتابة فوق",
         "Overwrite existing files": "الكتابة فوق الملفات الموجودة",

@@ -163,7 +163,7 @@
         "Repeat": "Toisto",
         "showHelpListShortcut": "Tiedosto listalta, klikkaa kun painat {key} Näyttääksesi nopeasti",
         "Invalid value": "Virheellinen arvo",
-        "upload_skipped": "{n} ohitettu",
+        "upload_interrupted": "{n} Keskeytetty",
         "Overwrite policy": "Ylikirjoitus käytäntö",
         "Rename to avoid overwriting": "Uudelleen nimeä jotta ei ylikirjoiteta",
         "Overwrite existing files": "Ylikirjoita olemassa olevat tiedostot",

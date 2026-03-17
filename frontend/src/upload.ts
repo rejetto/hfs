@@ -144,7 +144,7 @@ export function showUpload() {
                                         if (!uploadState.paused)
                                             return abortCurrentUpload(true)
                                         f.error = t`Interrupted`
-                                        uploadState.skipped.push(f)
+                                        uploadState.interrupted.push(f)
                                         uploadState.uploading = undefined
                                     }
                                     const q = uploadState.qs[idx]
@@ -214,11 +214,11 @@ function formatTime(time: number, decimals=0, length=Infinity) {
 
 export function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snapshot<typeof uploadState> } & CSSProperties) {
     const current = useSnapshot(uploadState)
-    const { done, doneByte, errors, skipped } = snapshot || current
+    const { done, doneByte, errors, interrupted } = snapshot || current
     const msgDone = done.length > 0 && t('upload_finished', { n: done.length, size: formatBytes(doneByte) }, "{n} finished ({size})")
-    const msgSkipped = skipped.length > 0 && t('upload_skipped', { n: skipped.length }, "{n} skipped")
+    const msgInterrupted = interrupted.length > 0 && t('upload_interrupted', { n: interrupted.length }, "{n} interrupted")
     const msgErrors = errors.length > 0 && t('upload_errors', { n: errors.length }, "{n} failed")
-    const msg = [msgDone, msgSkipped, msgErrors].filter(Boolean).join(' – ')
+    const msg = [msgDone, msgInterrupted, msgErrors].filter(Boolean).join(' – ')
     if (!msg) return null
     const sep = h('span', { className: 'horiz-sep' }, ' – ')
     return h('div', { style: { ...props } },
@@ -240,7 +240,7 @@ export function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snaps
         alertDialog(h('div', {},
             ([
                 [msgDone, done],
-                [msgSkipped, skipped],
+                [msgInterrupted, interrupted],
                 [msgErrors, errors]
             ] as const).map(([msg, list], i) =>
                 msg && h('div', { key: i }, msg, h('ul', {},

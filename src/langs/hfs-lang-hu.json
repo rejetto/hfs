@@ -164,7 +164,7 @@
         "Repeat": "Ismétlés",
         "showHelpListShortcut": "A fájl listában tartsa nyomva a {key} gombot a gyors nézethez",
         "Invalid value": "Érvénytelen érték",
-        "upload_skipped": "{n} feltölteni kívánt elem kihagyva",
+        "upload_interrupted": "{n} Megszakadt",
         "Overwrite policy": "Felülírási irányelv",
         "Rename to avoid overwriting": "Átnevez, hogy elkerülje a felülírást",
         "Overwrite existing files": "Létező fájlok felülírása",

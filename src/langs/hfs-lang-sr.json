@@ -159,7 +159,7 @@
         "Repeat": "Понављање",
         "showHelpListShortcut": "Кликните држећи {key} за брзи преглед",
         "Invalid value": "Неважећа вредност",
-        "upload_skipped": "{n} прескочено",
+        "upload_interrupted": "{n} Прекинуто",
         "Overwrite policy": "Начин преписивања",
         "Rename to avoid overwriting": "Преименуј да избегнеш преписивање",
         "Overwrite existing files": "Препиши постојеће документе",

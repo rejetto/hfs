@@ -164,7 +164,7 @@
         "Repeat": "Lặp",
         "showHelpListShortcut": "Ở danh sách file, giữ {key} để hiển thị",
         "Invalid value": "🤷 what u think something in ur freakin' brain?",
-        "upload_skipped": "{n} đã bỏ qua",
+        "upload_interrupted": "{n} Đã huỷ bỏi người dùng!",
         "Overwrite policy": "Chính sách ghi đè:",
         "Rename to avoid overwriting": "Đổi tên, tránh ghi đè file có sẳn",
         "Overwrite existing files": "ĐÈ LUÔN file có sẳn",

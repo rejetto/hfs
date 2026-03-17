@@ -162,7 +162,7 @@
         "Repeat": "Повтор",
         "showHelpListShortcut": "Из списка файлов нажмите {key} чтобы быстро открыть Просмотр файла",
         "Invalid value": "Недействительное значение",
-        "upload_skipped": "{n,plural, one{# пропущен} other{# пропущено}}",
+        "upload_interrupted": "{n} Прерван",
         "Overwrite policy": "Правило перезаписи",
         "Rename to avoid overwriting": "Переименовать во избежание перезаписи",
         "Overwrite existing files": "Перезаписать существующие файлы",
