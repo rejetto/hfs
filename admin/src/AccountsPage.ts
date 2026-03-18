@@ -81,7 +81,7 @@ export default function AccountsPage() {
     const [showTree, showTreeBtn] = useToggleButton("Show tree", "Show list", () => ({ icon: AccountTree }), accountsAsTree)
     state.accountsAsTree = showTree
     return element || h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
-        h(Grid, { item: true, xs: 12, [sideBreakpoint]: 5, lg: 4, xl: 5, ...scrollProps },
+        h(Grid, { size: { xs: 12, [sideBreakpoint]: 5, lg: 4, xl: 5 } as any, ...scrollProps },
             h(Box, {
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -150,7 +150,7 @@ export default function AccountsPage() {
                 })(showTree ? list.filter(ac => !list.some(x => x.members?.includes(ac.username))) : list)
             )
         ),
-        isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth: '100%', ...scrollProps },
+        isSideBreakpoint && sideContent && h(Grid, { size: 'grow', maxWidth: '100%', ...scrollProps },
             h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
                 h(CardContent, {}, sideContent)) )
     )

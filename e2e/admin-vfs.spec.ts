@@ -173,7 +173,7 @@ test('undo toggles with single-level redo behavior', async ({ page }) => {
     await page.getByText('zipNoList', { exact: true }).waitFor({ timeout: 10_000 })
 
     const folderName = 'for-disabled'
-    const undoButton = page.locator('svg[data-testid="UndoIcon"]').first().locator('xpath=ancestor::button[1]')
+    const undoButton = page.getByRole('button', { name: 'Undo' }).first()
     await expect(undoButton).toBeDisabled()
 
     await selectVfsNode(page, folderName, '/for-disabled/')
@@ -245,4 +245,40 @@ test('apply keeps unset permissions nullish in-memory', async ({ page }) => {
         id: '/f1/',
         unsetPerms: ['can_see', 'can_read', 'can_list', 'can_upload', 'can_delete', 'can_archive'],
     })
+})
+
+test('tree expands from icon click and ArrowRight', async ({ page }) => {
+    await page.goto(URL + '~/admin/')
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('textbox', { name: 'Password' }).press('Enter')
+    await clickAdminMenu(page, /Shared files/)
+    await page.getByText('zipNoList', { exact: true }).waitFor({ timeout: 10_000 })
+
+    const nodeId = '/'
+    const nodeName = 'Home folder'
+    const item = page.getByRole('treeitem', { name: nodeName, exact: true })
+
+    // start from collapsed to verify the actual interaction path
+    await page.evaluate(id => {
+        const state = (window as any).state
+        if (!state) return
+        state.expanded = state.expanded.filter((x: string) => x !== id)
+    }, nodeId)
+
+    await item.locator(':scope > .MuiTreeItem-content > .MuiTreeItem-iconContainer').click()
+    await expect.poll(() => page.evaluate(id => (window as any).state?.expanded?.includes(id) || false, nodeId))
+        .toBe(true)
+
+    if (!['Android', 'iPhone 6'].includes(test.info().project.name)) {
+        await page.evaluate(id => {
+            const state = (window as any).state
+            if (!state) return
+            state.expanded = state.expanded.filter((x: string) => x !== id)
+        }, nodeId)
+        await item.click()
+        await item.press('ArrowRight')
+        await expect.poll(() => page.evaluate(id => (window as any).state?.expanded?.includes(id) || false, nodeId))
+            .toBe(true)
+    }
 })

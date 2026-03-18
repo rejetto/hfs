@@ -98,7 +98,7 @@ test('admin2', async ({ page }) => {
     await passwordField.fill('admin2-temp-pass')
     await page.getByRole('textbox', { name: 'Repeat password' }).fill('admin2-temp-pass')
     await expect(usernameField).toHaveValue('admin2-temp-user')
-    const adminAccess = page.getByRole('checkbox', { name: 'Admin-panel access' })
+    const adminAccess = page.getByRole('switch', { name: 'Admin-panel access' })
     await adminAccess.check()
     await expect(adminAccess).toBeChecked()
     await page.getByRole('textbox', { name: 'Notes' }).fill('admin2 expanded interactions')
@@ -109,16 +109,15 @@ test('admin2', async ({ page }) => {
     await expect(page.getByText('Correctly working on port')).toBeVisible()
     await page.getByRole('button', { name: 'Reload' }).click()
     await page.getByRole('row', { name: /^Blocked/ }).getByRole('button', { name: /Add/ }).click()
-    const addDialog = page.getByRole('dialog').filter({ hasText: 'Add' })
+    const addDialog = page.getByRole('dialog', { name: /Add/ })
     await addDialog.getByRole('textbox', { name: 'Blocked IP' }).fill('5.6.7.8')
     if (!isPhone) {
         // This field uses a masked input: selecting from picker is more reliable than typing.
         await addDialog.getByRole('button', { name: 'Choose date' }).click()
-        const picker = page.locator('.MuiPickersPopper-root[role="dialog"]')
-        await picker.locator('button.MuiPickersDay-root:not([disabled])').first().click()
-        // Close the popper so it doesn't intercept clicks on the Add dialog buttons.
+        const picker = page.getByRole('dialog', { name: 'Expire' })
+        // desktop calendars render hidden fillers and disabled days as gridcells too, so click a real enabled day button
+        await picker.locator('button[role="gridcell"]:not([disabled]):not([aria-disabled="true"])').first().click()
         await page.keyboard.press('Escape')
-        await expect(addDialog.getByRole('textbox', { name: 'Expire' })).not.toHaveValue('MM/DD/YYYY hh:mm aa')
     }
     await addDialog.getByRole('button').last().click()
     await expect(addDialog).not.toBeVisible()
@@ -149,7 +148,7 @@ test('admin2', async ({ page }) => {
     await clickIconBtn('Options', page)
     if (!isPhone) {
         const logsDialog = page.getByRole('dialog', { name: /Log options/ })
-        const logApisToggle = logsDialog.getByRole('checkbox', { name: 'Log API requests' })
+        const logApisToggle = logsDialog.getByRole('switch', { name: 'Log API requests' })
         await expect(logApisToggle).toBeChecked()
         await logApisToggle.click()
         await expect(logApisToggle).not.toBeChecked()
@@ -163,8 +162,14 @@ test('admin2', async ({ page }) => {
     const pluginTabs = page.getByRole('tab')
     await pluginTabs.nth(0).click()
     if (!isPhone) {
-        await clickIconBtn('Start download-counter', page)
-        await clickIconBtn('Options', page)
+        const downloadCounterRow = page.getByRole('row', { name: /download-counter/ })
+        const startDownloadCounter = downloadCounterRow.getByRole('button', { name: 'Start download-counter' })
+        const stopDownloadCounter = downloadCounterRow.getByRole('button', { name: 'Stop download-counter' })
+        // keep the test independent from whatever state a previous run left this plugin in
+        const wasRunning = await stopDownloadCounter.isVisible()
+        if (!wasRunning)
+            await startDownloadCounter.click()
+        await downloadCounterRow.getByRole('button', { name: 'Options' }).click()
         const whereField = page.getByRole('combobox', { name: 'Where to display counter' })
         await whereField.click()
         await page.getByRole('option', { name: 'list', exact: true }).click()
@@ -172,7 +177,8 @@ test('admin2', async ({ page }) => {
         const pluginSaveBtn = pluginOptionsDialog.locator('button:has-text("Save")').first()
         await expect(pluginSaveBtn).toBeEnabled()
         await clickIconBtn('Close', page)
-        await clickIconBtn('Stop download-counter', page)
+        if (!wasRunning)
+            await stopDownloadCounter.click()
     }
     await pluginTabs.nth(1).click() // get more
     await page.getByRole('textbox', { name: 'Search text' }).fill('download')

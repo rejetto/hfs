@@ -164,7 +164,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             onCellClick({ field, row }) {
                 if (field === ACTIONS || details === false) return
                 if (window.getSelection()?.type === 'Range') return // not a click but a drag
-                const visibleInList = merged + apiRef.current.getVisibleColumns().length
+                const visibleInList = merged + (apiRef.current?.getVisibleColumns().length || 0)
                 const showInDialog = manipulatedColumns.filter(x =>
                     !x.dialogHidden && (x.renderCell || x.valueGetter || x.field === ACTIONS || row[x.field] !== undefined))
                 if (showInDialog.length <= visibleInList) return // no need for dialog

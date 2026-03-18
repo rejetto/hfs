@@ -160,8 +160,8 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
         headerName: "Timestamp",
         type: 'dateTime',
         width: 96,
-        valueGetter: (value) => new Date(value as string),
-        renderCell: ({ value }) => h(Fragment, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
+        valueGetter: v => new Date(v),
+        renderCell: ({ value }) => h(Fragment, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString()),
     }
     const ipColumn: DataTableColumn = {
         field: 'ip',

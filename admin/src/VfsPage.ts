@@ -167,9 +167,9 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     }
     const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
     return h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
-        h(Grid, { item: true, xs: 12, [sideBreakpoint]: 5, lg: 6, xl: 5, ...scrollProps  },
+        h(Grid, { size: { xs: 12, [sideBreakpoint]: 5, lg: 6, xl: 5 } as any, ...scrollProps  },
             h(VfsTree, { statusApi }) ),
-        isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth: '100%', ...scrollProps },
+        isSideBreakpoint && sideContent && h(Grid, { size: 'grow', maxWidth: '100%', ...scrollProps },
             h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
                 h(CardContent, {}, sideContent)) )
     )

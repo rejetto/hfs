@@ -142,7 +142,7 @@ function Connections() {
                 wantLogButton),
         ),
         h(Grid, { container: true, flex: 1, columnSpacing: 1 },
-            h(Grid, { item: true, xs: 12 - logSize, sx: fillFlexParentSx },
+            h(Grid, { size: 12 - logSize, sx: fillFlexParentSx },
                 h(DataTable, {
                     persist: 'connections',
                     error,
@@ -267,7 +267,7 @@ function Connections() {
                     ]
                 }),
             ),
-            logAble && wantLog && h(Grid, { item: true, xs: logSize, ...fillFlexParentSx },
+            logAble && wantLog && h(Grid, { size: logSize, ...fillFlexParentSx },
                 h(LogFile, {
                     file: `${CFG.log}|${CFG.error_log}`,
                     filter: monitorOnlyFiles ? (row => !row.uri.startsWith(SPECIAL_URI)) : undefined,

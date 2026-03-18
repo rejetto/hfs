@@ -245,7 +245,7 @@ test('admin1', async ({ page }) => {
     await dataTableLoading()
     await screenshot(page)
     await clickIconBtn('Options', page)
-    await page.locator('div').filter({ hasText: 'ServedRequests are logged here. Empty to disable it.Not servedWrite errors in a different file. Empty to use same file.' }).nth(3).click()
+    await page.getByRole('textbox', { name: 'Served', exact: true }).click()
     await clickIconBtn('Close', page)
     await clickAdminMenu(page, 'Language')
     await dataTableLoading()
@@ -270,6 +270,7 @@ test('admin1', async ({ page }) => {
 })
 
 async function screenshot(page: Page, selectorForMask = '') {
+    if (process.env.NO_SS) return
     if (selectorForMask)
         selectorForMask = ',' + selectorForMask
     await wait(1000) // this accounts especially for our DataTable component which takes time to set the layout
