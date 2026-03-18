@@ -26,13 +26,7 @@ function App() {
         h(ApplyTheme, {},
             h(LocalizationProvider, { dateAdapter: AdapterDayjs, adapterLocale: getLocale() },
                 h(LoginRequired, {},
-                    h(HashRouter, {
-                        // opt in to v7 behavior now to remove migration warnings in dev
-                        future: {
-                            v7_startTransition: true,
-                            v7_relativeSplatPath: true,
-                        }
-                    },
+                    h(HashRouter, {},
                         h(Dialogs, {
                             style: {
                                 display: 'flex', flexDirection: 'column',

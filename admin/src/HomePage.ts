@@ -108,7 +108,8 @@ export default function HomePage() {
                 x?.isNewer && h(Update, { info: x, fromAuto: true, bodyCollapsed: true, title: "An update has been found" }) ),
             pluginUpdates.length > 0 && entry('success', "Updates available for plugin(s): " + pluginUpdates.map(p => p.id).join(', ')),
             h(ConfigForm, {
-                gridProps: { sx: { mt: 1, display: 'flex', columnGap: 1, alignitems: 'center', '&>div.MuiGrid2-root': { width: 'auto', px: .5, py: 0 }, '.MuiCheckbox-root': { pl: '2px' } } },
+                // MUI 7 folded Grid2 into Grid, so the generated class name changed with the import path.
+                gridProps: { sx: { mt: 1, display: 'flex', columnGap: 1, alignitems: 'center', '&>div.MuiGrid-root': { width: 'auto', px: .5, py: 0 }, '.MuiCheckbox-root': { pl: '2px' } } },
                 saveOnChange: true,
                 form: {
                     fields: [

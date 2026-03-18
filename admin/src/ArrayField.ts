@@ -129,6 +129,7 @@ export function ArrayField<T extends object>({
                             const title = "Modify"
                             return [
                                 h(GridActionsCellItem as any, {
+                                    key: 'edit',
                                     icon: h(Edit),
                                     label: title,
                                     title,
@@ -150,28 +151,31 @@ export function ArrayField<T extends object>({
                                     }
                                 }),
                                 h(GridActionsCellItem as any, {
+                                    key: 'delete',
                                     icon: h(Delete),
                                     label: "Delete",
                                     showInMenu: reorder,
-                                    onClick: ev => {
+                                    onClick(ev: any) {
                                         ev.stopPropagation()
                                         set(valueA.filter((_rec, i) => i !== $idx), ev)
                                     },
                                 }),
                                 reorder && $idx && h(GridActionsCellItem as any, {
+                                    key: 'up',
                                     icon: h(ArrowUpward),
                                     label: "Move up",
                                     showInMenu: true,
-                                    onClick: ev => {
+                                    onClick(ev: any) {
                                         ev.stopPropagation()
                                         set(swap(valueA.slice(), $idx, $idx - 1), ev)
                                     },
                                 }),
                                 reorder && $idx < rows.length - 1 && h(GridActionsCellItem as any, {
+                                    key: 'down',
                                     icon: h(ArrowDownward),
                                     label: "Move down",
                                     showInMenu: true,
-                                    onClick: ev => {
+                                    onClick(ev: any) {
                                         ev.stopPropagation()
                                         set(swap(valueA.slice(), $idx, $idx + 1), ev)
                                     },
