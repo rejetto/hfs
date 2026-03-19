@@ -382,6 +382,36 @@ describe('webdav', () => {
             await rmAny(destPath)
         }
     })
+    test('webdav.move rename decodes escaped segment chars', async () => {
+        for (const marker of [',', '#', '%']) {
+            const name = `wd-move-${randomId(6)}.txt`
+            const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+            const renamedName = name.replace('.txt', `${marker}renamed.txt`)
+            const renamed = `${UPLOAD_ROOT}${UPLOAD_DIR}/${pathEncode(renamedName)}`
+            const destination = `${UPLOAD_ROOT}${UPLOAD_DIR}/${encodeURIComponent(renamedName)}`
+            let destPath = ''
+            try {
+                destPath = await webdavUpload(uri, x => x?.uri === uri, 'test')()
+                await req(uri, 201, {
+                    method: 'MOVE',
+                    auth,
+                    jar,
+                    headers: {
+                        destination: BASE_URL + destination,
+                        overwrite: 'F',
+                        'user-agent': WEBDAV_UA,
+                    },
+                })()
+                await req(uri, 404)()
+                await req(renamed, 200, { auth })()
+            }
+            finally {
+                await rmAny(uploadUriToPath(uri))
+                await rmAny(uploadUriToPath(renamed))
+                await rmAny(destPath)
+            }
+        }
+    })
     test('webdav.escaping', req('/f1/hidden', data => XMLValidator.validate(data) === true, { method: 'PROPFIND', auth, jar: {}, headers: { depth: '1' } }))
 
     function webdavUpload(uri: string, tester: Tester, body: string, userAgent=WEBDAV_UA) {
@@ -426,11 +456,11 @@ describe('webdav', () => {
 
 })
 
-// do this before login, or max_dl_accounts config will override max_dl
+// do this before login, or max_dl.accounts config will override max_dl
 describe('limits', () => {
     const fn = ROOT + 'big'
     before(() => writeFile(fn, BIG_CONTENT))
-    test('max_dl', () => testMaxDl('/' + fn, 1, 2))
+    test('max_dl', () => testMaxDl('/' + fn, 1, 2, { jar: {} }))
     after(() => rm(fn))
 })
 
@@ -926,7 +956,7 @@ function uploadUriToPath(uri: string) {
     return ROOT + decodeURI(uri).replace(UPLOAD_ROOT, '')
 }
 
-async function testMaxDl(uri: string, good: number, bad: number) {
+async function testMaxDl(uri: string, good: number, bad: number, reqOptions: ReqOptions={}) {
     // make good+bad requests, and check results
     await Promise.all(_.range(good + bad).map(i => req(uri + '?' + i, (_data, res) => {
         if (res.statusCode === 429) {
@@ -940,7 +970,7 @@ async function testMaxDl(uri: string, good: number, bad: number) {
             return
         }
         throw "unexpected status " + res.statusCode
-    }, { throttle })() )) // slow down to ensure the attempted downloads are all concurrent
+    }, { throttle, ...reqOptions })() )) // slow down to ensure the attempted downloads are all concurrent
 }
 
 type TesterFunction = ((data: any, fullResponse: any) => boolean | void) // true or void for ok, false or throw for error

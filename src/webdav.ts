@@ -6,7 +6,7 @@ import {
 import {
     HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_CREATED, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND,
     HTTP_PRECONDITION_FAILED, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED, HTTP_LOCKED, HTTP_FORBIDDEN,
-    DAY, CFG, enforceFinal, pathEncode, prefix, getOrSet, Dict, Timeout, join as crossJoin, try_
+    DAY, CFG, enforceFinal, pathEncode, prefix, getOrSet, Dict, Timeout, join as crossJoin, try_, safeDecodeURIComponent
 } from './cross'
 import { PassThrough } from 'stream'
 import { mkdir, rm } from 'fs/promises'
@@ -135,7 +135,11 @@ export async function handledWebdav(ctx: Koa.Context) {
         if (isLocked(dest, ctx)) return true
         if (dirname(path) === dirname(dest)) // rename case. `path` is is encoded, so we test before decoding `dest`
             try {
-                await requestedRename(node, basename(decodeURI(dest)), ctx)
+                // decode the single path segment so reserved chars like %2C become their real name on rename
+                const newName = safeDecodeURIComponent(basename(dest), '')
+                if (!newName)
+                    return ctx.status = HTTP_BAD_REQUEST
+                await requestedRename(node, newName, ctx)
                 return ctx.status = HTTP_CREATED
             }
             catch(e:any) {
