@@ -50,7 +50,10 @@ jobs:
             docker.io/rejetto/hfs
           tags: |
             type=ref,event=tag
-            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
+            # workflow_dispatch does not expose a tag ref, so channel tags must be derived from inputs.version
+            type=raw,value=${{ inputs.version }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.version != '' }}
+            type=raw,value=latest,enable=${{ (github.ref_type == 'tag' && !contains(github.ref_name, '-')) || (github.event_name == 'workflow_dispatch' && inputs.version != '' && !contains(inputs.version, '-')) }}
+            type=raw,value=beta,enable=${{ (github.ref_type == 'tag' && contains(github.ref_name, '-')) || (github.event_name == 'workflow_dispatch' && inputs.version != '' && contains(inputs.version, '-')) }}
             type=sha
 
       - name: Build and push
