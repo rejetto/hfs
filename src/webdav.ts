@@ -35,7 +35,7 @@ const LOCK_DEFAULT_SECONDS = 3600
 const LOCK_MAX_SECONDS = DAY / 1000
 const xmlParser = new XMLParser({ ignoreAttributes: false, removeNSPrefix: true, trimValues: true })
 
-const canOverwrite = new Set()
+const canOverwrite = new Set<string>()
 const locks = new Map<string, { token: string, timeout: NodeJS.Timeout, seconds: number }>()
 
 function isLocked(path: string, ctx: Koa.Context) {
@@ -77,14 +77,15 @@ export async function handledWebdav(ctx: Koa.Context) {
         return true
     if (ctx.method === 'PUT') {
         if (isLocked(path, ctx)) return true
+        const overwriteGraceKey = path + prefix('|', getCurrentUsername(ctx)) // bind temporary overwrite grace to the authenticated user so accounts cannot reuse each other's grace window
         // Finder first creates an empty file (a test?) then wants to overwrite it, which requires deletion permission, but the user may not have it, causing a renamed upload. To solve, so we give it special permission for a few seconds.
         const x = ctx.get('x-expected-entity-length') // field used by Finder's webdav on actual upload, after
         if (!x && !ctx.length) {
-            canOverwrite.add(path)
-            setTimeout(() => canOverwrite.delete(path), 10_000) // grace period
+            canOverwrite.add(overwriteGraceKey)
+            setTimeout(() => canOverwrite.delete(overwriteGraceKey), 10_000) // grace period
         }
-        else if (canOverwrite.has(path)) {
-            canOverwrite.delete(path)
+        else if (canOverwrite.has(overwriteGraceKey)) {
+            canOverwrite.delete(overwriteGraceKey)
             const node = await urlToNode(path, ctx)
             if (node?.source)
                 await rm(node.source).catch(() => {})

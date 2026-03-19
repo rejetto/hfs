@@ -313,6 +313,44 @@ describe('webdav', () => {
             await rmAny(destPath)
         }
     })
+    test('webdav.put grace is bound to username', async () => {
+        const firstUser = `wd-grace-a-${randomId(6)}`.toLowerCase()
+        const secondUser = `wd-grace-b-${randomId(6)}`.toLowerCase()
+        const firstPass = `pw-${randomId(8)}`
+        const secondPass = `pw-${randomId(8)}`
+        const name = `wd-grace-${randomId(6)}.txt`
+        const uri = `${CANT_OVERWRITE_URI}${name}`
+        const dir = await ensureCantOverwriteDir()
+        const destPath = resolve(dir, name)
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: firstUser, overwrite: true, password: firstPass, belongs: ['admins'] }, res => res?.username === firstUser, adminReq)()
+            await reqApi('add_account', { username: secondUser, overwrite: true, password: secondPass, belongs: ['admins'] }, res => res?.username === secondUser, adminReq)()
+            await rmAny(destPath)
+            await req(uri, x => x?.uri === uri, {
+                method: 'PUT',
+                auth: `${firstUser}:${firstPass}`,
+                jar: {},
+                headers: { 'content-length': '0', 'user-agent': WEBDAV_UA, },
+                body: '',
+            })()
+            if (!existsSync(destPath))
+                throw "first upload did not create the file"
+            await req(uri, 403, {
+                method: 'PUT',
+                auth: `${secondUser}:${secondPass}`,
+                jar: {},
+                headers: { 'content-length': String(Buffer.byteLength('source')), 'user-agent': WEBDAV_UA },
+                body: 'source',
+            })()
+            if (readFileSync(destPath, 'utf8') !== '')
+                throw "second upload unexpectedly overwrote destination"
+        }
+        finally {
+            await reqApi('del_account', { username: [firstUser, secondUser] }, 200, adminReq)().catch(() => {})
+            await rmAny(destPath)
+        }
+    })
     test('webdav.lock refresh keeps token', async () => {
         const name = `wd-lock-${randomId(6)}.txt`
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
