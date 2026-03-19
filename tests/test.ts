@@ -382,6 +382,74 @@ describe('webdav', () => {
             await rmAny(destPath)
         }
     })
+    test('webdav.stale lock on missing resource is pruned', async () => {
+        const name = `wd-stale-lock-${randomId(6)}.txt`
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        let destPath = ''
+        try {
+            destPath = await webdavUpload(uri, x => x?.uri === uri, 'test')()
+            await webdavLock(uri)()
+            // simulate external removal while client forgot to unlock: stale lock must not force 423 forever
+            await rmAny(destPath)
+            await req(uri, 404, { method: 'DELETE', auth, jar, headers: { 'user-agent': WEBDAV_UA } })()
+            await req(uri, 404, { method: 'DELETE', auth, jar, headers: { 'user-agent': WEBDAV_UA } })()
+        }
+        finally {
+            await rmAny(destPath)
+        }
+    })
+    test('webdav.delete success clears lock for same path', async () => {
+        const name = `wd-delete-clears-lock-${randomId(6)}.txt`
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        let destPath = ''
+        let token = ''
+        try {
+            destPath = await webdavUpload(uri, x => x?.uri === uri, 'test')()
+            await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            if (!token)
+                throw "missing lock token"
+            await req(uri, 200, { method: 'DELETE', auth, jar, headers: { If: `(<${token}>)`, 'user-agent': WEBDAV_UA } })()
+            destPath = await webdavUpload(uri, x => x?.uri === uri, 'test2')()
+            await req(uri, 200, { method: 'DELETE', auth, jar, headers: { 'user-agent': WEBDAV_UA } })()
+        }
+        finally {
+            await rmAny(destPath)
+        }
+    })
+    test('webdav.move success clears lock state', async () => {
+        const name = `wd-move-clears-lock-${randomId(6)}.txt`
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        const renamedName = name.replace('.txt', '-renamed.txt')
+        const renamed = `${UPLOAD_ROOT}${UPLOAD_DIR}/${renamedName}`
+        let destPath = ''
+        let renamedPath = ''
+        let token = ''
+        try {
+            destPath = await webdavUpload(uri, x => x?.uri === uri, 'test')()
+            await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            if (!token)
+                throw "missing lock token"
+            await req(uri, 201, {
+                method: 'MOVE',
+                auth,
+                jar,
+                headers: {
+                    destination: BASE_URL + renamed,
+                    overwrite: 'F',
+                    If: `(<${token}>)`,
+                    'user-agent': WEBDAV_UA,
+                },
+            })()
+            renamedPath = uploadUriToPath(renamed)
+            await req(renamed, 200, { method: 'DELETE', auth, jar, headers: { 'user-agent': WEBDAV_UA } })()
+            destPath = await webdavUpload(uri, x => x?.uri === uri, 'test2')()
+            await req(uri, 200, { method: 'DELETE', auth, jar, headers: { 'user-agent': WEBDAV_UA } })()
+        }
+        finally {
+            await rmAny(renamedPath)
+            await rmAny(destPath)
+        }
+    })
     test('webdav.move rename decodes escaped segment chars', async () => {
         for (const marker of [',', '#', '%']) {
             const name = `wd-move-${randomId(6)}.txt`

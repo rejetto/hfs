@@ -36,14 +36,27 @@ const LOCK_MAX_SECONDS = DAY / 1000
 const xmlParser = new XMLParser({ ignoreAttributes: false, removeNSPrefix: true, trimValues: true })
 
 const canOverwrite = new Set<string>()
-const locks = new Map<string, { token: string, timeout: NodeJS.Timeout, seconds: number }>()
+const locks = new Map<string, { token: string, timeout: NodeJS.Timeout, seconds: number, principal: string }>()
 
-function isLocked(path: string, ctx: Koa.Context) {
+export function releaseWebdavLock(path: string) {
     const lock = locks.get(path)
     if (!lock) return false
+    clearTimeout(lock.timeout)
+    locks.delete(path)
+    return true
+}
+
+async function isLocked(path: string, ctx: Koa.Context) {
+    const lock = locks.get(path)
+    if (!lock) return false
+    // if the resource is gone, keeping the lock only creates fake 423 responses
+    if (!await urlToNode(path, ctx)) {
+        releaseWebdavLock(path)
+        return false
+    }
     const ifHeader = ctx.get('If')
     const tokenHeader = ctx.get(TOKEN_HEADER)
-    if (hasToken(ifHeader, lock.token) || hasToken(tokenHeader, lock.token))
+    if (isSameLockPrincipal(lock, ctx) && (hasToken(ifHeader, lock.token) || hasToken(tokenHeader, lock.token)))
         return false
     ctx.status = HTTP_LOCKED
     return true
@@ -52,6 +65,14 @@ function isLocked(path: string, ctx: Koa.Context) {
 function hasToken(header: string, token: string) {
     if (!header) return false
     return header.includes(`<${token}>`) || header.split(/[,;\s]+/).includes(token)
+}
+
+function getWebdavPrincipal(ctx: Koa.Context) {
+    return getCurrentUsername(ctx) || ''
+}
+
+function isSameLockPrincipal(lock: { principal: string }, ctx: Koa.Context) {
+    return lock.principal === getWebdavPrincipal(ctx)
 }
 
 export async function handledWebdav(ctx: Koa.Context) {
@@ -76,7 +97,7 @@ export async function handledWebdav(ctx: Koa.Context) {
     if (isWebdavAuthRequest && shouldChallengeWebdav())
         return true
     if (ctx.method === 'PUT') {
-        if (isLocked(path, ctx)) return true
+        if (await isLocked(path, ctx)) return true
         const overwriteGraceKey = path + prefix('|', getCurrentUsername(ctx)) // bind temporary overwrite grace to the authenticated user so accounts cannot reuse each other's grace window
         // Finder first creates an empty file (a test?) then wants to overwrite it, which requires deletion permission, but the user may not have it, causing a renamed upload. To solve, so we give it special permission for a few seconds.
         const x = ctx.get('x-expected-entity-length') // field used by Finder's webdav on actual upload, after
@@ -99,7 +120,7 @@ export async function handledWebdav(ctx: Koa.Context) {
     }
     if (ctx.method === 'MKCOL') {
         setWebdavHeaders()
-        if (isLocked(path, ctx)) return true
+        if (await isLocked(path, ctx)) return true
         const node = await urlToNode(path, ctx)
         if (node)
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
@@ -124,7 +145,7 @@ export async function handledWebdav(ctx: Koa.Context) {
     }
     if (ctx.method === 'MOVE') {
         setWebdavHeaders()
-        if (isLocked(path, ctx)) return true
+        if (await isLocked(path, ctx)) return true
         const node = await urlToNode(path, ctx)
         if (!node) return
         let dest = ctx.get('destination')
@@ -132,7 +153,7 @@ export async function handledWebdav(ctx: Koa.Context) {
         if (i >= 0)
             dest = dest.slice(dest.indexOf('/', i + 2))
         dest = crossJoin(ctx.state.root || '', dest) // on Windows, we must use / as the delimiter to be able to compare with `path` below
-        if (isLocked(dest, ctx)) return true
+        if (await isLocked(dest, ctx)) return true
         if (dirname(path) === dirname(dest)) // rename case. `path` is is encoded, so we test before decoding `dest`
             try {
                 // decode the single path segment so reserved chars like %2C become their real name on rename
@@ -140,6 +161,7 @@ export async function handledWebdav(ctx: Koa.Context) {
                 if (!newName)
                     return ctx.status = HTTP_BAD_REQUEST
                 await requestedRename(node, newName, ctx)
+                releaseWebdavLock(path) // RFC 4918 says MOVE must not carry locks to destination, so clear source lock on success
                 return ctx.status = HTTP_CREATED
             }
             catch(e:any) {
@@ -149,11 +171,13 @@ export async function handledWebdav(ctx: Koa.Context) {
         if (moveRes instanceof Error)
             return ctx.status = (moveRes as any).status || HTTP_SERVER_ERROR
         const err = moveRes?.errors?.[0]
+        if (!err)
+            releaseWebdavLock(path) // successful move leaves old path invalid, therefore its lock must be dropped
         return ctx.status = !err ? HTTP_CREATED : typeof err === 'number' ? err : HTTP_SERVER_ERROR
     }
     if (ctx.method === 'DELETE') {
         setWebdavHeaders()
-        if (isLocked(path, ctx)) return true
+        if (await isLocked(path, ctx)) return true
         return // allow default handling in serveGuiAndSharedFiles.ts
     }
     if (ctx.method === 'UNLOCK') {
@@ -162,8 +186,10 @@ export async function handledWebdav(ctx: Koa.Context) {
         const lock = locks.get(path)
         if (x !== lock?.token)
             return ctx.status = HTTP_BAD_REQUEST
-        clearTimeout(lock.timeout)
-        locks.delete(path)
+        // with force_webdav_login disabled a client may silently fall back to anonymous; keep lock ownership on the original principal
+        if (!isSameLockPrincipal(lock, ctx))
+            return ctx.status = HTTP_PRECONDITION_FAILED
+        releaseWebdavLock(path)
         ctx.set(TOKEN_HEADER, x)
         if (IS_MAC)
             urlToNode(path, ctx).then(x => x?.source && dotClean(dirname(x.source)))
@@ -183,9 +209,12 @@ export async function handledWebdav(ctx: Koa.Context) {
             const lock = locks.get(path)
             if (token !== lock?.token)
                 return ctx.status = HTTP_PRECONDITION_FAILED
+            // same-token refresh from another principal would make abandoned locks effectively persistent
+            if (!isSameLockPrincipal(lock, ctx))
+                return ctx.status = HTTP_PRECONDITION_FAILED
             // refresh lock – keep the same token on refresh so clients can continue using the lock they already hold
             clearTimeout(lock.timeout)
-            lock.timeout = setTimeout(() => locks.delete(path), seconds * 1000)
+            lock.timeout = setTimeout(() => releaseWebdavLock(path), seconds * 1000)
             lock.seconds = seconds
             locks.set(path, lock)
 
@@ -205,8 +234,8 @@ export async function handledWebdav(ctx: Koa.Context) {
         if (locks.has(path))
             return ctx.status = HTTP_LOCKED
         const newToken = 'urn:uuid:' + randomUUID()
-        const timeout = setTimeout(() => locks.delete(path), seconds * 1000)
-        locks.set(path, { token: newToken, timeout, seconds })
+        const timeout = setTimeout(() => releaseWebdavLock(path), seconds * 1000)
+        locks.set(path, { token: newToken, timeout, seconds, principal: getWebdavPrincipal(ctx) })
         ctx.set(TOKEN_HEADER, newToken)
         ctx.body = renderLockResponse(newToken, seconds)
         return true

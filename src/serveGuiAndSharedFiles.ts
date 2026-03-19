@@ -29,7 +29,7 @@ import { setCommentFor } from './comments'
 import { basicWeb, detectBasicAgent } from './basicWeb'
 import { customizedIcons, ICONS_FOLDER } from './icons'
 import { getPluginInfo } from './plugins'
-import { handledWebdav } from './webdav'
+import { handledWebdav, releaseWebdavLock } from './webdav'
 
 const serveFrontendFiles = serveGuiFiles(process.env.FRONTEND_PROXY, FRONTEND_URI)
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontendFiles)
@@ -108,6 +108,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             if ((await events.emitAsync('deleting', { node, ctx }))?.isDefaultPrevented())
                 return ctx.status = HTTP_FAILED_DEPENDENCY
             await rm(source, { recursive: true })
+            // webdav clients may forget UNLOCK on failures; successful delete must clear any lock tied to this path
+            releaseWebdavLock(ctx.path)
             void setCommentFor(source, '') // necessary only to clean a possible descript.ion or kvstorage
             return ctx.status = HTTP_OK
         } catch (e: any) {
