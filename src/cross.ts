@@ -605,4 +605,5 @@ const BROWSERS = {
     Finder: /WebDAVFS.+Darwin|WebDAVLib/,
     Cyberduck: /^Cyberduck/,
     ForkLift: /^ForkLift/,
+    Explorer: /^Microsoft-WebDAV-MiniRedir/,
 }

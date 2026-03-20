@@ -373,6 +373,7 @@ const CLIENT_ICONS = {
     Finder: UW + 'thumb/b/b9/Finder_Icon_macOS_Tahoe.png/250px-Finder_Icon_macOS_Tahoe.png',
     Cyberduck: UW + 'archive/4/48/20091115091336%21Cyberduck_icon.png',
     ForkLift: UW + '../en/9/96/ForkLift_3_File_Manager_and_File_Transfer_Client_Logo.png',
+    Explorer: UW + '3/33/Microsoft_PowerToys-Logo_File_Explorer_Preview_02.svg',
 }
 const OS_ICONS = {
     Android: UW + 'd/d7/Android_robot.svg',
@@ -384,7 +385,7 @@ const OS_ICONS = {
 const OSS = {
     iOS: /iPhone OS|iPad/,
     macOS: /Mac OS|Darwin/,
-    Windows: /Windows NT/,
+    Windows: /Windows NT|^Microsoft-WebDAV/,
     Android: /Android/,
     Linux: /Linux/,
 }
