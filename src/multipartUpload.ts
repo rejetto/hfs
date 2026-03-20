@@ -6,6 +6,7 @@ import { dirname } from 'path'
 import { uploadWriter } from './upload'
 import { HTTP_BAD_REQUEST } from './cross-const'
 import { onFirstEvent } from './first'
+import { try_ } from './cross'
 
 export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNode) {
     if (ctx.request.type !== 'multipart/form-data')
@@ -14,7 +15,11 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNode) {
     const locks: Promise<string>[] = []
     const fileJobs: Promise<any>[] = []
     const errors: string[] = []
-    const bb = Busboy({ headers: ctx.req.headers, preservePath: true })
+    const bb = try_(() => Busboy({ headers: ctx.req.headers, preservePath: true }), e => {
+        ctx.body = String(e) // busboy validates multipart headers at construction time, so malformed requests must stop here as 400
+        ctx.status = HTTP_BAD_REQUEST
+    })
+    if (!bb) return
     bb.on('field', (name: string) => {
         if (name === 'upload')
             errors.push('empty filename')

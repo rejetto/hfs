@@ -194,6 +194,11 @@ describe('basics', () => {
         if (!['empty filename', 'no files'].includes(errMsg))
             throw 'missing error'
     })
+    test('upload.post.missing-boundary', async () => {
+        const { status } = await curlWithStatus(`printf 'x' | curl -s -u ${auth} -H "Content-Type: multipart/form-data" --data-binary @- ${BASE_URL}${UPLOAD_ROOT}`)
+        if (status !== 400)
+            throw "unexpected status " + status
+    })
     test('upload.post.absolute filename', async () => {
         const absPath = resolve(__dirname, `abs-${randomId(6)}.txt`)
         const absForBody = absPath.replace(/\\\\/g, '/')
