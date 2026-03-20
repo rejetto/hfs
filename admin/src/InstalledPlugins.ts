@@ -1,11 +1,12 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { apiCall, useApiEx, useApiList } from './api'
-import { createElement as h, Fragment, useEffect, useState } from 'react'
+import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
+import { Account, account2icon } from './AccountsPage'
 import { Box, Breakpoint, Link, Paper, Table, TableCell, TableRow, useTheme } from '@mui/material'
 import { DataTable, DataTableColumn } from './DataTable'
 import {
-    Clear, Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, ListAlt, PlayCircle, Settings, StopCircle, Upgrade
+    Clear, Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, ListAlt, MilitaryTech, PlayCircle, Settings, StopCircle, Upgrade
 } from '@mui/icons-material'
 import {
     CFG, Html, HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate, formatTime, formatDate, replaceStringToReact,
@@ -318,9 +319,20 @@ export async function startPlugin(id: string) {
 
 function UsernameField({ value, onChange, multiple, groups, ...rest }: FieldProps<string>) {
     const { data, element, loading } = useApiEx<typeof adminApis.get_accounts>('get_accounts')
+    const list = useMemo(() => data && _.sortBy(data.list, [x => !x.isGroup, x => !x.adminActualAccess, 'username']), [data])
+    type UsernameOption = { value: string, label: string, a: Account }
     return !loading && element || h((multiple ? MultiSelectField : SelectField) as Field<string>, {
         value, onChange,
-        options: data?.list.filter(x => groups === undefined || groups === x.isGroup).map(x => x.username),
+        options: list?.filter(x => groups === undefined || groups === x.isGroup).map(a => ({ value: a.username, label: a.username, a })),
+        renderOption: (x: UsernameOption) => {
+            const icon = x.a.isGroup && account2icon(x.a) || x.a.adminActualAccess && iconTooltip(MilitaryTech, "Can login into Admin")
+            if (!icon)
+                return x.label
+            return !icon ? x.label
+                : h('span', {},
+                    h('span', { style: { marginLeft: -8, marginRight: 8 } }, icon),
+                    x.label)
+        },
         ...rest,
     })
 }

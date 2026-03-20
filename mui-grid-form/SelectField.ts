@@ -12,12 +12,14 @@ import { useIsMobile } from '@hfs/shared'
 type SelectOptions<T> = { [label:string]: T } | SelectOption<T>[]
 type SelectOption<T> = SelectOptionNormalized<T> | (T extends string | number ? T : never)
 interface SelectOptionNormalized<T> { label?: string, value: T, disabled?: boolean }
+type RenderOption<T> = (option: SelectOptionNormalized<T>) => ReactNode
 
-export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T> & { defaultValue?: T }) {
-    const { defaultValue, value=defaultValue, onChange, setApi, options, sx, disabled, afterList, ...rest } = props
+export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T> & { defaultValue?: T, renderOption?: RenderOption<T> }) {
+    let { defaultValue, value=defaultValue, onChange, setApi, options, sx, disabled, afterList, renderOption, ...rest } = props
     const normalizedOptions = useMemo(() => normalizeOptions(options), [options])
     const jsonValue = JSON.stringify(value)
     const currentOption = normalizedOptions?.find(x => JSON.stringify(x.value) === jsonValue)
+    renderOption ??= x => x.label ?? String(x.value)
     return h(TextField, { // using TextField because Select is not displaying label correctly
         select: true,
         hiddenLabel: !props.label,
@@ -29,7 +31,7 @@ export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T> & { d
                 key: i,
                 value: JSON.stringify(o?.value),
                 disabled: o?.disabled,
-                children: h(Fragment, { key: i }, o?.label ?? String(o?.value)) // without this fragment/key, a label as h(span) will produce warnings
+                children: h(Fragment, { key: i }, renderOption!(o)) // without this fragment/key, a label as h(span) will produce warnings
             })),
             h('div', { key: -1 }, afterList),
         ],
@@ -47,7 +49,7 @@ export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T> & { d
 }
 
 type MultiSelectFieldProps<T> = FieldProps<T[]> & CommonSelectProps<T> & {
-    renderOption?: (option: SelectOptionNormalized<T>) => ReactNode
+    renderOption?: RenderOption<T>
     clearable?: boolean
 }
 export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectFieldProps<T>) {
