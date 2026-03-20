@@ -11,7 +11,8 @@ import { logMw } from './log'
 import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
 import { headRequests, gzipper, someSecurity, prepareState, paramsDecoder, sessionMiddleware } from './middlewares'
-import { serveGuiAndSharedFiles } from './serveGuiAndSharedFiles'
+import { serveSharedFiles, guiFilesMiddleware } from './serveGuiAndSharedFiles'
+import { webdav } from './webdav'
 import './listen'
 import './commands'
 import { adminApis } from './adminApis'
@@ -54,7 +55,9 @@ app.use(sessionMiddleware)
     .use(throttler)
     .use(pluginsMiddleware)
     .use(mount(API_URI, apiMiddleware({ ...frontEndApis, ...adminApis })))
-    .use(serveGuiAndSharedFiles)
+    .use(guiFilesMiddleware)
+    .use(webdav)
+    .use(serveSharedFiles)
     .on('error', errorHandler)
 events.emit('app', app)
 

@@ -195,7 +195,7 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
     return function (ctx, next) {
         if (!logGui.get())
             ctx.state.dontLog = true
-        return proxy(ctx, next)
+        return proxy(ctx, async () => {})
     } as Koa.Middleware
 }
 

@@ -29,14 +29,13 @@ import { setCommentFor } from './comments'
 import { basicWeb, detectBasicAgent } from './basicWeb'
 import { customizedIcons, ICONS_FOLDER } from './icons'
 import { getPluginInfo } from './plugins'
-import { handledWebdav, releaseWebdavLock } from './webdav'
 
 const serveFrontendFiles = serveGuiFiles(process.env.FRONTEND_PROXY, FRONTEND_URI)
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontendFiles)
 const serveAdminFiles = serveGuiFiles(process.env.ADMIN_PROXY, ADMIN_URI)
 const serveAdminPrefixed = mount(ADMIN_URI.slice(0,-1), serveAdminFiles)
 
-export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
+export const guiFilesMiddleware: Koa.Middleware = async (ctx, next) => {
     const { path } = ctx
     // dynamic import on frontend|admin (used for non-https login) while developing (vite4) is not producing a relative path
     if (DEV && path.startsWith('/node_modules/')) {
@@ -45,7 +44,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             : serveFrontendFiles(ctx, next)
     }
     if (path.startsWith(FRONTEND_URI))
-        return serveFrontendPrefixed(ctx,next)
+        return serveFrontendPrefixed(ctx, next)
     if (path.length === ADMIN_URI.length - 1 && ADMIN_URI.startsWith(path))
         return ctx.redirect(ctx.state.revProxyPath + ADMIN_URI)
     if (path.startsWith(ADMIN_URI))
@@ -60,7 +59,11 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         ctx.state.considerAsGui = true
         return serveFile(ctx, join(plugin?.folder || '', ICONS_FOLDER, file), MIME_AUTO)
     }
-    if (await handledWebdav(ctx)) return
+    return next()
+}
+
+export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
+    const { path } = ctx
     const { get } = ctx.query
     const getUploadTempHash = get === UPLOAD_TEMP_HASH
     if (ctx.method === 'PUT' || getUploadTempHash) { // PUT is what you get with `curl -T file url/`
@@ -108,8 +111,6 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             if ((await events.emitAsync('deleting', { node, ctx }))?.isDefaultPrevented())
                 return ctx.status = HTTP_FAILED_DEPENDENCY
             await rm(source, { recursive: true })
-            // webdav clients may forget UNLOCK on failures; successful delete must clear any lock tied to this path
-            releaseWebdavLock(ctx.path)
             void setCommentFor(source, '') // necessary only to clean a possible descript.ion or kvstorage
             return ctx.status = HTTP_OK
         } catch (e: any) {

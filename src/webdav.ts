@@ -5,7 +5,7 @@ import {
 } from './vfs'
 import {
     HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_CREATED, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND,
-    HTTP_PRECONDITION_FAILED, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED, HTTP_LOCKED, HTTP_FORBIDDEN,
+    HTTP_OK, HTTP_PRECONDITION_FAILED, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED, HTTP_LOCKED, HTTP_FORBIDDEN,
     DAY, CFG, enforceFinal, pathEncode, prefix, getOrSet, Dict, Timeout, join as crossJoin, try_, safeDecodeURIComponent
 } from './cross'
 import { PassThrough } from 'stream'
@@ -75,7 +75,7 @@ function isSameLockPrincipal(lock: { principal: string }, ctx: Koa.Context) {
     return lock.principal === getWebdavPrincipal(ctx)
 }
 
-export async function handledWebdav(ctx: Koa.Context) {
+export const webdav: Koa.Middleware = async (ctx, next) => {
     let {path} = ctx
     path = path.replace(/^\/+/, '/') // double-slash is causing empty listing in filezilla-pro
 
@@ -89,15 +89,16 @@ export async function handledWebdav(ctx: Koa.Context) {
         webdavDetectedAgents.try(webdavAgentKey(ctx, ua), () => true)
 
     if (ctx.method === 'OPTIONS') {
-        if (ctx.get('Access-Control-Request-Method')) return // it's a preflight cors request, not webdav
+        if (ctx.get('Access-Control-Request-Method')) // it's a preflight cors request, not webdav
+            return next()
         setWebdavHeaders()
         ctx.body = ''
-        return true
+        return
     }
     if (isWebdavAuthRequest && shouldChallengeWebdav())
-        return true
+        return
     if (ctx.method === 'PUT') {
-        if (await isLocked(path, ctx)) return true
+        if (await isLocked(path, ctx)) return
         const overwriteGraceKey = path + prefix('|', getCurrentUsername(ctx)) // bind temporary overwrite grace to the authenticated user so accounts cannot reuse each other's grace window
         // Finder first creates an empty file (a test?) then wants to overwrite it, which requires deletion permission, but the user may not have it, causing a renamed upload. To solve, so we give it special permission for a few seconds.
         const x = ctx.get('x-expected-entity-length') // field used by Finder's webdav on actual upload, after
@@ -116,14 +117,16 @@ export async function handledWebdav(ctx: Koa.Context) {
 
         if (KNOWN_UA.test(ua) || webdavDetectedAgents.has(webdavAgentKey(ctx, ua)))
             ctx.query.existing ??= 'overwrite' // with webdav this is our default
-        return // default handling
+        return next()
     }
     if (ctx.method === 'MKCOL') {
         setWebdavHeaders()
-        if (await isLocked(path, ctx)) return true
+        if (await isLocked(path, ctx)) return
         const node = await urlToNode(path, ctx)
-        if (node)
-            return ctx.status = HTTP_METHOD_NOT_ALLOWED
+        if (node) {
+            ctx.status = HTTP_METHOD_NOT_ALLOWED
+            return
+        }
         let name = ''
         const parentNode = await urlToNode(path, ctx, vfs, v => name = v)
         if (!parentNode)
@@ -133,7 +136,7 @@ export async function handledWebdav(ctx: Koa.Context) {
         if (statusCodeForMissingPerm(parentNode, 'can_upload', ctx)) {
             if (ctx.status === HTTP_UNAUTHORIZED)
                 setWebdavHeaders(true)
-            return true
+            return
         }
         try {
             await mkdir(join(parentNode.source!, name))
@@ -145,15 +148,15 @@ export async function handledWebdav(ctx: Koa.Context) {
     }
     if (ctx.method === 'MOVE') {
         setWebdavHeaders()
-        if (await isLocked(path, ctx)) return true
+        if (await isLocked(path, ctx)) return
         const node = await urlToNode(path, ctx)
-        if (!node) return
+        if (!node) return next()
         let dest = ctx.get('destination')
         const i = dest.indexOf('//')
         if (i >= 0)
             dest = dest.slice(dest.indexOf('/', i + 2))
         dest = crossJoin(ctx.state.root || '', dest) // on Windows, we must use / as the delimiter to be able to compare with `path` below
-        if (await isLocked(dest, ctx)) return true
+        if (await isLocked(dest, ctx)) return
         if (dirname(path) === dirname(dest)) // rename case. `path` is is encoded, so we test before decoding `dest`
             try {
                 // decode the single path segment so reserved chars like %2C become their real name on rename
@@ -172,13 +175,16 @@ export async function handledWebdav(ctx: Koa.Context) {
             return ctx.status = (moveRes as any).status || HTTP_SERVER_ERROR
         const err = moveRes?.errors?.[0]
         if (!err)
-            releaseWebdavLock(path) // successful move leaves old path invalid, therefore its lock must be dropped
+            releaseWebdavLock(path) // successful MOVE leaves the old path invalid, therefore its lock must be dropped
         return ctx.status = !err ? HTTP_CREATED : typeof err === 'number' ? err : HTTP_SERVER_ERROR
     }
     if (ctx.method === 'DELETE') {
         setWebdavHeaders()
-        if (await isLocked(path, ctx)) return true
-        return // allow default handling in serveGuiAndSharedFiles.ts
+        if (await isLocked(path, ctx)) return
+        await next()
+        if (ctx.status === HTTP_OK)
+            releaseWebdavLock(path) // webdav clients may forget UNLOCK; successful delete must clear any lock
+        return
     }
     if (ctx.method === 'UNLOCK') {
         setWebdavHeaders()
@@ -220,7 +226,7 @@ export async function handledWebdav(ctx: Koa.Context) {
 
             ctx.set(TOKEN_HEADER, lock.token)
             ctx.body = renderLockResponse(lock.token, lock.seconds)
-            return true
+            return
         }
         const lockinfo = try_(() => xmlParser.parse(body).lockinfo)
         const scope = _.keys(lockinfo?.lockscope)[0]
@@ -238,7 +244,7 @@ export async function handledWebdav(ctx: Koa.Context) {
         locks.set(path, { token: newToken, timeout, seconds, principal: getWebdavPrincipal(ctx) })
         ctx.set(TOKEN_HEADER, newToken)
         ctx.body = renderLockResponse(newToken, seconds)
-        return true
+        return
 
         function getProvidedLockToken(ctx: Koa.Context) {
             const direct = ctx.get(TOKEN_HEADER).replace(/[<>]/g, '')
@@ -263,14 +269,14 @@ export async function handledWebdav(ctx: Koa.Context) {
     if (ctx.method === 'PROPFIND') {
         setWebdavHeaders()
         const node = await urlToNode(path, ctx)
-        if (!node) return
+        if (!node) return next()
         let depth = Number(ctx.get('depth'))
         depth = isNaN(depth) ? Infinity : depth
         const isList = depth !== 0
         if (statusCodeForMissingPerm(node, isList ? 'can_list' : 'can_see', ctx)) {
             if (ctx.status === HTTP_UNAUTHORIZED)
                 setWebdavHeaders(true)
-            return true
+            return
         }
         ctx.type = 'xml'
         ctx.status = 207
@@ -285,7 +291,7 @@ export async function handledWebdav(ctx: Koa.Context) {
         }
         res.write(`</multistatus>`)
         res.end()
-        return true
+        return
 
         async function sendEntry(node: VfsNode, append=false) {
             if (nodeIsLink(node)) return
@@ -311,6 +317,7 @@ export async function handledWebdav(ctx: Koa.Context) {
         setWebdavHeaders()
         return ctx.status = HTTP_METHOD_NOT_ALLOWED
     }
+    return next()
 
     function setWebdavHeaders(authenticate=false) {
         ctx.set('DAV', '1,2')
