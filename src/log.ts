@@ -72,7 +72,7 @@ const logSpam = defineConfig(CFG.log_spam, false)
 const debounce = _.debounce(cb => cb(), 1000) // with this technique, i'll be able to debounce some code respecting the references in its closure
 
 export const logMw: Koa.Middleware = async (ctx, next) => {
-    const now = new Date() // request start
+    const reqStart = new Date() // request start
     const userAtStart = getCurrentUsername(ctx)
     // do it now so it's available for returning plugins
     ctx.state.completed = Promise.race([ once(ctx.res, 'finish'), once(ctx.res, 'close') ])
@@ -98,13 +98,14 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         const rotate = logRotation.get()?.[0]
         let { stream, last, path } = logger
         if (!stream) return
-        logger.last = now
+        logger.last = reqStart
         if (rotate && last) { // rotation enabled and a file exists?
-            const passed = Number(now) - Number(last)
+            const passed = Number(reqStart) - Number(last)
                 - 3600_000 // be pessimistic and count a possible DST change
-            if (rotate === 'm' && (passed >= 31*DAY || now.getMonth() !== last.getMonth())
-                || rotate === 'd' && (passed >= DAY || now.getDate() !== last.getDate()) // checking passed will solve the case when the day of the month is the same but a month has passed
-                || rotate === 'w' && (passed >= 7*DAY || now.getDay() < last.getDay())) {
+            const t = reqStart
+            if (rotate === 'm' && (passed >= 31 * DAY || t.getMonth() !== last.getMonth())
+                || rotate === 'd' && (passed >= DAY || t.getDate() !== last.getDate()) // checking passed will solve the case when the day of the month is the same but a month has passed
+                || rotate === 'w' && (passed >= 7 * DAY || t.getDay() < last.getDay())) {
                 stream.end()
                 const suffix = '-' + last.getFullYear() + '-' + doubleDigit(last.getMonth() + 1) + '-' + doubleDigit(last.getDate())
                 const newPath = strinsert(path, path.length - extname(path).length, suffix)
@@ -119,12 +120,13 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
             }
         }
         const format = '%s - %s [%s] "%s %s HTTP/%s" %d %s %s\n' // Apache's Common Log Format
-        const a = now.toString().split(' ') // like nginx, our default log contains the time of log writing
-        const date = a[2]+'/'+a[1]+'/'+a[3]+':'+a[4]+' '+a[5]?.slice(3)
+        // keep reqStart for duration/rotation, but log time should reflect when the line is actually written
+        const a = new Date().toString().split(' ') // like nginx, our default log contains the time of log writing
+        const date = `${a[2]}/${a[1]}/${a[3]}:${a[4]} ${a[5]?.slice(3)}`
         const user = getCurrentUsername(ctx) || userAtStart
         const length = ctx.state.length ?? ctx.length
         const uri = ctx.originalUrl
-        const duration = (Date.now() - Number(now)) / 1000
+        const duration = (Date.now() - Number(reqStart)) / 1000
         ctx.logExtra(ctx.vfsNode && {
             speed: Math.round(length / duration),
             ...ctx.state.includesLastByte && ctx.res.finished && { dl: 1 }
@@ -139,7 +141,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
             ctx.logExtra({ ua: ctx.get('user-agent') || undefined })
         const extra = ctx.state.logExtra
         if (events.anyListener(logger.name)) // small optimization: this event can happen often, while most times there's no listener, and the parameters object is constructed pointlessly. A benchmark measured it 20% faster (just the line), while maybe it was not necessary.
-            events.emit(logger.name, { ctx, length, user, ts: now, uri, extra })
+            events.emit(logger.name, { ctx, length, user, ts: reqStart, uri, extra })
         debounce(() => // once in a while we check if the file is still good (not deleted, etc), or we'll reopen it
             statWithTimeout(logger.path).catch(() => logger.reopen())) // async = smoother but we may lose some entries
         stream!.write(util.format( format,
