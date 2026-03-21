@@ -1032,6 +1032,74 @@ describe('admin', () => {
         return req(`/~/plugins/${id}/../../../tests/config.yaml`, 404)()
             .finally(() => reqApi('stop_plugin', { id }, 200, { auth })())
     })
+    const antibruteCfg = {
+        increment: 1,           max: 60,
+        blockAfter: 9999,       maxQueuePerIp: 32,
+        maxQueuePerAccount: 16, maxQueueGlobal: 512,
+    }
+    test('antibrute.valid basic auth has no progressive delay', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            const first = await reqBasicAuth('/for-admins/', auth)
+            const second = await reqBasicAuth('/for-admins/', auth)
+            if (first.status !== 200) throw "first request failed"
+            if (second.status !== 200) throw "second request failed"
+            if (first.delay !== 0) throw "first request delayed"
+            if (second.delay !== 0) throw "second request delayed"
+        })
+    })
+    test('antibrute.valid burst has no anti-brute delay', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            const burst = await Promise.all(_.times(20, () => reqBasicAuth('/for-admins/', auth)))
+            if (burst.some(x => x.status !== 200)) throw `unexpected statuses in valid burst: ${burst.map(x => x.status)}`
+            if (burst.some(x => x.delay !== 0)) throw `unexpected delay in valid burst: ${burst.map(x => x.delay)}`
+        })
+    })
+    test('antibrute.valid burst x100 has no anti-brute delay', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            const burst = await Promise.all(_.times(100, () => reqBasicAuth('/for-admins/', auth)))
+            if (burst.some(x => x.status !== 200)) throw `unexpected statuses in x100 valid burst: ${burst.map(x => x.status)}`
+            if (burst.some(x => x.delay !== 0)) throw `unexpected delay in x100 valid burst: ${burst.map(x => x.delay)}`
+        })
+    })
+    test('antibrute.failed basic auth escalates delay', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            const first = await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
+            const second = await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
+            if (first.status !== 401) throw "first wrong login was not rejected"
+            if (second.status !== 401) throw "second wrong login was not rejected"
+            if (second.delay < 500) throw `missing delay escalation: ${second.delay}`
+        })
+    })
+    test('antibrute.successful login resets penalty', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
+            const penalized = await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
+            const success = await reqBasicAuth('/for-admins/', auth)
+            const afterReset = await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
+            if (penalized.status !== 401) throw "penalized wrong login status mismatch"
+            if (penalized.delay < 500) throw `missing pre-reset delay: ${penalized.delay}`
+            if (success.status !== 200) throw "successful login failed"
+            if (afterReset.status !== 401) throw "post-reset wrong login status mismatch"
+            if (afterReset.delay !== 0) throw `delay not reset after successful login: ${afterReset.delay}`
+        })
+    })
+    test('antibrute.burst serializes wrong logins with increasing delays', async () => {
+        await withPluginConfig('antibrute', {
+            ...antibruteCfg,
+            increment: 1,
+            max: 1,
+            maxQueuePerIp: 1,
+            maxQueuePerAccount: 1,
+            maxQueueGlobal: 1,
+        }, async () => {
+            await reqBasicAuth('/for-admins/', `${username}:wrong-password`) // seed penalty so the first burst request keeps queue slots busy
+            const burst = await Promise.all(_.times(3, () => reqBasicAuth('/for-admins/', `${username}:wrong-password`)))
+            const delays = burst.map(x => x.delay)
+            if (burst.some(x => x.status !== 401)) throw `unexpected statuses in burst: ${burst.map(x => x.status)}`
+            if (delays.some(x => x <= 0)) throw `missing delay in burst: ${delays.join(',')}`
+            if (!_.isEqual(delays, [...delays].sort((a, b) => a - b))) throw `delays are not monotonic: ${delays.join(',')}`
+        })
+    })
 })
 
 function login(usr: string, pwd=password) {
@@ -1243,4 +1311,38 @@ async function curlWithStatus(cmd: string) {
     if (idx < 0)
         throw "missing status in curl output"
     return { status: Number(out.slice(idx + 8)), body: out.slice(0, idx) }
+}
+
+async function withPluginConfig(id: string, config: object, cb: () => Promise<void>) {
+    const prev = await reqApi('get_plugin', { id }, res => res?.config && 'enabled' in res, { auth })()
+    // force a deterministic plugin lifecycle to avoid races where set_plugin returns before plugin init is completed
+    await reqApi('stop_plugin', { id }, 200, { auth })()
+    await reqApi('set_plugin', { id, enabled: false, config }, 200, { auth })()
+    await reqApi('start_plugin', { id }, 200, { auth })()
+    try {
+        await cb()
+    }
+    finally {
+        await reqApi('stop_plugin', { id }, 200, { auth })()
+        await reqApi('set_plugin', { id, enabled: false, config: prev.config }, 200, { auth })()
+        if (prev.enabled)
+            await reqApi('start_plugin', { id }, 200, { auth })()
+    }
+}
+
+async function reqBasicAuth(url: string, credentials: string) {
+    const authorization = 'Basic ' + Buffer.from(credentials).toString('base64')
+    const response = await httpStream(defaultBaseUrl + url, {
+        path: url,
+        httpThrow: false,
+        jar: {},
+        headers: { authorization },
+    })
+    await stream2string(response).catch(() => '')
+    const rawDelay = response.headers?.['x-anti-brute-force']
+    const delayValue = Array.isArray(rawDelay) ? rawDelay[0] : rawDelay
+    return {
+        status: response.statusCode,
+        delay: Number(delayValue) || 0,
+    }
 }
