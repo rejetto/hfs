@@ -87,7 +87,7 @@ export default function LogsPage({ setTitleSide }: PageProps) {
                                 helperText: "Write errors in a different file. Empty to use same file."
                             },
                             { k: CFG.log_rotation, comp: SelectField, sm: 6, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
-                                helperText: wikiLink('Logs#rotation', "To keep log-files smaller"),
+                                helperText: [wikiLink('Logs#rotation', "To keep log-files smaller"), " (deletion is not automatic)"],
                             },
                             { k: CFG.dont_log_net, comp: NetmaskField, label: "Don't log address", sm: 6, placeholder: "no exception" },
                             { k: CFG.log_gui, sm: 6, comp: BoolField, label: "Log interface loading", helperText: "Some requests are necessary to load the interface" },
