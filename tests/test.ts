@@ -2,8 +2,8 @@ import test, { describe, before, after } from 'node:test';
 import { promisify } from 'util'
 import { srpClientSequence } from '../src/srp'
 import * as srp from 'tssrp6a'
-import { createReadStream, existsSync, readFileSync, statfsSync, statSync } from 'fs'
-import { basename, dirname, resolve } from 'path'
+import { createReadStream, existsSync, mkdirSync, readFileSync, rmSync, statfsSync, statSync } from 'fs'
+import { basename, dirname, join, resolve } from 'path'
 import { exec } from 'child_process'
 import _ from 'lodash'
 import yaml from 'yaml'
@@ -70,6 +70,39 @@ describe('basics', () => {
     test('list', reqList('/f1/', { inList:['f2/', 'page/'] }))
     test('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
     test('search root', reqList('/', { inList:['cantListPage/'], outList:['cantListPage/page/'] }, { search:'page' }))
+    test('search.fifo order', async () => {
+        // deep search queues subdirectory jobs via makeQ; verify results come in FIFO order.
+        // tree: root/{d01..d10}/sub/ — with LIFO the sub/ entries reverse relative to parent order (tau≈-1).
+        const dir = resolve(__dirname, '_fifo_test')
+        const dirCount = 10 // well above dirQ parallelization (3)
+        for (let i = 1; i <= dirCount; i++) {
+            const name = `d${String(i).padStart(2, '0')}`
+            mkdirSync(join(dir, name, 'sub'), { recursive: true })
+        }
+        try {
+            await reqList('/tests/_fifo_test', {
+                cb(data: any) {
+                    const names: string[] = data.list.map((x: any) => x.n)
+                    const parents = names.filter((n: string) => !n.includes('/'))
+                    const subs = names.filter((n: string) => n.endsWith('sub/')).map((n: string) => n.split('/')[0])
+                    // Kendall's tau: +1 = same order (FIFO), -1 = reversed (LIFO)
+                    let concordant = 0, discordant = 0
+                    for (let i = 0; i < parents.length; i++)
+                        for (let j = i + 1; j < parents.length; j++) {
+                            const d = subs.indexOf(parents[i]) - subs.indexOf(parents[j])
+                            if (d > 0) discordant++
+                            else if (d < 0) concordant++
+                        }
+                    const tau = (concordant - discordant) / (concordant + discordant)
+                    if (tau <= 0)
+                        throw `search results not FIFO; tau=${tau.toFixed(2)}, parents: ${parents}, subs: ${subs}`
+                }
+            }, { search: '*' })()
+        }
+        finally {
+            rmSync(dir, { recursive: true, force: true })
+        }
+    })
     test('download.mime', req('/f1/f2/alfa.txt', { re:/abcd/, mime:'text/plain' }))
     test('download.not modified', async () => {
         let lm = ''

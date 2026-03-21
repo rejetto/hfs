@@ -108,7 +108,7 @@ export async function urlToNode(
     url: string,
     ctx?: Koa.Context,
     parent: VfsNode=vfs,
-    resolveMissing?: true | ((rest: string) => any)
+    resolveMissing?: true | ((rest: string) => any) // true means missing path segments still resolve to temporary nodes with a computed source path (used by upload flows that create folders on write)
 ) : Promise<VfsNode | undefined> {
     let initialSlashes = 0
     while (url[initialSlashes] === '/')

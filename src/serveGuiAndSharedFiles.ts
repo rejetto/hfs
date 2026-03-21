@@ -70,7 +70,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
         const decPath = safeDecodeURIComponent(path, '')
         const fn = basename(decPath)
         const folderUri = pathEncode(dirname(decPath)) // re-encode to get readable urls
-        const folder = await urlToNode(folderUri, ctx, vfs, true)
+        const folder = await urlToNode(folderUri, ctx, vfs, true) // we don't require the folder to already exist, but to be mapped on disk AND to have proper permissions
         if (!folder)
             return sendErrorPage(ctx, HTTP_NOT_FOUND)
         ctx.state.uploadPath = decPath
@@ -163,7 +163,7 @@ async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
             || URL.protocol + '//' + URL.host + ctx.state.revProxyPath
         prepend = base + pathEncode(decodeURI(ctx.path)) // redo the encoding our way, keeping unicode chars unchanged
     }
-    const walker = walkNode(node, { ctx, depth: depth === '*' ? Infinity : Number(depth), parallelizeRecursion: false })
+    const walker = walkNode(node, { ctx, depth: depth === '*' ? Infinity : Number(depth), parallelizeRecursion: false }) // parallelization produces out-of-order results, and we don't want it like that here
     ctx.body = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
         const isFolder = nodeIsFolder(el)
         return !folders && isFolder ? undefined
