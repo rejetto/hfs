@@ -1,8 +1,8 @@
 import { getNodeByName, statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
 import {
-    HTTP_CONFLICT, HTTP_FOOL, HTTP_INSUFFICIENT_STORAGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_BAD_REQUEST, HTTP_NO_CONTENT,
-    HTTP_PRECONDITION_FAILED, MTIME_CHECK, HTTP_SERVER_ERROR,
+    HTTP_CONFLICT, HTTP_FOOL, HTTP_INSUFFICIENT_STORAGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_NO_CONTENT, HTTP_SERVER_ERROR,
+    HTTP_PRECONDITION_FAILED, HTTP_LENGTH_REQUIRED, MTIME_CHECK,
 } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
@@ -77,7 +77,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, filename: string, c
     const stillToWrite = Math.max(contentLength, Number(ctx.query.partial) || 0) // ...the number is used to tell how much space we need (fullSize - offset)
     if (isNaN(stillToWrite)) {
         if (min)
-            return fail(HTTP_BAD_REQUEST, 'content-length mandatory')
+            return fail(HTTP_LENGTH_REQUIRED)
     }
     else
         try {
