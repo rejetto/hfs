@@ -276,6 +276,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                     onClick: () => void changeBaseUrl().then(config.reload)
                 }, "Change"),
             ),
+            h(Divider),
             h(ConfigForm<{ roots: any, force_address: boolean }>, {
                 saveOnChange: true,
                 onSave() {
@@ -285,7 +286,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                     fields: [
                         {
                             k: CFG.roots,
-                            label: false,
+                            label: "Domain roots",
                             helperText: "You can decide different home-folders (in the VFS) for different domains, a bit like virtual hosts. If none is matched, the default home will be used.",
                             comp: ArrayField,
                             fields: [
