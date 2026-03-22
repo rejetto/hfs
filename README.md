@@ -125,7 +125,6 @@ If your language is missing, please consider [translating yourself](https://gith
 - Append `?lang=CODE` to the URL to force a specific language
 - `Right-click` on toggle-all checkbox to *invert* the state of all checkboxes
 - Append `?login=USER:PASSWORD` to automatically log in to the browser
-- Append `?overwrite` when uploading to override the `dont_overwrite_uploading` configuration, provided you also have *delete* permission
 - Append `?search=PATTERN` to trigger a search on startup
 - Append `?onlyFiles` or `?onlyFolders` to limit the type of results
 - Append `?get=basic` to display a basic web interface, intended for older/simpler browsers 

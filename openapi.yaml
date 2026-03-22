@@ -224,6 +224,52 @@ paths:
           example: ''
           schema:
             type: string
+        - name: existing
+          in: query
+          description: >-
+            Conflict policy when the target file already exists. Use
+            `overwrite` to replace the file if the caller also has delete
+            permission, or `skip` to fail with conflict when the file exists.
+          required: false
+          schema:
+            type: string
+            enum:
+              - overwrite
+              - skip
+        - name: comment
+          in: query
+          description: Comment to store for the uploaded file
+          required: false
+          schema:
+            type: string
+        - name: mtime
+          in: query
+          description: Last modified time to apply to the uploaded file, in Unix milliseconds
+          required: false
+          schema:
+            type: number
+        - name: id
+          in: query
+          description: Client-generated upload identifier used to correlate retries
+          required: false
+          schema:
+            type: string
+        - name: resume
+          in: query
+          description: >-
+            Resume offset for resumable uploads. A trailing `!` asks the server
+            to reject the request when a better resume point is available.
+          required: false
+          schema:
+            type: string
+        - name: partial
+          in: query
+          description: >-
+            Remaining bytes still to be uploaded after this chunk. Used by split
+            and resumable uploads so the server can reserve enough disk space.
+          required: false
+          schema:
+            type: number
       requestBody:
         content:
           application/octet-stream:

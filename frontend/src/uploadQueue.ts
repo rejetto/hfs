@@ -130,7 +130,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
                     return stopLooping = true
                 if (status === HTTP_PRECONDITION_FAILED) { // resume available
                     const size = Number(req.getResponseHeader('x-size'))
-                    if (req.getResponseHeader(MTIME_CHECK)) { // mtime check not available
+                    if (req.getResponseHeader(MTIME_CHECK)) { // the only value for this header is not-available, so we fallback to the hash check
                         const hashFromServer = fetch(uriPath + '?get=' + UPLOAD_TEMP_HASH).then(r => r.text())
                         const hashed = await calcHash(toUpload.file, size) // therefore, we attempt a check using the hash
                         if (hashed !== await hashFromServer) {
