@@ -7,7 +7,7 @@ import { reindexVfs, VfsNodeAdmin } from './VfsPage'
 import { addToChildrenOf } from './VfsTree'
 import { prepareVfsUndo, state } from './state'
 import FilePicker from './FilePicker'
-import { basename, extname, focusSelector } from '@hfs/shared'
+import { basename, extname, focusSelector, getHFS } from '@hfs/shared'
 
 let lastFolder: undefined | string
 export default function addFiles() {
@@ -36,7 +36,7 @@ export default function addFiles() {
 
 function addNodes(parent: VfsNodeAdmin, nodes: VfsNodeAdmin[]) {
     for (const n of nodes) {
-        if (n.source?.endsWith('/') || !n.source && !n.url)
+        if (n.source?.endsWith(getHFS().pathSeparator) || !n.source && !n.url)
             n.type = 'folder'
         n.id ||= parent.id + n.name + (n.type === 'folder' ? '/' : '')
         n.parent = parent

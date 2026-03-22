@@ -9,7 +9,7 @@ import { serveFile } from './serveFile'
 import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from './plugins'
 import { authApis } from './api.auth'
 import { ApiError } from './apiMiddleware'
-import { join, extname } from 'path'
+import { join, extname, sep } from 'path'
 import {
     CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, objSameKeys, onlyTruthy, parseFile,
     enforceStarting, statWithTimeout, shortenAgent
@@ -103,6 +103,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         VERSION,
                         API_VERSION,
                         SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
+                        pathSeparator: sep,
                         session: session instanceof ApiError ? null : session,
                         plugins,
                         loadScripts: Object.fromEntries(mapPlugins((p, id) =>  [id, p.frontend_js?.map(f => f.includes('//') ? f : pub + id + '/' + f)])),

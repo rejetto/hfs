@@ -56,7 +56,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
     const [listHeight, setListHeight] = useState(0)
     const filteredList = useMemo(() => _.sortBy(list.filter(it => filterMatch(it.n)), ['k', 'n']), [list, filterMatch])
     const root = isWindows.current ? '' : '/'
-    const pathDelimiter = isWindows.current ? '\\' : '/'
+    const pathDelimiter = isWindows.current ? '\\' : '/' // should we use the new getHFS().pathSeparator instead?
     const cwdDelimiter = enforceFinal(pathDelimiter, cwd)
     const isRoot = cwd.length < 2
     return h(Fragment, {},

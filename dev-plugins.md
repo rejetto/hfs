@@ -485,10 +485,11 @@ In frontend you will have access to the `HFS` object of the global scope, which 
   Returns falsy if entry is not supported.
 - `copyTextToClipboard(text: string)` self-explanatory.
 - `urlParams: object` you'll find each parameter in the URL mapped in this object as string.
+- `pathSeparator: string` you'll find \ or / depending on what OS HFS is running on
 - `fileShowComponents: { Video, Audio }` exposes standard components used by file-show. Can be useful if you need extend them, inside `fileShow` event.
 - `isShowSupported(entry: DirEntry): boolean` true if the entry is supported by Show. 
 - `textSortCompare(a: string, b: string): number` the function HFS will use for text sorting. 
-  Returns a negative if `a` must go before `b`, a positive if `b` must go before `a`, or zero they have same order.
+  Returns a negative if `a` must go before `b`, a positive if `b` must go before `a`, or zero if they have same order.
   It's exposed for you to use, or to overwrite if you need.
 - `elementToEntry(el: HTMLElement): DirEntry | undefined` given a DOM element, returns the DirEntry associated to it, if any.
 - `isVideoComponent(Component): boolean` tell if the component is used by show for video files. 
@@ -1184,3 +1185,4 @@ If you want to override a text regardless of the language, use the special langu
   - HFS.customizeText 
 - 13 (v3.1.0)
   - backend events: dirEntry, request
+  - HFS.pathSeparator
