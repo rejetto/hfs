@@ -72,8 +72,9 @@ export function uploadWriter(base: VfsNode, baseUri: string, filename: string, c
     // enforce minAvailableMb
     const min = minAvailableMb.get() * (1 << 20)
     const {simulate} = ctx.query // `simulate` is used to get the same error but with an empty body, so that the request is processed quickly
-    const contentLength = Number(simulate || ctx.headers["content-length"])
-    const isPartial = ctx.query.partial !== undefined // while the presence of "partial" conveys the upload is split...
+    const contentLength = Number(simulate ?? ctx.headers["content-length"]
+        ?? ctx.headers['x-expected-entity-length']) // some webdav clients send this; it's not equivalent to content-length, but can get the job done in some cases
+    const isPartial = ctx.query.partial !== undefined // while the presence of "partial" conveys that the upload is split...
     const stillToWrite = Math.max(contentLength, Number(ctx.query.partial) || 0) // ...the number is used to tell how much space we need (fullSize - offset)
     if (isNaN(stillToWrite)) {
         if (min)
