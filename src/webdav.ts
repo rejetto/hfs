@@ -4,9 +4,30 @@ import {
     getNodeName, nodeIsFolder, nodeIsLink, nodeStats, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, walkNode
 } from './vfs'
 import {
-    HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_CREATED, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND,
-    HTTP_OK, HTTP_PRECONDITION_FAILED, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED, HTTP_LOCKED, HTTP_FORBIDDEN,
-    DAY, CFG, enforceFinal, pathEncode, prefix, getOrSet, Dict, Timeout, join as crossJoin, try_, safeDecodeURIComponent
+    HTTP_BAD_REQUEST,
+    HTTP_CONFLICT,
+    HTTP_CREATED,
+    HTTP_METHOD_NOT_ALLOWED,
+    HTTP_NO_CONTENT,
+    HTTP_NOT_FOUND,
+    HTTP_OK,
+    HTTP_PRECONDITION_FAILED,
+    HTTP_SERVER_ERROR,
+    HTTP_UNAUTHORIZED,
+    HTTP_LOCKED,
+    HTTP_FORBIDDEN,
+    DAY,
+    CFG,
+    enforceFinal,
+    pathEncode,
+    prefix,
+    getOrSet,
+    Dict,
+    Timeout,
+    join as crossJoin,
+    try_,
+    safeDecodeURIComponent,
+    pathDecode
 } from './cross'
 import { PassThrough } from 'stream'
 import { mkdir, rm } from 'fs/promises'
@@ -127,10 +148,10 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
             ctx.status = HTTP_METHOD_NOT_ALLOWED
             return
         }
-        let name = ''
-        const parentNode = await urlToNode(path, ctx, vfs, v => name = v)
-        if (!parentNode)
-            return ctx.status = HTTP_NOT_FOUND
+        const parentNode = await urlToNode(dirname(path), ctx)
+        if (!parentNode) // this is a bit incoherent with the way we handle PUT, which doesn't stop in this case, but it's by RFC 4918 section 9.3
+            return ctx.status = HTTP_CONFLICT
+        const name = safeDecodeURIComponent(basename(path), '')
         if (!isValidFileName(name))
             return ctx.status = HTTP_BAD_REQUEST
         if (statusCodeForMissingPerm(parentNode, 'can_upload', ctx)) {

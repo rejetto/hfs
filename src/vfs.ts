@@ -108,7 +108,7 @@ export async function urlToNode(
     url: string,
     ctx?: Koa.Context,
     parent: VfsNode=vfs,
-    resolveMissing?: true | ((rest: string) => any) // true means missing path segments still resolve to temporary nodes with a computed source path (used by upload flows that create folders on write)
+    allowMissing?: boolean // true means missing path segments still resolve to temporary nodes with a computed source path
 ) : Promise<VfsNode | undefined> {
     let initialSlashes = 0
     while (url[initialSlashes] === '/')
@@ -122,25 +122,16 @@ export async function urlToNode(
         return
     const hasTrailingSlash = url.endsWith('/')
     const rest = nextSlash < 0 ? '' : url.slice(nextSlash+1, hasTrailingSlash ? -1 : undefined)
-    const allowMissing = resolveMissing === true
     const assumeFolder = allowMissing && (rest > '' || hasTrailingSlash)
     const ret = await getNodeByName(name, parent, assumeFolder)
     if (!ret)
         return
     if (rest || ret?.original)
-        return urlToNode(rest, ctx, ret, resolveMissing)
+        return urlToNode(rest, ctx, ret, allowMissing)
     if (ret.source)
-        if (!showHiddenFiles.get() && await isHiddenFile(ret.source))
+        if (!showHiddenFiles.get() && await isHiddenFile(ret.source)
+        || !allowMissing && await setIsFolder(ret) === undefined)  // undefined = not found on disk
             return
-        else if (await setIsFolder(ret) === undefined) { // undefined = not found on disk
-            if (!resolveMissing)
-                return
-            if (allowMissing)
-                return ret
-            const rest = ret.source!.slice(parent.source!.length) // we know parent has .source, otherwise !ret.source || ret.original
-            resolveMissing(removeStarting('/', rest))
-            return parent
-        }
     return ret
 }
 
