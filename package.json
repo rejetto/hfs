@@ -8,6 +8,7 @@
   "author": "Massimo Melina <a@rejetto.com>",
   "workspaces": [ "admin", "frontend", "shared", "mui-grid-form" ],
   "scripts": {
+    "postinstall": "patch-package",
     "watch-server": "cross-env DEV=1 nodemon --ignore tests/ --watch src -e ts,tsx --exec tsx src",
     "watch-server-proxied": "cross-env FRONTEND_PROXY=3005 ADMIN_PROXY=3006 npm run watch-server",
     "watch-server-full": "npm run start --workspace=frontend & npm run start --workspace=admin & cross-env FRONTEND_PROXY=3005 ADMIN_PROXY=3006 npm run watch-server",
@@ -68,7 +69,7 @@
       "**/node_modules/axios/dist/node/*",
       "**/node_modules/buffers/**",
       "**/node_modules/binary/**",
-      "**/node_modules/unzip-stream/**"
+      "**/node_modules/unzipper/**"
     ],
     "targets": [
       "node20-win-x64",
@@ -105,7 +106,7 @@
     "open": "^8.4.0",
     "picomatch": "^4.0.3",
     "tssrp6a": "^3.0.0",
-    "unzip-stream": "^0.3.4",
+    "unzipper": "^0.12.3",
     "valtio": "^1.13.2",
     "xxhashjs": "^0.2.2",
     "yaml": "^2.8.1"
@@ -121,11 +122,13 @@
     "@types/node": "^20.17.30",
     "@types/node-forge": "^1.3.14",
     "@types/picomatch": "^4.0.2",
+    "@types/unzipper": "^0.10.11",
     "@yao-pkg/pkg": "6.14.2",
     "cross-env": "^10.0.0",
     "koa-better-http-proxy": "^0.2.10",
     "nm-prune": "^5.0.0",
     "nodemon": "^3.1.10",
+    "patch-package": "^8.0.1",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   }

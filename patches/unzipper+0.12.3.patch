@@ -1,0 +1,19 @@
+diff --git a/node_modules/unzipper/lib/parse.js b/node_modules/unzipper/lib/parse.js
+index 0921f4a..e6e0131 100644
+--- a/node_modules/unzipper/lib/parse.js
++++ b/node_modules/unzipper/lib/parse.js
+@@ -250,6 +250,14 @@ Parse.prototype._readCentralDirectoryFileHeader = function () {
+         return self.pull(vars.fileCommentLength);
+       })
+       .then(function() {
++        self.emit('entryInCentral', {
++          path: vars.fileName,
++          type: (vars.uncompressedSize === 0 && /[/\\]$/.test(vars.fileName)) ? 'Directory' : 'File',
++          versionMadeBy: vars.versionMadeBy,
++          versionsNeededToExtract: vars.versionsNeededToExtract,
++          externalFileAttributes: vars.externalFileAttributes,
++          unixAttrs: vars.externalFileAttributes >>> 16,
++        });
+         return true;
+       });
+   });

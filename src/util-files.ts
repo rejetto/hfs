@@ -10,8 +10,7 @@ import { IS_WINDOWS } from './const'
 import { once } from 'events'
 import { Readable } from 'stream'
 import { getStatWorker } from './stat'
-// @ts-ignore
-import unzipper from 'unzip-stream'
+import unzipper from 'unzipper'
 
 const fileTimeout = defineConfig('file_timeout', 3, x => x * 1000)
 // a smart (and a bit arbitrary) way to decide if we need the stat-workers functionality. Without it, we may be a bit faster. We'll see with experience if we need a dedicated configuration.
@@ -92,26 +91,32 @@ export function escapeGlobPath(path: string) {
 }
 
 export async function unzip(stream: Readable, cb: (path: string) => Promisable<false | string>) {
+    const extracted = new Map<string, string>()
     let chain: Promise<any> = Promise.resolve()
     return new Promise((resolve, reject) =>
-        stream.pipe(unzipper.Extract())
-            .on('end', () => chain.then(resolve))
+        stream.pipe(unzipper.Parse())
+            .on('close', () => chain.then(resolve, reject))
             .on('error', reject)
             .on('entry', (entry: any) =>
-                chain = chain.then(async () => { // don't overlap writings
+                chain = chain.then(async () => {
                     const { path, type } = entry
                     const dest = await try_(() => cb(path), e => console.warn(String(e)))
                     if (!dest || type !== 'File')
-                        return entry.autodrain()
+                        return entry.autodrain().promise()
+                    extracted.set(path, dest)
                     console.debug('Unzip', dest)
+                    // keep writes serialized so archive entries can't race while callers map paths asynchronously
                     const thisFile = entry.pipe(await createSafeWriteStream(dest))
                     await once(thisFile, 'finish')
-                }) )
-            .on('entryInCentral', (entry: any) => {
-                if (entry.unixAttrs)
-                    chmod(entry.path, entry.unixAttrs)
-            })
-    )
+                }))
+            // unix modes live in the central directory, so we reapply them after the file stream has been written
+            .on('entryInCentral', (entry: any) =>
+                chain = chain.then(async () => {
+                    if (entry.type !== 'File') return
+                    const dest = extracted.get(entry.path)
+                    if (dest && entry.unixAttrs)
+                        await chmod(dest, entry.unixAttrs).catch(() => {})
+                })) )
 }
 
 export async function ensureParentFolder(path: string, dirnameIt=true) {
