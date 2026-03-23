@@ -772,6 +772,10 @@ This section is still partially documented, and you may need to have a look at t
   - parameters: { ctx, length, user, ts, uri, extra }
 - `error_log`
   - parameters: { ctx, length, user, ts, uri, extra }
+- `logRotated` called as soon as the zipping is done and just before the original is deleted.
+  If you need to work on the original, please be async (return promise) so that HFS knows when you are done and will delay deletion accordingly. 
+  - parameters: { path, zipPath }
+  - async supported
 - `accountRenamed`
   - parameters: { from, to } 
 - `pluginDownload`
@@ -1190,3 +1194,5 @@ If you want to override a text regardless of the language, use the special langu
   - backend events: dirEntry, request, alert
   - HFS.pathSeparator
   - config.type=show_html
+- 13.1 (v3.2.0)
+  - backend events: logRotated
