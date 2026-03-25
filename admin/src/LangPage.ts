@@ -43,11 +43,6 @@ export default function LangPage({ setTitleSide }: PageProps) {
                         hideUnder: 'sm',
                     },
                     {
-                        field: 'hfs_version',
-                        headerName: "HFS version",
-                        width: 110,
-                    },
-                    {
                         field: 'author',
                         flex: 1,
                         hideUnder: 'sm',
