@@ -135,10 +135,11 @@ const type2comp = {
     vfs_path: VfsPathField,
     username: UsernameField,
     color: ColorField,
-    showHtml: ({ html }: any) => h(Html, {}, String(html)),
+    show_html: ({ html }: any) => h(Html, {}, String(html)),
     date_time: DateTimeField,
     net_mask: NetmaskField,
 }
+;(type2comp as any).showHtml = type2comp.show_html // legacy pre 3.1.0
 
 function UsernameField({ value, onChange, multiple, groups, ...rest }: FieldProps<string>) {
     const { data, element, loading } = useApiEx<typeof adminApis.get_accounts>('get_accounts')

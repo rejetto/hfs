@@ -232,7 +232,7 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
 ### FieldDescriptor
 
 A FieldDescriptor is an object and can be empty. Currently, these optional properties are supported:
-- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'vfs_path' | 'array' | 'username' | 'color' | 'date_time'` . Default is `string`.
+- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'vfs_path' | 'array' | 'username' | 'color' | 'date_time' | 'show_html'` . Default is `string`.
 - `label: string` what name to display next to the field. Default is based on `key`.
 - `defaultValue: any` value to be used when nothing is set. Default is undefined.
 - `helperText: string` extra text printed next to the field.
@@ -246,8 +246,9 @@ A FieldDescriptor is an object and can be empty. Currently, these optional prope
   Return false if value is valid, true for generic error, or a string for specific error.
 
 Based on `type`, other properties are supported:
-- `string`
+- `string` simple text field. Spaces at the start/end are automatically removed.
     - `multiline: boolean`. Default is `false`.
+    - `required: boolean`. Default is `false`.
     - to make it a password field, use this property `inputProps: { type: 'password' }`; valid also for other standard html input types.  
 - `number`
     - `min: number`
@@ -282,7 +283,7 @@ Based on `type`, other properties are supported:
       and the resulting value will be an array of strings, instead of a string. Default is false.
 - `date_time` a string in the form yyyy-mm-ddThh:mm:ss.cccZ 
 - `net_mask` a string
-- `showHtml` not a real field, but let you display some static content
+- `show_html` not a real field, but let you display some static content
     - `html: string` HTML code to display.
 
 ## api object
@@ -1186,3 +1187,4 @@ If you want to override a text regardless of the language, use the special langu
 - 13 (v3.1.0)
   - backend events: dirEntry, request
   - HFS.pathSeparator
+  - config.type=show_html
