@@ -95,8 +95,9 @@ function makeFields(config: any, values: any) {
         let { type, defaultValue, frontend, showIf, ...rest } = o
         try {
             rest.getError = evalWrapper(rest.getError)
-            if (typeof showIf === 'string') // compile once
-                rest.showIf = showIf = evalWrapper(showIf) // eval is normally considered a threat, but this code is coming from a plugin that's already running on your server, so you already decided to trust it. Here it will run in your browser, and inside the page that administrating the same server.
+            if (typeof showIf === 'string')
+                o.showIf = // compile once
+                    showIf = evalWrapper(showIf) // eval is normally considered a threat, but this code is coming from a plugin that's already running on your server, so you already decided to trust it. Here it will run in your browser, and inside the page that administrating the same server.
             if (showIf && !showIf(values))
                 return
         }
