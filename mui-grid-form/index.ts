@@ -34,7 +34,7 @@ export interface FieldDescriptor<T=any> extends FieldApi<T> {
 // it seems necessary to cast (Multi)SelectField sometimes
 export type Field<T> = FC<FieldProps<T>>
 
-type GetError = (v: any, extra?: any) => Promisable<ValidationError>
+type GetError = (v: any, { values, fields }: any) => Promisable<ValidationError>
 export type Promisable<T> = T | Promise<T>
 interface FieldApi<T> {
     // provide getError if you want your error to be visible by the Form component
@@ -53,6 +53,11 @@ export interface FieldProps<T> {
 
 export type Dict<T=any> = Record<string,T>
 
+export interface FormApi {
+    submit(): void
+    validate(): Promise<boolean>
+}
+
 export interface FormProps<Values> extends Partial<BoxProps> {
     fields: (FieldDescriptor | ReactElement<unknown> | null | undefined | false)[]
     defaults?: (f:FieldDescriptor) => Partial<FieldDescriptor>
@@ -65,6 +70,7 @@ export interface FormProps<Values> extends Partial<BoxProps> {
     barSx?: Dict
     onError?: (err: any) => any
     onValidation?: (errs: false | Dict<ValidationError>) => any
+    apiRef?: MutableRefObject<FormApi | undefined>
     formRef?: MutableRefObject<HTMLFormElement | undefined>
     saveOnEnter?: boolean
     gridProps?: Partial<GridProps>
@@ -82,6 +88,7 @@ export function Form<Values extends Dict>({
     stickyBar,
     addToBar = [],
     barSx,
+    apiRef,
     formRef,
     onError,
     onValidation,
@@ -102,7 +109,17 @@ export function Form<Values extends Dict>({
     const saveBtn = typeof save === 'function' ? { onClick: save } : save // normalize
     const [phase, setPhase] = useState(Phase.Idle)
     const submitAfterValidation = useRef(false)
+    const validationRequest = useRef<((ok: boolean) => void) | undefined>()
     const validateUpTo = useRef('')
+    if (apiRef) apiRef.current = {
+        submit: pleaseSubmitAndValidate,
+        validate: () => new Promise<boolean>(resolve => {
+            submitAfterValidation.current = false
+            validationRequest.current = resolve // will be called later
+            if (!pleaseValidate())
+                resolve(false)
+        })
+    }
     formRef ||= useRef()
     useEffect(() => void phaseChange(), [phase]) //eslint-disable-line
     const keyMet: Dict<number> = {}
@@ -119,7 +136,7 @@ export function Form<Values extends Dict>({
         },
         onKeyDown(ev) {
             if (saveBtn && !saveBtn.disabled && (ev.ctrlKey || ev.metaKey) && ev.key === 'Enter')
-                pleaseSubmit()
+                pleaseSubmitAndValidate()
         },
         ...rest,
     },
@@ -147,7 +164,7 @@ export function Form<Values extends Dict>({
                         setApi(api) { apis[k] = api },
                         onKeyDown(event: any) {
                             if (saveOnEnter && event.key === 'Enter')
-                                pleaseSubmit()
+                                pleaseSubmitAndValidate()
                         },
                         onChange(v: unknown) {
                             try {
@@ -200,22 +217,25 @@ export function Form<Values extends Dict>({
                 children: "Save",
                 loading: useDebounce(phase !== Phase.Idle), // debounce fixes click being ignored at state change and flickering
                 ...saveBtn,
-                onClick: pleaseSubmit,
+                onClick() {
+                    pleaseSubmitAndValidate()
+                },
             }) }),
             ...addToBar,
         )
     )
 
-    function pleaseSubmit() { // we use state here to let the outer component perform its state changes
+    function pleaseSubmitAndValidate() { // we use state here to let the outer component perform its state changes
         submitAfterValidation.current = true
         pleaseValidate()
     }
 
     function pleaseValidate(k='') {
-        if (phase !== Phase.Idle) return
+        if (phase !== Phase.Idle) return false
         validateUpTo.current = k
         setTimeout(() => // starting validation immediately will lose clicks on the saveBtn, so delay just a bit
             setPhase(cur => cur === Phase.Idle ? Phase.WaitValues : cur)) // don't interfere with the ongoing process
+        return true
     }
 
     function getValueFor(k : string) {
@@ -249,8 +269,14 @@ export function Form<Values extends Dict>({
         setErrors(errs)
         const anyError = Object.values(errs).some(Boolean)
         onValidation?.(anyError && errs)
+        validationRequest.current?.(!anyError)
+        validationRequest.current = undefined
+        if (!submitAfterValidation.current) {
+            if (mounted.current)
+                setPhase(Phase.Idle)
+            return
+        }
         try {
-            if (!submitAfterValidation.current) return
             if (anyError) {
                 try { return await onError?.(MSG) }
                 finally {

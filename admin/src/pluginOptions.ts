@@ -6,7 +6,7 @@ import { Btn, Flex, iconTooltip, NetmaskField } from './mui'
 import { MilitaryTech, Clear } from '@mui/icons-material'
 import { Html, md, replaceStringToReact, useAutoScroll } from '@hfs/shared'
 import {
-    BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectField, StringField
+    BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectField, StringField, FormApi
 } from '@hfs/mui-grid-form'
 import { ArrayField } from './ArrayField'
 import _ from 'lodash'
@@ -21,6 +21,7 @@ import { Account, account2icon } from './AccountsPage'
 export async function showPluginOptions(row: any, maxWidth: string) {
     const {id} = row
     const { config: lastSaved } = await apiCall('get_plugin', { id })
+    const apiRef = { current: undefined as FormApi | undefined }
     // support css values without having to wrap in sx, as in DialogProps it only supports breakpoints
     const showOptions = Boolean(row.config)
     const values = await formDialog({
@@ -30,7 +31,15 @@ export async function showPluginOptions(row: any, maxWidth: string) {
             fields: makeFields(callable(row.config, values) || {}, values),
             save: showOptions ? { children: "Save and close" } : false,
             barSx: { gap: 1 },
-            addToBar: [h(Btn, { variant: 'outlined', onClick: () => save(values) }, "Save")],
+            apiRef,
+            addToBar: [h(Btn, {
+                variant: 'outlined',
+                async onClick() {
+                    // this action must reuse form validation without falling through to the dialog-closing submit path
+                    if (await apiRef.current?.validate())
+                        await save(values)
+                }
+            }, "Save")],
         }),
         values: lastSaved,
         dialogProps: _.merge({ maxWidth: 'md', sx: { m: 'auto' } }, // center content when it is smaller than mobile (because of full-screen)
