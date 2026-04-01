@@ -10,7 +10,7 @@ import { Context } from 'koa'
 import fswin from 'fswin'
 import { isDirectory, statWithTimeout } from './util-files'
 
-export interface DirStreamEntry extends Dirent {
+interface DirStreamEntry extends Dirent {
     closingBranch?: Promise<string>
     stats?: Stats
 }

@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-export type ApiCall = (cmd:string, params:any) => any
+type ApiCall = (cmd:string, params:any) => any
 type Srp = typeof import('tssrp6a')
 
 export async function srpClientSequence(srp: Srp, username:string, password:string, apiCall: ApiCall, extra?: object) {

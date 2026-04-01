@@ -194,8 +194,11 @@ function downloadLimiter<T>(configMax: { get: () => number | undefined }, cbKey:
         if (k === undefined) return // undefined = skip limit
         const max = configMax.get()
         const now = map.get(k) || 0
-        if (max && now >= max)
-            return tooMany()
+        if (max && now >= max) {
+            ctx.set('retry-after', '60')
+            return sendErrorPage(ctx, HTTP_TOO_MANY_REQUESTS)
+                .then(() => true) // true = limit exceeded
+        }
         map.set(k, now + 1)
         ctx.req.on('close', () => {
             const n = map.get(k)!
@@ -205,11 +208,5 @@ function downloadLimiter<T>(configMax: { get: () => number | undefined }, cbKey:
                 map.delete(k)
         })
         return false // limit is enforced but passed
-
-        async function tooMany() {
-            ctx.set('retry-after', '60')
-            await sendErrorPage(ctx, HTTP_TOO_MANY_REQUESTS)
-            return true
-        }
     }
 }

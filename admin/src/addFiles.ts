@@ -59,7 +59,7 @@ function normalizeFilename(x: string) {
     return x.toLocaleLowerCase().normalize() // in this context we always use lowercase for comparison
 }
 
-export function isSameFilenameAs(name: string) {
+function isSameFilenameAs(name: string) {
     const normalized = normalizeFilename(name)
     return (other: string | VfsNodeAdmin) =>
         normalized === normalizeFilename(typeof other === 'string' ? other : other.name)

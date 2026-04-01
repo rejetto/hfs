@@ -12,7 +12,6 @@
     "@hfs/shared": "*",
     "lodash": "^4.17.21",
     "preact": "^10.28.1",
-    "tssrp6a": "^3.0.0",
     "usehooks-ts": "^2.6.0",
     "valtio": "^1.13.0",
     "wouter": "^3.4.1",

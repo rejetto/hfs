@@ -6,7 +6,7 @@ import { readFileWithBusyRetry } from './util-files'
 import { debounceAsync } from './debounceAsync'
 import { BetterEventEmitter } from './events'
 
-export type WatchLoadCanceller = () => void
+type WatchLoadCanceller = () => void
 
 interface Options { failedOnFirstAttempt?: ()=>void, immediateFirst?: boolean }
 
