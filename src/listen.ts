@@ -68,9 +68,12 @@ const considerHttp = debounceAsync(async () => {
             return
     httpSrv.on('connection', newConnection)
     printUrls(httpSrv.name)
-    if (openBrowserAtStart.get() && !argv.updated)
+    if (openBrowserAtStart.get() && !argv.updated && openOnce) {
+        openOnce = false
         openAdmin()
+    }
 })
+let openOnce = true
 
 export const portCfg = defineConfig('port', 80)
 const listenInterface = defineConfig('listen_interface', '')
