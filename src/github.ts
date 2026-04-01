@@ -3,7 +3,7 @@
 import events from './events'
 import {
     httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, retry, popKey, onlyTruthy, waitFor,
-    HOUR, DAY
+    HOUR, DAY, tryJson
 } from './misc'
 import {
     DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getInactivePlugins, getPluginInfo, isPluginRunning, mapPlugins,
@@ -266,37 +266,38 @@ const cachedCentralInfo = storedMap.singleSync('cachedCentralInfo', '') // persi
 export let blacklistedInstalledPlugins: string[] = []
 // centralized hosted information, to be used as little as possible
 const FN = 'central.json'
-let builtIn = JSON.parse(fs.readFileSync(join(__dirname, '..', FN), 'utf8'))
+const builtInJson = fs.readFileSync(join(__dirname, '..', FN), 'utf8')
 const branch = RUNNING_BETA ? VERSION.split('.')[1] : 'main'
-export const getProjectInfo = debounceAsync(
-    () => argv.central === false ? Promise.resolve(builtIn) : readGithubFile(`${HFS_REPO}/${branch}/${FN}`)
-        .catch(e => RUNNING_BETA ? readGithubFile(`${HFS_REPO}/main/${FN}`) : Promise.reject(e)) // for beta versions, try again with 'main'
-        .then(JSON.parse, () => null)
-        .then(o => {
-            if (o)
-                cachedCentralInfo.set(o)
-            o ||= { ...cachedCentralInfo.get() || builtIn } // fall back to built-in
-            // merge byVersions info in the main object, but collect alerts separately, to preserve multiple instances
-            const allAlerts: string[] = [o.alert]
-            for (const [ver, more] of Object.entries(popKey(o, 'byVersion') || {}))
-                if (VERSION.match(new RegExp(ver))) {
-                    allAlerts.push((more as any).alert)
-                    Object.assign(o, more)
-                }
-            _.remove(allAlerts, x => !x)
-            alerts.set(was => {
-                if (!_.isEqual(was, allAlerts))
-                    for (const a of allAlerts)
-                        console.log("ALERT:", a)
-                return allAlerts
-            })
-            const black = onlyTruthy(Object.keys(o.repo_blacklist || {}).map(findPluginByRepo))
-            blacklistedInstalledPlugins = onlyTruthy(black.map(x => _.isString(x.repo) && x.repo))
-            if (black.length) {
-                console.log("blacklisted plugins found:", black.join(', '))
-                for (const p of black)
-                    enablePlugin(p.id, false)
-            }
-            return o
-        }),
-    { retain: HOUR, retainFailure: 60_000 })
+export const getProjectInfo = debounceAsync(async () => {
+    const txt = argv.central === false ? builtInJson
+        : await readGithubFile(`${HFS_REPO}/${branch}/${FN}`)
+            .catch(() => RUNNING_BETA ? readGithubFile(`${HFS_REPO}/main/${FN}`) : '') // for beta versions, try again with 'main'
+            .catch(() => '')
+    let obj = tryJson(txt)
+    await cachedCentralInfo.ready()
+    if (obj)
+        cachedCentralInfo.set(obj)
+    obj ||= { ...cachedCentralInfo.get() || JSON.parse(builtInJson) } // fall back to built-in
+    // merge byVersions info in the main object but collect alerts separately to preserve multiple instances
+    const allAlerts: string[] = [obj.alert]
+    for (const [ver, more] of Object.entries(popKey(obj, 'byVersion') || {}))
+        if (VERSION.match(new RegExp(ver))) {
+            allAlerts.push((more as any).alert)
+            Object.assign(obj, more)
+        }
+    _.remove(allAlerts, x => !x)
+    alerts.set(was => {
+        if (!_.isEqual(was, allAlerts))
+            for (const a of allAlerts)
+                console.log("ALERT:", a)
+        return allAlerts
+    })
+    const black = onlyTruthy(Object.keys(obj.repo_blacklist || {}).map(findPluginByRepo))
+    blacklistedInstalledPlugins = onlyTruthy(black.map(x => _.isString(x.repo) && x.repo))
+    if (black.length) {
+        console.log("blacklisted plugins found:", black.join(', '))
+        for (const p of black)
+            enablePlugin(p.id, false)
+    }
+    return obj
+}, { retain: HOUR, retainFailure: 60_000 })
