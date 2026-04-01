@@ -10,11 +10,8 @@ import { statSync } from 'fs'
 import { basename, join, resolve } from 'path'
 import events from './events'
 import { copyFile } from 'fs/promises'
-import { produce, setAutoFreeze } from 'immer'
 import { argv } from './argv'
 import { statWithTimeout } from './util-files'
-
-setAutoFreeze(false) // we still want to mess with objects later (eg: account.belongs)
 
 // keep definition of config properties
 const configProps: Record<string, { defaultValue?: unknown }> = {}
@@ -80,8 +77,10 @@ export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler
             }, { warnAfter: 1000 }) // e.g. each plugin watch enable_plugins
         },
         set(v: T | Updater) {
-            if (typeof v === 'function')
-                this.set(produce(this.get(), v as Updater))
+            if (typeof v === 'function') {
+                const draft = structuredClone(this.get())
+                this.set((v as Updater)(draft) ?? draft) // use return value if provided
+            }
             else
                 setConfig1(k, v)
         },
