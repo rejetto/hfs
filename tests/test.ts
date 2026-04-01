@@ -607,6 +607,12 @@ describe('admin', () => {
             return entry.hits || 0
         }
     })
+    test('plugins.public traversal', async () => {
+        const id = 'list-uploader'
+        await reqApi('start_plugin', { id }, 200, { auth })()
+        return req(`/~/plugins/${id}/../../../tests/config.yaml`, 404)()
+            .finally(() => reqApi('stop_plugin', { id }, 200, { auth })())
+    })
 })
 
 function login(usr: string, pwd=password) {
