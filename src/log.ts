@@ -93,14 +93,14 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         if (dontLogNet.compiled()(ctx.ip)) return
         const isError = ctx.status >= 400
         const logger = isError && accessErrorLog || accessLogger
-        const rotate = logRotation.get()?.[0]
         let { stream, last, path } = logger
         if (!stream) return
-        logger.last = reqStart
+        const rotate = logRotation.get()?.[0]
+        const reqEnd = logger.last = new Date()
         if (rotate && last) { // rotation enabled and a file exists?
-            const passed = Number(reqStart) - Number(last)
+            const passed = Number(reqEnd) - Number(last)
                 - 3600_000 // be pessimistic and count a possible DST change
-            const t = reqStart
+            const t = reqEnd
             if (rotate === 'm' && (passed >= 31 * DAY || t.getMonth() !== last.getMonth())
                 || rotate === 'd' && (passed >= DAY || t.getDate() !== last.getDate()) // checking passed will solve the case when the day of the month is the same but a month has passed
                 || rotate === 'w' && (passed >= 7 * DAY || t.getDay() < last.getDay())) {
@@ -118,13 +118,12 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
             }
         }
         const format = '%s - %s [%s] "%s %s HTTP/%s" %d %s %s\n' // Apache's Common Log Format
-        // keep reqStart for duration/rotation, but log time should reflect when the line is actually written
-        const a = new Date().toString().split(' ') // like nginx, our default log contains the time of log writing
+        const a = reqEnd.toString().split(' ') // like nginx, our default log contains the time of log writing
         const date = `${a[2]}/${a[1]}/${a[3]}:${a[4]} ${a[5]?.slice(3)}`
         const user = getCurrentUsername(ctx) || userAtStart
         const length = ctx.state.length ?? ctx.length
         const uri = ctx.originalUrl
-        const duration = (Date.now() - Number(reqStart)) / 1000
+        const duration = (Number(reqEnd) - Number(reqStart)) / 1000
         ctx.logExtra(ctx.vfsNode && {
             speed: Math.round(length / duration),
             ...ctx.state.includesLastByte && ctx.res.finished && { dl: 1 }
@@ -139,7 +138,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
             ctx.logExtra({ ua: ctx.get('user-agent') || undefined })
         const extra = ctx.state.logExtra
         if (events.anyListener(logger.name)) // small optimization: this event can happen often, while most times there's no listener, and the parameters object is constructed pointlessly. A benchmark measured it 20% faster (just the line), while maybe it was not necessary.
-            events.emit(logger.name, { ctx, length, user, ts: reqStart, uri, extra })
+            events.emit(logger.name, { ctx, length, user, ts: reqEnd, uri, extra })
         debounce(() => // once in a while we check if the file is still good (not deleted, etc), or we'll reopen it
             statWithTimeout(logger.path).catch(() => logger.reopen())) // async = smoother but we may lose some entries
         stream!.write(util.format( format,
