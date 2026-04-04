@@ -473,9 +473,10 @@ function watchPlugin(id: string, path: string) {
 
     async function onUninstalled() {
         await stop()
-        if (!getPluginInfo(id)) return // already missing
+        const info = getPluginInfo(id)
+        if (!info) return // already missing
         delete inactivePlugins[id]
-        events.emit('pluginUninstalled', id)
+        events.emit('pluginUninstalled', id, info.repo)
     }
 
     async function markItInactive() {
@@ -493,7 +494,7 @@ function watchPlugin(id: string, path: string) {
         if (!p) return
         await p.unload()
         await markItInactive().catch(() =>
-            events.emit('pluginUninstalled', id)) // when a running plugin is deleted, avoid error and report
+            events.emit('pluginUninstalled', id, p.repo)) // when a running plugin is deleted, avoid error and report
         events.emit('pluginStopped', p)
     }
 

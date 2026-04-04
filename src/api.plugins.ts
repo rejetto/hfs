@@ -120,8 +120,7 @@ const apis: ApiHandlers = {
                         if (repos.includes(p.repo))
                             list.update({ id: p.repo }, { installed: true })
                     },
-                    pluginUninstalled: folder => {
-                        const repo = getFolder2repo()[folder]
+                    pluginUninstalled: (_folder, repo) => {
                         if (typeof repo !== 'string') return // custom repo
                         if (repos.includes(repo))
                             list.update({ id: repo }, { installed: false })
