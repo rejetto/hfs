@@ -298,19 +298,20 @@ export const getProjectInfo = debounceAsync(async () => {
     else
         obj = { ...cachedCentralInfo.get() || JSON.parse(builtInJson) } // fall back to built-in
     // merge byVersions info in the main object but collect alerts separately to preserve multiple instances
-    const allAlerts: string[] = [obj.alert]
+    const newAlerts: string[] = [obj.alert]
     for (const [ver, more] of Object.entries(popKey(obj, 'byVersion') || {}))
         if (VERSION.match(new RegExp(ver))) {
-            allAlerts.push((more as any).alert)
+            newAlerts.push((more as any).alert)
             Object.assign(obj, more)
         }
-    _.remove(allAlerts, x => !x)
-    alerts.set(was => {
-        if (!_.isEqual(was, allAlerts))
-            for (const a of allAlerts)
-                console.log("ALERT:", a)
-        return allAlerts
-    })
+    _.remove(newAlerts, x => !x)
+    if (!_.isEqual(alerts, newAlerts)) {
+        alerts = newAlerts
+        if (newAlerts.length)
+            void checkForUpdates() // with new alerts, is best to have fresh updates info
+        for (const a of newAlerts)
+            console.log("ALERT:", a)
+    }
     const black = onlyTruthy(Object.keys(obj.repo_blacklist || {}).map(findPluginByRepo))
     blacklistedInstalledPlugins = onlyTruthy(black.map(x => _.isString(x.repo) && x.repo))
     if (black.length) {
@@ -320,3 +321,6 @@ export const getProjectInfo = debounceAsync(async () => {
     }
     return obj
 }, { retain: HOUR, retainFailure: 60_000 })
+
+// refresh of alerts and blacklist happens early without stalling startup
+configReady.then(getProjectInfo)
