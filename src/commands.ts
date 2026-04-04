@@ -6,7 +6,7 @@ import _ from 'lodash'
 import { getBestUpdate, update } from './update'
 import { openAdmin } from './listen'
 import yaml from 'yaml'
-import { BUILD_TIMESTAMP, VERSION } from './const'
+import { BUILD_TIMESTAMP, DEV, VERSION } from './const'
 import { createInterface, cursorTo } from 'node:readline'
 import { quitting } from './first'
 import { getInactivePlugins, mapPlugins, startPlugin, stopPlugin } from './plugins'
@@ -17,7 +17,7 @@ import apiMonitor from './api.monitor'
 import { argv } from './argv'
 import { getServerStatus } from './listen'
 
-let debugEnabled = argv.debug || process.env.HFS_DEBUG
+let debugEnabled = argv.debug || process.env.HFS_DEBUG || DEV
 
 if (!argv.updating && !showHelp) {
     try {
