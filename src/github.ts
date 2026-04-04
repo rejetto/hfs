@@ -77,9 +77,10 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
         const short = repo.split('/')[1] // second part, repo without the owner
         if (!short)
             throw new ApiError(HTTP_BAD_REQUEST, "bad repo")
+        const shortFolder = short.replace(/^hfs-/, '') || short
         const folder = overwrite && pl?.id // use existing folder
-            || (getFolder2repo().hasOwnProperty(short) ? repo.replace('/','-') // longer form only if another plugin is using short form, to avoid overwriting
-                : short.replace(/^hfs-/, ''))
+            || (getFolder2repo().hasOwnProperty(shortFolder) ? repo.replace('/','-') // longer form only if another plugin is using short form, to avoid overwriting
+                : shortFolder)
         const GITHUB_ZIP_ROOT = short + '-' + branch // GitHub puts everything within this folder
         return await go(`https://github.com/${repo}/archive/refs/heads/${branch}.zip`, folder, GITHUB_ZIP_ROOT + '/' + DIST_ROOT)
 
