@@ -85,6 +85,8 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
                 case 'closed':
                     return stop()
                 case 'msg':
+                    if (src.readyState !== src.OPEN)
+                        return stop()
                     const removeOnList: ReturnType<typeof _.matches>[] = []
                     const updateOnList: [object,object][] = []
                     wantArray(data).forEach(msg => {
@@ -149,12 +151,13 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
                         }
                         return ret
                     })
-                    if (src.readyState === src.CLOSED)
-                        stop()
             }
         })
 
-        return () => src.close()
+        return () => {
+            apply.cancel()
+            src.close()
+        }
 
         function stop() {
             setInitializing(false)
