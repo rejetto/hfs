@@ -22,6 +22,7 @@ import fs from 'fs'
 import { storedMap } from './persistence'
 import { argv } from './argv'
 import { expiringCache } from './expiringCache'
+import { configReady } from './config'
 
 const DIST_ROOT = 'dist'
 
@@ -261,7 +262,8 @@ export async function searchPlugins(text='', { skipRepos=[''] }={}) {
     }))
 }
 
-export const alerts = storedMap.singleSync<string[]>('alerts', [])
+export let alerts: string[] | undefined
+storedMap.ready().then(() => storedMap.del('alerts')) // remove legacy
 const cachedCentralInfo = storedMap.singleSync('cachedCentralInfo', '') // persisting it could also be useful for no-internet instances, so that you can provide a fresher copy
 export let blacklistedInstalledPlugins: string[] = []
 // centralized hosted information, to be used as little as possible
@@ -279,19 +281,17 @@ export const getProjectInfo = debounceAsync(async () => {
         cachedCentralInfo.set(obj)
     obj ||= { ...cachedCentralInfo.get() || JSON.parse(builtInJson) } // fall back to built-in
     // merge byVersions info in the main object but collect alerts separately to preserve multiple instances
-    const allAlerts: string[] = [obj.alert]
+    const newAlerts: string[] = [obj.alert]
     for (const [ver, more] of Object.entries(popKey(obj, 'byVersion') || {}))
         if (VERSION.match(new RegExp(ver))) {
-            allAlerts.push((more as any).alert)
+            newAlerts.push((more as any).alert)
             Object.assign(obj, more)
         }
-    _.remove(allAlerts, x => !x)
-    alerts.set(was => {
-        if (!_.isEqual(was, allAlerts))
-            for (const a of allAlerts)
-                console.log("ALERT:", a)
-        return allAlerts
-    })
+    _.remove(newAlerts, x => !x)
+    if (!_.isEqual(alerts, newAlerts))
+        for (const a of newAlerts)
+            console.log("ALERT:", a)
+    alerts = newAlerts
     const black = onlyTruthy(Object.keys(obj.repo_blacklist || {}).map(findPluginByRepo))
     blacklistedInstalledPlugins = onlyTruthy(black.map(x => _.isString(x.repo) && x.repo))
     if (black.length) {
@@ -301,3 +301,6 @@ export const getProjectInfo = debounceAsync(async () => {
     }
     return obj
 }, { retain: HOUR, retainFailure: 60_000 })
+
+// refresh of alerts and blacklist happens early without stalling startup
+configReady.then(getProjectInfo)
