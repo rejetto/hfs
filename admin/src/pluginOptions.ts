@@ -154,14 +154,14 @@ const type2comp = {
 function UsernameField({ value, onChange, multiple, groups, ...rest }: FieldProps<string>) {
     const { data, element, loading } = useApiEx<typeof adminApis.get_accounts>('get_accounts')
     const list = useMemo(() => data && _.sortBy(data.list, [x => !x.isGroup, x => !x.adminActualAccess, 'username']), [data])
-    type UsernameOption = { value: string, label: string, a: Account }
-    return !loading && element || h((multiple ? MultiSelectField : SelectField) as Field<string>, {
+    type UsernameOption = { value: string, label: string, a?: Account } // an account may be passed as value but not exist (anymore)
+    return (!loading || !data) && element || h((multiple ? MultiSelectField : SelectField) as Field<string>, {
         value, onChange,
         options: list?.filter(x => groups === undefined || groups === x.isGroup).map(a => ({ value: a.username, label: a.username, a })),
         renderOption: (x: UsernameOption) => {
+            if (!x.a)
+                return h('span', { style: { textDecoration: 'line-through' } }, x.label)
             const icon = x.a.isGroup && account2icon(x.a) || x.a.adminActualAccess && iconTooltip(MilitaryTech, "Can login into Admin")
-            if (!icon)
-                return x.label
             return !icon ? x.label
                 : h('span', {},
                     h('span', { style: { marginLeft: -8, marginRight: 8 } }, icon),
