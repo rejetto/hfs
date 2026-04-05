@@ -66,7 +66,7 @@ export default function HomePage() {
     return h(Box, {},
         h(RandomPlugin),
         h(Box, { display:'flex', gap: 2, flexDirection:'column', alignItems: 'flex-start', height: '100%' },
-            dontBotherWithKeys(status.alerts?.map(x => entry('warning', md(x, { html: false })))),
+            dontBotherWithKeys(status.alerts?.map(x => entry('warning', md(x, { html: false }))) || []),
             errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
                 : entry('success', "Server is working"),
             vfs && !vfs.children?.length && !vfs.source ? entry('warning', "You have no shared files", SOLUTION_SEP, fsLink("add some")) : null,

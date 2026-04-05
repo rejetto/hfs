@@ -3,7 +3,7 @@
 import { createAdmin, getAccount, updateAccount } from './perm'
 import { configKeyExists, setConfig, getWholeConfig, showHelp } from './config'
 import _ from 'lodash'
-import { getUpdates, update } from './update'
+import { getBestUpdate, update } from './update'
 import { openAdmin } from './listen'
 import yaml from 'yaml'
 import { BUILD_TIMESTAMP, VERSION } from './const'
@@ -148,7 +148,7 @@ const commands = {
     'check-update': {
         params: '',
         async cb() {
-            const update = (await getUpdates(true))[0]
+            const update = await getBestUpdate()
             if (!update)
                 throw "you already have the latest version: " + VERSION
             console.log("new version available", update.name)

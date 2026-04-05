@@ -52,7 +52,7 @@ export const frontEndApis: ApiHandlers = {
                 if (!node || !hasPermission(node, 'can_see', ctx))
                     return false
                 let upload = node.source && await getUploadMeta(node.source).catch(() => undefined)
-                if (!upload) return false
+                if (!upload) return
                 if (!isAdmin)
                     upload = _.omit(upload, 'ip')
                 return { upload }

@@ -21,6 +21,8 @@ import fs from 'fs'
 import { storedMap } from './persistence'
 import { argv } from './argv'
 import { expiringCache } from './expiringCache'
+import { configReady } from './config'
+import { checkForUpdates } from './update'
 
 const DIST_ROOT = 'dist'
 
@@ -274,7 +276,8 @@ export async function searchPlugins(text='', { skipRepos=[''] }={}) {
     }
 }
 
-export const alerts = storedMap.singleSync<string[]>('alerts', [])
+export let alerts: string[] | undefined
+storedMap.ready().then(() => storedMap.del('alerts')) // remove legacy
 const cachedCentralInfo = storedMap.singleSync('cachedCentralInfo', '') // persisting it could also be useful for no-internet instances, so that you can provide a fresher copy
 export let blacklistedInstalledPlugins: string[] = []
 // centralized hosted information, to be used as little as possible
