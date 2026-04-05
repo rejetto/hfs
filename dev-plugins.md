@@ -841,6 +841,8 @@ This section is still partially documented, and you may need to have a look at t
   - async supported
   - preventable
   - return: callback(s) to run after request handling is completed, similar to `middleware` upstream
+- `alert` called when HFS receives important announcements or security notices about your version (from the repo on GitHub)
+  - parameters: { message: string }
 
 # Notifications (backend-to-frontend events)
 
@@ -1185,6 +1187,6 @@ If you want to override a text regardless of the language, use the special langu
 - 12.97 (v0.57.28)
   - HFS.customizeText 
 - 13 (v3.1.0)
-  - backend events: dirEntry, request
+  - backend events: dirEntry, request, alert
   - HFS.pathSeparator
   - config.type=show_html

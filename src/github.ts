@@ -310,8 +310,10 @@ export const getProjectInfo = debounceAsync(async () => {
         alerts = newAlerts
         if (newAlerts.length)
             void checkForUpdates() // with new alerts, is best to have fresh updates info
-        for (const a of newAlerts)
+        for (const a of newAlerts) {
             console.log("ALERT:", a)
+            events.emit('alert', { message: a })
+        }
     }
     const black = onlyTruthy(Object.keys(obj.repo_blacklist || {}).map(findPluginByRepo))
     blacklistedInstalledPlugins = onlyTruthy(black.map(x => _.isString(x.repo) && x.repo))
