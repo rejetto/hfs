@@ -10,7 +10,7 @@
         const text = React.useMemo(() => {
             if (!data || data === true) return ''
             const { upload: x } = data
-            const shouldShowIpWithUser = display === 'ip+user' && x.ip || display === 'tooltip' && HFS.state.adminUrl
+            const shouldShowIpWithUser = display === 'ip+user' && x?.ip || display === 'tooltip' && HFS.state.adminUrl
             return !x ? ''
                 : display === 'user' ? x.username
                 : display === 'ip' || !x.username && shouldShowIpWithUser ? x.ip
