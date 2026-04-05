@@ -4,12 +4,12 @@ import { apiGithubPaginated, getProjectInfo, getRepoInfo } from './github'
 import { ARGS_FILE, HFS_REPO, IS_BINARY, IS_WINDOWS, PREVIOUS_TAG, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
-import { DAY, exists, debounceAsync, unzip, prefix, xlate, HOUR, httpWithBody, statWithTimeout } from './misc'
+import { DAY, exists, unzip, prefix, xlate, HOUR, httpWithBody, statWithTimeout, repeat } from './misc'
 import { createReadStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { pluginsWatcher } from './plugins'
 import { chmod, rename, writeFile, rm } from 'fs/promises'
 import open from 'open'
-import { currentVersion, defineConfig, versionToScalar } from './config'
+import { configReady, currentVersion, defineConfig, versionToScalar } from './config'
 import { cmdEscape, RUNNING_AS_SERVICE } from './util-os'
 import { onProcessExit } from './first'
 import { storedMap } from './persistence'
@@ -29,7 +29,7 @@ autoCheckUpdateResult.ready().then(() => {
         return v
     })
 })
-setInterval(debounceAsync(async () => {
+configReady.then(lastCheckUpdate.ready).then(() => repeat(HOUR, async () => {
     if (!autoCheckUpdate.get()) return
     if (Date.now() < lastCheckUpdate.get() + AUTO_CHECK_EVERY) return
     console.log("checking for updates")
@@ -40,7 +40,7 @@ setInterval(debounceAsync(async () => {
         lastCheckUpdate.set(Date.now())
     }
     catch {}
-}), HOUR)
+}))
 
 export type Release = { // not using interface, as it will not work with kvstorage.Jsonable
     prerelease: boolean,
