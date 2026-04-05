@@ -23,6 +23,7 @@ import { storedMap } from './persistence'
 import { argv } from './argv'
 import { expiringCache } from './expiringCache'
 import { configReady } from './config'
+import { checkForUpdates } from './update'
 
 const DIST_ROOT = 'dist'
 
@@ -288,10 +289,13 @@ export const getProjectInfo = debounceAsync(async () => {
             Object.assign(obj, more)
         }
     _.remove(newAlerts, x => !x)
-    if (!_.isEqual(alerts, newAlerts))
+    if (!_.isEqual(alerts, newAlerts)) {
+        alerts = newAlerts
+        if (newAlerts.length)
+            void checkForUpdates() // with new alerts, is best to have fresh updates info
         for (const a of newAlerts)
             console.log("ALERT:", a)
-    alerts = newAlerts
+    }
     const black = onlyTruthy(Object.keys(obj.repo_blacklist || {}).map(findPluginByRepo))
     blacklistedInstalledPlugins = onlyTruthy(black.map(x => _.isString(x.repo) && x.repo))
     if (black.length) {

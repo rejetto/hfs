@@ -4,7 +4,7 @@ import { apiGithubPaginated, getProjectInfo, getRepoInfo } from './github'
 import { ARGS_FILE, HFS_REPO, IS_BINARY, IS_WINDOWS, PREVIOUS_TAG, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
-import { DAY, exists, unzip, prefix, xlate, HOUR, httpWithBody, statWithTimeout, repeat } from './misc'
+import { DAY, exists, unzip, prefix, xlate, HOUR, httpWithBody, statWithTimeout, repeat, debounceAsync } from './misc'
 import { createReadStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { pluginsWatcher } from './plugins'
 import { chmod, rename, writeFile, rm } from 'fs/promises'
@@ -29,18 +29,25 @@ autoCheckUpdateResult.ready().then(() => {
         return v
     })
 })
-configReady.then(lastCheckUpdate.ready).then(() => repeat(HOUR, async () => {
-    if (!autoCheckUpdate.get()) return
-    if (Date.now() < lastCheckUpdate.get() + AUTO_CHECK_EVERY) return
+configReady.then(lastCheckUpdate.ready).then(() => repeat(HOUR, () => {
+    if (autoCheckUpdate.get() && Date.now() > lastCheckUpdate.get() + AUTO_CHECK_EVERY)
+        return checkForUpdates()
+}))
+
+export const checkForUpdates = debounceAsync(async () => {
     console.log("checking for updates")
     try {
-        const u = (await getUpdates(true))[0]
+        const u = await getBestUpdate()
         if (u) console.log("new version available", u.name)
         autoCheckUpdateResult.set(u)
         lastCheckUpdate.set(Date.now())
     }
     catch {}
-}))
+}, { reuseRunning: true })
+
+export async function getBestUpdate() {
+    return (await getUpdates(true))[0]
+}
 
 export type Release = { // not using interface, as it will not work with kvstorage.Jsonable
     prerelease: boolean,
@@ -116,7 +123,7 @@ export async function update(tagOrUrl: string='') {
     else if (tagOrUrl ? !url : !await localUpdateAvailable()) {
         if (/^\d/.test(tagOrUrl)) // work even if the tag is passed without the initial 'v' (useful for console commands)
             tagOrUrl = 'v' + tagOrUrl
-        const update = !tagOrUrl ? (await getUpdates(true))[0]
+        const update = !tagOrUrl ? await getBestUpdate()
             : await getRepoInfo(HFS_REPO + '/releases/tags/' + tagOrUrl).catch(e => {
                 if (e.message === '404') console.error("version not found")
                 else throw e
