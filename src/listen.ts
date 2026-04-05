@@ -279,6 +279,7 @@ export function stopServer(srv?: http.Server) {
                 console.debug("failed to stop server", String(err))
             resolve(err)
         })
+        srv.closeAllConnections()
     })
 }
 
