@@ -24,7 +24,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
     const [sortAgain, setSortAgain] = useState(0)
     useEffect(() => {
         setList(list =>
-            _.sortBy(list, x => (x.error ? 0 : x.started ? 1 : 2) + treatPluginName(x.repo?.split('/').reverse().join('/') || x.id).toLowerCase()))
+            _.sortBy(list, x => (x.error ? 0 : x.started ? 1 : x.badApi ? 2 : 3) + treatPluginName(x.repo?.split('/').reverse().join('/') || x.id).toLowerCase()))
     }, [list.length, sortAgain]);
     const size = 'small'
     const { pause, pauseButton } = usePauseButton("plugins", () => getSingleConfig(CFG.suspend_plugins).then(x => !x), {
