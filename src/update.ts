@@ -72,15 +72,15 @@ function prepareRelease(r: Release) {
     })
 }
 
-export async function getVersions(interrupt?: (r: Release) => boolean) {
-    if (!updateToBeta.get() && !RUNNING_BETA) return []
+export async function getVersions(filter?: (r: Release) => boolean, max=30) {
     const ret: Release[] = []
     for await (const x of apiGithubPaginated(`repos/${HFS_REPO}/releases`)) {
         if (x.name.endsWith('-ignore')) continue
         const rel = prepareRelease(x)
         if (rel.versionScalar === curV) continue
-        if (interrupt?.(rel)) break // avoid fetching too much data
-        ret.push(rel)
+        if (!filter || filter(rel))
+            ret.push(rel)
+        if (ret.length >= max) break
     }
     return _.sortBy(ret, x => -x.versionScalar)
 }
@@ -89,11 +89,12 @@ export async function getUpdates(strict=false) {
     console.log("Checking for updates")
     void getProjectInfo() // also check for alerts and print them asap in the console
     const stable: Release = prepareRelease(await getRepoInfo(HFS_REPO + '/releases/latest'))
-    const res = await getVersions(r => r.versionScalar < stable.versionScalar) // we don't consider betas before stable
-    const ret = res.filter(x => x.prerelease && (strict ? x.isNewer : (x.versionScalar !== curV)) )
+    const includeBetas = updateToBeta.get() || RUNNING_BETA
+    // we don't consider betas before stable
+    const betas = !includeBetas ? [] : await getVersions(x => x.prerelease && x.versionScalar > stable.versionScalar && (!strict || x.isNewer))
     if (stable.isNewer || RUNNING_BETA && !strict)
-        ret.push(stable)
-    return ret
+        betas.push(stable)
+    return betas
 }
 
 const LOCAL_UPDATE = 'hfs-update.zip' // update from file takes precedence over net

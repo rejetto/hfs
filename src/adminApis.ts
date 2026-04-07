@@ -87,9 +87,7 @@ export const adminApis = {
         return { options: await getUpdates() }
     },
     async get_other_versions() {
-        let left = 50
-        const res = await getVersions(r => !r.prerelease && !left--)
-        return { options: res.filter(x => !x.prerelease) }
+        return { options: await getVersions(r => !r.prerelease) }
     },
     async wait_project_info() { // used by admin/home/check-for-updates
         await getProjectInfo()
