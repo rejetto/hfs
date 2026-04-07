@@ -84,10 +84,18 @@ export const adminApis = {
         })
     },
     async check_update() {
-        return { options: await getUpdates() }
+        try {
+            return { options: await getUpdates() }
+        } catch (e: any) {
+            return new ApiError(HTTP_SERVER_ERROR, e?.message)
+        }
     },
     async get_other_versions() {
-        return { options: await getVersions(r => !r.prerelease) }
+        try {
+            return { options: await getVersions(r => !r.prerelease, 20) }
+        } catch (e: any) {
+            return new ApiError(HTTP_SERVER_ERROR, e?.message)
+        }
     },
     async wait_project_info() { // used by admin/home/check-for-updates
         await getProjectInfo()
