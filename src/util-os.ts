@@ -5,8 +5,8 @@ import { exists, isWindowsDrive, onlyTruthy, promiseBestEffort } from './misc'
 import Parser from '@gregoranders/csv';
 import { pid, ppid } from 'node:process'
 import { promisify } from 'util'
-import { IS_MAC, IS_WINDOWS } from './const'
-import { readFile, statfs } from 'node:fs/promises'
+import { IS_WINDOWS } from './const'
+import { statfs } from 'node:fs/promises'
 
 const DF_TIMEOUT = 2000
 
@@ -79,41 +79,15 @@ async function getWindowsServicePids() {
     return Object.fromEntries(parsed.slice(2).filter(x => x[2] !== no).map(x => [x[1], x[2]]))
 }
 
-export const RUNNING_AS_SERVICE = detectRunningAsService().then(ret => {
+export const RUNNING_AS_SERVICE = IS_WINDOWS && getWindowsServicePids().then(x => {
+    const ret = x[pid] || x[ppid]
     if (ret)
-        console.log("Running as service", ret)
+        console.log("running as service", ret)
     return ret
 }, e => {
-    console.log("Couldn't determine if we are running as a service")
+    console.log("couldn't determine if we are running as a service")
     console.debug(e)
-    return false
 })
-
-async function detectRunningAsService() {
-    if (IS_WINDOWS)
-        return getWindowsServicePids().then(x => x[pid] || x[ppid])
-    if (process.platform === 'linux') {
-        // interactive shells live in session-*.scope; only a leaf *.service means this process is actually inside a service unit
-        const systemdFromCgroup = await readFile('/proc/self/cgroup', 'utf8').then(cgroup =>
-            cgroup.split('\n')
-                // cgroup v1 uses single-colon fields while v2 uses double-colon; taking the last colon-separated field covers both
-                .map(line => line.split(':').pop()?.split('/').pop() || '')
-                .find(unit => unit.endsWith('.service')))
-        if (systemdFromCgroup)
-            return systemdFromCgroup
-        // keep env markers as a last fallback only for non-interactive runs, to avoid false positives in normal terminal sessions
-        if (!process.stdin.isTTY && !process.stdout.isTTY && (process.env.INVOCATION_ID || process.env.JOURNAL_STREAM || process.env.NOTIFY_SOCKET || process.env.SYSTEMD_EXEC_PID))
-            return process.env.INVOCATION_ID || process.env.SYSTEMD_EXEC_PID || 'systemd'
-        return false
-    }
-    // launchd services expose LAUNCH_JOB_NAME and run detached from interactive ttys
-    if (!IS_MAC || process.stdin.isTTY || process.stdout.isTTY)
-        return false
-    const launchdService = process.env.LAUNCH_JOB_NAME || false
-    if (launchdService)
-        return launchdService
-    return false
-}
 
 export function reg(...pars: string[]) {
     return promisify(execFile)('reg', pars).then(x => x.stdout)
