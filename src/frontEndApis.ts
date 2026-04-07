@@ -37,7 +37,7 @@ export const frontEndApis: ApiHandlers = {
             [NOTIFICATION_PREFIX + channel](name, data) {
                 list.custom(name, data)
             }
-        })
+        }, { warnAfter: 10_000 }) // we may have many clients on the same channel (eg: chat), and we don't want to be spammed with console warnings
     },
 
     async get_file_details({ uris }, ctx) {

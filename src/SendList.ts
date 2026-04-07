@@ -2,7 +2,7 @@ import { Readable } from 'stream'
 import _ from 'lodash'
 import { LIST, wantArray } from './cross'
 import { Context } from 'koa'
-import events from './events'
+import events, { OnOptions } from './events'
 
 type SendListFunc<T> = (list:SendListReadable<T>) => void
 // offer an api for a generic dynamic list. Suitable to be the result of an api.
@@ -108,8 +108,8 @@ export class SendListReadable<T> extends Readable {
         this.processBuffer.flush()
         this.push(null)
     }
-    events(ctx: Context, eventMap: Parameters<typeof events.multi>[0]) {
-        ctx.res.once('close', events.multi(eventMap))
+    events(ctx: Context, eventMap: Parameters<typeof events.multi>[0], options?: OnOptions) {
+        ctx.res.once('close', events.multi(eventMap, options))
         return this
     }
     isClosed() {

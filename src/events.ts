@@ -4,11 +4,13 @@ type Listener = (...args: any[]) => unknown
 type Listeners = Set<Listener>
 const LISTENERS_SUFFIX = '\0listeners'
 
+export interface OnOptions { warnAfter?: number, callNow?: boolean }
+
 export class BetterEventEmitter {
     protected listeners = new Map<string, Listeners>()
     preventDefault = Symbol()
     stop = this.preventDefault // legacy pre-0.54 (introduced in 0.53)
-    on(event: string | string[], listener: Listener, { warnAfter=10, callNow=false }={}) {
+    on(event: string | string[], listener: Listener, { warnAfter=10, callNow=false }: OnOptions={}) {
         if (typeof event === 'string')
             event = [event]
         for (const e of event) {
@@ -48,8 +50,8 @@ export class BetterEventEmitter {
         })
         return Object.assign(off!, { then: pro.then.bind(pro) } satisfies PromiseLike<any> as typeof pro)
     }
-    multi(map: { [eventName: string]: Listener }) {
-        const cbs = Object.entries(map).map(([name, cb]) => this.on(name.split(' '), cb))
+    multi(map: { [eventName: string]: Listener }, options?: OnOptions) {
+        const cbs = Object.entries(map).map(([name, cb]) => this.on(name.split(' '), cb, options))
         return () => {
             for (const cb of cbs) cb()
         }
