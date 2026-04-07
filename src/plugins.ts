@@ -64,7 +64,7 @@ export function enablePlugin(id: string, state=true) {
     enablePlugins.set(arr => {
         if (arr.includes(id) === state)
             return arr
-        console.log("switching plugin", id, state ? "on" : "off")
+        console.log("Switching plugin", id, state ? "on" : "off")
         return arr.includes(id) === state ? arr
             : state ? [...arr, id]
                 : arr.filter((x: string) => x !== id)
@@ -192,7 +192,7 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
                 ctx.stop()
             // don't just check ctx.isStopped, as the async plugin that called ctx.stop will reach here after sync ones
             if (ctx.isStopped && !ctx.pluginBlockedRequest)
-                console.debug("plugin blocked request", ctx.pluginBlockedRequest = id)
+                console.debug("Plugin blocked request", ctx.pluginBlockedRequest = id)
             if (typeof res === 'function')
                 after[id] = res
         }
@@ -228,13 +228,13 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
 
     function printChange(id: string) {
         if (id === SERVER_CODE_ID || (lastStatus === ctx.status && lastBody === ctx.body)) return
-        console.debug("plugin changed response:", id)
+        console.debug("Plugin changed response:", id)
         lastStatus = ctx.status
         lastBody = ctx.body
     }
 
     function printError(id: string, e: any) {
-        console.log(`error middleware plugin ${id}: ${e?.message || e}`)
+        console.log(`Error middleware plugin ${id}: ${e?.message || e}`)
         console.debug(e)
     }
 }
@@ -270,7 +270,7 @@ export class Plugin implements CommonPluginInterface {
                 data[k] = [v]
             else if (v && !Array.isArray(v)) {
                 delete data[k]
-                console.warn('invalid', k)
+                console.warn('Invalid', k)
             }
         }
         plugins.set(id, this)
@@ -323,11 +323,11 @@ export class Plugin implements CommonPluginInterface {
         const { id } = this
         try { await this.data?.unload?.() }
         catch(e) {
-            console.log('error unloading plugin', id, String(e))
+            console.log('Error unloading plugin', id, String(e))
         }
         await this.onUnload()
         if (!reloading && id !== SERVER_CODE_ID) // we already printed 'reloading'
-            console.log('unloaded plugin', id)
+            console.log('Unloaded plugin', id)
         if (this.data)
             this.data.unload = undefined
     }
@@ -355,7 +355,7 @@ export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string, id
         if (!includeServerCode && plName === SERVER_CODE_ID) return
         try { return cb(pl,plName,i++) }
         catch(e) {
-            console.log('plugin error', plName, String(e))
+            console.log('Plugin error', plName, String(e))
         }
     }).filter(x => x !== undefined) as Exclude<T,undefined>[]
 }
@@ -369,7 +369,7 @@ export function firstPlugin<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=>
                 return ret
         }
         catch(e) {
-            console.log('plugin error', plName, String(e))
+            console.log('Plugin error', plName, String(e))
         }
     }
 }
@@ -420,7 +420,7 @@ export const PLUGIN_MAIN_FILE = 'plugin.js'
 const pluginWatchers = new Map<string, ReturnType<typeof watchPlugin>>()
 
 export async function rescan() {
-    console.debug('scanning plugins')
+    console.debug('Scanning plugins')
     const patterns = [PATH + '/*']
     if (APP_PATH !== process.cwd())
         patterns.unshift(escapeGlobPath(APP_PATH) + '/' + patterns[0]) // first search bundled plugins, because otherwise they won't be loaded because of the folders with same name in .hfs/plugins (used for storage)
@@ -442,7 +442,7 @@ export async function rescan() {
 }
 
 function watchPlugin(id: string, path: string) {
-    console.debug('plugin watch', id)
+    console.debug('Plugin watch', id)
     const module = resolve(path)
     let starting: PendingPromise | undefined
     const unsub = subMultipleConfigs(() => {
@@ -465,7 +465,7 @@ function watchPlugin(id: string, path: string) {
         events.emit(notRunning ? 'pluginUpdated' : 'pluginInstalled', p)
     })
     return () => {
-        console.debug('plugin unwatch', id)
+        console.debug('Plugin unwatch', id)
         unsub()
         unwatch()
         return onUninstalled()
@@ -509,7 +509,7 @@ function watchPlugin(id: string, path: string) {
             if (getPluginInfo(id))
                 setError(id, '')
             const alreadyRunning = plugins.get(id)
-            console.log(alreadyRunning ? "reloading plugin" : "loading plugin", id)
+            console.log(alreadyRunning ? "Reloading plugin" : "Loading plugin", id)
             const pluginData = require(module)
             deleteModule(require.resolve(module)) // avoid caching at next import
             calculateBadApi(pluginData)
@@ -517,7 +517,7 @@ function watchPlugin(id: string, path: string) {
                 throw Error(pluginData.badApi)
 
             await alreadyRunning?.unload(true)
-            console.debug("starting plugin", id)
+            console.debug("Starting plugin", id)
             const storageDir = resolve(PATH, id, STORAGE_FOLDER) + (IS_WINDOWS ? '\\' : '/')
             await mkdir(storageDir, { recursive: true })
             const openDbs: KvStorage[] = []
@@ -536,7 +536,7 @@ function watchPlugin(id: string, path: string) {
                     return db
                 },
                 log(...args: any[]) {
-                    console.log('plugin', id+':', ...args)
+                    console.log('Plugin', id+':', ...args)
                     pluginReady.then(() => { // log() maybe invoked during init(), while plugin is undefined
                         if (!plugin) return
                         const msg = { ts: new Date, msg: args.map(x => x && typeof x === 'object' ? JSON.stringify(x) : String(x)).join(' ') }
@@ -626,7 +626,7 @@ function setError(id: string, error: string) {
     info.error = error
     events.emit('pluginUpdated', info)
     if (!error) return
-    console.warn(`plugin error: ${id}:`, error)
+    console.warn(`Plugin error: ${id}:`, error)
     return true
 }
 
@@ -663,7 +663,7 @@ export function parsePluginSource(id: string, source: string) {
     pl.preview = tryJson(/exports.preview\s*=\s*("(?:[^"\\]|\\.)*"|\[[\s\S]*?\])/.exec(source)?.[1]) ?? undefined
     pl.depend = tryJson(/exports.depend\s*=\s*(\[[\s\S]*?])/m.exec(source)?.[1])?.filter((x: any) =>
         typeof x.repo === 'string' && x.version === undefined || typeof x.version === 'number'
-            || console.warn("plugin dependency discarded", x) )
+            || console.warn("Plugin dependency discarded", x) )
     pl.changelog = tryJson(/exports.changelog\s*=\s*(\[[\s\S]*?])/m.exec(source)?.[1])
     if (Array.isArray(pl.apiRequired) && (pl.apiRequired.length !== 2 || !pl.apiRequired.every(_.isFinite))) // validate [from,to] form
         pl.apiRequired = undefined

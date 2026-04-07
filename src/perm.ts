@@ -73,7 +73,7 @@ createAdminConfig.sub(v => {
 
 export async function createAdmin(password: string, username='admin') {
     const acc = await addAccount(username, { admin: true, password }, true)
-    console.log(acc ? "account admin set" : "something went wrong")
+    console.log(acc ? "Account admin set" : "Something went wrong")
 }
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
@@ -94,7 +94,7 @@ export async function updateAccount(account: Account, change: Partial<Account> |
         if (!v) delete account[k] // we consider all account fields, when falsy, as equivalent to be missing (so, default value applies)
     const { username, password } = account
     if (password) {
-        console.debug('hashing password for', username)
+        console.debug('Hashing password for', username)
         delete account.password
         const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, password)
         saveSrpInfo(account, res.s, res.v)
@@ -103,7 +103,7 @@ export async function updateAccount(account: Account, change: Partial<Account> |
         account.belongs = wantArray(account.belongs)
         _.remove(account.belongs, b => {
             if (accounts.get().hasOwnProperty(b)) return
-            console.error(`account ${username} belongs to non-existing ${b}`)
+            console.error(`Account ${username} belongs to non-existing ${b}`)
             return true
         })
         if (!account.belongs.length)

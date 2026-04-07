@@ -45,7 +45,7 @@ export function i18nFromTranslations(translations: Record<string, any>, embedded
             if (found) break
             if (!warns.has(key) && langs.length && langs[0] !== embedded) {
                 warns.add(key)
-                console.debug("miss i18n:", key)
+                console.debug("i18n miss:", key)
             }
         }
         if (!found) {
@@ -106,7 +106,7 @@ export function i18nFromTranslations(translations: Record<string, any>, embedded
                 ofs++
             }
             if (stack)
-                return console.debug('tokenizer: unclosed') // invalid, abort
+                return console.debug('Tokenizer: unclosed') // invalid, abort
             yield [s.slice(open + 1, ofs-1), true]
         }
         yield [s.slice(ofs), false]

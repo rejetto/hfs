@@ -31,8 +31,8 @@ const originalMethod = upnpClient.getGateway
 // other client methods call getGateway too, so this will ensure they reuse this same result
 upnpClient.getGateway = debounceAsync(() => originalMethod.apply(upnpClient), { retain: HOUR, retainFailure: 30_000 })
 upnpClient.getGateway().then(res => {
-    console.log("upnp found", res.gateway.description)
-}, e => console.debug('upnp failed:', e.message || String(e)))
+    console.log("UPnP found", res.gateway.description)
+}, e => console.debug('UPnP failed:', e.message || String(e)))
 
 // poll external ip – asking the modem is cheap, so it can be done often
 repeat(MINUTE, () => upnpClient.getPublicIp().then(v => {
@@ -48,7 +48,7 @@ export const getPublicIps = debounceAsync(async () => {
         Promise.any(singleVersion.map(async (svc: any) => {
             if (typeof svc === 'string')
                 svc = { type: 'http', url: svc }
-            console.debug("trying ip service", svc.url || svc.name)
+            console.debug("Trying ip service", svc.url || svc.name)
             if (svc.type === 'http') {
                 const timeout = 5_000
                 return httpString(svc.url, { timeout, proxy: '' }).catch(e => { // first try without a proxy
@@ -74,7 +74,7 @@ export const getNatInfo = debounceAsync(async () => {
     const res = await haveTimeout(10_000, upnpClient.getGateway()).catch(() => null)
     const status = await getServerStatus()
     const mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
-    console.debug("mappings found:", mappings?.map(x => x.description).join(', ') || "none")
+    console.debug("Mappings found:", mappings?.map(x => x.description).join(', ') || "none")
     const localIps = await getIps(false)
     const gatewayIp = await gatewayIpPromise
     const localIp = res?.address || (gatewayIp ? _.maxBy(localIps, x => inCommon(x, gatewayIp)) : localIps[0])

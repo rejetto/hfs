@@ -35,7 +35,7 @@ export async function storeFileAttr(path: string, k: string, v: any) {
         else await fileAttrDb.open(FN)
     // pipe should be a safe separator
     return await fileAttrDb.put(`${path}|${k}`, v)?.catch((e: any) => {
-        console.error("couldn't store metadata on", path, String(e.message || e))
+        console.error("Couldn't store metadata on", path, String(e.message || e))
         return false
     }) ?? true // if put is undefined, the value was already there
 }
@@ -56,5 +56,5 @@ export async function purgeFileAttr() {
     }))
     if (n)
         await fileAttrDb.rewrite()
-    console.log(`removed ${n} entrie(s)`)
+    console.log(`Removed ${n} entrie(s)`)
 }

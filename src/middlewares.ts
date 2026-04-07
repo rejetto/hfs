@@ -143,7 +143,7 @@ export function failAllowNet(ctx: Koa.Context, a: Account | undefined) {
         ctx.session.allowNet = mask // must be deleted on logout by setLoggedIn
     const ret = mask && !netMatches(ctx.ip, mask, true)
     if (ret)
-        console.debug("login failed: allow_net")
+        console.debug("Login failed: allow_net")
     return ret
 }
 

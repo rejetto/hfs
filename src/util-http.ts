@@ -74,7 +74,7 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
 
         const proto = options.protocol === 'https:' ? https : http
         const req = proto.request(options, res => {
-            console.debug("http responded", res.statusCode, "to", url)
+            console.debug("HTTP responded", res.statusCode, "to", url)
             if (hostJar) for (const entry of res.headers['set-cookie'] || []) {
                 const [, k, v] = /(.+?)=([^;]+)/.exec(entry) || []
                 if (!k) continue
@@ -101,7 +101,7 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
             resolve(res)
         }).on('error', (e: any) => {
             if (proxy && e?.code === 'ECONNREFUSED')
-                console.debug("cannot connect to proxy ", proxy)
+                console.debug("Cannot connect to proxy ", proxy)
             e.cause ??= req // enrich the error
             reject(e)
         })
@@ -126,7 +126,7 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
                     options.createConnection = () => tls.connect({ socket, servername: parsed.hostname || undefined })
                     resolve(true)
                 }).on('response', res => {
-                    console.debug("proxy CONNECT response", res.statusCode, res.statusMessage)
+                    console.debug("Proxy CONNECT response", res.statusCode, res.statusMessage)
                     resolve(false)
                 }).on('error', reject)
                     .end()

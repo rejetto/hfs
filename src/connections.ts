@@ -93,7 +93,7 @@ export function disconnect(what: Context | Socket | Connection, logMessage='') {
         what = what.socket
     const ip = normalizeIp(what.remoteAddress || '')
     if (logMessage)
-        console.debug("disconnection:", logMessage, ip)
+        console.debug("Disconnection:", logMessage, ip)
     ip2country(ip).then(res => {
         const rec = { ip, country: res || undefined, ts: new Date, msg: logMessage || undefined }
         disconnectionsLog.unshift(rec)

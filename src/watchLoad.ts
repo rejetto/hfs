@@ -59,7 +59,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
             await save.flush() // apply pending saves first
             const text = await readFileWithBusyRetry(path).catch(e => { // ignore read errors
                 if (e.code === 'EPERM')
-                    console.error("missing permissions on file", path) // warn user, who could be clueless about this problem
+                    console.error("Missing permissions on file", path) // warn user, who could be clueless about this problem
                 // keep the last good content on transient read failures so we don't apply accidental "empty file" state
                 if (e.code === 'ENOENT')
                     return ''
@@ -69,12 +69,12 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
                 return
             last = text
             emitter.emit('change', last)
-            console.debug('loaded', path)
+            console.debug('Loaded', path)
             unwatch(); install() // reinstall, as the original file could have been renamed. We watch by the name.
             await parser(text)
         }
         catch(e) {
-            console.error("error loading", path, String(e))
+            console.error("Error loading", path, String(e))
         }
         finally {
             doing = false

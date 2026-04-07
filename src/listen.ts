@@ -89,14 +89,14 @@ export function openAdmin() {
         const baseUrl = `${srv!.name}://${hostname}:${a.port}`
         open(baseUrl + ADMIN_URI, { wait: true}).catch(async e => {
             console.debug(String(e))
-            console.warn("cannot launch browser on this machine >PLEASE< open your browser and reach one of these (you may need a different address)",
+            console.warn("Cannot launch browser on this machine >PLEASE< open your browser and reach one of these (you may need a different address)",
                 ...Object.values(await getUrls()).flat().map(x => '\n - ' + x + ADMIN_URI))
             if (! anyAccountCanLoginAdmin())
                 consoleHint(`you can enter this command: create-admin YOUR_PASSWORD`)
         })
         return true
     }
-    console.log("openAdmin failed")
+    console.log("OpenAdmin failed")
 }
 
 export function getCertObject() {
@@ -131,7 +131,7 @@ const considerHttps = debounceAsync(async () => {
             if (certObj) {
                 const cn = certObj.subject?.CN
                 if (cn)
-                    console.log("certificate loaded for", certObj.altNames?.join(' + ') || cn)
+                    console.log("Certificate loaded for", certObj.altNames?.join(' + ') || cn)
                 const now = new Date()
                 const from = new Date(certObj.validFrom)
                 const to = new Date(certObj.validTo)
@@ -158,7 +158,7 @@ const considerHttps = debounceAsync(async () => {
     catch(e: any) {
         httpsSrv ||= Object.assign(https.createServer({}), { name: 'https' }) // a dummy container, in case creation failed because of certificate errors
         httpsSrv.error = "bad private key or certificate"
-        console.error("failed to create https server: check your private key and certificate", e.message)
+        console.error("Failed to create https server: check your private key and certificate", e.message)
         return
     }
     httpsSrv.on('connection', newConnection) // this event is emitted as soon as the tcp layer is connected
@@ -215,12 +215,12 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
             srv.on('checkContinue', (req, res) => srv.emit('request', req, res))
             port = await listen(host)
             if (port)
-                console.log(srv.name, "serving on", renderHost(host || ''), ':', port)
+                console.log(srv.name, "Serving on", renderHost(host || ''), ':', port)
             resolve(port)
         }
         catch(e) {
             srv.error = String(e)
-            console.error(srv.name, `couldn't listen on port ${port}:`, srv.error)
+            console.error(srv.name, `Couldn't listen on port ${port}:`, srv.error)
             resolve(0)
         }
     })
@@ -273,10 +273,10 @@ export function stopServer(srv?: http.Server) {
             return resolve(null)
         const ad = srv.address()
         if (ad && typeof ad !== 'string')
-            console.log("stopped port", ad.port)
+            console.log("Stopped port", ad.port)
         srv.close(err => {
             if (err && (err as any).code !== 'ERR_SERVER_NOT_RUNNING')
-                console.debug("failed to stop server", String(err))
+                console.debug("Failed to stop server", String(err))
             resolve(err)
         })
         srv.closeAllConnections()
@@ -343,5 +343,5 @@ export async function getUrls() {
 function printUrls(srvName: string) {
     getUrls().then(urls =>
         _.each(urls[srvName], url =>
-            console.log('serving on', url)))
+            console.log('Serving on', url)))
 }

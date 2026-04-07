@@ -19,7 +19,7 @@ const acmeListener = (req: IncomingMessage, res: ServerResponse) => { // node li
     const BASE = '/.well-known/acme-challenge/'
     if (!req.url?.startsWith(BASE)) return
     const token = req.url.slice(BASE.length)
-    console.debug("got http challenge", token)
+    console.debug("Got http challenge", token)
     res.statusCode = HTTP_OK
     res.end(acmeTokens[token])
     return true // true = responded
@@ -50,17 +50,17 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
     if (tempSrv)
         await new Promise<void>(resolve =>
             tempSrv.listen(80, resolve).on('error', (e: any) => {
-                console.debug("cannot listen on 80", e.code || e)
+                console.debug("Cannot listen on 80", e.code || e)
                 resolve() // go on anyway
             }) )
     acmeOngoing = true
-    console.debug("acme challenge server ready")
+    console.debug("ACME challenge server ready")
     let tempMap: any
     try {
         const checkUrl = `http://${domain.split(',')[0]}`
         let check = await selfCheck(checkUrl) // some check services may not consider the domain, but we already verified that
         if (check?.success === false && nat.upnp && !nat.mapped80) {
-            console.debug("setting temporary port forward")
+            console.debug("Setting temporary port forward")
             tempMap = await haveTimeout(10_000, upnpClient.createMapping(TEMP_MAP).catch(() => {})).catch(() => {})
             check = await selfCheck(checkUrl) // repeat test
         }
@@ -82,17 +82,17 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
             async challengeCreateFn(_, c, ka) { acmeTokens[c.token] = ka },
             async challengeRemoveFn(_, c) { delete acmeTokens[c.token] },
         })
-        console.log("acme certificate generated")
+        console.log("ACME certificate generated")
         return { key, cert }
     }
     finally {
         if (tempMap) {
-            console.debug("removing temporary port forward")
+            console.debug("Removing temporary port forward")
             upnpClient.removeMapping(TEMP_MAP).catch(() => {}) // clean after ourselves
         }
         acmeOngoing = false
         if (tempSrv) await new Promise(res => tempSrv.close(res))
-        console.debug('acme terminated')
+        console.debug('ACME terminated')
     }
 }
 
@@ -127,7 +127,7 @@ const renewCert = debounceAsync(async () => {
     const validTo = new Date(cert.validTo)
     // not expiring in a month
     if (now > new Date(cert.validFrom) && now < validTo && validTo.getTime() - now.getTime() >= 30 * DAY)
-        return console.log("certificate still good")
+        return console.log("Certificate still good")
     await makeCert(domain, undefined, altNames)
         .catch(e => console.log(acmeRenewError = `Error renewing certificate, expiring ${formatDate(validTo)}: ${String(e.message || e)}`))
 }, { retain: DAY, retainFailure: HOUR })

@@ -287,7 +287,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
             if (typeof who !== 'string' || who === WHO_ANY_ACCOUNT)
                 break
             if (!max--) {
-                console.error(`endless loop in permission ${perm}=${node[perm] ?? defaultPerms[perm]} for ${node.url || getNodeName(node)}`)
+                console.error(`Endless loop in permission ${perm}=${node[perm] ?? defaultPerms[perm]} for ${node.url || getNodeName(node)}`)
                 return HTTP_SERVER_ERROR
             }
             cur = who

@@ -182,7 +182,7 @@ function serializeCss(v: any) {
 function serveProxied(port: string | undefined, uri: string) { // used for development only
     if (!port)
         return
-    console.debug('proxied on port', port)
+    console.debug('Proxied on port', port)
     let proxy: Koa.Middleware
     import('koa-better-http-proxy').then(lib => // dynamic import to avoid having this in final distribution
         proxy = lib.default('127.0.0.1:'+port, {

@@ -46,7 +46,7 @@ async function checkFiles() {
     if (+mtime < now - 31 * DAY) // month-old or non-existing
         try {
             const req = await httpStream(URL)
-            console.log(`downloading ${name}`)
+            console.log(`Downloading ${name}`)
             await unzip(req, path => path.toUpperCase().endsWith(ZIP_FILE) && TEMP)
             await statWithTimeout(TEMP) // check existence
             if (isOpen())
@@ -60,6 +60,6 @@ async function checkFiles() {
             console.error(`Failed to download ${name}${mtime ? ", falling back on old data" : ''}:`, e?.message || String(e))
         }
     else if (isOpen()) return
-    console.debug(`loading ${name}`)
+    console.debug(`Loading ${name}`)
     ip2location.open(LOCAL_FILE) // using openAsync causes a DEP0137 error within 10 seconds
 }

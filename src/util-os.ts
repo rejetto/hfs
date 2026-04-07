@@ -81,10 +81,10 @@ async function getWindowsServicePids() {
 
 export const RUNNING_AS_SERVICE = detectRunningAsService().then(ret => {
     if (ret)
-        console.log("running as service", ret)
+        console.log("Running as service", ret)
     return ret
 }, e => {
-    console.log("couldn't determine if we are running as a service")
+    console.log("Couldn't determine if we are running as a service")
     console.debug(e)
     return false
 })

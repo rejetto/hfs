@@ -33,7 +33,7 @@ export async function selfCheck(url: string) {
         regexpSuccess: string
     }
     const prjInfo = await getProjectInfo()
-    console.log(`checking server ${url}`)
+    console.log(`Checking server ${url}`)
     const parsed = new URL(url)
     const family = !isIP(parsed.hostname) ? undefined : isIPv6(parsed.hostname) ? 6 : 4
     try {
@@ -44,7 +44,7 @@ export async function selfCheck(url: string) {
                     if (!svc.url || svc.type) throw 'unsupported ' + svc.type // only default type supported for now
                     let { url: serviceUrl, body, regexpSuccess, regexpFailure, ...rest } = svc
                     const service = new URL(serviceUrl).hostname
-                    console.log('trying external service', service)
+                    console.log('Trying external service', service)
                     console.debug(svc)
                     body = applySymbols(body)
                     serviceUrl = applySymbols(serviceUrl)!

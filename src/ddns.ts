@@ -54,7 +54,7 @@ dynamicDnsUrl.sub(v => {
         }))
         last = _.find(all, 'error') || all[0] // the system is designed for just one result, and we give precedence to errors
         events.emit('dynamicDnsError', last)
-        console.log('dynamic dns update', last?.error || 'ok')
+        console.log('Dynamic dns update', last?.error || 'ok')
     }, { callNow: true })
 })
 

@@ -37,7 +37,7 @@ class Logger {
         }
         catch {
             if (await ensureParentFolder(path) === false)
-                console.log("cannot create folder for", path)
+                console.log("Cannot create folder for", path)
         }
         this.reopen()
     }
@@ -54,13 +54,13 @@ const accessErrorLog = new Logger(CFG.error_log)
 export const loggers = [accessLogger, accessErrorLog]
 
 defineConfig(accessLogger.name, 'logs/access.log').sub(path => {
-    console.debug('access log file: ' + (path || 'disabled'))
+    console.debug('Access log file: ' + (path || 'disabled'))
     accessLogger.setPath(path)
 })
 
 const errorLogFile = defineConfig(accessErrorLog.name, 'logs/access-error.log')
 errorLogFile.sub(path => {
-    console.debug('access error log: ' + (path || 'disabled'))
+    console.debug('Access error log: ' + (path || 'disabled'))
     accessErrorLog.setPath(path)
 })
 
@@ -204,4 +204,4 @@ debugLogFile.once('open', () => {
         renameSync(path, 'old-' + path)
         debugLogFile = createWriteStream(path) // new file
     })
-}).on('error', () => console.log("cannot create debug.log"))
+}).on('error', () => console.log("Cannot create debug.log"))

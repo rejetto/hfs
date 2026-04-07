@@ -35,10 +35,10 @@ configReady.then(lastCheckUpdate.ready).then(() => repeat(HOUR, () => {
 }))
 
 export const checkForUpdates = debounceAsync(async () => {
-    console.log("checking for updates")
+    console.log("Checking for updates")
     try {
         const u = await getBestUpdate()
-        if (u) console.log("new version available", u.name)
+        if (u) console.log("New version available", u.name)
         autoCheckUpdateResult.set(u)
         lastCheckUpdate.set(Date.now())
     }
@@ -86,7 +86,7 @@ export async function getVersions(interrupt?: (r: Release) => boolean) {
 }
 
 export async function getUpdates(strict=false) {
-    console.log("checking for updates")
+    console.log("Checking for updates")
     void getProjectInfo() // also check for alerts and print them asap in the console
     const stable: Release = prepareRelease(await getRepoInfo(HFS_REPO + '/releases/latest'))
     const res = await getVersions(r => r.versionScalar < stable.versionScalar) // we don't consider betas before stable
@@ -125,7 +125,7 @@ export async function update(tagOrUrl: string='') {
             tagOrUrl = 'v' + tagOrUrl
         const update = !tagOrUrl ? await getBestUpdate()
             : await getRepoInfo(HFS_REPO + '/releases/tags/' + tagOrUrl).catch(e => {
-                if (e.message === '404') console.error("version not found")
+                if (e.message === '404') console.error("Version not found")
                 else throw e
             }) as Release | undefined
         if (!update)
@@ -140,7 +140,7 @@ export async function update(tagOrUrl: string='') {
         url = asset.browser_download_url
     }
     if (url) {
-        console.log("downloading", url)
+        console.log("Downloading", url)
         const temp = LOCAL_UPDATE + '-temp'
         await rm(temp, { force: true })
         try {
@@ -151,7 +151,7 @@ export async function update(tagOrUrl: string='') {
             throw "Download failed for " + url + prefix(' – ', e?.message)
         }
         await rename(temp, LOCAL_UPDATE)
-        console.debug("download finished")
+        console.debug("Download finished")
     }
     const bin = process.execPath
     const binPath = dirname(bin)
@@ -181,10 +181,10 @@ export async function update(tagOrUrl: string='') {
             try { unlinkSync(oldBin) }
             catch {}
             renameSync(bin, oldBin)
-            console.log("launching new version in background", newBinFile)
+            console.log("Launching new version in background", newBinFile)
             spawnSync(cmdEscape(newBin), ['--updating', binFile, '--cwd .'], { shell: true, stdio: [0,1,2] }) // sync necessary to work on Mac by double-click
         })
-        console.log("quitting")
+        console.log("Quitting")
         setTimeout(() => process.exit()) // give time to return (and caller to complete, eg: rest api to reply)
     }
     catch (e: any) {
@@ -198,7 +198,7 @@ if (argv.updating) { // we were launched with a temporary name, restore original
     const dest = join(dirname(bin), argv.updating)
     renameSync(bin, dest)
     // have to relaunch with the new name, or otherwise the next update will fail with EBUSY on hfs.exe
-    console.log(`renamed binary file to "${argv.updating}" and now restarting`)
+    console.log(`Renamed binary file to "${argv.updating}" and now restarting`)
     // if you change anything, be sure to test launching both double-clicking and in a terminal
     if (IS_WINDOWS) // windows-only; this method on mac+linux works only once, and without the console
         onProcessExit(() =>
@@ -209,7 +209,7 @@ if (argv.updating) { // we were launched with a temporary name, restore original
         // For the record, on mac you can: write "./hfs arg1 arg2" to /tmp/tmp.sh with 0o700, and then spawn "open -a Terminal /tmp/tmp.sh"
         try { writeFileSync(ARGS_FILE, JSON.stringify(['--updated', '--cwd', process.cwd()])) }
         catch {}
-        console.log('open-ing')
+        console.log('Open-ing')
         void open(dest)
     }
     else { // linux and other *nix

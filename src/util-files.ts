@@ -38,7 +38,7 @@ export async function readFileWithBusyRetry(path: string): Promise<string> {
     return readFile(path, 'utf8').catch(e => {
         if ((e as any)?.code !== 'EBUSY')
             throw e
-        console.debug('busy')
+        console.debug('Busy')
         return wait(100).then(()=> readFileWithBusyRetry(path))
     })
 }
@@ -103,7 +103,7 @@ export async function unzip(stream: Readable, cb: (path: string) => Promisable<f
                     const dest = await try_(() => cb(path), e => console.warn(String(e)))
                     if (!dest || type !== 'File')
                         return entry.autodrain()
-                    console.debug('unzip', dest)
+                    console.debug('Unzip', dest)
                     const thisFile = entry.pipe(await createSafeWriteStream(dest))
                     await once(thisFile, 'finish')
                 }) )

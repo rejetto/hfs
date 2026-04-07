@@ -199,7 +199,7 @@ function stringify(obj: any) {
 }
 
 let startedWithoutConfig = false
-console.log("config", filePath)
+console.log("Config", filePath)
 export const configFile = watchLoad(filePath, text => {
     startedWithoutConfig = !text
     try { return setConfig(yaml.parse(text, { uniqueKeys: false }) || {}, false) }

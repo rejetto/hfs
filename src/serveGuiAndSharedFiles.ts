@@ -180,9 +180,9 @@ async function calcHash(fn: string, limit=Infinity) {
         }
     })
     fs.createReadStream(fn, { end: limit - 1 }).pipe(stream)
-    console.debug('hashing', fn)
+    console.debug('Hashing', fn)
     await once(stream, 'finish')
-    console.debug('hashed', fn)
+    console.debug('Hashed', fn)
     return hash.digest().toString(16)
 }
 

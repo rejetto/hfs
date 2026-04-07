@@ -11,12 +11,12 @@ const outboundProxy = defineConfig(CFG.outbound_proxy, '', v => {
         httpStream.defaultProxy = v
         if (!v || process.env.HFS_SKIP_PROXY_TEST) return
         const test = 'https://google.com'
-        console.debug("testing proxy using", test)
+        console.debug("Testing proxy using", test)
         httpString(test, { noRedirect: true }).catch(e =>
-            console.error(`proxy test failed on ${test} : ${e?.errors?.[0] || e}`)) // `.errors` in case of AggregateError
+            console.error(`Proxy test failed on ${test} : ${e?.errors?.[0] || e}`)) // `.errors` in case of AggregateError
     }
     catch {
-        console.warn("invalid URL", v)
+        console.warn("Invalid URL", v)
         return ''
     }
 })
@@ -34,5 +34,5 @@ configReady.then(async ([startedWithoutConfig]) => {
         || !read.includes('=') && 'http://' + read // simpler form
     if (!url) return
     outboundProxy.set(url)
-    console.log("detected proxy", read)
+    console.log("Detected proxy", read)
 })

@@ -57,7 +57,7 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
     const msg = await isPluginBlacklisted(repo) // check before downloading, in case other filters were passed somehow
     if (msg)
         throw new ApiError(HTTP_FORBIDDEN, "blacklisted: " + msg)
-    console.log('downloading plugin', repo)
+    console.log('Downloading plugin', repo)
     downloadProgress(repo, true)
     try {
         const pl = findPluginByRepo(repo)
@@ -117,7 +117,7 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
                     }
                 }
                 catch (e) { // don't abort the whole procedure just because of the check above. It should never fail, but a user reported a mysterious ENOENT on the readFile()
-                    console.warn("plugin's repo check failed", e)
+                    console.warn("Plugin's repo check failed", e)
                 }
             // ready to replace
             const wasRunning = isPluginRunning(folder)
@@ -130,10 +130,10 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
             const deleteMe = installPath + DELETE_ME_SUFFIX
             await retry(() => rename(installPath, deleteMe).then(() => 1, (e: any) => {
                 if (e.code === 'ENOENT') return 1 // nothing to do
-                console.warn("error renaming old plugin folder:", String(e))
+                console.warn("Error renaming old plugin folder:", String(e))
             }))
             await retry(() => rm(deleteMe, { recursive: true, force: true /*ignore ENOENT*/ }).then(() => 1, e => {
-                console.warn("error deleting old plugin folder:", String(e))
+                console.warn("Error deleting old plugin folder:", String(e))
             }))
             // final replace
             await rename(tempInstallPath, installPath)
@@ -318,7 +318,7 @@ export const getProjectInfo = debounceAsync(async () => {
     const black = onlyTruthy(Object.keys(obj.repo_blacklist || {}).map(findPluginByRepo))
     blacklistedInstalledPlugins = onlyTruthy(black.map(x => _.isString(x.repo) && x.repo))
     if (black.length) {
-        console.log("blacklisted plugins found:", black.join(', '))
+        console.log("Blacklisted plugins found:", black.join(', '))
         for (const p of black)
             enablePlugin(p.id, false)
     }

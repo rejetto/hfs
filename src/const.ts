@@ -17,7 +17,7 @@ export const COMPATIBLE_API_VERSION = 1 // the day we break with the past, we'll
 export const ARGS_FILE = join(homedir(), 'hfs-args')
 try {
     const s = fs.readFileSync(ARGS_FILE, 'utf-8')
-    console.log('additional arguments', s)
+    console.log('Additional arguments', s)
     _.defaults(argv, minimist(JSON.parse(s)))
     fs.unlinkSync(ARGS_FILE)
 }
@@ -48,9 +48,9 @@ if (DEV) {
 }
 console.log(`HFS ~ HTTP File Server`)
 console.log(`© Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt`)
-console.log('started', formatTimestamp(HFS_STARTED), DEV)
-console.log('version', VERSION||'-')
-console.log('build', BUILD_TIMESTAMP||'-')
+console.log('Started', formatTimestamp(HFS_STARTED), DEV)
+console.log('Version', VERSION||'-')
+console.log('Build', BUILD_TIMESTAMP||'-')
 // still considering whether to use ".hfs" with Windows users, who may be less accustomed to it
 const dir = argv.cwd || useHomeDir() && join(homedir(), '.hfs')
 if (dir) {
@@ -63,14 +63,14 @@ if (dir) {
 }
 else if (process.cwd().startsWith(process.env.windir + '\\')) // this happens if you run hfs from task scheduler
     process.chdir(APP_PATH)
-console.log('working directory (cwd)', process.cwd())
+console.log('Working directory (cwd)', process.cwd())
 if (APP_PATH !== process.cwd())
-    console.log('app', APP_PATH)
-console.log('node', process.version)
+    console.log('App', APP_PATH)
+console.log('Node', process.version)
 const bun = (globalThis as any).Bun
-if (bun) console.log('bun', bun.version)
-console.log('platform', process.platform, process.arch, IS_BINARY ? 'binary' : basename(process.execPath))
-console.log('pid', process.pid)
+if (bun) console.log('Bun', bun.version)
+console.log('Platform', process.platform, process.arch, IS_BINARY ? 'binary' : basename(process.execPath))
+console.log('Pid', process.pid)
 
 function useHomeDir() {
     if (!IS_WINDOWS || !IS_BINARY) return true

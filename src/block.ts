@@ -35,7 +35,7 @@ setInterval(() => { // twice a minute, check if any block has expired
     const next = block.get().filter(x => !x.expire || x.expire > now)
     const n = block.get().length - next.length
     if (!n) return
-    console.log("blocking rules:", n, "expired")
+    console.log("Blocking rules:", n, "expired")
     block.set(next)
 }, MINUTE/2)
 

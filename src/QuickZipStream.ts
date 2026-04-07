@@ -160,7 +160,7 @@ export class QuickZipStream extends Readable {
             const data = this.workingFile = getData()
             data.on('error', (err) => {
                 if ((err as any)?.code !== 'EACCES')
-                    console.error('zipping:', String(err))
+                    console.error('Zipping:', String(err))
                 data.destroy(err)
                 resolve()
             })

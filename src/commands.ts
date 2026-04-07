@@ -56,7 +56,7 @@ if (!argv.updating && !showHelp) {
 
     }
     catch {
-        console.log("console commands not available")
+        console.log("Console commands not available")
         const original = console.debug
         console.debug = (...args: any[]) => debugEnabled && original(...args)
     }
@@ -72,17 +72,17 @@ async function parseCommandLine(line: string) {
     if (cmd?.alias)
         cmd = (commands as any)[cmd.alias]
     if (!cmd)
-        return console.error("invalid command, try 'help'")
+        return console.error("Invalid command, try 'help'")
     if (cmd.cb.length > params.length)
-        return console.error("insufficient parameters, expected: " + cmd.params)
+        return console.error("Insufficient parameters, expected: " + cmd.params)
     try {
         await cmd.cb(...params)
-        console.log("+++ command executed")
+        console.log("+++ Command executed")
     }
     catch(err: any) {
         if (typeof err !== 'string' && !err?.message)
             throw err
-        console.error("command failed:", err.message || err)
+        console.error("Command failed:", err.message || err)
     }
 }
 
@@ -92,7 +92,7 @@ const commands = {
     help: {
         params: '',
         cb() {
-            console.log("available commands:",
+            console.log("Available commands:",
                 ..._.map(commands, ({ params }, name) =>
                     '\n - ' + name + ' ' + params))
         }
@@ -151,7 +151,7 @@ const commands = {
             const update = await getBestUpdate()
             if (!update)
                 throw "you already have the latest version: " + VERSION
-            console.log("new version available", update.name)
+            console.log("New version available", update.name)
         }
     },
     version: {
@@ -164,7 +164,7 @@ const commands = {
         params: '',
         cb() {
             debugEnabled = !debugEnabled
-            console.log(`debug messages ${debugEnabled ? "on" : "off"}`)
+            console.log(`Debug messages ${debugEnabled ? "on" : "off"}`)
         }
     },
     'start-plugin': {
