@@ -108,15 +108,14 @@ export function previousAvailable() {
     return exists(PREVIOUS_FN)
 }
 
-export async function updateSupported() {
-    return !process.env.DISABLE_UPDATE && (argv.forceupdate || IS_BINARY && !await runningAsWindowsService)
+export function updateSupported() {
+    return !process.env.DISABLE_UPDATE && (argv.forceupdate || IS_BINARY)
 }
 
 export async function update(tagOrUrl: string='') {
-    if (!await updateSupported())
+    if (!updateSupported())
         throw process.env.DISABLE_UPDATE ? "Automatic updates are disabled"
-            : !IS_BINARY ? "Only binary versions support automatic updates"
-                : "Automatic updates are not available running as a service"
+            : "Only binary versions support automatic updates"
     let url = tagOrUrl.includes('://') && tagOrUrl
     if (tagOrUrl === PREVIOUS_TAG)
         await rename(PREVIOUS_FN, LOCAL_UPDATE)
@@ -175,17 +174,20 @@ export async function update(tagOrUrl: string='') {
         }
         await rename(INSTALLED_FN, PREVIOUS_FN).catch(e => e?.code !== 'ENOENT' && console.warn(String(e)))
         await rename(LOCAL_UPDATE, INSTALLED_FN).catch(e => console.warn(String(e)))
+        // the bridge process exists to preserve terminal access; skip it when there's no terminal
+        const preserveTerminal = process.stdin.isTTY && !await runningAsWindowsService // NSSM fakes a TTY, so we need explicit detection on Windows
         onProcessExit(() => {
             const oldBinFile = 'old-' + binFile
             const oldBin = join(binPath, oldBinFile)
             try { unlinkSync(oldBin) }
             catch {}
             renameSync(bin, oldBin)
-            if (!IS_WINDOWS && !process.stdin.isTTY) { // non-interactive (service): rename in place and let the supervisor restart
+            if (!preserveTerminal) {
                 renameSync(newBin, join(binPath, binFile))
                 console.log("Updated binary in place, exiting for process supervisor to restart")
                 return
             }
+            // preserving the terminal requires a longer trip
             console.log("Launching new version in background", newBinFile)
             spawnSync(cmdEscape(newBin), ['--updating', binFile, '--cwd .'], { shell: true, stdio: [0,1,2] }) // sync necessary to work on Mac by double-click
         })
