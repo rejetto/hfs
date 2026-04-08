@@ -10,7 +10,7 @@ import { pluginsWatcher } from './plugins'
 import { chmod, rename, writeFile, rm } from 'fs/promises'
 import open from 'open'
 import { configReady, currentVersion, defineConfig, versionToScalar } from './config'
-import { cmdEscape, RUNNING_AS_SERVICE } from './util-os'
+import { cmdEscape, runningAsWindowsService } from './util-os'
 import { onProcessExit } from './first'
 import { storedMap } from './persistence'
 import _ from 'lodash'
@@ -109,7 +109,7 @@ export function previousAvailable() {
 }
 
 export async function updateSupported() {
-    return !process.env.DISABLE_UPDATE && (argv.forceupdate || IS_BINARY && !await RUNNING_AS_SERVICE)
+    return !process.env.DISABLE_UPDATE && (argv.forceupdate || IS_BINARY && !await runningAsWindowsService)
 }
 
 export async function update(tagOrUrl: string='') {
@@ -181,6 +181,11 @@ export async function update(tagOrUrl: string='') {
             try { unlinkSync(oldBin) }
             catch {}
             renameSync(bin, oldBin)
+            if (!IS_WINDOWS && !process.stdin.isTTY) { // non-interactive (service): rename in place and let the supervisor restart
+                renameSync(newBin, join(binPath, binFile))
+                console.log("Updated binary in place, exiting for process supervisor to restart")
+                return
+            }
             console.log("Launching new version in background", newBinFile)
             spawnSync(cmdEscape(newBin), ['--updating', binFile, '--cwd .'], { shell: true, stdio: [0,1,2] }) // sync necessary to work on Mac by double-click
         })
@@ -212,11 +217,7 @@ if (argv.updating) { // we were launched with a temporary name, restore original
         console.log('Open-ing')
         void open(dest)
     }
-    else { // linux and other *nix
-        if (process.stdin.isTTY && process.stdout.isTTY) // in interactive terminals, block this bridge process on the restarted hfs so the terminal session stays attached
-            spawnSync(dest, ['--updated', '--cwd', process.cwd()], { stdio: [0, 1, 2] })
-        else
-            spawn(dest, ['--updated', '--cwd', process.cwd()], { detached: true, stdio: 'ignore' }).unref()
-    }
+    else // linux and *nix on terminal: in interactive terminals, block this bridge process on the restarted hfs so the terminal session stays attached
+        spawnSync(dest, ['--updated', '--cwd', process.cwd()], { stdio: [0, 1, 2] })
     process.exit()
 }

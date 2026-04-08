@@ -79,7 +79,7 @@ async function getWindowsServicePids() {
     return Object.fromEntries(parsed.slice(2).filter(x => x[2] !== no).map(x => [x[1], x[2]]))
 }
 
-export const RUNNING_AS_SERVICE = IS_WINDOWS && getWindowsServicePids().then(x => {
+export const runningAsWindowsService = IS_WINDOWS && getWindowsServicePids().then(x => {
     const ret = x[pid] || x[ppid]
     if (ret)
         console.log("running as service", ret)
