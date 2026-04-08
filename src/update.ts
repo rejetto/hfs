@@ -35,7 +35,6 @@ configReady.then(lastCheckUpdate.ready).then(() => repeat(HOUR, () => {
 }))
 
 export const checkForUpdates = debounceAsync(async () => {
-    console.log("checking for updates")
     try {
         const u = await getBestUpdate()
         if (u) console.log("new version available", u.name)
