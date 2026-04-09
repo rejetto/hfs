@@ -192,7 +192,7 @@ export async function update(tagOrUrl: string='') {
             spawnSync(cmdEscape(newBin), ['--updating', binFile, '--cwd .'], { shell: true, stdio: [0,1,2] }) // sync necessary to work on Mac by double-click
         })
         console.log("Quitting")
-        setTimeout(() => process.exit()) // give time to return (and caller to complete, eg: rest api to reply)
+        setTimeout(() => process.exit(100)) // non-zero, otherwise some service managers (like Shawl) won't restart the process
     }
     catch (e: any) {
         pluginsWatcher.unpause()
