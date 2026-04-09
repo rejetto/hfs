@@ -167,8 +167,12 @@ export function exists(path: string) {
 // parse a file, caching unless timestamp has changed
 export const parseFileCache = new Map<string, { ts: Date, parsed: unknown }>()
 export async function loadFileCached<T>(path: string, loader: (path: string) => T) {
-    const { mtime: ts } = await statWithTimeout(path)
     const cached = parseFileCache.get(path)
+    const ts = await statWithTimeout(path).then(x => x.mtime, e => {
+        if (e?.message !== 'timeout')
+            throw e
+        return cached?.ts || new Date(0) // on timeout (e.g. thread pool saturated), serve cache if any, or attempt the loader
+    })
     if (cached && Number(ts) === Number(cached.ts))
         return cached.parsed as T
     const parsed = loader(path)
