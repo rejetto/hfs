@@ -18,7 +18,7 @@ import _ from 'lodash'
 
 export function pattern2filter(pattern: string){
     const matcher = makeMatcher(pattern.includes('*') ? pattern  // if you specify *, we'll respect its position
-        : pattern.split('|').map(x => `*${x}*`).join('|'))
+        : pattern.split('|').map(x => `*${x}*`).join('|'), false, false)
     return (s: string) =>
         !pattern || matcher(basename(s||''))
 }
