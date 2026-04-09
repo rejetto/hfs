@@ -343,6 +343,7 @@ export async function* walkNode(parent: VfsNode, {
             const maskApplier = parentMaskApplier(parent)
             const visitLater: any = []
             const childrenWorking = parent.children?.length && Promise.all(parent.children.map(async child => {
+                if (ctx?.isAborted()) return
                 const nodeName = getNodeName(child)
                 const name = prefixPath + nodeName
                 taken?.add(normalizeFilename(name))
@@ -369,10 +370,8 @@ export async function* walkNode(parent: VfsNode, {
 
                 try {
                     await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion }, async entry => {
-                        if (ctx?.isAborted()) {
-                            stream.push(null)
+                        if (ctx?.isAborted())
                             return null
-                        }
                         if (usingDescriptIon() && (entry.name === DESCRIPT_ION || entry.name === DESCRIPT_ION_ALT))
                             return
                         const {path} = entry // this path is not the original deprecated property: we are overwriting/reusing it
@@ -403,8 +402,11 @@ export async function* walkNode(parent: VfsNode, {
             finally {
                 await childrenWorking
                 for (const [item, name] of visitLater)
-                    for await (const x of walkNode(item, { depth: depth - 1, prefixPath: name + '/', ctx, requiredPerm, onlyFolders, onlyFiles, parallelizeRecursion }))
+                    for await (const x of walkNode(item, { depth: depth - 1, prefixPath: name + '/', ctx, requiredPerm, onlyFolders, onlyFiles, parallelizeRecursion })) {
+                        if (ctx?.isAborted())
+                            return stream.push(null)
                         stream.push(x)
+                    }
                 stream.push(null)
             }
 
@@ -423,8 +425,10 @@ export async function* walkNode(parent: VfsNode, {
     })
 
     // must use a stream to be able to work with the callback-based mechanism of walkDir, but Readable is not typed so we wrap it with a generator
-    for await (const item of stream)
+    for await (const item of stream) {
+        if (ctx?.isAborted()) return
         yield item as VfsNode
+    }
 }
 
 export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof VfsPerms): boolean {
