@@ -43,7 +43,7 @@ export const guiFilesMiddleware: Koa.Middleware = async (ctx, next) => {
         return try_(() => r && new URL(r).pathname?.startsWith(ADMIN_URI)) ? serveAdminFiles(ctx, next)
             : serveFrontendFiles(ctx, next)
     }
-    if (path.startsWith(FRONTEND_URI))
+    if (path.startsWith(FRONTEND_URI) && !path.endsWith('/'))
         return serveFrontendPrefixed(ctx, next)
     if (path.length === ADMIN_URI.length - 1 && ADMIN_URI.startsWith(path))
         return ctx.redirect(ctx.state.revProxyPath + ADMIN_URI)
