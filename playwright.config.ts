@@ -105,7 +105,9 @@ export default defineConfig({
   },
   /* Run your local dev server before starting the tests */
    webServer: [{
-     command: 'npm run server-for-test' + (process.env.TEST_WITH_UI ? '-dev' : ''), // use server-for-test-dev only for "test-with-ui"
+     command: `mkdir -p tests/work/plugins/test`
+     + ` && printf '%s\\n' "exports.apiRequired = 1" "exports.config = {" "    icons: { type: 'array', fields: { iconFile: { type: 'real_path' } } }," "}" > tests/work/plugins/test/plugin.js`
+     + ` && npm run server-for-test${process.env.TEST_WITH_UI ? '-dev' : ''}`, // use server-for-test-dev only for "test-with-ui"
      url: `http://127.0.0.1:${testPort}`,
      reuseExistingServer: !process.env.CI,
    }, { // launch a second server for tests with an empty/default config

@@ -28,7 +28,8 @@ interface Dialog extends DialogOptions {
     $id?: number
     $opening?: NodeJS.Timeout
     ts?: number
-    close: (v?: any) => undefined | Promise<void>
+    close: (v?: any, skipHistory?: boolean) => undefined | Promise<void>
+    closed?: Promise<void | undefined>
     restoreFocus?: any
 }
 
@@ -74,11 +75,12 @@ export function isDescendant(child: Node | null | undefined, parentMatch: Node |
 }
 
 let waitClosing = Promise.resolve()
+let waitQueuedCloses = Promise.resolve()
 let ignorePopState = false
-async function back() {
+async function doBack() {
     ignorePopState = true
     const was = history.state
-    return waitClosing = waitClosing.then(() => new Promise<void>(async res => {
+    return new Promise<void>(async res => {
         const timeout = Date.now() + 1500
         let lastBack = 0
         while (was === history.state) { // history.back seems to not always be effective, so we loop for it
@@ -91,7 +93,10 @@ async function back() {
             await wait(10) // we wait shorter and loop faster so to exit/resolve asap
         }
         res()
-    }))
+    })
+}
+async function back() {
+    return waitClosing = waitClosing.then(doBack)
 }
 
 const BASE_STATE = 1
@@ -101,7 +106,6 @@ const BASE_STATE = 1
         history.back()
         await wait(1) // history.state is not changed without this, on chrome123
     }
-    history.replaceState({ ...history.state, $dialog: BASE_STATE }, '')
 })()
 
 export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
@@ -208,25 +212,33 @@ export function newDialog(options: DialogOptions) {
         restoreFocus: options.restoreFocus ?? ref(document.activeElement || {}),
     })
     let cancelOpening = false
-    waitClosing.then(() => { // in case dialogs were just closed, account for window.history delay. You already didn't expect dialog to open immediately, but at state change
+    Promise.all([waitClosing, waitQueuedCloses]).then(() => { // queued closes must settle too, or a new dialog may wait behind a stale close request forever
         if (cancelOpening) return
+        if (!dialogs.length) {
+            history.replaceState({ ...history.state, $dialog: BASE_STATE }, '')
+        }
         dialogs.push(d)
-        if (dialogs.at(-1)!.closable !== false) // use proxy object, to stay in sync with its changes
+        if (dialogs.at(-1)!.closable !== false) { // use proxy object, to stay in sync with its changes
+            // browser-back closes dialogs by walking back to the entry that was current before the first dialog opened
+            if (history.state?.$dialog === undefined) {
+                history.replaceState({ ...history.state, $dialog: BASE_STATE }, '')
+            }
             history.pushState({ $dialog: $id, ts, idx: 1 + (history.state?.idx || 0) }, '')
+        }
     })
     return d
 
-    function close(v?:any) {
+    function close(v?:any, skipHistory=true) {
         cancelOpening = true
         const i = dialogs.findIndex(x => (x as any).$id === $id)
         if (i < 0) return
-        d.closed = history.state?.$dialog === $id ? back() : Promise.resolve()
+        d.closed = !skipHistory && history.state?.$dialog === $id ? back() : Promise.resolve()
         closeDialogAt(i, v)
         return options.closed
     }
 }
 
-export function closeDialog(v?:any, skipHistory=false) {
+export function closeDialog(v?:any, skipHistory=false): Dialog | undefined {
     let i = dialogs.length
     if (dialogs[i - 1]?.closable === false) return
     while (i--) {
@@ -234,7 +246,15 @@ export function closeDialog(v?:any, skipHistory=false) {
         if (d.reserveClosing)
             continue
         if (!skipHistory) {
-            if (history.state?.$dialog !== d.$id) return
+            if (history.state?.$dialog !== d.$id) {
+                // rapid ESC presses can target the next dialog before browser history has caught up with the previous close
+                const closed: Promise<void | undefined> = waitQueuedCloses = waitQueuedCloses
+                    .then(() => waitClosing)
+                    // once the history unwind has already been queued, retry the next close without re-checking the same stale state
+                    .then(() => closeDialog(v, true)?.closed)
+                // return a promise here so mobile callers wait instead of spinning on the still-open dialog stack
+                return { ...d, closed } as Dialog
+            }
             d.closed = back()
         }
         closeDialogAt(i, v)
@@ -247,8 +267,12 @@ function closeDialogAt(i: number, value?: any) {
     d.restoreFocus?.focus?.() // if element is not HTMLElement, it doesn't have focus method
     d.closingValue = value && typeof value === 'object' ? ref(value) : value // since this is being assigned to a valtio proxy, ref is necessary to avoid crashing with unusual (and possibly accidental) objects like React's SynteticEvents
     d.closed ??= Promise.resolve()
-    d.closed.then(() =>
-        d?.onClose?.(value))
+    d.closed.then(async () => {
+        // queued ESC closes can empty the stack before the last synthetic history entry has been unwound
+        while (!dialogs.length && history.state?.$dialog !== undefined && history.state.$dialog !== BASE_STATE)
+            await doBack()
+        d?.onClose?.(value)
+    })
     return d
 }
 

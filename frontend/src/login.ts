@@ -154,8 +154,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                         await close(true)
                         toast(t`Logged in`, 'success')
                         if (res?.redirect)
-                            setTimeout(() => // workaround: the history.back() issued by closing the dialog is messing with our navigation
-                                getHFS().navigate(res.redirect), 10) // from my tests 1 was enough, 0 was not (not always). Would be nice to find a cleaner way
+                            getHFS().navigate(res.redirect)
                         else if (reloadAfter)
                             reloadList()
                     } catch (err: any) {
