@@ -7,7 +7,7 @@ import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONT
 import { getNodeName, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
 import { defineConfig } from './config'
-import { CFG, Dict, makeMatcher, matches, try_, with_ } from './misc'
+import { CFG, Dict, makeMatcher, matches, try_ } from './misc'
 import _ from 'lodash'
 import { basename } from 'path'
 import { promisify } from 'util'
@@ -22,6 +22,8 @@ const allowedReferer = defineConfig('allowed_referer', '')
 const maxDownloads = downloadLimiter(defineConfig(CFG.max_downloads, 0), () => true)
 const maxDownloadsPerIp = downloadLimiter(defineConfig(CFG.max_downloads_per_ip, 0), ctx => ctx.ip)
 const maxDownloadsPerAccount = downloadLimiter(defineConfig(CFG.max_downloads_per_account, 0), ctx => getCurrentUsername(ctx) || undefined)
+
+const GUI_ASSET_MIME = /^(image\/|audio\/|video\/|font\/|text\/css$|(?:text|application)\/(?:javascript|ecmascript)$|application\/x-javascript$)/i
 
 function toAsciiEquivalent(s: string) {
     return iconv.encode(iconv.decode(Buffer.from(s), 'utf-8'), 'ascii').toString().replaceAll('?', '')
@@ -52,8 +54,11 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     ctx.state.vfsNode = node // useful to tell service files from files shared by the user
     const download = 'dl' in ctx.query
     disposition(ctx, name, download)
-    if (!download && ctx.get('referer')?.endsWith('/') && with_(ctx.get('accept'), x => x && !x.includes('text')))
-        ctx.state.considerAsGui = true
+    const fetchDest = ctx.get('sec-fetch-dest')
+    ctx.state.considerAsGui ??= !download && ctx.get('referer')?.endsWith('/')
+        && (fetchDest ? fetchDest !== 'document' && fetchDest !== 'empty' // modern clients
+            // legacy clients often send Accept: */* for archive downloads, so the served mime is a safer signal than request headers here
+            : GUI_ASSET_MIME.test(mimeString || mimetypes.lookup(source||'') || ''))
     await serveFile(ctx, source||'', mimeString)
 
     if (await maxDownloadsPerAccount(ctx) === undefined) // returning false will not execute other limits
