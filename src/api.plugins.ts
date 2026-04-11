@@ -133,6 +133,7 @@ const apis: ApiHandlers = {
                 try {
                     const already = Object.values(getFolder2repo()).filter(Boolean).map(String)
                     for await (const pl of await searchPlugins(text, { skipRepos: already })) {
+                        if (ctx.isAborted()) return
                         const repo = pl.repo || pl.id // .repo property can be more trustworthy in case github user renamed and left the previous link in 'repo'
                         const missing = getMissingDependencies(pl)
                         if (missing.length) pl.missing = missing
