@@ -55,7 +55,7 @@ export default function HomePage() {
         async onContextMenu(ev: any) {
             ev.preventDefault()
             if (!status.updatePossible)
-                return alertDialog("Automatic update is only for binary versions", 'warning')
+                return alertDialog("Automatic update is not support for your installation", 'warning')
             const res = await promptDialog("Enter a link to the zip to install")
             if (res)
                 await update(res)
