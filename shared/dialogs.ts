@@ -94,10 +94,15 @@ async function back() {
     }))
 }
 
-if (history.state?.$dialog) { // it may happen if the user reloads the browser leaving open dialogs
-    const { $dialog, ...state } = history.state
-    history.replaceState(state, '')
-}
+const BASE_STATE = 1
+;(async () => {
+    // this condition happens if the user reloads the browser leaving open dialogs. Don't pop BASE_STATE as it may contain other state we inherited
+    while (history.state?.$dialog !== undefined && history.state.$dialog !== BASE_STATE) {
+        history.back()
+        await wait(1) // history.state is not changed without this, on chrome123
+    }
+    history.replaceState({ ...history.state, $dialog: BASE_STATE }, '')
+})()
 
 export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
     useEffect(() => domOn('popstate', () => {
