@@ -490,9 +490,13 @@ export function runAt(ts: number, cb: Callback) {
     }
 }
 
-export function makeMatcher(mask: string, emptyMaskReturns=false) {
-    return mask ? picomatch(mask.replace(/^(!)?/, '$1(') + ')', { nocase: true}) // adding () will allow us to use the pipe at root level
-        : () => emptyMaskReturns
+export function makeMatcher(mask: string, emptyMaskReturns=false, extglobs=true) {
+    if (!mask) return () => emptyMaskReturns
+    const wrapped = mask.replace(/^(!)?/, '$1(') + ')' // adding () will allow us to use the pipe at root level
+    const opts = { nocase: true, noextglob: !extglobs }
+    // reject patterns that compile to nested quantified groups, causing catastrophic backtracking (CVE-2026-33671)
+    return /\)\)[+*]/.test(picomatch.makeRe(wrapped, opts).source) ? () => false
+        : picomatch(wrapped, opts)
 }
 
 // this is caching all matchers, so don't use it with frequently changing masks. Benchmarks revealed that _.memoize make it slower than not using it, while this simple cache can speed up to 30x

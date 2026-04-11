@@ -15,6 +15,12 @@ const t = Date.UTC(2025, 0, 20, 3, 0, 0, 0) / 1000 // a fixed timestamp, for vis
 
 test.beforeAll(clearUploads)
 
+// dump page DOM on failure to help diagnose flaky tests
+test.afterEach(async ({ page }, testInfo) => {
+    if (testInfo.status === 'failed')
+        await testInfo.attach('dom', { body: await page.content(), contentType: 'text/html' })
+})
+
 export function clearUploads() {
     fs.unlink('tests/' + uploadName, () => {});
     resetTimestamp()
