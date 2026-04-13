@@ -94,7 +94,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
                     continue
             }
             catch(e) {
-                console.log("A plugin with onDirEntry is causing problems:", e)
+                console.warn("A plugin is causing problems on dirEntry:", e)
             }
             if (offset) {
                 --offset
