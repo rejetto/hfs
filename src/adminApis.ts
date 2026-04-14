@@ -150,6 +150,8 @@ export const adminApis = {
             compatibleApiVersion: COMPATIBLE_API_VERSION,
             ...await getServerStatus(false),
             platform: process.platform,
+            cwd: process.cwd(),
+            configFile: configFile.getPath(),
             urls: await getUrls(),
             ips: await getIps(false),
             baseUrl: await getBaseUrlOrDefault(),
