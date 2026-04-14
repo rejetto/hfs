@@ -15,7 +15,7 @@ import {
 import { dontBotherWithKeys, restartAnimation, useBatch, useStateMounted } from '@hfs/shared'
 import { Promisable, StringField } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
-import { Link as RouterLink, LinkProps as RouterLinkProps, useNavigate } from 'react-router-dom'
+import { Link as RouterLink, LinkProps as RouterLinkProps, useNavigate } from './router'
 import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
 import _ from 'lodash'
 import { ALL as COUNTRIES } from './countries'

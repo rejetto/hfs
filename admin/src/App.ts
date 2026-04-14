@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, ReactNode, useCallback, useEffect, useState } from 'react'
-import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import { HashRouter, Route, Routes, useLocation, useNavigate } from './router'
 import MainMenu, { getMenuLabel, mainMenu } from './MainMenu'
 import { AppBar, Box, BoxProps, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
 import { anyDialogOpen, Dialogs } from './dialog'

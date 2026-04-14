@@ -4,7 +4,7 @@ import { Box, Button, Divider, FormHelperText } from '@mui/material';
 import { createElement as h, useEffect, useId, useRef, useState } from 'react'
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
-import { Link as RouterLink } from 'react-router-dom'
+import { Link as RouterLink } from './router'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { adminApis } from '../../src/adminApis'
 import {
