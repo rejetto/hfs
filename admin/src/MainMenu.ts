@@ -7,7 +7,7 @@ import {
     SvgIconComponent
 } from '@mui/icons-material'
 import _ from 'lodash'
-import { NavLink } from 'react-router-dom'
+import { NavLink } from './router'
 import MonitorPage from './MonitorPage'
 import OptionsPage from './OptionsPage';
 import VfsPage from './VfsPage';
