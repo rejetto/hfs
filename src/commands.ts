@@ -182,8 +182,8 @@ const commands = {
     'list-plugins': {
         params: '',
         cb() {
-            mapPlugins(p => console.log('ON:', p.id), false)
-            getInactivePlugins().map(p => console.log('OFF:', p.id))
+            mapPlugins(p => console.log('On:', p.id), false)
+            getInactivePlugins().map(p => console.log('Off:', p.id))
         }
     },
     'purge-file-attr': {

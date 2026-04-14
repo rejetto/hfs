@@ -61,7 +61,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
             closeDialogRef.current()
     }, [movingFile])
 
-    const nothingShared = !data?.root?.children?.length && !data?.root?.source
+    const nothingShared = data && !data.root?.children?.length && !data.root?.source
     const hintElement = useMemo(() => nothingShared ? h(Alert, {
         severity: 'warning',
         children: h(Fragment, {}, "Add something to your virtual file system — click the ", h(Add), "button, or set a source for the Home folder"),
