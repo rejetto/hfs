@@ -120,7 +120,6 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
             h(IconBtn, {
                 icon: Delete,
                 title: "Delete",
-                confirm: `Delete ${file.name}?`,
                 disabled: isRoot,
                 onClick() {
                     deleteVfs([file.id])

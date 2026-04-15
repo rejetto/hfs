@@ -151,9 +151,6 @@ test('delete virtual folder updates tree and marks modified', async ({ page }) =
     const folderName = 'for-disabled'
     await selectVfsNode(page, folderName, '/for-disabled/')
     await clickIconBtn('Delete', page)
-    const confirm = page.locator('.dialog-confirm')
-    await expect(confirm).toBeVisible()
-    await confirm.locator('a').first().click()
 
     await expect.poll(() => page.evaluate(name => {
         const root = (window as any).state?.vfs
@@ -181,9 +178,6 @@ test('undo toggles with single-level redo behavior', async ({ page }) => {
 
     await selectVfsNode(page, folderName, '/for-disabled/')
     await clickIconBtn('Delete', page)
-    const confirm = page.locator('.dialog-confirm')
-    await expect(confirm).toBeVisible()
-    await confirm.locator('a').first().click()
     await expect(undoButton).toBeEnabled()
 
     await expect.poll(() => page.evaluate(name => {
