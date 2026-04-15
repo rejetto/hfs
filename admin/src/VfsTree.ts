@@ -9,7 +9,7 @@ import {
 } from '@mui/icons-material'
 import { Box, Typography } from '@mui/material'
 import { id2vfsNode, isDescendantUri, reindexVfs, VfsNodeAdmin } from './VfsPage'
-import { onlyTruthy, pathEncode, prefix, toMutable, wantArray, Who, with_ } from './misc'
+import { getOrSet, onlyTruthy, pathEncode, prefix, toMutable, wantArray, Who, with_ } from './misc'
 import { Flex, iconTooltip, useToggleButton } from './mui'
 import VfsMenuBar from './VfsMenuBar'
 import { ApiObject } from './api'
@@ -33,8 +33,10 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
         if (isRoot && ref.current)
             ref.current.firstElementChild?.classList.toggle('Mui-selected', !(selectedFiles.length && !_.find(selectedFiles, { id: '/' })))
         return h(TreeItem, {
-            ref(el) { // workaround to permit drag&drop with mui5's tree
-                el?.addEventListener('focusin', (e: any) => e.stopImmediatePropagation())
+            ref(el) {
+                if (el)
+                    getOrSet(el.dataset, 'hfsFocus', () => // workaround to permit drag&drop with mui5's tree
+                        void el.addEventListener('focusin', (e: any) => e.stopImmediatePropagation()))
                 ref.current = el
             },
             onDoubleClick: toggle,

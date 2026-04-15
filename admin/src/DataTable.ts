@@ -64,7 +64,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             return {
                 ...col,
                 originalRenderCell: col.renderCell || true,
-                renderCell(params: any) {
+                renderCell(params: GridRenderCellParams) {
                     const { columns } = params.api.store.getSnapshot()
                     return h(Box, { maxHeight: '100%', ...col.cellInnerProps, sx: { textWrap: 'wrap', ...callable(sx as any, params) } }, // wrap if necessary, but stay within the row
                         col.renderCell ? col.renderCell(params) : params.formattedValue,
