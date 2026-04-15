@@ -215,7 +215,7 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
             srv.on('checkContinue', (req, res) => srv.emit('request', req, res))
             port = await listen(host)
             if (port)
-                console.log(srv.name, "Serving on", renderHost(host || ''), ':', port)
+                console.log(`Serving ${srv.name} on ${renderHost(host || '')} port ${port}`)
             resolve(port)
         }
         catch(e) {

@@ -71,6 +71,8 @@ const bun = (globalThis as any).Bun
 if (bun) console.log('Bun', bun.version)
 console.log('Platform', process.platform, process.arch, IS_BINARY ? 'binary' : basename(process.execPath))
 console.log('Pid', process.pid)
+setImmediate(() => // after commands.ts has handled console.debug
+    console.debug("Args", argv))
 
 function useHomeDir() {
     if (!IS_WINDOWS || !IS_BINARY) return true
