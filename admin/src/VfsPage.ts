@@ -190,6 +190,7 @@ export function reindexVfs({
     if (clearMap)
         id2vfsNode.clear()
     recur(node, node.parent?.id || '/', node.parent)
+    state.vfsShowDiskContentFor = ''
     // Reindex can update ids/references; remap caller-provided selections to canonical nodes from id2node.
     if (select)
         state.selectedFiles = onlyTruthy(select.map(x => id2vfsNode.get(typeof x === 'string' ? x : x.id)))

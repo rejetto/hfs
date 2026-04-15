@@ -8,7 +8,7 @@ import {
     RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff, UnfoldMore, UnfoldLess
 } from '@mui/icons-material'
 import { Box, Typography } from '@mui/material'
-import { id2vfsNode, isDescendantUri, reindexVfs, VfsNodeAdmin } from './VfsPage'
+import { deleteVfs, id2vfsNode, isDescendantUri, reindexVfs, VfsNodeAdmin } from './VfsPage'
 import { getOrSet, onlyTruthy, pathEncode, prefix, toMutable, wantArray, Who, with_ } from './misc'
 import { Flex, iconTooltip, useToggleButton } from './mui'
 import VfsMenuBar from './VfsMenuBar'
@@ -38,6 +38,12 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
                     getOrSet(el.dataset, 'hfsFocus', () => // workaround to permit drag&drop with mui5's tree
                         void el.addEventListener('focusin', (e: any) => e.stopImmediatePropagation()))
                 ref.current = el
+            },
+            onKeyUp(ev) {
+                if (ev.key === 'Delete') {
+                    deleteVfs([id])
+                    ev.stopPropagation()
+                }
             },
             onDoubleClick: toggle,
             label:
@@ -91,7 +97,8 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
             collapseIcon: h(ExpandMore, { onClick: toggle }),
             expandIcon: h(ChevronRight, { onClick: toggle }),
             nodeId: id
-        }, with_(node.source && isFolder ? "files from " + node.source : !node.children?.length && isRoot && "nothing here", x => x && h(TreeItem, { nodeId: SPECIAL_TREE_ITEM + id, label: h('i', {}, x) })),
+        }, with_(node.source && isFolder ? "files from " + node.source : !node.children?.length && isRoot && "nothing here", x =>
+                x && h(TreeItem, { nodeId: SPECIAL_TREE_ITEM + id, label: h('i', {}, x) })),
             ...node.children?.map(x => h(Branch, { key: x.id, node: x })) || []
         )
 
@@ -147,6 +154,7 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
             },
             onNodeSelect(_ev, ids) {
                 state.selectedFiles = onlyTruthy(wantArray(ids).map(id => id2vfsNode.get(id)))
+                // this is the only point where we have special node ids that don't fit selectedFiles
                 state.vfsShowDiskContentFor = ids.length === 1 && ids[0]?.[0] === SPECIAL_TREE_ITEM && id2vfsNode.get(ids[0].slice(1))?.source || ''
             }
         }, h(Branch, { node: vfs as Readonly<VfsNodeAdmin> }))
