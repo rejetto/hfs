@@ -122,9 +122,8 @@ function getSnapshotBranch() {
 
 function getGitBranchName() {
   try {
-    return execSync('git branch --show-current', { encoding: 'utf8' }).trim()
+    return execSync('git branch -a --contains HEAD', { encoding: 'utf8' }).trim().split('\n').at(-1)?.trim()
+        .replace(/^(\*\s*)?(remotes\/[^/]+\/)?/, '')
   }
-  catch {
-    return ''
-  }
+  catch {}
 }
