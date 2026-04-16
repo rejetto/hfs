@@ -72,20 +72,10 @@ export default {
 
         function fromCtx(ctx?: Koa.Context) {
             if (!ctx) return
-            const s = ctx.state // short alias
             return {
                 user: getCurrentUsername(ctx),
                 agent: shortenAgent(ctx.get('user-agent')),
-                archive: s.archive,
-                ...s.browsing ? { op: 'browsing', path: safeDecodeURIComponent(s.browsing) }
-                    : s.uploadPath ? { op: 'upload', path: safeDecodeURIComponent(s.uploadPath) }
-                        : {
-                            op: !s.considerAsGui && (ctx.state.archive || ctx.state.vfsNode) ? 'download' : undefined,
-                            path: safeDecodeURIComponent(ctx.originalUrl),
-                        },
-                opProgress: _.isNumber(s.opProgress) ? _.round(s.opProgress, 3) : undefined,
-                opTotal: s.opTotal,
-                opOffset: s.opOffset,
+                ...inferOperation(ctx)
             }
         }
     },
@@ -115,6 +105,22 @@ export default {
 
 function ignore(conn: Connection) {
     return false //conn.socket && isLocalHost(conn)
+}
+
+export function inferOperation(ctx: Koa.Context) {
+    const s = ctx.state // short alias
+    return {
+        archive: s.archive,
+        ...s.browsing ? { op: 'browsing', path: safeDecodeURIComponent(s.browsing) }
+            : s.uploadPath ? { op: 'upload', path: safeDecodeURIComponent(s.uploadPath) }
+                : {
+                    op: !s.considerAsGui && (ctx.state.archive || ctx.state.vfsNode) ? 'download' : undefined,
+                    path: safeDecodeURIComponent(ctx.originalUrl),
+                },
+        opProgress: _.isNumber(s.opProgress) ? _.round(s.opProgress, 3) : undefined,
+        opTotal: s.opTotal,
+        opOffset: s.opOffset,
+    }
 }
 
 function getConnAddress(conn: Connection, overrideIp?: string) {
