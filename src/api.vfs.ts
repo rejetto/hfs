@@ -242,7 +242,7 @@ export default {
         for (const k of ['*', 'Directory']) {
             await reg('add', WINDOWS_REG_KEY.replace('*', k), '/ve', '/f', '/d', 'Add to HFS (new)')
             await reg('add', WINDOWS_REG_KEY.replace('*', k), '/v', 'icon', '/f', '/d', IS_BINARY ? process.execPath : APP_PATH + '\\hfs.ico')
-            await reg('add', WINDOWS_REG_KEY.replace('*', k) + '\\command', '/ve', '/f', '/d', `powershell -WindowStyle Hidden -Command "
+            await reg('add', WINDOWS_REG_KEY.replace('*', k) + '\\command', '/ve', '/f', '/d', `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -Command "
             [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12;
             $wsh = New-Object -ComObject Wscript.Shell;
             $j = @{parent=@'\n${parent}\n'@; source=@'\n%1\n'@} | ConvertTo-Json -Compress
