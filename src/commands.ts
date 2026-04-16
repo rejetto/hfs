@@ -200,8 +200,8 @@ const commands = {
             const conn = (await apiMonitor.get_connection_stats().next()).value
             if (conn) {
                 const {sent_got: sg} = conn
-                console.log(`Speed ↑ ${formatSpeed(conn.outSpeed)} ↓ ${formatSpeed(conn.inSpeed)}`)
-                console.log(`Transfered ↑ ${formatBytes(sg[0])} ↓ ${formatBytes(sg[1])} since ${formatTimestamp(sg[2])}`)
+                console.log(`Speed ↑ ${formatSpeed(conn.outSpeedKb * 1000)} ↓ ${formatSpeed(conn.inSpeedKb * 1000)}`)
+                console.log(`Transferred ↑ ${formatBytes(sg[0])} ↓ ${formatBytes(sg[1])} since ${formatTimestamp(sg[2])}`)
                 console.log(`Connections ${conn.connections} (${conn.ips} IPs)`)
             }
         }

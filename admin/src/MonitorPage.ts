@@ -55,8 +55,8 @@ function MoreInfo() {
                 .then(yes => yes && apiCall('clear_persistent', { k: ['totalSent', 'totalGot'] })
                     .then(() => alertDialog("Done", 'success'), alertDialog))
         }),
-        pair('outSpeed', { label: "Output", render: formatSpeedK, minWidth: '8.5em' }),
-        pair('inSpeed', { label: "Input", render: formatSpeedK, minWidth: '8.5em' }),
+        pair('outSpeedKb', { label: "Output", render: formatSpeedK, minWidth: '8.5em' }),
+        pair('inSpeedKb', { label: "Input", render: formatSpeedK, minWidth: '8.5em' }),
         (allInfo || sm) && pair('ips', { label: "IPs", title: () => "Currently connected" }),
         (md || allInfo && md || status?.http?.error) && pair('http', { label: "HTTP", render: port }),
         (md || allInfo && md || status?.https?.error) && pair('https', { label: "HTTPS", render: port }),
@@ -221,15 +221,12 @@ function Connections() {
                             }
                         },
                         {
-                            field: 'outSpeed',
+                            field: 'outSpeedKb',
                             headerName: "Speed",
                             width: 110,
                             hideUnder: 'sm',
                             type: 'number',
-                            renderCell: ({
-                                             value,
-                                             row
-                                         }) => formatSpeedK(Math.max(value || 0, row.inSpeed || 0) || undefined),
+                            renderCell: ({ value, row }) => formatSpeedK(Math.max(value || 0, row.inSpeedKb || 0) || undefined),
                             mergeRender: { sent: { fontSize: 'small', textAlign: 'right' } }
                         },
                         {

@@ -10,8 +10,8 @@ export class Connection {
     readonly started = new Date()
     sent = 0 // socket-scoped, not request-scoped
     got = 0
-    outSpeed?: number
-    inSpeed?: number
+    outSpeedKb?: number
+    inSpeedKb?: number
     ctx?: Context // this is set externally, during koa middleware, using updateConnectionForCtx, but only for regular requests; some connections may never have a ctx
     country?: string
     private _cachedIp?: string

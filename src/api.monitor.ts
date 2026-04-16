@@ -5,7 +5,7 @@ import { Connection, disconnect, getConnections } from './connections'
 import { apiAssertTypes, isLocalHost, safeDecodeURIComponent, shortenAgent, wait, wantArray } from './misc'
 import { ApiHandlers } from './apiMiddleware'
 import Koa from 'koa'
-import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
+import { totalGot, totalInSpeedKb, totalOutSpeedKb, totalSent } from './throttler'
 import { getCurrentUsername } from './auth'
 import { SendListReadable } from './SendList'
 import { storedMap } from './persistence'
@@ -94,8 +94,8 @@ export default {
         while (1) {
             const filtered = getConnections().filter(x => !ignore(x))
             yield {
-                outSpeed: totalOutSpeed,
-                inSpeed: totalInSpeed,
+                outSpeedKb: totalOutSpeedKb,
+                inSpeedKb: totalInSpeedKb,
                 sent_got: [totalSent.get(), totalGot.get(), totalGotSentResetTime.get()] as const,
                 connections: filtered.length,
                 ips: _.uniqBy(filtered, x => x.ip).length,

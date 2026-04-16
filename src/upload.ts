@@ -235,10 +235,10 @@ export function uploadWriter(base: VfsNode, baseUri: string, filename: string, c
             const h = setInterval(() => {
                 const now = Date.now()
                 const got = bytesGot()
-                const inSpeed = roundSpeed((got - lastGot) / (now - lastGotTime))
+                const inSpeedKb = roundSpeed((got - lastGot) / (now - lastGotTime))
                 lastGot = got
                 lastGotTime = now
-                updateConnection(conn, { inSpeed, got }, { opProgress: (resume + got) / fullSize })
+                updateConnection(conn, { inSpeedKb, got }, { opProgress: (resume + got) / fullSize })
             }, 1000)
             const stopTracking = () => clearInterval(h)
             writeStream.once('close', stopTracking)

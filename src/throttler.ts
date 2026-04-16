@@ -56,7 +56,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
         const ts = conn[SymThrStr] as ThrottledStream
         const outSpeed = roundSpeed(ts.getSpeed())
         const { state } = ctx
-        updateConnection(conn, { outSpeed, sent: conn.socket.bytesWritten },
+        updateConnection(conn, { outSpeedKb: outSpeed, sent: conn.socket.bytesWritten },
             { opProgress: state.opTotal && ((state.opOffset || 0) + (ts.getBytesSent() - offset) / state.opTotal) })
         /* in case this stream stands still for a while (before the end), we'll have neither 'sent' or 'close' events,
         * so who will take care to updateConnection? This artificial next-call will ensure just that */
@@ -100,8 +100,8 @@ export function roundSpeed(n: number) {
 
 export const totalSent = storedMap.singleSync<number>('totalSent', 0)
 export const totalGot = storedMap.singleSync<number>('totalGot', 0)
-export let totalOutSpeed = 0
-export let totalInSpeed = 0
+export let totalOutSpeedKb = 0
+export let totalInSpeedKb = 0
 
 let lastSent: number | undefined
 let lastGot: number | undefined
@@ -112,12 +112,12 @@ setInterval(() => {
     last = now
     {
         const v = totalSent.get()
-        totalOutSpeed = roundSpeed((v - (lastSent ?? v)) / past)
+        totalOutSpeedKb = roundSpeed((v - (lastSent ?? v)) / past) // lastSent is bytes, past is milliseconds, so the result is KB/s
         lastSent = v
     }
     {
         const v = totalGot.get()
-        totalInSpeed = roundSpeed((v - (lastGot ?? v)) / past)
+        totalInSpeedKb = roundSpeed((v - (lastGot ?? v)) / past)
         lastGot = v
     }
 }, 1000)
