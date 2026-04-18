@@ -133,8 +133,9 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
     // be sure the selected element is visible
     const treeId = 'vfs'
     const first = selectedFiles[0]
-    useEffect(() => document.getElementById(`${treeId}-${first?.id}`)?.scrollIntoView({ block: 'nearest', behavior: 'instant' as any }),
-        [first])
+    useEffect(() => { // scrollIntoView in modern browsers is returning a Promise
+        document.getElementById(`${treeId}-${first?.id}`)?.scrollIntoView({ block: 'nearest', behavior: 'instant' })
+    }, [first])
     return h(Flex, { flexDirection: 'column', alignItems: 'stretch', flex: 1 },
         h(Flex, { mb: 1, flexWrap: 'wrap', gap: [1, 2] },
             h(Typography, { variant: 'h6' }, "Virtual File System"),
