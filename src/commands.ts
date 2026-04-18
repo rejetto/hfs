@@ -33,6 +33,7 @@ if (!argv.updating && !showHelp) {
             prompter.prompt(true)
             isClean = false
         }, 100)
+
         function clean() {
             if (isClean) return
             // keep console methods synchronous: reposition the cursor immediately and let stream ordering preserve output sequence
@@ -53,7 +54,6 @@ if (!argv.updating && !showHelp) {
                 }
             }
         }
-
     }
     catch {
         console.log("Console commands not available")

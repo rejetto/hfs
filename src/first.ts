@@ -11,8 +11,8 @@ export function onProcessExit(cb: ProcessExitHandler) {
 export let quitting = false
 // 'exit' event is handled as the last resort, but it's not compatible with async callbacks
 onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT', 'SIGHUP'], signal => {
-    quitting = true
     console.log('Quitting with signal:', signal || 'unknown')
+    quitting = true
     return Promise.allSettled(Array.from(cbsOnExit).map(cb => cb(signal))).then(() => {
         console.debug('Process exit')
         process.exit(0)
