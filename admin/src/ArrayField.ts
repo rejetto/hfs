@@ -1,5 +1,5 @@
 import { createElement as h, Fragment, isValidElement, useMemo, useState } from 'react'
-import { callable, Dict, Functionable, isOrderedEqual, setHidden, swap } from './misc'
+import { callable, Dict, formatTimestamp, Functionable, isOrderedEqual, setHidden, swap } from './misc'
 import { Add, Edit, Delete, ArrowUpward, ArrowDownward, Undo, Check } from '@mui/icons-material'
 import { DialogOptions, FormDialog, formDialog } from './dialog'
 import { GridActionsCellItem, GridAlignment, GridColDef } from '@mui/x-data-grid'
@@ -210,7 +210,7 @@ const byType: Dict<{ field?: Partial<FieldDescriptor>, column?: Partial<GridColD
         field: { comp: DateTimeField },
         column: {
             minWidth: 96, flex: 0.5,
-            renderCell: ({ value }) => value && new Date(value).toLocaleString(),
+            renderCell: ({ value }) => formatTimestamp(value),
         }
     }
 }

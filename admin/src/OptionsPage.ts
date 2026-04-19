@@ -54,7 +54,7 @@ export default function OptionsPage() {
     const isLH = hn === 'localhost'
     const isV6 = hn.includes(':')
     const listenInterfaceOptions = [
-        { label: "any", value: '' },
+        { label: "any", value: '', disabled: false },
         { label: "any IPv4", value: '0.0.0.0', disabled: !isLH && isV6 },
         { label: "any IPv6", value: '::', disabled: !isLH && !isV6 },
         ...['127.0.0.1', '::1'].map(x => ({ label: x, value: x, disabled: !isLH && hn !== x })),
