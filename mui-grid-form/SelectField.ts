@@ -88,7 +88,7 @@ export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectField
             renderValue: () => h('div', {
                 'aria-label': label + ': ' + valueAsOptions.map(x => x.label ?? String(x.value)),
                 style: { overflow: "hidden", display: "flex", flexWrap: "wrap", gap: ".5em" },
-                children: isEmpty ? h(Box, { position: 'relative', top: '.3em', fontSize: 'small', fontStyle: 'italic', color: 'text.secondary' }, placeholder)
+                children: isEmpty ? h(Box, { sx: { position: 'relative', top: '.3em', fontSize: 'small', fontStyle: 'italic', color: 'text.secondary' } }, placeholder)
                     : valueAsOptions.map((x, i) => h('span', { key: i }, renderOption!(x), i < valueAsOptions.length - 1 && valueSeparator)),
             }),
             ...rest,
@@ -99,7 +99,7 @@ export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectField
                     onClickCapture(ev) { ev.stopPropagation() }
                 }, "No options available")),
             !isMobile && normalizedOptions?.length! > 20 && h(Box, {
-                sx: { float: 'right' }, fontSize: 'small', width: '8em', textAlign: 'right', marginRight: '.5em'
+                sx: { float: 'right', fontSize: 'small', width: '8em', textAlign: 'right', marginRight: '.5em' },
             }, "ⓘ You can type the name"),
             h(Button, {
                 size: 'small',

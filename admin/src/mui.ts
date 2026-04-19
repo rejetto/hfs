@@ -7,13 +7,14 @@ import {
     createElement as h, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useEffect, useRef,
     ForwardedRef, useState, useMemo, isValidElement, ElementType
 } from 'react'
-import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
+import { Box, BoxProps, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery, Button } from '@mui/material'
+import type { Breakpoint } from '@mui/material/styles'
 import {
     anyDialogOpen, closeDialog, formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL, with_, Functionable, callable
 } from './misc'
 import { dontBotherWithKeys, restartAnimation, useBatch, useStateMounted } from '@hfs/shared'
-import { Promisable, StringField } from '@hfs/mui-grid-form'
+import { mergeSx, Promisable, StringField } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import { Link as RouterLink, LinkProps as RouterLinkProps, useNavigate } from './router'
 import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
@@ -67,13 +68,15 @@ export function IconProgress({ icon, progress, offset, title, sx }: IconProgress
                 value: (offset || 1e-7) * 100,
                 variant: 'determinate',
                 size: 32,
-                sx: _.defaults(sx as any, { display: 'flex' }) as any, // workaround: without this the element has 0 width when the space is crammy (monitor/file)
+                sx: mergeSx({ display: 'flex' }, sx), // workaround: without this the element has 0 width when the space is crammy (monitor/file)
             }),
         )
     )
 }
 
-type FlexProps = { vert?: boolean, center?: boolean, children?: ReactNode, props?: BoxProps, component?: ElementType } & Record<string, any>
+export { mergeSx }
+
+type FlexProps = { vert?: boolean, center?: boolean, children?: ReactNode, props?: Omit<BoxProps, 'sx'>, component?: ElementType } & Record<string, any>
 export function Flex({ vert=false, center=false, children=null, props={}, component, ...rest }: FlexProps) {
     return h(Box as any, {
         sx: {
@@ -233,15 +236,19 @@ export function InLink({ ...props }: LinkProps & RouterLinkProps) {
     return h(Link, { component: RouterLink, ...props })
 }
 
-export const Center = forwardRef((props: BoxProps, ref) =>
-    h(Box, { ref, display:'flex', height:'100%', width:'100%', justifyContent:'center', alignItems:'center',  flexDirection: 'column', ...props }))
+export const Center = forwardRef(({ sx, ...props }: BoxProps, ref) =>
+    h(Box, {
+        ref,
+        sx: mergeSx({ display:'flex', height:'100%', width:'100%', justifyContent:'center', alignItems:'center', flexDirection: 'column' }, sx),
+        ...props
+    }))
 
 // looks like a link, but it's a button
 export function LinkBtn({ ...rest }: LinkProps) {
     return h(Link, {
         ...rest,
         href: '',
-        sx: { cursor: 'pointer', ...rest.sx },
+        sx: mergeSx({ cursor: 'pointer' }, rest.sx),
         role: 'button',
         onClick(ev) {
             ev.preventDefault()
@@ -270,7 +277,7 @@ export function useToggleButton(onTitle: string, offTitle: undefined | string, i
     }) : init)
 
     const toggle = useCallback(() => setState(x => !x), [])
-    const props = iconBtn(state)
+    const props = iconBtn(state) // returned props should vary only with state
     const el = useMemo(() => h(IconBtn, {
         size: 'small',
         color: state ? 'primary' : undefined,
@@ -278,7 +285,7 @@ export function useToggleButton(onTitle: string, offTitle: undefined | string, i
         'aria-label': onTitle, // aria should be steady, and rely on aria-pressed
         'aria-pressed': state,
         ...props,
-        sx: { transition: 'all .5s', ...props.sx },
+        sx: mergeSx({ transition: 'all .5s' }, props.sx),
         onClick(ev) {
             props.onClick?.(ev)
             toggle()
@@ -317,7 +324,7 @@ export function Country({ code, ip, def, long, short }: { code: string, ip?: str
             h(Box as any, {
                 className: `fflag fflag-${code.toUpperCase()}`,
                 component: 'span',
-                mr: 1,
+                sx: { mr: 1 },
             }),
             long ? country.name + prefix(' (', short && code, ')') : code
         ) )
@@ -332,7 +339,7 @@ async function ip2countryBatch(ips: string[]) {
 export function hTooltip(title: ReactNode, ariaLabel: string | undefined, children: ReactElement, props?: Omit<TooltipProps, 'title' | 'children'> & { key?: any }) {
     return h(Tooltip, { title, children,
         ...(ariaLabel === '' ? { 'aria-hidden': true } : { 'aria-label': ariaLabel || _.isString(title) && title || undefined }),
-        componentsProps: { popper: { sx: { whiteSpace: 'pre-wrap', ...props?.sx } } } as any,
+        slotProps: { popper: { sx: mergeSx({ whiteSpace: 'pre-wrap' }, props?.sx) } } as any,
         ...props
     })
 }

@@ -19,10 +19,10 @@ export default function LangPage({ setTitleSide }: PageProps) {
         h(Alert, { severity: 'info', sx: { display: { xs: 'none', sm: 'inherit' }  } }, "Translation is limited to the Front-end and doesn't apply to the Admin-panel"),
         []))
     return h(Fragment, {},
-        h(Box, { mt: 1, maxWidth: '50em', flex: 1, ...fillFlexParentSx },
-            h(Box, { mb: 1, display: 'flex' },
+        h(Box, { sx: { mt: 1, maxWidth: '50em', flex: 1, ...fillFlexParentSx } },
+            h(Box, { sx: { mb: 1, display: 'flex' } },
                 h(Btn, { icon: Upload, onClick: add }, "Add"),
-                h(Box, { flex: 1 }),
+                h(Box, { sx: { flex: 1 } }),
                 h(ForceLang, { langs }),
             ),
             h(DataTable, {
@@ -92,6 +92,7 @@ function ForceLang({ langs }: { langs: string[] }) {
 
     return h(SelectField as Field<string>, {
         fullWidth: false,
+        size: 'small',
         disabled: Boolean(loading) || typeof saving === 'string',
         value: saving ?? lang,
         async onChange(v) {

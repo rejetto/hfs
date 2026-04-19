@@ -52,7 +52,7 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
     const { VERSION } = getHFS()
     const logo = 'hfs-logo.svg'
     const short = useWindowSize().height < 700
-    return h(Box, { display: 'flex', flexDirection: 'column', bgcolor: 'primary.main', minHeight: '100%', },
+    return h(Box, { sx: { display: 'flex', flexDirection: 'column', bgcolor: 'primary.main', minHeight: '100%' } },
         h(List, {
             sx:{
                 pr: 1, py: 0, color: 'primary.contrastText',
@@ -62,17 +62,15 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
                 display: 'flex', flexDirection: 'column', '&>a': { flex: '0' },
             }
         },
-            h(Box, { id: 'hfs-name', display: 'flex', px: 2, py: .5, gap: 2, alignItems: 'center' },
+            h(Box, { id: 'hfs-name', sx: { display: 'flex', px: 2, py: .5, gap: 2, alignItems: 'center' } },
                 h(Box, {
-                    color: 'primary.contrastText',
-                    fontSize: 'min(3rem, max(5vw, 4vh))',
-                    sx: { cursor: 'pointer' },
+                    sx: { color: 'primary.contrastText', fontSize: 'min(3rem, max(5vw, 4vh))', cursor: 'pointer' },
                     async onClick() {
                         if (await confirmDialog("Open HFS website?"))
                             window.open(WEBSITE)
                     }
                 }, 'HFS'),
-                h(Box, { fontSize: 'small', className: HIDE_IN_TESTS }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
+                h(Box, { sx: { fontSize: 'small' }, className: HIDE_IN_TESTS }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
                 short && h('img', { src: logo, style: { height: '2.5em' } }),
             ),
             mainMenu.map((it, idx) => hTooltip( itemTitle(idx), getMenuLabel(it) + ' ' + itemTitle(idx),

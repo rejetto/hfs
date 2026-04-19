@@ -1,7 +1,7 @@
 import { dirname, enforceFinal, join } from './misc'
 import _ from 'lodash'
 import { useApiList } from './api'
-import { createElement as h, useMemo } from 'react'
+import { ChangeEvent, createElement as h, useMemo } from 'react'
 import { Autocomplete, AutocompleteProps, TextField } from '@mui/material'
 import { FieldProps } from '@hfs/mui-grid-form'
 
@@ -9,7 +9,10 @@ interface VfsPathFieldProps extends FieldProps<string> {
     autocompleteProps: Partial<AutocompleteProps<string, false, true, undefined>>
 }
 
-export default function VfsPathField({ value='', onChange, helperText, setApi, autocompleteProps, folders=true, files=true, ...props }: VfsPathFieldProps) {
+export default function VfsPathField({
+    value='', onChange, helperText, setApi, autocompleteProps, folders=true, files=true,
+    InputLabelProps, slotProps, ...props
+}: VfsPathFieldProps) {
     const uri = dirname(value.replace(/\/{2,}/g, '/'))
     const { list, loading } = useApiList('get_file_list', {
         uri,
@@ -37,11 +40,6 @@ export default function VfsPathField({ value='', onChange, helperText, setApi, a
         disableCloseOnSelect: true,
         renderInput: params => h(TextField, {
             helperText,
-            onChange(event) {
-                const v = event.target.value
-                if (files || !v || v.endsWith('/'))
-                    onChange(v, { was: value, event })
-            },
             onBlur(event) {
                 // if the user specified a folder without the final slash, try to enforce it
                 const v = enforceFinal('/', event.target.value)
@@ -50,7 +48,29 @@ export default function VfsPathField({ value='', onChange, helperText, setApi, a
             },
             ...params,
             ...props,
-            InputLabelProps: { shrink: true, ...params.InputLabelProps, ...props.InputLabelProps },
+            slotProps: {
+                ...slotProps,
+                input: {
+                    ...slotProps?.input,
+                    ...params.slotProps.input,
+                },
+                inputLabel: {
+                    shrink: true,
+                    ...params.slotProps.inputLabel,
+                    ...InputLabelProps,
+                    ...slotProps?.inputLabel,
+                },
+                htmlInput: {
+                    ...slotProps?.htmlInput,
+                    ...params.slotProps.htmlInput,
+                    onChange(event: ChangeEvent<HTMLInputElement>) {
+                        params.slotProps.htmlInput.onChange?.(event)
+                        const v = event.target.value
+                        if (files || !v || v.endsWith('/'))
+                            onChange(v, { was: value, event })
+                    },
+                },
+            },
         }),
         onChange: (event, sel) => onChange(sel, { was: value, event }),
         ...autocompleteProps,

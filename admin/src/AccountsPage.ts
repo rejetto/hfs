@@ -52,7 +52,7 @@ export default function AccountsPage() {
                     account: a,
                     groups: list.filter(x => x.isGroup).map(x => x.username),
                     addToBar: isSideBreakpoint && [
-                        h(Box, { flex:1 }),
+                        h(Box, { sx: { flex: 1 } }),
                         account2icon(a, { fontSize: 'large', sx: { p: 1 }}),
                         // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
                         h(IconBtn, {  icon: Close, title: "Close", onClick: selectNone }),
@@ -80,15 +80,15 @@ export default function AccountsPage() {
     const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
     const [showTree, showTreeBtn] = useToggleButton("Show tree", "Show list", () => ({ icon: AccountTree }), accountsAsTree)
     state.accountsAsTree = showTree
-    return element || h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
-        h(Grid, { size: { xs: 12, [sideBreakpoint]: 5, lg: 4, xl: 5 } as any, ...scrollProps },
+    return element || h(Grid, { container: true, sx: { rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 } },
+        h(Grid, { size: { xs: 12, [sideBreakpoint]: 5, lg: 4, xl: 5 } as any, sx: scrollProps },
             h(Box, {
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 2,
-                mb: 2,
-                boxShadow: theme => `0px -8px 4px 10px ${theme.palette.background.paper}`,
                 sx: {
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 2,
+                    mb: 2,
+                    boxShadow: theme => `0px -8px 4px 10px ${theme.palette.background.paper}`,
                     position: 'sticky',
                     top: 0,
                     zIndex: 2,
@@ -107,7 +107,7 @@ export default function AccountsPage() {
                 }, "Add"),
                 reloadBtn(reload),
                 showTreeBtn,
-                list?.length! > 0 && h(Typography, { p: 1 }, `${list!.length} account(s)`),
+                list?.length! > 0 && h(Typography, { sx: { p: 1 } }, `${list!.length} account(s)`),
             ),
             !list?.length && h(Alert, { severity: 'info' }, md`To access administration <u>remotely</u> you will need to create a user account with admin permission`),
             h(SimpleTreeView<true>, { // true because it's not detecting multiSelect correctly (ts495)
@@ -150,7 +150,7 @@ export default function AccountsPage() {
                 })(showTree ? list.filter(ac => !list.some(x => x.members?.includes(ac.username))) : list)
             )
         ),
-        isSideBreakpoint && sideContent && h(Grid, { size: 'grow', maxWidth: '100%', ...scrollProps },
+        isSideBreakpoint && sideContent && h(Grid, { size: 'grow', sx: { ...scrollProps, maxWidth: '100%' } },
             h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
                 h(CardContent, {}, sideContent)) )
     )

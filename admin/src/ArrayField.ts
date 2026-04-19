@@ -6,7 +6,7 @@ import { GridActionsCellItem, GridAlignment, GridColDef } from '@mui/x-data-grid
 import { BoolField, FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-grid-form'
 import { Box, FormHelperText, FormLabel } from '@mui/material'
 import _ from 'lodash'
-import { Center, Flex, IconBtn, useBreakpoint } from './mui'
+import { Center, Flex, IconBtn, mergeSx, useBreakpoint } from './mui'
 import { DataTable, DataTableColumn } from './DataTable'
 import { DateTimeField } from './DateTimeField'
 
@@ -32,7 +32,7 @@ type ArrayFieldProps<T> = FieldProps<T[] | Dict<T>> & {
 }
 export function ArrayField<T extends object>({
     label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, valuesForAdd, autoRowHeight,
-    dialog, form, details, objectK, saveOn, ...rest
+    dialog, form, details, objectK, saveOn, height, error, sx, ...rest
 }: ArrayFieldProps<T>) {
     const valueA = Array.isArray(value) ? value
         : !objectK || !value ? [] // avoid crash if non-array values are passed, especially developing plugins
@@ -40,6 +40,7 @@ export function ArrayField<T extends object>({
     const rows = useMemo(() => valueA!.map((x,$idx) =>
             setHidden({ ...x } as any, x.hasOwnProperty('id') ? { $idx } : { id: $idx })),
         [JSON.stringify(valueA)]) //eslint-disable-line
+    const fieldError = Boolean(error) || undefined
     const getFormProp = (more: any) => (values: any) => ({
         fields: callable(fields, values).map(({ $width, $column, $type, $hideUnder, showIf, $render, $mergeRender, ...rest }) =>
             (!showIf || showIf(values)) && _.defaults(rest, byType[$type]?.field)),
@@ -50,10 +51,11 @@ export function ArrayField<T extends object>({
     const [undo, setUndo] = useState<typeof valueA>()
     return h(Fragment, {},
         h(Flex, { rowGap: 0, flexWrap: 'wrap', ml: '2px' },
-            label && h(FormLabel, { sx: { color: 'text.primary' } }, label),
-            helperText && h(FormHelperText, {}, helperText),
+            label && h(FormLabel, { error: fieldError, sx: { color: fieldError ? undefined : 'text.primary' } }, label),
+            helperText && h(FormHelperText, { error: fieldError }, helperText),
         ),
-        h(Box, { ...rest },
+        // field-level error is rendered through helperText, not forwarded to the DOM wrapper
+        h(Box, { ...rest, sx: mergeSx({ height }, sx) },
             h(DataTable, {
                 rows,
                 details,

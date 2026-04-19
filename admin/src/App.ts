@@ -93,7 +93,7 @@ function Routed() {
                 onSelect: () => setOpen(false),
                 itemTitle,
             })),
-        h(Box, { display: 'flex', flex: 1, }, // horizontal layout for menu-content
+        h(Box, { sx: { display: 'flex', flex: 1 } }, // horizontal layout for menu-content
             sideMenu && h(MainMenu, { itemTitle, onSelect(){} }),
             h(Box as any, {
                 component: 'main',
@@ -110,7 +110,7 @@ function Routed() {
                 }
             },
                 title && sideMenu && h(Flex, { gap: 4, '& .MuiAlert-root': { p: 0, backgroundColor: 'unset' } },
-                    h(Typography, { variant:'h2', mb:2, whiteSpace: 'nowrap' }, title),
+                    h(Typography, { variant:'h2', sx: { mb: 2, whiteSpace: 'nowrap' } }, title),
                     // @ts-ignore
                     h(Flex, { ...titleSideFullWidth as any && { width: '100%' } }, titleSide),
                 ),
@@ -150,7 +150,7 @@ function StickyBar({ title, titleSide, openMenu, props }: { props?: BoxProps, ti
                     '& .MuiAlert-message': { py: '1px' }
                 }
             },
-                h(Box as any, { component: 'h2', m: 0, whiteSpace: 'nowrap' }, title),
+                h(Box as any, { component: 'h2', sx: { m: 0, whiteSpace: 'nowrap' } }, title),
                 titleSide
             ),
         )

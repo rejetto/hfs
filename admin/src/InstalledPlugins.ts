@@ -2,7 +2,8 @@
 
 import { apiCall, useApiList } from './api'
 import { createElement as h, Fragment, useEffect, useState } from 'react'
-import { Box, Breakpoint, Link, Table, TableCell, TableRow, useTheme } from '@mui/material'
+import { Box, Link, Table, TableCell, TableRow, useTheme } from '@mui/material'
+import type { Breakpoint } from '@mui/material/styles'
 import { DataTable, DataTableColumn } from './DataTable'
 import {
     Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, ListAlt, PlayCircle, Settings, StopCircle, Upgrade
@@ -53,14 +54,14 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 minWidth: 150,
                 renderCell: renderName,
                 valueGetter(_value: any, row: any) { return row.repo || row.id },
-                mergeRender: { [updates ? 'changelog' : 'description']: { fontSize: 'x-small' } }
+                mergeRender: { [updates ? 'changelog' : 'description']: { sx: { fontSize: 'x-small' } } }
             },
             {
                 field: 'version',
                 width: 70,
                 hideUnder: 'sm',
                 cellInnerProps: { className: HIDE_IN_TESTS },
-                mergeRender: { installedVersion: { fontSize: 'x-small' } }
+                mergeRender: { installedVersion: { sx: { fontSize: 'x-small' } } }
             },
             themeField,
             {

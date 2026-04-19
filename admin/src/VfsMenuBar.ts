@@ -87,7 +87,7 @@ function SystemIntegrationButton({ platform }: { platform: string | undefined })
         ...(!integrated?.is ? {
             children: "System integration",
             async onClick() {
-                const msg = h(Box, { width: { xs: '100%', sm: '34em' } },
+                const msg = h(Box, { sx: { width: { xs: '100%', sm: '34em' } } },
                     h('img', { src: 'win-shell.png', style: { display: 'block', width: '100%' }  }),
                     h(Alert, { severity: 'info' }, "We are going to add a command in the right-click of Windows File Manager.",
                         h(Box, {}, "It will also automatically copy the URL, ready to paste!")),

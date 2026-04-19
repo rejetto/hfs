@@ -10,7 +10,7 @@ import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/i
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode, pendingPromise,
     focusSelector, md, focusableSelector, useIsMobile } from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
-import { IconBtn, Flex, Center } from './mui'
+import { IconBtn, Flex, Center, mergeSx } from './mui'
 import { useDark } from './theme'
 import _ from 'lodash'
 import { err2msg } from './misc'
@@ -52,16 +52,15 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
             },
         },
             d.icon && componentOrNode(d.icon),
-            h(Box, { flex:1, minWidth: 40, ml: 1 }, componentOrNode(d.title)),
+            h(Box, { sx: { flex: 1, minWidth: 40, ml: 1 } }, componentOrNode(d.title)),
             d.closable && h(IconBtn, { icon: Close, title: "Close", onClick: () => closeDialog() }),
         ),
         h(DialogContent, {
             ref,
-            sx: {
+            sx: mergeSx({
                 p: d.padding ? { xs: 1, sm: undefined } : 0, pt: '16px !important', overflow: 'initial',
                 display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'stretch',
-                ...sx,
-            }
+            }, sx)
         }, h(d.Content) )
     )
 }
@@ -96,9 +95,9 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
         dialogProps: { fullScreen: false },
         ...rest,
         Content() {
-            return h(Box, { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
+            return h(Box, { sx: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 } },
                 isValidElement(msg) ? msg
-                    : h(Box, { fontSize: 'large', lineHeight: '1.8em', pb: 1 }, String(msg)),
+                    : h(Box, { sx: { fontSize: 'large', lineHeight: '1.8em', pb: 1 } }, String(msg)),
             )
         }
     })
@@ -126,7 +125,7 @@ export function confirmDialog(msg: ReactNode, { href, trueText="Go", falseText="
 
     function Content() {
         return h(Fragment, {},
-            h(Box, { mb: 2 }, typeof msg === 'string' ? md(msg) : msg),
+            h(Box, { sx: { mb: 2 } }, typeof msg === 'string' ? md(msg) : msg),
             h(Flex, {},
                 before?.({ onClick: (v: any) => dialog.close(v) }),
                 h('a', {
@@ -196,7 +195,7 @@ export async function promptDialog(msg: ReactNode, { value='', field, save, addT
         values: { text: value },
         form: {
             fields: [
-                { k: 'text', label: null, autoFocus: true, ...field, before: h(Box, { mb: 2 }, msg) },
+                { k: 'text', label: null, autoFocus: true, ...field, before: h(Box, { sx: { mb: 2 } }, msg) },
             ],
             save: {
                 children: "Continue",
@@ -225,11 +224,13 @@ export function toast(msg: string | ReactElement, type: AlertType | ReactElement
         Content,
         dialogProps: {
             fullScreen: false,
-            PaperProps: {
-                sx: { transition: `opacity ${ms}ms ease-in` },
-                ref(x: HTMLElement) { // we need to set opacity later to trigger transition
-                    if (x)
-                        x.style.opacity = '0'
+            slotProps: {
+                paper: {
+                    sx: { transition: `opacity ${ms}ms ease-in` },
+                    ref(x: HTMLElement) { // we need to set opacity later to trigger transition
+                        if (x)
+                            x.style.opacity = '0'
+                    }
                 }
             }
         }
@@ -238,7 +239,7 @@ export function toast(msg: string | ReactElement, type: AlertType | ReactElement
     return dialog
 
     function Content(){
-        return h(Box, { display:'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
+        return h(Box, { sx: { display:'flex', flexDirection: 'column', alignItems: 'center', gap: 1 } },
             isValidElement(type) ? type : h(type2ico[type], { color:type }),
             isValidElement(msg) ? msg : h('div', {}, String(msg))
         )

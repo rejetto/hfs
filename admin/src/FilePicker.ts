@@ -3,7 +3,7 @@
 import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { apiCall, useApi, useApiList } from './api'
 import _ from 'lodash'
-import { Alert, Box, Checkbox, ListItemIcon, ListItemText, MenuItem, TextField, Typography } from '@mui/material'
+import { Alert, Box, Checkbox, ListItemButton, ListItemIcon, ListItemText, TextField, Typography } from '@mui/material'
 import { enforceFinal, formatBytes, isWindowsDrive, err2msg, basename, formatPerc } from './misc'
 import { spinner, Center, IconBtn, Flex, IconProgress, useBreakpoint, Btn } from './mui'
 import { ArrowUpward, CreateNewFolder, Storage, VerticalAlignTop } from '@mui/icons-material'
@@ -108,14 +108,15 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                     },
                     sx: { flex: 1, display: 'flex', flexDirection: 'column' }
                 },
-                    !list.length ? h(Center as any, { sx: { flex: 1 }, mt: '4em' }, connecting ? spinner() : "No elements in this folder")
+                    !list.length ? h(Center as any, { sx: { flex: 1, mt: '4em' } }, connecting ? spinner() : "No elements in this folder")
                         : h(FixedSizeList, {
                             width: '100%', height: listHeight,
                             itemSize: 46, itemCount: filteredList.length, overscanCount: 5,
                             children({ index, style }) {
                                 const it = filteredList[index]
                                 const isFolder = it.k === 'd'
-                                return h(MenuItem, {
+                                // mui v9 requires MenuItem under MenuList, while these virtualized rows are plain list buttons
+                                return h(ListItemButton, {
                                         style: { ...style, padding: 0 },
                                         key: it.n,
                                         onClick() {
@@ -191,7 +192,7 @@ export function ListLsItem({ it }: { it: LsEntry }) {
         !it.k && it.s !== undefined && h(Typography, {
             variant: 'body2',
             color: 'text.secondary',
-            ml: 4, mr: 1,
+            sx: { ml: 4, mr: 1 },
         }, formatBytes(it.s))
     )
 }

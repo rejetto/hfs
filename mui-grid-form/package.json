@@ -2,9 +2,9 @@
   "name": "@hfs/mui-grid-form",
   "main": "index.ts",
   "peerDependencies": {
-    "@mui/icons-material": "^7",
-    "@mui/lab": "^7",
-    "@mui/material": "^7",
+    "@mui/icons-material": "^9",
+    "@mui/lab": "^9.0.0-beta.2",
+    "@mui/material": "^9",
     "lodash": "^4.18.1"
   },
   "devDependencies": {

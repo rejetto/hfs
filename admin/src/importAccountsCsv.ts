@@ -35,7 +35,7 @@ export async function importAccountsCsv(cb?: () => void) {
                 return {
                     save: { startIcon: h(Upload), children: 'Go' },
                     fields: [
-                        h(Box, { p: 1 }, "Total lines:", rows.length),
+                        h(Box, { sx: { p: 1 } }, "Total lines:", rows.length),
                         { k: 'skipFirstLines', comp: NumberField, max: rows.length-1, typing: true, md: 6,
                             helperText: h(Fragment, {}, "First line: ", h('code', {}, row.join(', ')) ),
                         },
@@ -110,7 +110,7 @@ export async function importAccountsCsv(cb?: () => void) {
                     })
                     return () => { stop = true }
                 }, [])
-                return h(Box, { display: 'flex', gap: 2, alignItems: 'center' },
+                return h(Box, { sx: { display: 'flex', gap: 2, alignItems: 'center' } },
                     h(IconProgress, { icon: Group, progress }),
                     record?.u,
                 )

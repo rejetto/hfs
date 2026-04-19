@@ -140,7 +140,7 @@ export default function OptionsPage() {
                 comp: SelectField,
                 sm: 4,
                 afterList: listenInterfaceOptions.some(x => x.disabled)
-                    && h(Box, { p: '8px 16px 0', borderTop: '1px solid', fontSize: 'small' }, "Disabled addresses depend on the address you used to connect"),
+                    && h(Box, { sx: { p: '8px 16px 0', borderTop: '1px solid', fontSize: 'small' } }, "Disabled addresses depend on the address you used to connect"),
                 options: listenInterfaceOptions,
             },
             { k: 'max_kbps',        ...maxSpeedDefaults, sm: 4, label: "Limit output", helperText: "Doesn't apply to localhost" },
@@ -168,7 +168,7 @@ export default function OptionsPage() {
                 helperText: "In case another website is linking your files" },
 
             { k: 'block', label: false, comp: ArrayField, xs: 12, prepend: true, sm: true, autoRowHeight: true,
-                form: { maxWidth: '30em' },
+                form: { sx: { maxWidth: '40em' } },
                 fields: [
                     { k: 'ip', label: "Blocked IP", sm: 12, required: true, wrap: true, $width: 2, comp: NetmaskField,
                         $column: { mergeRender: { comment: {}, expire: {} } },
@@ -321,7 +321,7 @@ export default function OptionsPage() {
 
 function Section({ title, subtitle }: { title: string, subtitle?: string }) {
     return h(Divider, { role: 'heading', sx: { fontSize: 'larger', fontWeight: 'bold' } }, title,
-        h(Box, { fontSize: 'small', fontWeight: 'normal' }, subtitle))
+        h(Box, { sx: { fontSize: 'small', fontWeight: 'normal' } }, subtitle))
 }
 
 function recalculateChanges() {
@@ -353,7 +353,7 @@ function PortField({ label, value, onChange, setApi, status, suggestedPort=1, er
         else
             error = true
     return h(Box, {},
-        h(Box, { display: 'flex' },
+        h(Box, { sx: { display: 'flex' } },
             h(SelectField as Field<number>, {
                 sx: { flexGrow: 1 },
                 label,
@@ -388,7 +388,7 @@ function PortField({ label, value, onChange, setApi, status, suggestedPort=1, er
 function AllowedReferer({ label, value, onChange, error }: FieldProps<string>) {
     const yesNo = !value || value==='-'
     const example = 'example.com'
-    return h(Box, { display: 'flex' },
+    return h(Box, { sx: { display: 'flex' } },
         h(SelectField as Field<string>, {
             label,
             value: yesNo ? value : example,
@@ -414,7 +414,7 @@ function WebdavAgentAuthField({ label, value, onChange, error, helperText, fallb
     useEffect(() => setLastRegex(isRE ? value : fallbackRE), [value])
     const helperId = useId()
     return h(Box, {},
-        h(Box, { display: 'flex' },
+        h(Box, { sx: { display: 'flex' } },
             h(SelectField as Field<boolean | string>, {
                 label, value, onChange, error,
                 'aria-describedby': helperId,
@@ -433,7 +433,7 @@ export async function suggestMakingCert() {
             icon: CardMembership,
             title: "Get a certificate",
             onClose: resolve,
-            Content: () => h(Box, { p: 1, lineHeight: 1.5, },
+            Content: () => h(Box, { sx: { p: 1, lineHeight: 1.5 } },
                 h(Box, {}, "HTTPS needs a certificate to work."),
                 h(Box, {}, "We suggest you to ", h(InLink, { to: 'internet' }, "get a free but proper certificate"), '.'),
                 h(Box, {}, "If you don't have a domain ", h(LinkBtn, { onClick: makeCertAndSave }, "make a self-signed certificate"),

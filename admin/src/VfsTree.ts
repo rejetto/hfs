@@ -67,7 +67,7 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
                     minHeight: '1.8em', pt: '.2em', // comfy, make single-line ones taller
                 }
             },
-                h(Box, { display: 'flex', flex: 0, },
+                h(Box, { sx: { display: 'flex', flex: 0 } },
                     vfsNodeIcon(node),
                     // attributes, as icons
                     h(Box, {
@@ -131,7 +131,7 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
         document.getElementById(`${treeId}-${first?.id}`)?.scrollIntoView({ block: 'nearest', behavior: 'instant' })
     }, [first])
     return h(Flex, { flexDirection: 'column', alignItems: 'stretch', flex: 1 },
-        h(Flex, { mb: 1, flexWrap: 'wrap', gap: [1, 2] },
+        h(Flex, { mb: 1, flexWrap: 'wrap', gap: [1, 2], mt: '2px' /*account for the save button's outline*/ },
             h(Typography, { variant: 'h6' }, "Virtual File System"),
             h(VfsMenuBar, { statusApi, add: toggleBtn }),
         ),
