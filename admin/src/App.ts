@@ -15,7 +15,7 @@ import ConfigFilePage from './ConfigFilePage'
 import { useSnapState } from './state'
 import { useEventListener } from 'usehooks-ts'
 import { AriaOnly, isMac, useFixSticky, xlate } from './misc'
-import { getLocale } from './locale'
+import { loadLocale } from './locale'
 import { fillFlexParentSx } from './DataTable'
 
 // always use useMemo with setTitleSide
@@ -24,7 +24,7 @@ export interface PageProps { setTitleSide: (content: ReactNode, fullWidth?: bool
 function App() {
     return h(ThemeProvider, { theme: useMyTheme() },
         h(ApplyTheme, {},
-            h(LocalizationProvider, { dateAdapter: AdapterDayjs, adapterLocale: getLocale() },
+            h(Localization, {},
                 h(LoginRequired, {},
                     h(HashRouter, {},
                         h(Dialogs, {
@@ -34,6 +34,19 @@ function App() {
                                 maxWidth: '100%',
                             }
                         }, h(Routed) ))) )))
+}
+
+function Localization(props: any) {
+    const [locale, setLocale] = useState('')
+    useEffect(() => {
+        let cancelled = false
+        loadLocale().then(locale => {
+            if (!cancelled)
+                setLocale(locale || '')
+        })
+        return () => { cancelled = true }
+    }, [])
+    return h(LocalizationProvider, { dateAdapter: AdapterDayjs, adapterLocale: locale, ...props })
 }
 
 function ApplyTheme(props:any) {
