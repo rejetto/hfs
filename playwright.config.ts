@@ -123,9 +123,16 @@ function getSnapshotBranch() {
 }
 
 function getGitBranchName() {
-  try {
-    return execSync('git branch -a --contains HEAD', { encoding: 'utf8' }).trim().split('\n').at(-1)?.trim()
-        .replace(/^(\*\s*)?(remotes\/[^/]+\/)?/, '')
-  }
+  return (gitOutput('git branch --show-current')
+      || gitOutput('git for-each-ref --format="%(refname:short)" --contains HEAD refs/heads refs/remotes'))
+      ?.split('\n')
+      .map(x => x.trim())
+      .filter(x => x && !x.endsWith('/HEAD'))
+      .map(x => x.replace(/^[^/]+\//, ''))
+      .at(0)
+}
+
+function gitOutput(command: string) {
+  try { return execSync(command, { encoding: 'utf8' }).trim() }
   catch {}
 }

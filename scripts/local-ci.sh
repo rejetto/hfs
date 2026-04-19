@@ -96,7 +96,21 @@ on_stop_signal() {
 }
 
 get_current_branch() {
-    git -C "$PROJECT_ROOT" rev-parse --abbrev-ref HEAD
+    local branch
+    branch=$(git -C "$PROJECT_ROOT" branch --show-current 2>/dev/null || true)
+    if [ -n "$branch" ]; then
+        echo "$branch"
+        return
+    fi
+
+    # detached HEAD can still belong to a local branch
+    branch=$(git -C "$PROJECT_ROOT" for-each-ref --format='%(refname:short)' --contains HEAD refs/heads 2>/dev/null | head -n 1)
+    if [ -n "$branch" ]; then
+        echo "$branch"
+        return
+    fi
+
+    echo "detached"
 }
 
 get_recent_commits() {
@@ -275,6 +289,7 @@ run_test() {
     local commit="$1"
     local branch="$2"
     local worktree_path="$WORKTREE_BASE/$commit"
+    local tip=""
     
     log "Starting test for $commit (branch: $branch)"
     
@@ -286,8 +301,12 @@ run_test() {
     # Create worktree
     git -C "$PROJECT_ROOT" worktree add "$worktree_path" "$commit"
     
-    # Modify port in worktree to avoid conflicts (only for detached HEAD or non-tip commits)
-    if [ -z "$branch" ] || [ "$branch" = "detached" ]; then
+    if [ -n "$branch" ] && [ "$branch" != "detached" ]; then
+        tip=$(git -C "$PROJECT_ROOT" rev-parse "$branch" 2>/dev/null || echo "")
+    fi
+
+    # Modify port in worktree to avoid conflicts for detached or non-tip commits
+    if [ -z "$branch" ] || [ "$branch" = "detached" ] || [ "$commit" != "$tip" ]; then
         log "Changing tests/config.yaml port to $TEST_PORT in worktree files"
         sed -i '' -E "s/^port:[[:space:]]*[0-9]+/port: $TEST_PORT/" "$worktree_path/tests/config.yaml" 2>/dev/null || true
         # older commits can still hardcode 8081 in e2e files, so keep this fallback for compatibility
@@ -313,7 +332,6 @@ run_test() {
     
     if [ $exit_code -eq 0 ]; then
         # Check if this commit is the tip of the branch or if forced
-        local tip=""
         local can_use_screenshots=0
         local screenshot_branch="$branch"
         
@@ -322,7 +340,6 @@ run_test() {
             screenshot_branch="$FORCE_BRANCH"
             log "Forcing screenshots with branch $FORCE_BRANCH for commit $commit"
         elif [ -n "$branch" ] && [ "$branch" != "detached" ]; then
-            tip=$(git -C "$PROJECT_ROOT" rev-parse "$branch" 2>/dev/null || echo "")
             if [ "$commit" = "$tip" ]; then
                 can_use_screenshots=1
             fi
@@ -352,12 +369,12 @@ run_test() {
                 exit_code=3
             fi
         else
-            # Not the tip or detached HEAD - run test-ui with screenshots disabled via Playwright flag
-            log "Running test-ui with --ignore-snapshots for non-tip/detached commit $commit"
+            # non-tip/detached commits cannot rely on branch snapshot folders
+            log "Running test-ui with screenshots disabled for non-tip/detached commit $commit"
             log_start=$(count_log_lines)
             cd "$worktree_path" && {
-                env -u NO_COLOR FORCE_COLOR=1 npx playwright test frontend --ignore-snapshots --reporter=line &&
-                env -u NO_COLOR FORCE_COLOR=1 npx playwright test serial --ignore-snapshots --reporter=line
+                env -u NO_COLOR NO_SS=1 FORCE_COLOR=1 npx playwright test frontend --ignore-snapshots --reporter=line &&
+                env -u NO_COLOR NO_SS=1 FORCE_COLOR=1 npx playwright test serial --ignore-snapshots --reporter=line
             } 2>&1 | tee >(strip_ansi >> "$LOG_FILE")
             test_ui_result=${PIPESTATUS[0]}
             if is_interrupted_exit_code "$test_ui_result"; then
@@ -394,7 +411,7 @@ log "Local CI started"
 tested_commits=$(load_tested)
 queue=$(load_queue)
 current_branch=$(get_current_branch)
-head_commit=$(git -C "$PROJECT_ROOT" rev-parse "$current_branch")
+head_commit=$(git -C "$PROJECT_ROOT" rev-parse HEAD)
 
 # after rebases, persisted queue entries can point to obsolete history and must be dropped to keep watch mode aligned with current HEAD
 queue=$(prune_queue_for_head "$queue" "$head_commit")
@@ -454,7 +471,8 @@ while true; do
             else
                 # Verify it's a valid commit
                 if git -C "$PROJECT_ROOT" rev-parse "$requested_commit" >/dev/null 2>&1; then
-                    requested_branch=$(git -C "$PROJECT_ROOT" rev-parse --symbolic-full-name "$requested_commit" 2>/dev/null | sed 's|refs/heads/||' || echo "detached")
+                    requested_branch=$(git -C "$PROJECT_ROOT" for-each-ref --format='%(refname:short)' --contains "$requested_commit" refs/heads 2>/dev/null | head -n 1)
+                    requested_branch=${requested_branch:-detached}
                 else
                     log "Invalid commit hash: $requested_commit"
                     rm -f "$CI_DIR/test-commit"
@@ -474,7 +492,7 @@ while true; do
     current_branch=$(get_current_branch)
     
     # Get HEAD commit only
-    head_commit=$(git -C "$PROJECT_ROOT" rev-parse "$current_branch")
+    head_commit=$(git -C "$PROJECT_ROOT" rev-parse HEAD)
     
     # Check if HEAD is not yet tested and not in queue
     if ! is_tested "$head_commit" "$tested_commits" && ! queue_contains "$head_commit" "$queue"; then
