@@ -43,7 +43,7 @@ export default function LogsPage({ setTitleSide }: PageProps) {
 
     const logInfo = useApiEx('get_log_info')
     setTitleSide(useMemo(() => fileAvailable && (logInfo.element || with_(logInfo.data, data =>
-        h(Box, { fontSize: 'smaller' },
+        h(Box, { sx: { fontSize: 'smaller' } },
             `Current: ${formatBytes(_.sum(Object.values(data.current)))}`,
             h('br'),
             with_(Object.values(data.rotated).flat(), rotatedAsArray =>
@@ -59,7 +59,7 @@ export default function LogsPage({ setTitleSide }: PageProps) {
                     key: f,
                     sx: { minWidth: 0, px: { xs: 1.5, sm: 2 } } // save space
                 }))),
-            h(Box, { flex: 1 }),
+            h(Box, { sx: { flex: 1 } }),
             h(IconBtn, {
                 icon: Download,
                 title: fileAvailable ? "Download as file" : "Not available",
@@ -95,7 +95,7 @@ export default function LogsPage({ setTitleSide }: PageProps) {
                             { k: CFG.log_ua, sm: 6, comp: BoolField, label: "Log User-Agent", helperText: "Contains browser and possibly OS information. Can double the size of your logs on disk." },
                             { k: CFG.log_spam, sm: 6, comp: BoolField, label: "Log spam requests", helperText: md`Spam requests are *failed* requests that you probably don't want to see` },
                             { k: CFG.track_ips, sm: 6, comp: BoolField, label: "Keep track of IPs",
-                                parentProps: { display: 'flex', gap: 1 },
+                                parentProps: { sx: { display: 'flex', gap: 1 } },
                                 after: h(Btn, {
                                     size: 'small', variant: 'outlined', color: 'warning',
                                     confirm: true, doneMessage: true,
@@ -284,7 +284,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 width: 70,
                 hideUnder: 'xl',
                 renderCell: ({ value }) => hTooltip(prefix(value + ' - ', httpCodes[value]) || "Unknown", undefined,
-                    h(Box, { bgcolor: '#888a', color: '#fff', borderRadius: '.3em', p: '.05em .3em', lineHeight: '1.2em' }, value))
+                    h(Box, { sx: { bgcolor: '#888a', color: '#fff', borderRadius: '.3em', p: '.05em .3em', lineHeight: '1.2em' } }, value))
             },
             {
                 field: 'length',
@@ -322,7 +322,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                     if (_.isArray(ul))
                         return path + ul.join(' + ')
                     if (!path.startsWith(API_URL))
-                        return [path, query && h(Box as any, { key: 0, component: 'span', color: 'text.secondary', fontSize: 'smaller' }, '?', query)]
+                        return [path, query && h(Box as any, { key: 0, component: 'span', sx: { color: 'text.secondary', fontSize: 'smaller' } }, '?', query)]
                     const name = path.slice(API_URL.length)
                     const params = query && ': ' + Array.from(new URLSearchParams(query)).map(x => `${x[0]}=${tryJson(x[1]) ?? x[1]}`).join(' ; ')
                     return "API " + name + params
@@ -396,7 +396,7 @@ export function agentIcons(agent: string | undefined) {
     const short = shortenAgent(agent)
     const browserIcon = h(AgentIcon, { k: short, altText: true, map: CLIENT_ICONS })
     const os = _.findKey(OSS, re => re.test(agent))
-    return h(Box, { fontSize: '110%' }, browserIcon, ' ', os && osIcon(os as any))
+    return h(Box, { sx: { fontSize: '110%' } }, browserIcon, ' ', os && osIcon(os as any))
 }
 
 const alreadyFailed: any = {}

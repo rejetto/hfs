@@ -14,7 +14,7 @@ export function LoginRequired({ children }: any) {
     if (loginRequired === HTTP_FORBIDDEN)
         return h(Center, {},
             h(Alert, { severity: 'error' }, "Admin-panel only for localhost"),
-            h(Box, { mt: 2, fontSize: 'small' }, "because no admin account was configured")
+            h(Box, { sx: { mt: 2, fontSize: 'small' } }, "because no admin account was configured")
         )
     if (loginRequired)
         return h(LoginForm)

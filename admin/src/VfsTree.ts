@@ -67,7 +67,7 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
                     minHeight: '1.8em', pt: '.2em', // comfy, make single-line ones taller
                 }
             },
-                h(Box, { display: 'flex', flex: 0, },
+                h(Box, { sx: { display: 'flex', flex: 0 } },
                     vfsNodeIcon(node),
                     // attributes, as icons
                     h(Box, {

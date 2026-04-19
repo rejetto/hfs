@@ -69,7 +69,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
     const barColors = useDialogBarColors()
     const { movingFile } = useSnapState()
 
-    const needSourceWarning = !hasSource && h(Box as any, { color: 'warning.main', component: 'span' }, "Works only on folders with disk source! ")
+    const needSourceWarning = !hasSource && h(Box as any, { sx: { color: 'warning.main' }, component: 'span' }, "Works only on folders with disk source! ")
     const show: Record<keyof VfsPerms, boolean> = {
         can_read: !isLink,
         can_see: true,
@@ -379,7 +379,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
             target: 'frontend',
         }, link)
     ), [link])
-    return h(Box, { display: 'flex' },
+    return h(Box, { sx: { display: 'flex' } },
         !baseHost ? "Invalid baseUrl" : !urls ? 'error' : // check data is ok
         h(DisplayField, {
             label: "Link",
@@ -446,8 +446,8 @@ export async function changeBaseUrl() {
                 const proto = new URL(v || urls[0]).protocol + '//'
                 const host = urls.includes(v) ? '' : v.slice(proto.length)
                 const check = h(Check, { sx: { ml: 2 } })
-                return h(Box, { display: 'flex', flexDirection: 'column' },
-                    h(Box, { mb: 2 }, "Choose a main address for your links"),
+                return h(Box, { sx: { display: 'flex', flexDirection: 'column' } },
+                    h(Box, { sx: { mb: 2 } }, "Choose a main address for your links"),
                     h(MenuList, {},
                         h(MenuItem, {
                             selected: !v,
@@ -474,7 +474,7 @@ export async function changeBaseUrl() {
                         }),
                         sx: { mt: 2 }
                     }),
-                    h(Box, { mt: 2, textAlign: 'right' },
+                    h(Box, { sx: { mt: 2, textAlign: 'right' } },
                         h(Btn, {
                             icon: Save,
                             children: "Save",

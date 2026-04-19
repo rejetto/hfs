@@ -52,7 +52,7 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
             },
         },
             d.icon && componentOrNode(d.icon),
-            h(Box, { flex:1, minWidth: 40, ml: 1 }, componentOrNode(d.title)),
+            h(Box, { sx: { flex: 1, minWidth: 40, ml: 1 } }, componentOrNode(d.title)),
             d.closable && h(IconBtn, { icon: Close, title: "Close", onClick: () => closeDialog() }),
         ),
         h(DialogContent, {
@@ -96,9 +96,9 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
         dialogProps: { fullScreen: false },
         ...rest,
         Content() {
-            return h(Box, { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
+            return h(Box, { sx: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 } },
                 isValidElement(msg) ? msg
-                    : h(Box, { fontSize: 'large', lineHeight: '1.8em', pb: 1 }, String(msg)),
+                    : h(Box, { sx: { fontSize: 'large', lineHeight: '1.8em', pb: 1 } }, String(msg)),
             )
         }
     })
@@ -238,7 +238,7 @@ export function toast(msg: string | ReactElement, type: AlertType | ReactElement
     return dialog
 
     function Content(){
-        return h(Box, { display:'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
+        return h(Box, { sx: { display:'flex', flexDirection: 'column', alignItems: 'center', gap: 1 } },
             isValidElement(type) ? type : h(type2ico[type], { color:type }),
             isValidElement(msg) ? msg : h('div', {}, String(msg))
         )

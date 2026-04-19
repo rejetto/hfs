@@ -53,9 +53,9 @@ export async function showPluginOptions(row: any, maxWidth: string) {
             const autoScroll = useAutoScroll(list)
             let lastDate: any
             return h(Flex, { alignItems: 'stretch', justifyContent: 'center', flexWrap: 'wrap', flexDirection: showOptions ? undefined : 'column' },
-                h(Box, { maxWidth, minWidth: 'min-content' /*in case content requires more space (eg: reverse-proxy's table)*/ }, children),
+                h(Box, { sx: { maxWidth, minWidth: 'min-content' /*in case content requires more space (eg: reverse-proxy's table)*/ } }, children),
                 h(Paper, { elevation: 1, sx: { position: 'relative', fontFamily: 'monospace', flex: 1, minWidth: 'min(40em, 90vw)', minHeight: '20em', px: .5 } },
-                    h(Box, { my: .5, pb: .5, borderBottom: '1px solid', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+                    h(Box, { sx: { my: .5, pb: .5, borderBottom: '1px solid', display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
                         "Output",
                         h(Btn, { size: 'small', sx: { p: 0 }, onClick() { setList([]) } }, "Clear")
                     ),
@@ -75,7 +75,7 @@ export async function showPluginOptions(row: any, maxWidth: string) {
                             return h(Fragment, { key: x.id },
                                 thisDate !== lastDate && (lastDate = thisDate),
                                 h(Box, {},
-                                    h(Box, { title: thisDate, display: 'inline', color: 'text.secondary', mr: 1 }, formatTime(x.ts)),
+                                    h(Box, { title: thisDate, sx: { display: 'inline', color: 'text.secondary', mr: 1 } }, formatTime(x.ts)),
                                     replaceStringToReact(x.msg, /https?:\/\/\S+/, m => h(Link, {
                                         href: m[0],
                                         target: '_blank'

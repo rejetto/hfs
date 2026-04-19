@@ -44,7 +44,7 @@ export default function OnlinePlugins() {
                     headerName: "name",
                     flex: 1,
                     renderCell: renderName,
-                    mergeRender: { description: { fontSize: 'x-small' } },
+                    mergeRender: { description: { sx: { fontSize: 'x-small' } } },
                 },
                 {
                     field: 'version',
@@ -114,7 +114,7 @@ export async function installPluginFromResult(row: any) {
             h(Flex, { vert: true, alignItems: 'center' },
                 h(Warning, { color: 'warning', fontSize: 'large' }),
                 "Proceed only if you trust this plugin",
-                h(Box, { fontSize: '60%' }, "A plugin has the same power of any other software"),
+                h(Box, { sx: { fontSize: '60%' } }, "A plugin has the same power of any other software"),
             ))) return
     if (row.missing && !await confirmDialog("This will also install: " + _.map(row.missing, 'repo').join(', '))) return
     const branch = row.branch || row.default_branch

@@ -51,7 +51,7 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
         h(Alert, { severity: 'info' }, md("To customize icons "), wikiLink('customization#icons', "read documentation") ),
     ), []))
     return h(Fragment, {},
-        h(Box, { display: 'flex', alignItems: 'center', gap: 1, mb: 1 },
+        h(Box, { sx: { display: 'flex', alignItems: 'center', gap: 1, mb: 1 } },
             h(SelectField as Field<string>, {
                 label: "Section",
                 value: section,

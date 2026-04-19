@@ -9,7 +9,10 @@ interface VfsPathFieldProps extends FieldProps<string> {
     autocompleteProps: Partial<AutocompleteProps<string, false, true, undefined>>
 }
 
-export default function VfsPathField({ value='', onChange, helperText, setApi, autocompleteProps, folders=true, files=true, ...props }: VfsPathFieldProps) {
+export default function VfsPathField({
+    value='', onChange, helperText, setApi, autocompleteProps, folders=true, files=true,
+    InputLabelProps, slotProps, ...props
+}: VfsPathFieldProps) {
     const uri = dirname(value.replace(/\/{2,}/g, '/'))
     const { list, loading } = useApiList('get_file_list', {
         uri,
@@ -50,7 +53,15 @@ export default function VfsPathField({ value='', onChange, helperText, setApi, a
             },
             ...params,
             ...props,
-            InputLabelProps: { shrink: true, ...params.InputLabelProps, ...props.InputLabelProps },
+            slotProps: {
+                ...slotProps,
+                inputLabel: {
+                    shrink: true,
+                    ...params.slotProps.inputLabel,
+                    ...InputLabelProps,
+                    ...slotProps?.inputLabel,
+                },
+            },
         }),
         onChange: (event, sel) => onChange(sel, { was: value, event }),
         ...autocompleteProps,

@@ -82,7 +82,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     const single = selectedFiles?.length < 2 && selectedFiles[0] as VfsNodeAdmin
     const sideContent = useMemo(() => accountsApi.element || !vfs ? null
         : diskContent.enabled ? diskContent.element || h(Box, {},
-            h(Box, { fontSize: 'xx-large', sx: { wordBreak: 'break-all' } }, "From ", vfsShowDiskContentFor),
+            h(Box, { sx: { fontSize: 'xx-large', wordBreak: 'break-all' } }, "From ", vfsShowDiskContentFor),
             h(List, { dense: true },
                 diskContent.list.map(it =>
                     h(ListItem, { key: it.n, sx: { borderTop: '1px solid #8888' } }, h(ListLsItem, { it })))
@@ -91,7 +91,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         : single ? h(FileForm, {
             key: single.id,
             isSideBreakpoint,
-            addToBar: isSideBreakpoint && h(Box, { flex: 1, textAlign: 'right', mr: 1, color: '#8883' }, vfsNodeIcon(single)),
+            addToBar: isSideBreakpoint && h(Box, { sx: { flex: 1, textAlign: 'right', mr: 1, color: '#8883' } }, vfsNodeIcon(single)),
             statusApi,
             saved: () => closeDialogRef.current(),
             accounts: accounts ?? [],
@@ -127,7 +127,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
                     vfsNodeIcon(selectedFiles[0] as VfsNodeAdmin),
                     h(Flex, { flexWrap: 'wrap', gap: '0 0.5em' },
                         selectedFiles[0].name || "Home",
-                        h(Box, { component: 'span', color: 'text.secondary' } as any, ancestors.join(' /'))
+                        h(Box, { component: 'span', sx: { color: 'text.secondary' } } as any, ancestors.join(' /'))
                     )
                 ),
             dialogProps: { sx: { justifyContent: 'flex-end' } },
@@ -166,10 +166,15 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         return element
     }
     const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
-    return h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
-        h(Grid, { size: { xs: 12, [sideBreakpoint]: 5, lg: 6, xl: 5 } as any, ...scrollProps  },
+    return h(Grid, {
+            container: true,
+            rowSpacing: 1,
+            columnSpacing: 2,
+            sx: { top: 0, flex: '1 1 auto', height: 0 },
+        },
+        h(Grid, { size: { xs: 12, [sideBreakpoint]: 5, lg: 6, xl: 5 } as any, sx: scrollProps  },
             h(VfsTree, { statusApi }) ),
-        isSideBreakpoint && sideContent && h(Grid, { size: 'grow', maxWidth: '100%', ...scrollProps },
+        isSideBreakpoint && sideContent && h(Grid, { size: 'grow', sx: { ...scrollProps, maxWidth: '100%' } },
             h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
                 h(CardContent, {}, sideContent)) )
     )

@@ -7,8 +7,9 @@ import {
     createElement as h, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useEffect, useRef,
     ForwardedRef, useState, useMemo, isValidElement, ElementType
 } from 'react'
-import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
+import { Box, BoxProps, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery, Button } from '@mui/material'
+import type { Breakpoint } from '@mui/material/styles'
 import {
     anyDialogOpen, closeDialog, formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL, with_, Functionable, callable
 } from './misc'
@@ -233,8 +234,12 @@ export function InLink({ ...props }: LinkProps & RouterLinkProps) {
     return h(Link, { component: RouterLink, ...props })
 }
 
-export const Center = forwardRef((props: BoxProps, ref) =>
-    h(Box, { ref, display:'flex', height:'100%', width:'100%', justifyContent:'center', alignItems:'center',  flexDirection: 'column', ...props }))
+export const Center = forwardRef(({ sx, ...props }: BoxProps, ref) =>
+    h(Box, {
+        ref,
+        sx: { display:'flex', height:'100%', width:'100%', justifyContent:'center', alignItems:'center', flexDirection: 'column', ...sx as any },
+        ...props
+    }))
 
 // looks like a link, but it's a button
 export function LinkBtn({ ...rest }: LinkProps) {
@@ -270,7 +275,7 @@ export function useToggleButton(onTitle: string, offTitle: undefined | string, i
     }) : init)
 
     const toggle = useCallback(() => setState(x => !x), [])
-    const props = iconBtn(state)
+    const props = iconBtn(state) // returned props should vary only with state
     const el = useMemo(() => h(IconBtn, {
         size: 'small',
         color: state ? 'primary' : undefined,
@@ -332,7 +337,7 @@ async function ip2countryBatch(ips: string[]) {
 export function hTooltip(title: ReactNode, ariaLabel: string | undefined, children: ReactElement, props?: Omit<TooltipProps, 'title' | 'children'> & { key?: any }) {
     return h(Tooltip, { title, children,
         ...(ariaLabel === '' ? { 'aria-hidden': true } : { 'aria-label': ariaLabel || _.isString(title) && title || undefined }),
-        componentsProps: { popper: { sx: { whiteSpace: 'pre-wrap', ...props?.sx } } } as any,
+        slotProps: { popper: { sx: { whiteSpace: 'pre-wrap', ...props?.sx } } } as any,
         ...props
     })
 }

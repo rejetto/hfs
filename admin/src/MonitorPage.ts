@@ -42,7 +42,7 @@ function MoreInfo() {
     const sm = useBreakpoint('sm')
     const xl = useBreakpoint('xl')
     const formatDuration = createDurationFormatter({ maxTokens: 2, skipZeroes: true })
-    return element || h(Box, { display: 'flex', flexWrap: 'wrap', gap: { xs: .5, md: 1 }, mb: { xs: 1, sm: 2 } },
+    return element || h(Box, { sx: { display: 'flex', flexWrap: 'wrap', gap: { xs: .5, md: 1 }, mb: { xs: 1, sm: 2 } } },
         (allInfo || md) && pair('started', {
             label: "Uptime",
             render: x => formatDuration(Date.now() - +new Date(x)),
@@ -141,7 +141,7 @@ function Connections() {
                 wantLog ? "Live log" : h(Box),
                 wantLogButton),
         ),
-        h(Grid, { container: true, flex: 1, columnSpacing: 1 },
+        h(Grid, { container: true, sx: { flex: 1 }, columnSpacing: 1 },
             h(Grid, { size: 12 - logSize, sx: fillFlexParentSx },
                 h(DataTable, {
                     persist: 'connections',
@@ -199,7 +199,7 @@ function Connections() {
                                 if (!value || !row.op) return
                                 const rowContentSx = { display: 'flex', alignItems: 'center', height: '100%', minWidth: 0, gap: 1 } as const
                                 if (row.op === 'browsing')
-                                    return h(Box, { sx: rowContentSx }, h(Box, {}, value, h(Box, { fontSize: 'x-small' }, "browsing")))
+                                    return h(Box, { sx: rowContentSx }, h(Box, {}, value, h(Box, { sx: { fontSize: 'x-small' } }, "browsing")))
                                 // keep icon and filename on the same row: datagrid v7 wraps cell content differently than before
                                 return h(Box, { sx: rowContentSx },
                                     h(IconProgress, {
@@ -209,14 +209,12 @@ function Connections() {
                                         title: md(formatPerc(row.opProgress) + (row.opTotal ? "\nTotal: " + formatBytes(row.opTotal) : '')),
                                     }),
                                     // clamp line-height locally so this cell doesn't inherit tall line metrics from datagrid wrappers
-                                    h(Box, { lineHeight: '1.2em', minWidth: 0 }, row.archive ? h(Box, {}, value, h(Box, {
-                                            fontSize: 'x-small',
-                                            color: 'text.secondary'
+                                    h(Box, { sx: { lineHeight: '1.2em', minWidth: 0 } }, row.archive ? h(Box, {}, value, h(Box, {
+                                            sx: { fontSize: 'x-small', color: 'text.secondary' }
                                         }, row.archive))
                                         : with_(value?.lastIndexOf('/'), i => h(Box, {}, value.slice(i + 1),
                                             i > 0 && h(Box, {
-                                                fontSize: 'x-small',
-                                                color: 'text.secondary'
+                                                sx: { fontSize: 'x-small', color: 'text.secondary' }
                                             }, value.slice(0, i))
                                         ))),
                                 )
@@ -229,7 +227,7 @@ function Connections() {
                             hideUnder: 'sm',
                             type: 'number',
                             renderCell: ({ value, row }) => formatSpeedK(Math.max(value || 0, row.inSpeedKb || 0) || undefined),
-                            mergeRender: { sent: { fontSize: 'small', textAlign: 'right' } }
+                            mergeRender: { sent: { sx: { fontSize: 'small', textAlign: 'right' } } }
                         },
                         {
                             field: 'sent',
@@ -267,7 +265,7 @@ function Connections() {
                     ]
                 }),
             ),
-            logAble && wantLog && h(Grid, { size: logSize, ...fillFlexParentSx },
+            logAble && wantLog && h(Grid, { size: logSize, sx: fillFlexParentSx },
                 h(LogFile, {
                     file: `${CFG.log}|${CFG.error_log}`,
                     filter: monitorOnlyFiles ? (row => !row.uri.startsWith(SPECIAL_URI)) : undefined,

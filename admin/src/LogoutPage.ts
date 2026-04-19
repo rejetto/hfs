@@ -14,7 +14,7 @@ export default function LogoutPage() {
     const { username } = useSnapState()
     if (element)
         return element
-    return h(Box, { display: 'flex', flexDirection:'column', alignItems: 'flex-start', gap: 2 },
+    return h(Box, { sx: { display: 'flex', flexDirection:'column', alignItems: 'flex-start', gap: 2 } },
         !username ? h(Alert, { severity: 'info' }, "You are not logged in, because authentication is not required on localhost")
             : h(Fragment, {},
                 "You are logged in as: " + username,

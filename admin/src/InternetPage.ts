@@ -97,7 +97,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                                         title: label + " wizard",
                                         form: {
                                             maxWidth: '20em',
-                                            before: h(Box, { mb: 1 }, "Following information is stored non-encrypted"),
+                                            before: h(Box, { sx: { mb: 1 } }, "Following information is stored non-encrypted"),
                                             fields: fields.map(k => _.isString(k) ? { k } : k)
                                         }
                                     }).then(symbols => symbols && setValues({ [CFG.dynamic_dns_url]: replace(url, symbols as any, '$') }))
@@ -153,7 +153,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                     ]
                 ] }),
                 addToBar: [
-                    h(Box, { flex: 1 }),
+                    h(Box, { sx: { flex: 1 } }),
                     h(Btn, { icon: Search, onClick: lookup }, "Lookup IP")
                 ],
             })
@@ -315,21 +315,21 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         const direct = publicIps.includes(data?.localIp!)
         return h(Flex, { justifyContent: 'space-around' },
             h(Device, { name: "Server", icon: direct ? Storage : HomeWorkTwoTone, color: localColor, ip: data?.localIp,
-                below: port && h(Box, { fontSize: 'smaller', className: 'port ' + HIDE_IN_TESTS }, "port ", port),
+                below: port && h(Box, { sx: { fontSize: 'smaller' }, className: 'port ' + HIDE_IN_TESTS }, "port ", port),
             }),
             !direct && h(DataLine),
             !direct && h(Device, {
                 name: "Router", icon: RouterTwoTone, ip: data?.gatewayIp,
                 color: data?.mapped && (wrongMap ? 'warning' : 'success'),
                 below: mapping ? h(LinearProgress, { sx: { height: '1em' } })
-                    : h(LinkBtn, { fontSize: 'smaller', display: 'block', onClick: configure },
+                    : h(LinkBtn, { sx: { fontSize: 'smaller', display: 'block' }, onClick: configure },
                         "port ", wrongMap ? 'is wrong' : data?.externalPort || "unknown"),
             }),
             h(DataLine),
             h(Device, { name: "Internet", icon: PublicTwoTone, ip: publicIps,
                 color: checkResult ? 'success' : checkResult === false ? 'error' : doubleNat ? 'warning' : undefined,
-                below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : h(Box, { fontSize: 'smaller', className: HIDE_IN_TESTS },
-                    doubleNat && h(LinkBtn, { display: 'block', onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
+                below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : h(Box, { sx: { fontSize: 'smaller' }, className: HIDE_IN_TESTS },
+                    doubleNat && h(LinkBtn, { sx: { display: 'block', fontSize: 'smaller' }, onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
                     checkResult ? "Working!" : checkResult === false ? "Failed!" : '',
                     ' ',
                     (baseUrl > '' || publicIps.length > 0) && data.internalPort && h(LinkBtn, { onClick: () => verify() }, "Verify")
@@ -419,7 +419,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
             return await confirmDialog(`There is a port-forwarding but it is pointing to the wrong port (${wrongMap})`, { trueText: "Fix it" })
                 && fixPort()
         if (!data.upnp)
-            return alertDialog(h(Box, { lineHeight: 1.5 }, md(`We cannot help you configuring your router because UPnP is not available.\nFind more help [on this website](${PORT_FORWARD_URL}).`)), 'info')
+            return alertDialog(h(Box, { sx: { lineHeight: 1.5 } }, md(`We cannot help you configuring your router because UPnP is not available.\nFind more help [on this website](${PORT_FORWARD_URL}).`)), 'info')
         const res = await promptDialog(md(`This will ask the router to map your port, so that it can be reached from the Internet.\nYou can set the same number of the local network (${port}), or a different one.`), {
             value: data.externalPort || port,
             field: { label: "Port seen from the Internet", comp: NumberField },
@@ -463,22 +463,22 @@ export default function InternetPage({ setTitleSide }: PageProps) {
 }
 
 function DataLine() {
-    return h(Box, { flex: 1, className: 'animated-dashed-line' })
+    return h(Box, { sx: { flex: 1 }, className: 'animated-dashed-line' })
 }
 
 function Device({ name, icon, color, ip, below }: any) {
     const fontSize = 'min(20vw, 10vh)'
-    return h(Box, { display: 'inline-block', textAlign: 'center' },
+    return h(Box, { sx: { display: 'inline-block', textAlign: 'center' } },
         h(icon, { color, sx: { fontSize, mb: '-0.1em' } }),
-        h(Box, { fontSize: 'larger' }, name),
-        h(Box, { fontSize: 'smaller', whiteSpace: 'pre-wrap', className: 'ip ' + HIDE_IN_TESTS }, wantArray(ip).join('\n') || "unknown"),
+        h(Box, { sx: { fontSize: 'larger' } }, name),
+        h(Box, { sx: { fontSize: 'smaller', whiteSpace: 'pre-wrap' }, className: 'ip ' + HIDE_IN_TESTS }, wantArray(ip).join('\n') || "unknown"),
         below,
     )
 }
 
 function TitleCard({ title, icon, color, children }: { title: ReactNode, icon?: SvgIconComponent, color?: SvgIconProps['color'], children?: ReactNode }) {
     return h(Card, {}, h(CardContent, {}, h(Flex, { vert: true },
-        h(Typography, { variant: 'h3', fontSize: 'x-large' }, icon && h(icon, { color, sx: { mr: 1, mb: '2px' } }), title),
+        h(Typography, { variant: 'h3', sx: { fontSize: 'x-large' } }, icon && h(icon, { color, sx: { mr: 1, mb: '2px' } }), title),
         children
     )))
 }

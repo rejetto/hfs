@@ -4,11 +4,10 @@ import {
     createElement as h, FC, Fragment, isValidElement, ReactElement, ReactNode, useEffect, useState, useRef,
     MutableRefObject
 } from 'react'
-import { Box, BoxProps, Button, Tooltip } from '@mui/material'
+import { Box, BoxProps, Button, Grid, GridProps, Tooltip } from '@mui/material'
 import { Save } from '@mui/icons-material'
 import _ from 'lodash'
 import { StringField } from './StringField'
-import Grid, { GridProps } from '@mui/material/Grid'
 import { useDebounce } from 'usehooks-ts'
 export * from './SelectField'
 export * from './misc-fields'
@@ -92,7 +91,8 @@ export function Form<Values extends Dict>({
     onValidation,
     saveOnEnter,
     gridProps,
-    ...rest
+    sx,
+    ...boxProps
 }: FormProps<Values>) {
     const mounted = useRef(false)
     useEffect(() => {
@@ -125,9 +125,12 @@ export function Form<Values extends Dict>({
     const apis: Dict<FieldApi<unknown>> = {} // consider { [K in keyof Values]?: FieldApi<Values[K]> }
     return h(Box, {
         component: 'form',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 3,
+        sx: {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 3,
+            ...sx,
+        },
         ref: formRef,
         onSubmit(ev) {
             ev.preventDefault()
@@ -136,7 +139,8 @@ export function Form<Values extends Dict>({
             if (saveBtn && !saveBtn.disabled && (ev.ctrlKey || ev.metaKey) && ev.key === 'Enter')
                 pleaseSubmitAndValidate()
         },
-        ...rest,
+        // maxWidth is a layout hint, so keep it in sx instead of forwarding it to the form DOM node
+        ...boxProps,
     },
         h(Grid, { container:true, rowSpacing:3, columnSpacing:1, ...gridProps },
             fields.map((row, idx) => {
@@ -182,11 +186,11 @@ export function Form<Values extends Dict>({
                         field.helperText = h(Fragment, {}, ...field.helperText)
                     if (errMsg) // special rendering when we have both error and helperText. "hr" would be nice but issues a warning because contained in a <p>
                         field.helperText = !field.helperText ? errMsg
-                            : h(Box as any, { color: 'text.primary', component: 'span' },
+                            : h(Box as any, { sx: { color: 'text.primary' }, component: 'span' },
                                 h(Box as any, {
-                                    color: 'error.main',
+                                    sx: { color: 'error.main', display: 'block' },
                                     style: { borderBottom: '1px solid' },
-                                    component: 'span', display: 'block' // avoid console warning, but keep it on separate line
+                                    component: 'span' // avoid console warning, but keep it on separate line
                                 }, errMsg),
                                 field.helperText,
                             )
@@ -202,14 +206,15 @@ export function Form<Values extends Dict>({
             })
         ),
         saveBtn && h(Box, {
-            display: 'flex',
-            alignItems: 'center',
-            sx: Object.assign({},
-                stickyBar && {
+            sx: {
+                display: 'flex',
+                alignItems: 'center',
+                ...stickyBar && {
                     width: 'fit-content', zIndex: 2, backgroundColor: 'background.paper', borderRadius: 1,
                     position: 'sticky', bottom: 0, p: 1, m: -1, boxShadow: '0px 0px 15px #000',
                 },
-                barSx)
+                ...barSx,
+            }
         }, h(Tooltip, { title: "ctrl + enter", children: h(Button as any, {
                 // mui v6 moved LoadingButton behavior into Button, but current typings here still miss loading props
                 variant: 'contained',

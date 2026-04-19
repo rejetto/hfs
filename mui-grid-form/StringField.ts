@@ -2,7 +2,7 @@
 
 import { createElement as h, ReactNode, useEffect, useRef, useState } from 'react'
 import { FieldProps } from '.'
-import { Autocomplete, InputAdornment, TextField } from '@mui/material'
+import { Autocomplete, TextField } from '@mui/material'
 import { StandardTextFieldProps } from '@mui/material/TextField/TextField'
 
 export interface StringFieldProps extends FieldProps<string>, Partial<Omit<StandardTextFieldProps, 'label' | 'onChange' | 'value'>> {
@@ -15,7 +15,10 @@ export interface StringFieldProps extends FieldProps<string>, Partial<Omit<Stand
     end?: ReactNode
     wrap?: boolean
 }
-export function StringField({ value, onChange, min, max, required, setApi, typing, start, end, onTyping, suggestions, wrap, fieldRef, ...props }: StringFieldProps) {
+export function StringField({
+    value, onChange, min, max, required, setApi, typing, start, end, onTyping, suggestions, wrap, fieldRef,
+    InputProps, InputLabelProps, inputProps, slotProps, ...props
+}: StringFieldProps) {
     const normalized = value ?? ''
     setApi?.({
         getError() {
@@ -36,12 +39,31 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
     const autoFillDetected = useRef(false)
     const render = (params: any) => h(TextField, {
         fullWidth: true,
-        InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
-        ...props,
         ...params,
+        ...props,
         ref: fieldRef,
         sx: props.label ? props.sx : Object.assign({ '& .MuiInputBase-input': { pt: 1.5 } }, props.sx),
         value: state,
+        // v9 routes TextField customization through slotProps; keep the old callers working by folding the legacy props in here
+        slotProps: {
+            ...slotProps,
+            input: {
+                ...slotProps?.input,
+                ...InputProps,
+                ...params?.slotProps?.input,
+            },
+            inputLabel: state || props.placeholder || InputLabelProps || slotProps?.inputLabel ? {
+                shrink: true,
+                ...params?.slotProps?.inputLabel,
+                ...InputLabelProps,
+                ...slotProps?.inputLabel,
+            } : undefined,
+            htmlInput: {
+                ...slotProps?.htmlInput,
+                ...inputProps,
+                ...params?.slotProps?.htmlInput,
+            },
+        },
         onChange(ev) {
             let val = ev.target.value
             if (wrap && val.includes('\n')) return // prevent newlines, we are a wrapped yet single line
@@ -68,13 +90,6 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
             if (valueFocusing.current !== ev.target.value)
                 go(ev)
         },
-        InputProps: {
-            ...wrap && { multiline: true },
-            startAdornment: start && h(InputAdornment, { position: 'start' }, start),
-            endAdornment: end && h(InputAdornment, { position: 'end' }, end),
-            ...props.InputProps,
-            ...params?.InputProps,
-        },
     })
     return !suggestions ? render(null)
         : h(Autocomplete, {
@@ -99,4 +114,3 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
         })
     }
 }
-

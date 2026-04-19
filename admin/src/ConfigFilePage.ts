@@ -39,7 +39,7 @@ export default function ConfigFilePage() {
                     setTimeout(() => focusSelector('main textarea'), 500)
                 }
             }, "Edit"),
-            h(Box, { flex: 1, minWidth: 'fit-content' }, h(DisplayField, { label: "File path", value: data?.fullPath, size: 'small' }))
+            h(Box, { sx: { flex: 1, minWidth: 'fit-content' } }, h(DisplayField, { label: "File path", value: data?.fullPath, size: 'small' }))
         ),
         element || text !== undefined && // avoids bad undo behavior on start
             h(Box, { sx: { '& pre,& textarea': { wordBreak: 'break-all !important' } } }, // fixes long lines not wrapping at the right point when the side menu is visible

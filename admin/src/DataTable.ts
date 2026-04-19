@@ -1,7 +1,8 @@
 import { DataGrid, DataGridProps, getGridStringOperators, GridColDef, GridFooter, GridFooterContainer,
     GridValidRowModel, useGridApiRef, GridRenderCellParams } from '@mui/x-data-grid'
 import { enUS } from '@mui/x-data-grid/locales'
-import { Alert, Box, BoxProps, Breakpoint, LinearProgress, useTheme } from '@mui/material'
+import { Alert, Box, BoxProps, LinearProgress, useTheme } from '@mui/material'
+import type { Breakpoint } from '@mui/material/styles'
 import { createElement as h, Fragment, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { callable, Callback, Falsy, newDialog, onlyTruthy, useGetSize } from '@hfs/shared'
 import _ from 'lodash'
@@ -33,7 +34,10 @@ export interface DataTableProps<R extends GridValidRowModel=any> extends Omit<Da
     persist?: string
     details?: boolean
 }
-export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, footerSide, fillFlex, persist, details, ...rest }: DataTableProps) {
+export function DataTable({
+    columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, footerSide, fillFlex,
+    persist, details, slots, slotProps, ...rest
+}: DataTableProps) {
     const theme = useTheme()
     const apiRef = useGridApiRef()
     const [actionsLength, setActionsLength] = useState(0)
@@ -63,14 +67,15 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                 originalRenderCell: col.renderCell || true,
                 renderCell(params: GridRenderCellParams) {
                     const { columns } = params.api.store.getSnapshot()
-                    return h(Box, { maxHeight: '100%', ...col.cellInnerProps, sx: { textWrap: 'wrap', lineHeight: '1.2em', ...callable(sx as any, params) } }, // wrap if necessary, but stay within the row
+                    return h(Box, { ...col.cellInnerProps, sx: { maxHeight: '100%', textWrap: 'wrap', lineHeight: '1.2em', ...callable(sx as any, params) } }, // wrap if necessary, but stay within the row
                         col.renderCell ? col.renderCell(params) : params.formattedValue,
                         col.mergeRender && h(Flex, { fontSize: 'smaller', flexWrap: 'wrap', mt: '1px', rowGap: 0, ...col.mergeRenderSx }, // wrap, normally causing overflow/hiding, if it doesn't fit
                             ...onlyTruthy(_.map(col.mergeRender, (props, other) => {
                                 if (!props || columns.columnVisibilityModel[other] !== false) return null
                                 const rendered = renderCell({ ...columns.lookup[other], ...props.override }, params.row)
                                 // keep mergeRender permissive for editor autocomplete, then narrow only at the render boundary
-                                return rendered && h(Box as any, { ...props, ...{ override: undefined }, ...compact && { lineHeight: '1em' } }, rendered)
+                                const { override, sx, ...boxProps } = props
+                                return rendered && h(Box as any, { ...boxProps, sx: { ...sx as any, ...compact && { lineHeight: '1em' } } }, rendered)
                             }))
                         )
                     )
@@ -89,7 +94,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                 renderCell(params: any) {
                     const ret = actions({ ...params.row, ...params })
                     setTimeout(() => setActionsLength(ret.length)) // cannot update state during rendering
-                    return h(Box, { whiteSpace: 'nowrap' }, ...ret)
+                    return h(Box, { sx: { whiteSpace: 'nowrap' } }, ...ret)
                 },
                 ...actionsProps
             })
@@ -129,7 +134,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
 
     return h(Fragment, {},
         error && h(Alert, { severity: 'error' }, error),
-        initializing && h(Box, { position: 'relative' },
+        initializing && h(Box, { sx: { position: 'relative' } },
             h(LinearProgress, { // differently from "loading", this is not blocking user interaction
                 sx: { position: 'absolute', width: 'calc(100% - 2px)', borderRadius: 1, m: '1px 1px' }
             }) ),
@@ -149,16 +154,21 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                 ...rest.sx,
             },
             slots: {
-                noRowsOverlay: () => initializing ? null : h(Center, {}, noRows || "No entries"),
-                footer: () => h(CustomFooter, { add: wrappedFooterSide }),
-            },
+                footer: CustomFooter,
+                noRowsOverlay: NoRowsOverlay,
+                ...slots
+            } as any,
             slotProps: {
+                ...slotProps,
+                footer: { ...(slotProps as any)?.footer, add: wrappedFooterSide },
+                noRowsOverlay: { ...(slotProps as any)?.noRowsOverlay, initializing, noRows },
                 pagination: {
                     labelRowsPerPage: "Rows",
                     ...!causingScrolling && {
                         showFirstButton: true,
                         showLastButton: true,
-                    }
+                    },
+                    ...(slotProps as any)?.pagination,
                 },
             },
             onCellClick({ field, row }) {
@@ -181,13 +191,17 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                         const rowToShow = keepRow.current
                         displayingDetails.current = { id: rowToShow.id, setCurRow }
                         return h(Box, {
-                            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(8em,1fr))', gap: '1em',
-                            gridAutoFlow: 'dense',
-                            minWidth: 'max(16em, 40vw)',
-                            sx: { opacity: curRow ? undefined : .5 },
+                            sx: {
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(8em,1fr))',
+                                gap: '1em',
+                                gridAutoFlow: 'dense',
+                                minWidth: 'max(16em, 40vw)',
+                                opacity: curRow ? undefined : .5,
+                            },
                         }, showInDialog.map(col =>
-                            h(Box, { key: col.field, gridColumn: col.flex! >= 1 ? '1/-1' : undefined },
-                                h(Box, { bgcolor: '#0003', p: 1 }, col.headerName || col.field),
+                            h(Box, { key: col.field, sx: { gridColumn: col.flex! >= 1 ? '1/-1' : undefined } },
+                                h(Box, { sx: { bgcolor: '#0003', p: 1 } }, col.headerName || col.field),
                                 h(Flex, { minHeight: '2.5em', px: 1, wordBreak: 'break-word', flexWrap: 'wrap' },
                                     renderCell(col, rowToShow) )
                             ) ))
@@ -224,8 +238,12 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
     }
 }
 
-function CustomFooter({ add, ...props }: { add: ReactNode }) {
-    return h(GridFooterContainer, props, h(Box, { ml: { sm: 1 } }, add), h(GridFooter, { sx: { border: 'none' } }))
+function CustomFooter({ add, ...props }: { add?: ReactNode }) {
+    return h(GridFooterContainer, props, h(Box, { sx: { ml: { sm: 1 } } }, add), h(GridFooter, { sx: { border: 'none' } }))
+}
+
+function NoRowsOverlay({ initializing, noRows }: { initializing?: boolean, noRows?: ReactNode }) {
+    return initializing ? null : h(Center, {}, noRows || "No entries")
 }
 
 // required in case of fillFlex:true

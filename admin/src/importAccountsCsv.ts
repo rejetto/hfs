@@ -110,7 +110,7 @@ export async function importAccountsCsv(cb?: () => void) {
                     })
                     return () => { stop = true }
                 }, [])
-                return h(Box, { display: 'flex', gap: 2, alignItems: 'center' },
+                return h(Box, { sx: { display: 'flex', gap: 2, alignItems: 'center' } },
                     h(IconProgress, { icon: Group, progress }),
                     record?.u,
                 )
