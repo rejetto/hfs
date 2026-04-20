@@ -12,8 +12,8 @@ import { quitting } from './first'
 import { getInactivePlugins, mapPlugins, startPlugin, stopPlugin } from './plugins'
 import { purgeFileAttr } from './fileAttr'
 import { downloadPlugin } from './github'
-import { Dict, formatBytes, formatSpeed, formatTimestamp, makeMatcher } from './cross'
-import apiMonitor, { inferOperation } from './api.monitor'
+import { Dict, formatBytes, formatPerc, formatSpeed, formatTimestamp, makeMatcher, with_ } from './cross'
+import apiMonitor, { inferOperation, serializeConnection } from './api.monitor'
 import { getConnections } from './connections'
 import { argv } from './argv'
 import { getServerStatus } from './listen'
@@ -191,6 +191,23 @@ const commands = {
         params: '',
         cb: purgeFileAttr,
     },
+    transfers: {
+        params: '',
+        cb() {
+            const transfers = getConnections().map(serializeConnection).filter(x => x.op === 'upload' || x.op === 'download')
+            if (!transfers.length)
+                return console.log("No ongoing uploads/downloads")
+            console.table(transfers.map(x => ({
+                type: x.op,
+                progress: with_(x.opProgress ?? x.opOffset, v => v == null ? '' : formatPerc(v)),
+                transferred: formatBytes(Math.max(x.sent || 0, x.got || 0)),
+                total: x.opTotal == null ? '' : formatBytes(x.opTotal),
+                speed: formatSpeed(Math.max(x.outSpeedKb || 0, x.inSpeedKb || 0) * 1000),
+                user: x.user,
+                path: x.path,
+            })))
+        }
+    },
     status: {
         params: '',
         async cb() {
@@ -210,3 +227,6 @@ const commands = {
         }
     }
 }
+
+type ConnectionSnapshot = ReturnType<typeof serializeConnection>
+type TransferSnapshot = ConnectionSnapshot & { op: 'upload' | 'download' }
