@@ -55,29 +55,6 @@ export default {
                 list.update(getConnAddress(conn), change)
             },
         })
-
-        function serializeConnection(conn: Connection) {
-            const { socket, started, secure } = conn
-            return {
-                ...getConnAddress(conn),
-                v: (socket.remoteFamily?.endsWith('6') ? 6 : 4),
-                got: socket.bytesRead,
-                sent: socket.bytesWritten,
-                country: conn.country,
-                started,
-                secure: (secure || undefined) as boolean|undefined, // undefined will save some space once json-ed
-                ...fromCtx(conn.ctx),
-            }
-        }
-
-        function fromCtx(ctx?: Koa.Context) {
-            if (!ctx) return
-            return {
-                user: getCurrentUsername(ctx),
-                agent: shortenAgent(ctx.get('user-agent')),
-                ...inferOperation(ctx)
-            }
-        }
     },
 
     async *get_connection_stats() {
@@ -105,6 +82,32 @@ export default {
 
 function ignore(conn: Connection) {
     return false //conn.socket && isLocalHost(conn)
+}
+
+export function serializeConnection(conn: Connection) {
+    const { socket, started, secure } = conn
+    return {
+        ...getConnAddress(conn),
+        v: (socket.remoteFamily?.endsWith('6') ? 6 : 4),
+        // connection fields are request-scoped once transfer tracking starts; socket counters cover earlier snapshots
+        got: conn.got || socket.bytesRead,
+        sent: conn.sent || socket.bytesWritten,
+        outSpeedKb: conn.outSpeedKb,
+        inSpeedKb: conn.inSpeedKb,
+        country: conn.country,
+        started,
+        secure: (secure || undefined) as boolean|undefined, // undefined will save some space once json-ed
+        ...fromCtx(conn.ctx),
+    }
+}
+
+function fromCtx(ctx?: Koa.Context) {
+    if (!ctx) return
+    return {
+        user: getCurrentUsername(ctx),
+        agent: shortenAgent(ctx.get('user-agent')),
+        ...inferOperation(ctx)
+    }
 }
 
 export function inferOperation(ctx: Koa.Context) {
