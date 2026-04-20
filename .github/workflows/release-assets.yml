@@ -18,7 +18,7 @@ on:
         type: string
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   windows:
@@ -44,12 +44,11 @@ jobs:
             throw "Unsupported pkg target format: $target"
           }
           "target=$target" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "node_major=$($matches[1])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ steps.pkg_target.outputs.node_major }}
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: Install dependencies

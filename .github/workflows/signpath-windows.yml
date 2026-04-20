@@ -9,10 +9,25 @@ jobs:
     permissions:
       contents: read
     env:
-      NODE_VERSION: '20'
+      NODE_VERSION: '22'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Resolve Windows pkg target
+        id: pkg_target
+        shell: pwsh
+        run: |
+          # keep workflow and package.json aligned by deriving the Windows pkg target from a single source of truth
+          $pkg = Get-Content package.json -Raw | ConvertFrom-Json
+          $target = @($pkg.pkg.targets) | Where-Object { $_ -match '-win-x64$' } | Select-Object -First 1
+          if (-not $target) {
+            throw "No Windows pkg target (-win-x64) found in package.json"
+          }
+          if ($target -notmatch '^node(\d+)-') {
+            throw "Unsupported pkg target format: $target"
+          }
+          "target=$target" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -35,7 +50,7 @@ jobs:
       - name: Build Windows binary
         run: |
           cd dist
-          npx pkg . --public -C gzip -t node${{ env.NODE_VERSION }}-win-x64
+          npx pkg . --public -C gzip -t ${{ steps.pkg_target.outputs.target }}
           npx resedit-cli --in hfs.exe --icon 1,../hfs.ico --out hfs.exe
 
       - name: Prepare unsigned artifact folder
