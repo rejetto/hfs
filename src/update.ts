@@ -4,10 +4,22 @@ import { apiGithubPaginated, getProjectInfo, getRepoInfo } from './github'
 import { ARGS_FILE, HFS_REPO, IS_BINARY, IS_WINDOWS, IS_MAC, PREVIOUS_TAG, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
-import { DAY, exists, unzip, prefix, xlate, HOUR, httpStream, statWithTimeout, repeat, debounceAsync } from './misc'
-import { createReadStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
+import {
+    DAY,
+    exists,
+    unzip,
+    prefix,
+    xlate,
+    HOUR,
+    httpStream,
+    statWithTimeout,
+    repeat,
+    debounceAsync,
+    formatPerc
+} from './misc'
+import { createReadStream, createWriteStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { pluginsWatcher } from './plugins'
-import { chmod, rename, writeFile, rm } from 'fs/promises'
+import { chmod, rename, rm } from 'fs/promises'
 import open from 'open'
 import { configReady, currentVersion, defineConfig, versionToScalar } from './config'
 import { cmdEscape, runningAsWindowsService } from './util-os'
@@ -15,6 +27,7 @@ import { onProcessExit } from './first'
 import { storedMap } from './persistence'
 import _ from 'lodash'
 import { argv } from './argv'
+import { pipeline } from 'stream/promises'
 
 const updateToBeta = defineConfig('update_to_beta', false)
 const autoCheckUpdate = defineConfig('auto_check_update', true)
@@ -143,7 +156,13 @@ export async function update(tagOrUrl: string='') {
         const temp = LOCAL_UPDATE + '-temp'
         await rm(temp, { force: true })
         try {
-            await writeFile(temp, await httpStream(url))
+            const stream = await httpStream(url)
+            const total = Number(stream.headers['content-length']) || 0
+            let downloadedSize = 0
+            const progress = total && setInterval(() => console.log("Download progress", formatPerc(downloadedSize / total)), 5_000)
+            stream.on('data', chunk => downloadedSize += chunk.length)
+            await pipeline(stream, createWriteStream(temp))
+                .finally(() => clearInterval(progress))
         }
         catch(e: any) {
             await rm(temp).catch(() => {}) // no leftovers
