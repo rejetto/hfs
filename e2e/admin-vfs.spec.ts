@@ -246,3 +246,63 @@ test('apply keeps unset permissions nullish in-memory', async ({ page }) => {
         unsetPerms: ['can_see', 'can_read', 'can_list', 'can_upload', 'can_delete', 'can_archive'],
     })
 })
+
+test('apply refreshes inherited permissions for descendants in-memory', async ({ page }) => {
+    await page.goto(URL + '~/admin/')
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('textbox', { name: 'Password' }).press('Enter')
+    await clickAdminMenu(page, /Shared files/)
+    await page.getByText('zipNoList', { exact: true }).waitFor({ timeout: 10_000 })
+
+    await expect.poll(() => page.evaluate(() => {
+        const state = (window as any).state
+        if (!state?.vfs) return ''
+        state.selectedFiles = [state.vfs]
+        return state.selectedFiles[0]?.id || ''
+    })).toBe('/')
+    await page.getByRole('combobox', { name: 'Who can download' }).click()
+    await page.getByRole('option', { name: 'No one' }).click()
+    await page.locator('button:has-text("Apply")').click()
+
+    await expect.poll(() => page.evaluate(() => {
+        function findById(node: any, id: string): any {
+            if (!node) return
+            if (node.id === id) return node
+            for (const child of node.children || []) {
+                const found = findById(child, id)
+                if (found) return found
+            }
+        }
+        const node = findById((window as any).state?.vfs, '/f1/')
+        return {
+            rootCanRead: (window as any).state?.vfs?.can_read,
+            inheritedCanRead: node?.inherited?.can_read,
+        }
+    })).toEqual({
+        rootCanRead: false,
+        inheritedCanRead: false,
+    })
+
+    await selectVfsNode(page, 'f1', '/f1/')
+    await page.locator('button:has-text("Apply")').click()
+
+    await expect.poll(() => page.evaluate(() => {
+        function findById(node: any, id: string): any {
+            if (!node) return
+            if (node.id === id) return node
+            for (const child of node.children || []) {
+                const found = findById(child, id)
+                if (found) return found
+            }
+        }
+        const node = findById((window as any).state?.vfs, '/f1/f2/')
+        return {
+            middleCanRead: findById((window as any).state?.vfs, '/f1/')?.can_read,
+            inheritedCanRead: node?.inherited?.can_read,
+        }
+    })).toEqual({
+        middleCanRead: null,
+        inheritedCanRead: false,
+    })
+})

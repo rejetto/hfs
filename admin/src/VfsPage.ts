@@ -11,6 +11,7 @@ import { markVfsModified, prepareVfsUndo, state, useSnapState } from './state'
 import VfsTree, { vfsNodeIcon } from './VfsTree'
 import {
     CFG, matches, newDialog, normalizeHost, onlyTruthy, pathEncode, prefix, VfsNodeAdminSend, HIDE_IN_TESTS, wait,
+    isWhoObject, PERM_KEYS, VfsPerms, Who,
 } from './misc'
 import { Flex, useBreakpoint } from './mui'
 import { reactJoin } from '@hfs/shared'
@@ -198,6 +199,7 @@ export function reindexVfs({
     function recur(node: VfsNodeAdmin, pre: string, parent: VfsNodeAdmin | undefined) {
         const oldId = node.id
         node.parent = parent
+        node.inherited = getInheritedPerms(node) // refresh cached inheritance while reindexing, because local edits do not get a server roundtrip
         const newId = node.isRoot ? '/' : prefix(pre, pathEncode(node.name), node.type === 'folder' ? '/' : '')
         if (oldId && oldId !== newId)
             id2vfsNode.delete(oldId)
@@ -208,6 +210,33 @@ export function reindexVfs({
             node.children = _.sortBy(node.children, ['type', x => x.name?.toLocaleLowerCase()])
         for (const child of node.children)
             recur(child, node.id, node)
+    }
+}
+
+export function getInheritedPerms(child: VfsNodeAdmin | undefined) {
+    const parent = child?.parent
+    if (!parent) return
+    const ret: VfsPerms = {}
+    for (const k of PERM_KEYS) {
+        const inheritedPerm = getInheritedPerm(parent, k)
+        // null is the form's local representation of an unset permission
+        if (inheritedPerm !== undefined && child[k] == null)
+            ret[k] = inheritedPerm
+    }
+    return _.isEmpty(ret) ? undefined : ret
+
+    function getInheritedPerm(cursor: VfsNodeAdmin | undefined, perm: keyof VfsPerms): Who | undefined {
+        while (cursor) {
+            let inheritedPerm = cursor[perm]
+            if (inheritedPerm != null) {
+                if (!isWhoObject(inheritedPerm))
+                    return inheritedPerm
+                inheritedPerm = inheritedPerm.children
+                if (inheritedPerm !== undefined)
+                    return inheritedPerm
+            }
+            cursor = cursor.parent
+        }
     }
 }
 

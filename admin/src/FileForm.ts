@@ -14,7 +14,7 @@ import {
 } from './misc'
 import { isModifiedConfig } from './AccountForm'
 import { Btn, Flex, IconBtn, LinkBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'
-import { deleteVfs, id2vfsNode, reindexVfs, VfsNodeAdmin } from './VfsPage'
+import { deleteVfs, getInheritedPerms, id2vfsNode, reindexVfs, VfsNodeAdmin } from './VfsPage'
 import _ from 'lodash'
 import FileField from './FileField'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
@@ -226,11 +226,11 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
         const dontShow = [perm, ...onlyTruthy(_.map(show, (v,k) => !v && k))]
         const others = _.difference(Object.keys(defaultPerms), dontShow)
         // a freshly created node can be selected before `inherited` is filled by a server roundtrip
-        let inherit = file.inherited?.[perm] ?? getParentInheritedPerm(perm) ?? defaultPerms[perm]
+        let inherit = file.inherited?.[perm] ?? getInheritedPerms(file)?.[perm] ?? defaultPerms[perm]
         while (typeof inherit === 'string' && _.get(show, inherit) === false) // is 'inherit' referring to another permission that is not displayed?
             inherit = _.get(values, inherit)
                 // non-permission who values (like WHO_ANY_ACCOUNT) are not valid keys for inherited lookup
-                ?? (inherit !== WHO_ANY_ACCOUNT ? getParentInheritedPerm(inherit) : undefined)
+                ?? (inherit !== WHO_ANY_ACCOUNT ? getInheritedPerms(file)?.[inherit] : undefined)
                 ?? _.get(defaultPerms, inherit)! // then show its value instead
         return {
             comp: WhoField,
@@ -242,21 +242,6 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
             byMasks: byMasks?.[perm],
             fromField: (v?: Who) => v ?? null,
             ...props
-        }
-    }
-
-    function getParentInheritedPerm(perm: keyof VfsPerms): Who | undefined {
-        if (file[perm] !== undefined)
-            return
-        let cursor = file.parent
-        while (cursor) {
-            let inheritedPerm = cursor[perm]
-            if (!isWhoObject(inheritedPerm))
-                return inheritedPerm
-            inheritedPerm = inheritedPerm.children
-            if (inheritedPerm !== undefined)
-                return inheritedPerm
-            cursor = cursor.parent
         }
     }
 
