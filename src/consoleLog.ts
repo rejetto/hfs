@@ -4,9 +4,10 @@ import { createWriteStream } from 'fs'
 import { argv } from './argv'
 
 export const consoleLog: Array<{ ts: Date, k: string, msg: string }> = []
+const originalConsoleLog = console.log
 const f = argv.consoleFile ? createWriteStream(argv.consoleFile, { flags: 'a', encoding: 'utf8' }) : null
-for (const k of ['log','warn','error','debug']) {
-    const original = console[k as 'log']
+for (const k of ['log','warn','error','debug'] as const) {
+    const original = console[k]
     console[k as 'log'] = (...args: any[]) => {
         const ts = new Date()
         if (k === 'debug')
@@ -23,6 +24,18 @@ for (const k of ['log','warn','error','debug']) {
                 args.unshift('!')
         }
         return original(formatTime(ts), ...args) // bundled nodejs doesn't have locales (and apparently uses en-US)
+    }
+    Object.assign(console[k], { original })
+}
+
+const over = console.log
+for (const k of ['table'] as const) {
+    const original = console[k]
+    console[k] = (...args: any[]) => {
+        console.log = originalConsoleLog
+        // @ts-ignore
+        try { return original(...args) }
+        finally { console.log = over }
     }
 }
 
