@@ -2,14 +2,14 @@ import { test, expect, Page } from '@playwright/test'
 import fs from 'fs'
 import { wait } from '../src/cross'
 import {
-    clickAdminMenu, clickIconBtn, forwardConsole, loginAdmin, password, resetTimestamp, URL, username
+    clickAdminMenu, clickIconBtn, forwardConsole, loginAdmin, password, resetTimestamp, FRONTEND_URL, username
 } from './common'
 
 // a generic test touch several parts
 test('around1', async ({ page }) => {
     forwardConsole(page)
     resetTimestamp()
-    await page.goto(URL)
+    await page.goto(FRONTEND_URL)
     await expect(page).toHaveTitle(/File server/)
     await screenshot(page)
     await page.getByRole('button', { name: 'Login' }).click()
@@ -119,7 +119,7 @@ test('around1', async ({ page }) => {
 
 test('search1', async ({ page }) => {
     resetTimestamp()
-    await page.goto(URL)
+    await page.goto(FRONTEND_URL)
     await page.getByRole('button', { name: 'Search' }).click()
     await page.locator('input[name="name"]').fill('a')
     await page.getByRole('button', { name: 'Continue' }).click()
@@ -175,7 +175,7 @@ test('search1', async ({ page }) => {
 })
 
 test('frontend-admin', async ({ page }) => {
-    await page.goto(URL, { waitUntil: 'networkidle' })
+    await page.goto(FRONTEND_URL, { waitUntil: 'networkidle' })
     await page.evaluate(() => document.fonts.ready) // aspetta i font
     await page.getByRole('button', { name: 'Options' }).click()
     // no admin button yet,
@@ -336,7 +336,7 @@ test('anew', async ({ page, browserName }) => {
 })
 
 test('order field', async ({ page }) => {
-    await page.goto(URL + 'renameChild/orderTest/')
+    await page.goto(FRONTEND_URL + 'renameChild/orderTest/')
     await expect(page.getByText('orderTest')).toBeVisible()
     await expect(page.locator('.entry-name')).toHaveText(['B', 'A', 'C'])
 })

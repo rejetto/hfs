@@ -1,5 +1,5 @@
 import { expect, Page, test } from '@playwright/test'
-import { clickAdminMenu, URL, username, password, clickIconBtn } from './common'
+import { ADMIN_URL, clickAdminMenu, username, password, clickIconBtn } from './common'
 
 async function selectVfsNode(page: Page, name: string, expectedId: string) {
     await page.getByRole('treeitem', { name, exact: true }).click()
@@ -23,7 +23,7 @@ async function expandVfsNode(page: Page, nodeId: string) {
 }
 
 test('move via cut/paste keeps node visible', async ({ page }) => {
-    await page.goto(URL + '~/admin/')
+    await page.goto(ADMIN_URL)
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('textbox', { name: 'Password' }).fill(password)
     await page.getByRole('textbox', { name: 'Password' }).press('Enter')
@@ -61,7 +61,7 @@ test('move via cut/paste keeps node visible', async ({ page }) => {
 })
 
 test('move to nested destination expands ancestors', async ({ page }) => {
-    await page.goto(URL + '~/admin/')
+    await page.goto(ADMIN_URL)
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('textbox', { name: 'Password' }).fill(password)
     await page.getByRole('textbox', { name: 'Password' }).press('Enter')
@@ -103,7 +103,7 @@ test('move to nested destination expands ancestors', async ({ page }) => {
 })
 
 test('move into empty folder keeps node visible', async ({ page }) => {
-    await page.goto(URL + '~/admin/')
+    await page.goto(ADMIN_URL)
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('textbox', { name: 'Password' }).fill(password)
     await page.getByRole('textbox', { name: 'Password' }).press('Enter')
@@ -141,7 +141,7 @@ test('move into empty folder keeps node visible', async ({ page }) => {
 })
 
 test('delete virtual folder updates tree and marks modified', async ({ page }) => {
-    await page.goto(URL + '~/admin/')
+    await page.goto(ADMIN_URL)
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('textbox', { name: 'Password' }).fill(password)
     await page.getByRole('textbox', { name: 'Password' }).press('Enter')
@@ -165,7 +165,7 @@ test('delete virtual folder updates tree and marks modified', async ({ page }) =
 })
 
 test('undo toggles with single-level redo behavior', async ({ page }) => {
-    await page.goto(URL + '~/admin/')
+    await page.goto(ADMIN_URL)
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('textbox', { name: 'Password' }).fill(password)
     await page.getByRole('textbox', { name: 'Password' }).press('Enter')
@@ -217,7 +217,7 @@ test('undo toggles with single-level redo behavior', async ({ page }) => {
 })
 
 test('apply keeps unset permissions nullish in-memory', async ({ page }) => {
-    await page.goto(URL + '~/admin/')
+    await page.goto(ADMIN_URL)
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('textbox', { name: 'Password' }).fill(password)
     await page.getByRole('textbox', { name: 'Password' }).press('Enter')
@@ -248,7 +248,7 @@ test('apply keeps unset permissions nullish in-memory', async ({ page }) => {
 })
 
 test('apply refreshes inherited permissions for descendants in-memory', async ({ page }) => {
-    await page.goto(URL + '~/admin/')
+    await page.goto(ADMIN_URL)
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('textbox', { name: 'Password' }).fill(password)
     await page.getByRole('textbox', { name: 'Password' }).press('Enter')

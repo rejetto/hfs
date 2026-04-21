@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { clearUploads, clickAdminMenu, clickIconBtn, loginAdmin, password, uploadName, URL, username } from './common'
+import { ADMIN_URL, clearUploads, clickAdminMenu, clickIconBtn, loginAdmin, password, uploadName, FRONTEND_URL, username } from './common'
 
 // this test is separated to run serially, as it will modify folder timestamp for a few seconds, during which other tests may fail
 test.describe.configure({ mode: 'serial' }) // to disconnect the upload consistently, i need only 1 upload at a time
@@ -12,7 +12,7 @@ export const fileToUpload = {
 
 test('upload1', async ({ page, context, browserName }) => {
     if (browserName !== 'chromium') return // only chromium has cdpSession
-    await page.goto(URL);
+    await page.goto(FRONTEND_URL);
     await page.getByRole('button', { name: 'Login' }).click();
     await page.getByRole('textbox', { name: 'Username' }).fill(username);
     await page.getByRole('textbox', { name: 'Password' }).fill(password);
@@ -26,7 +26,7 @@ test('upload1', async ({ page, context, browserName }) => {
     const pageAdminPromise = page.waitForEvent('popup');
     await page.getByRole('button', { name: 'Admin-panel' }).click();
     const pageAdmin = await pageAdminPromise;
-    await pageAdmin.goto(URL + '~/admin/#/monitoring'); // cross-device way of changing page
+    await pageAdmin.goto(ADMIN_URL + '#/monitoring'); // cross-device way of changing page
     await page.locator('div').filter({ hasText: 'xOptionsAdmin-panelSort by:' }).nth(2).click();
     await page.getByRole('button', { name: 'Close' }).click();
     await page.getByRole('button', { name: 'Upload' }).click();

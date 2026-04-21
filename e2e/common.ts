@@ -3,12 +3,14 @@ import fs from 'fs'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import yaml from 'yaml'
+import { ADMIN_URI } from '../src/cross-const'
 
 export const username = 'rejetto'
 export const password = 'password'
 // keep e2e URL aligned with the same config file used by tests/test.ts and server-for-test
 const TEST_PORT = Number(yaml.parse(readFileSync(resolve(process.cwd(), 'tests/config.yaml'), 'utf8')).port)
-export const URL = `http://[::1]:${TEST_PORT}/`
+export const FRONTEND_URL = `http://[::1]:${TEST_PORT}/`
+export const ADMIN_URL = new URL(ADMIN_URI, FRONTEND_URL).href
 export const uploadName = 'uploaded'
 
 const t = Date.UTC(2025, 0, 20, 3, 0, 0, 0) / 1000 // a fixed timestamp, for visual comparison
@@ -52,7 +54,7 @@ export function clickIconBtn(title: string | RegExp, page: Page) {
 }
 
 export async function loginAdmin(page: Page) {
-    await page.goto(URL + '~/admin/')
+    await page.goto(ADMIN_URL)
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('textbox', { name: 'Password' }).fill(password)
     await page.getByRole('textbox', { name: 'Password' }).press('Enter')
