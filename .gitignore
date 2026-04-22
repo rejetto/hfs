@@ -4,6 +4,7 @@ node_modules
 hfs.plist
 dist
 .DS_Store
+scripts/sec
 #produced by running
 tests/work
 tests/work2
