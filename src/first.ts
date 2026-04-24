@@ -13,7 +13,14 @@ export let quitting = false
 onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT', 'SIGHUP'], signal => {
     console.log('Quitting with signal:', signal || 'unknown')
     quitting = true
-    return Promise.allSettled(Array.from(cbsOnExit).map(cb => cb(signal))).then(() => {
+    return Promise.allSettled(Array.from(cbsOnExit).map(cb => {
+        try { return cb(signal) }
+        // keep exit moving even when a synchronous cleanup fails after partially shutting down
+        catch (e) {
+            console.error("Error while quitting", e)
+            return Promise.reject(e)
+        }
+    })).then(() => {
         console.debug('Process exit')
         process.exit(0)
     })

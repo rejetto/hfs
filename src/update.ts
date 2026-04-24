@@ -183,7 +183,12 @@ export async function update(tagOrUrl: string='') {
             catch {}
             renameSync(bin, oldBin)
             if (!preserveTerminal) {
-                renameSync(newBin, join(binPath, binFile))
+                try { renameSyncWithBusyRetry(newBin, join(binPath, binFile)) }
+                catch (e) {
+                    try { renameSync(oldBin, bin) } // restore the service target because hfs.exe was already moved aside
+                    catch (rollbackError) { console.error("Couldn't restore original binary after failed update", rollbackError) }
+                    throw e
+                }
                 console.log("Updated binary in place, exiting for process supervisor to restart")
                 return
             }
@@ -197,6 +202,18 @@ export async function update(tagOrUrl: string='') {
     catch (e: any) {
         pluginsWatcher.unpause()
         throw e?.message || String(e)
+    }
+}
+
+function renameSyncWithBusyRetry(src: string, dest: string) {
+    const sleepSyncBuffer = new Int32Array(new SharedArrayBuffer(4))
+    for (let retry = 0; ; retry++) {
+        try { return renameSync(src, dest) }
+        catch (e: any) {
+            if (e?.code !== 'EBUSY' || retry >= 20)
+                throw e
+            Atomics.wait(sleepSyncBuffer, 0, 0, 500)
+        }
     }
 }
 

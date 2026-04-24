@@ -7,7 +7,7 @@ import { createWriteStream, mkdirSync, watch, ftruncate } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
-import { once } from 'events'
+import { finished } from 'stream/promises'
 import { Readable } from 'stream'
 import { getStatWorker } from './stat'
 // @ts-ignore
@@ -105,7 +105,7 @@ export async function unzip(stream: Readable, cb: (path: string) => Promisable<f
                         return entry.autodrain()
                     console.debug('Unzip', dest)
                     const thisFile = entry.pipe(await createSafeWriteStream(dest))
-                    await once(thisFile, 'finish')
+                    await finished(thisFile)
                 }) )
     )
 }
