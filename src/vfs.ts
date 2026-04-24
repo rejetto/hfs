@@ -181,12 +181,13 @@ export async function getNodeByName(name: string, parent: VfsNode, assumeMissing
     }
 }
 
-const smartUncFolderDetection = defineConfig('smart_unc_folder_detection', true)
+const smartUncFolderDetection = defineConfig('smart_unc_folder_detection', false)
 
 async function setIsFolder(node: VfsNode) {
     if (!node.source) return
-    const isFolder = smartUncFolderDetection.get() && getUncHost(node.source) ? !basename(node.source).includes('.') // no dot = folder – not very reliable but fast for unreachable unc hosts, and you can opt-out
-        : /[\\/]$/.test(node.source) || await nodeStats(node).then(x => x?.isDirectory(), () => undefined)
+    const isFolder = /[\\/]$/.test(node.source)
+        || smartUncFolderDetection.get() && getUncHost(node.source) && !basename(node.source).includes('.') // no dot = folder; not very reliable but fast for unreachable unc hosts, and it's an opt-in
+        || await nodeStats(node).then(x => x?.isDirectory(), () => undefined)
     setHidden(node, { isFolder })
     return isFolder
 }
