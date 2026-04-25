@@ -86,7 +86,7 @@ const NETWORK_PRESETS = {
 } as const
 
 // some interactions, no screenshots
-test('admin2', async ({ page }) => {
+test('admin2', async ({ page, browserName }) => {
     const isPhone = await loginAdmin(page)
 
     await clickAdminMenu(page, 'Accounts')
@@ -162,7 +162,8 @@ test('admin2', async ({ page }) => {
     await expect(page.getByText('antibrute')).toBeVisible()
     const pluginTabs = page.getByRole('tab')
     await pluginTabs.nth(0).click()
-    if (!isPhone) {
+    // plugin state is shared by all browser projects, so mutate it from one project to avoid cross-browser races
+    if (!isPhone && browserName === 'chromium') {
         const downloadCounterRow = page.getByRole('row', { name: /download-counter/ })
         const startDownloadCounter = downloadCounterRow.getByRole('button', { name: 'Start download-counter' })
         const stopDownloadCounter = downloadCounterRow.getByRole('button', { name: 'Stop download-counter' })

@@ -271,6 +271,17 @@ test('admin1', async ({ page }) => {
     await screenshot(page, '.MuiDataGrid-root')
     await clickAdminMenu(page, 'Plugins')
     await expect(page.getByText('antibrute')).toBeVisible() // wait for data
+    // ensure Test plugin is running
+    const stopTest = page.getByRole('button', { name: 'Stop test' })
+    if (!await stopTest.isVisible()) {
+        await page.getByRole('button', { name: 'Start test' }).click()
+        await expect(stopTest).toBeVisible()
+    }
+    // reload the list from the server so the plugin screenshot doesn't depend on SSE timing
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Plugins', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Stop test' })).toBeVisible()
+
     await screenshot(page)
     await page.getByRole('tab', { name: 'Get more' }).click()
     await page.getByRole('tab', { name: 'updates' }).click()
