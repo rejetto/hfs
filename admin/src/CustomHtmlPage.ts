@@ -63,6 +63,7 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
                 icon: Save,
                 title: "Save\n(ctrl+enter)",
                 modified: anyChange,
+                doneAnimation: true,
                 onClick: save,
             }),
             hTooltip("Enable all sections", undefined, switchBtn(enabled, async v => {
