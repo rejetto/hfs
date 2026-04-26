@@ -10,7 +10,7 @@ import { reloadVfs } from './VfsPage'
 import { prefix, VFS_STORED_KEYS } from './misc'
 import { state, undoVfs, useSnapState } from './state'
 import _ from 'lodash'
-import { Btn, Flex, reloadBtn, useBreakpoint } from './mui'
+import { Btn, Flex, reloadBtn, useBreakpoint, useCtrlShortcutButton } from './mui'
 import { apiCall, ApiObject, useApi } from './api'
 import VfsPathField from './VfsPathField'
 import { alertDialog, promptDialog } from './dialog'
@@ -28,8 +28,9 @@ export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusA
     },
         h(AddVfsBtn),
         h(Btn, {
+            ref: useCtrlShortcutButton(['s']).ref,
             icon: Save,
-            title: "Save",
+            title: "Save\n(ctrl+s)",
             disabled: !vfsModified && "No changes to save",
             modified: vfsModified,
             doneAnimation: true,

@@ -11,7 +11,8 @@ import { Box, BoxProps, ButtonProps, CircularProgress, IconButton, IconButtonPro
     Tooltip, TooltipProps, useMediaQuery, Button } from '@mui/material'
 import type { Breakpoint } from '@mui/material/styles'
 import {
-    anyDialogOpen, closeDialog, formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL, with_, Functionable, callable
+    anyDialogOpen, closeDialog, formatPerc, callable, isIpLan, isIpLocalHost, prefix, WIKI_URL, with_, Functionable,
+    domOn, isMac,
 } from './misc'
 import { dontBotherWithKeys, restartAnimation, useBatch, useStateMounted } from '@hfs/shared'
 import { mergeSx, Promisable, StringField } from '@hfs/mui-grid-form'
@@ -105,6 +106,20 @@ export function WildcardsSupported() {
 
 export function reloadBtn(onClick: any, props?: any) {
     return h(IconBtn, { icon: Refresh, title: "Reload", onClick, ...props })
+}
+
+export function useCtrlShortcutButton(keys: readonly string[]) {
+    const ref = useRef<HTMLButtonElement>(null)
+    useEffect(() =>
+        domOn('keydown', ev => {
+            const key = (ev.ctrlKey || isMac && ev.metaKey) && ev.key.toLowerCase()
+            const btn = ref.current
+            if (!key || !btn || !keys.some(x => x.toLowerCase() === key)) return
+            ev.preventDefault() // capture at window level because focused widgets or body can bypass the page subtree
+            btn.click() // click the button so shortcuts reuse button loading, errors, and success animation
+        }, { capture: true })
+    , [keys.join('\n')])
+    return { ref }
 }
 
 // modify look to convey that a form has been modified
