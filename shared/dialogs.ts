@@ -76,9 +76,8 @@ export function isDescendant(child: Node | null | undefined, parentMatch: Node |
 
 let waitClosing = Promise.resolve()
 let waitQueuedCloses = Promise.resolve()
-let ignorePopState = false
+let ignoredPopStates = 0
 async function doBack() {
-    ignorePopState = true
     const was = history.state
     return new Promise<void>(async res => {
         const timeout = Date.now() + 1500
@@ -87,6 +86,9 @@ async function doBack() {
             const now = Date.now()
             if (now > timeout) break // emergency brake
             if (now - lastBack > 1000) { // after this long time we try again
+                // a queued close may run after another close already reached the route's dialog base entry
+                if (history.state?.$dialog === undefined || history.state.$dialog === BASE_STATE) break
+                ignoredPopStates++ // rapid dialog closes can overlap programmatic backs, so each resulting popstate must be ignored independently
                 history.back()
                 lastBack = now
             }
@@ -110,8 +112,8 @@ const BASE_STATE = 1
 
 export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
     useEffect(() => domOn('popstate', () => {
-        if (ignorePopState)
-            return ignorePopState = false
+        if (ignoredPopStates)
+            return ignoredPopStates--
         const d = history.state?.$dialog
         if (d === undefined) return // not my state, not my business
         if (d !== BASE_STATE && !dialogs.find(x => x.$id === d)) // it happens if the user, after closing a dialog, goes forward in the history
@@ -250,8 +252,8 @@ export function closeDialog(v?:any, skipHistory=false): Dialog | undefined {
                 // rapid ESC presses can target the next dialog before browser history has caught up with the previous close
                 const closed: Promise<void | undefined> = waitQueuedCloses = waitQueuedCloses
                     .then(() => waitClosing)
-                    // once the history unwind has already been queued, retry the next close without re-checking the same stale state
-                    .then(() => closeDialog(v, true)?.closed)
+                    // after the previous back settles, preserve one history unwind per dialog whenever the entry now matches
+                    .then(() => closeDialog(v, history.state?.$dialog !== dialogs.at(-1)?.$id)?.closed)
                 // return a promise here so mobile callers wait instead of spinning on the still-open dialog stack
                 return { ...d, closed } as Dialog
             }
@@ -262,15 +264,21 @@ export function closeDialog(v?:any, skipHistory=false): Dialog | undefined {
     }
 }
 
+let waitHistoryCleanup = Promise.resolve()
 function closeDialogAt(i: number, value?: any) {
     const [d] = dialogs.splice(i,1)
     d.restoreFocus?.focus?.() // if element is not HTMLElement, it doesn't have focus method
     d.closingValue = value && typeof value === 'object' ? ref(value) : value // since this is being assigned to a valtio proxy, ref is necessary to avoid crashing with unusual (and possibly accidental) objects like React's SynteticEvents
     d.closed ??= Promise.resolve()
     d.closed.then(async () => {
-        // queued ESC closes can empty the stack before the last synthetic history entry has been unwound
-        while (!dialogs.length && history.state?.$dialog !== undefined && history.state.$dialog !== BASE_STATE)
-            await doBack()
+        waitHistoryCleanup = waitHistoryCleanup.then(async () => {
+            // a matching queued close may already be unwinding the last dialog entry
+            await waitClosing
+            // queued ESC closes can empty the stack before the last synthetic history entry has been unwound
+            while (!dialogs.length && history.state?.$dialog !== undefined && history.state.$dialog !== BASE_STATE)
+                await back()
+        })
+        await waitHistoryCleanup
         d?.onClose?.(value)
     })
     return d
