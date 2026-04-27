@@ -1,4 +1,4 @@
-import { Children, cloneElement, createElement as h, forwardRef, Fragment, isValidElement } from 'react'
+import { Children, cloneElement, createElement as h, forwardRef, isValidElement, useEffect } from 'react'
 import type { AnchorHTMLAttributes, ComponentType, ReactElement, ReactNode } from 'react'
 import { Link as WouterLink, Route as WouterRoute, Router, Switch, useLocation as useWouterLocation } from 'wouter'
 import { useHashLocation } from 'wouter/use-hash-location'
@@ -59,8 +59,6 @@ function normalizePath(path: string | undefined) {
     return path.startsWith('/') ? path : `/${path}`
 }
 
-export const BrowserRouter = Fragment
-
 function normalizeChildRoutePath(child: ReactNode) {
     if (!isValidElement(child))
         return child
@@ -69,4 +67,26 @@ function normalizeChildRoutePath(child: ReactNode) {
     if (child.props.path !== '')
         return child
     return cloneElement(child, { path: '/' })
+}
+
+export function useRoutedTab(basePath: string, tabPaths: readonly string[]) {
+    const { pathname } = useLocation()
+    const navigate = useNavigate()
+    const prefix = `/${basePath}/`
+    const pathTab = pathname.startsWith(prefix) ? pathname.slice(prefix.length) : ''
+    const pathTabIndex = tabPaths.indexOf(pathTab)
+    const tab = pathTabIndex < 0 ? 0 : pathTabIndex
+
+    useEffect(() => {
+        const wanted = `/${basePath}/${tabPaths[tab]}`
+        // replace bare/unknown tab URLs so refresh and history stay aligned with the visible tab
+        if (pathname !== wanted)
+            navigate(wanted, { replace: true })
+    }, [basePath, navigate, pathname, tab, tabPaths])
+
+    return [tab, setTab] as const
+
+    function setTab(i: number) {
+        navigate(`/${basePath}/${tabPaths[i]}`)
+    }
 }

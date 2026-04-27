@@ -25,13 +25,14 @@ import { hTooltip } from './mui'
 import { PageProps } from './App'
 import { confirmDialog } from './dialog'
 
-interface MenuEntry {
+export interface MenuEntry {
     path: string
     icon: SvgIconComponent
     label?: string
     title?: string
     comp: FC<PageProps>
     noPaddingOnMobile?: true
+    subRoutes?: true
 }
 
 export const mainMenu: MenuEntry[] = [
@@ -41,9 +42,9 @@ export const mainMenu: MenuEntry[] = [
     { path: 'options', icon: Settings, comp: OptionsPage },
     { path: 'internet', icon: Public, comp: InternetPage },
     { path: 'monitoring', icon: Monitor, comp: MonitorPage, noPaddingOnMobile: true },
-    { path: 'logs', icon: History, comp: LogsPage, noPaddingOnMobile: true },
+    { path: 'logs', icon: History, comp: LogsPage, noPaddingOnMobile: true, subRoutes: true },
     { path: 'language', icon: Translate, comp: LangPage },
-    { path: 'plugins', icon: Extension, comp: PluginsPage, noPaddingOnMobile: true },
+    { path: 'plugins', icon: Extension, comp: PluginsPage, noPaddingOnMobile: true, subRoutes: true },
     { path: 'html', icon: Code, label: "Custom HTML", comp: CustomHtmlPage },
     { path: 'logout', icon: Logout, comp: LogoutPage }
 ]
@@ -80,8 +81,7 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
                     component: Link,
                     to: it.path,
                     onClick: onSelect,
-                    // home has to match exactly because every path starts with an empty prefix
-                    selected: it.path ? currentPath === it.path || currentPath.startsWith(it.path + '/') : !currentPath,
+                    selected: matchesMenuPath(it, currentPath),
                     sx: { '&.Mui-selected': { '&,&:hover': { bgcolor: 'primary.dark', textDecoration: 'underline' } } },
                     children: undefined, // shut up ts
                 },
@@ -97,4 +97,8 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
 
 export function getMenuLabel(it: MenuEntry) {
     return it && (it.label ?? _.capitalize(it.path))
+}
+
+export function matchesMenuPath(it: MenuEntry, path: string) {
+    return it.path ? path === it.path || path.startsWith(it.path + '/') : !path
 }

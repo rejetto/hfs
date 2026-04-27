@@ -23,6 +23,7 @@ import { BoolField, SelectField } from '@hfs/mui-grid-form'
 import { toast, useDialogBarColors } from './dialog'
 import { BlockIpBtn } from './blockIp'
 import { ALL as COUNTRIES } from './countries'
+import { useRoutedTab } from './router'
 
 const logLabels = {
     log: "Served",
@@ -31,12 +32,13 @@ const logLabels = {
     disconnections: "Disconnections",
     ips: "IPs",
 }
+const LOG_FILES = typedKeys(logLabels)
 
 let reloadIps: any
 
 export default function LogsPage({ setTitleSide }: PageProps) {
-    const [tab, setTab] = useState(0)
-    const files = typedKeys(logLabels)
+    const files = LOG_FILES
+    const [tab, setTab] = useRoutedTab('logs', files)
     const shorterLabels = !useBreakpoint('sm') && { error_log: "Not", console: h(Terminal), disconnections: h(LinkOff) }
     const file = files[tab]
     const fileAvailable = file.endsWith('log')

@@ -2,7 +2,7 @@
 
 import { createElement as h, Fragment, ReactNode, useCallback, useEffect, useState } from 'react'
 import { HashRouter, Route, Routes, useLocation, useNavigate } from './router'
-import MainMenu, { getMenuLabel, mainMenu } from './MainMenu'
+import MainMenu, { getMenuLabel, mainMenu, matchesMenuPath } from './MainMenu'
 import { AppBar, Box, BoxProps, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
 import { anyDialogOpen, Dialogs } from './dialog'
 import { useMyTheme } from './theme'
@@ -63,7 +63,7 @@ let titleSideSet: any
 
 function Routed() {
     const loc = useLocation().pathname.slice(1)
-    const current = mainMenu.find(x => x.path === loc)
+    const current = mainMenu.find(x => matchesMenuPath(x, loc))
     let { title } = useSnapState()
     title = current && (current.title || getMenuLabel(current)) || title
     const [open, setOpen] = useState(false)
@@ -128,9 +128,14 @@ function Routed() {
                     h(Flex, { ...titleSideFullWidth as any && { width: '100%' } }, titleSide),
                 ),
                 h(Routes, {},
-                    mainMenu.map((it,idx) =>
-                        // @ts-ignore
-                        h(Route, { key: idx, path: it.path, element: h(it.comp, { setTitleSide: set }) })),
+                    mainMenu.flatMap((it,idx) => [
+                            // @ts-ignore
+                            h(Route, { key: idx, path: it.path, element: h(it.comp, { setTitleSide: set }) }),
+                            it.subRoutes &&
+                                // tab pages encode their selected tab after the parent menu path
+                                // @ts-ignore
+                                h(Route, { key: it.path + '/:tab', path: it.path + '/:tab', element: h(it.comp, { setTitleSide: set }) })
+                        ]),
                     h(Route, { path: 'config', element: h(ConfigFilePage) })
                 )
             ),
