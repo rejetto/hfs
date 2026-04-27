@@ -144,6 +144,11 @@ describe('basics', () => {
     test('traversal.mixed-dots', req('/f1/page/.%2e/%2e./README.md', 404))
     test('traversal.overlong-utf8', req('/f1/page/%c0%ae%c0%ae/%c0%ae%c0%ae/README.md', 404))
     test('bad url encoding', req('/f1/%E0%A4%A', 404))
+    test('not-found.default page', req('/missing-default-404', /found<\/h1>/))
+    test('not-found.custom page overrides default', () =>
+        withCustomHtml({ 404: '<strong>custom 404 $MESSAGE</strong>' }, () =>
+            req('/missing-custom-404', /^<strong>custom 404 Not found<\/strong>$/)()) )
+    test('not-found.default page reverse proxy root', req('/missing-proxy-404', /href="\/prefix/, { headers: { 'x-forwarded-prefix': '/prefix' } }))
     test('custom mime from above', req('/tests/page/index.html', { status: 200, mime:'text/plain' }))
     test('name encoding', req(FUNNY_NAME_ENCODED, 200))
     test('name encoding list', reqList('/', { inList: [FUNNY_NAME] }))
@@ -1575,6 +1580,17 @@ async function withPluginConfig(id: string, config: object, cb: () => Promise<vo
         await reqApi('set_plugin', { id, enabled: false, config: prev.config }, 200, { auth })()
         if (prev.enabled)
             await reqApi('start_plugin', { id }, 200, { auth })()
+    }
+}
+
+async function withCustomHtml(sections: Record<string, string>, cb: () => Promise<void>) {
+    const prev = await reqApi('get_custom_html', {}, res => res?.sections, { auth, jar: {} })()
+    await reqApi('set_custom_html', { sections: { ...prev.sections, ...sections } }, 200, { auth, jar: {} })()
+    try {
+        await cb()
+    }
+    finally {
+        await reqApi('set_custom_html', { sections: prev.sections }, 200, { auth, jar: {} })()
     }
 }
 
