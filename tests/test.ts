@@ -1319,6 +1319,25 @@ describe('admin', () => {
     })
 })
 
+describe('logging', () => {
+    test('security-filtered traversal reaches the error log', async () => {
+        const logPath = resolve(__dirname, 'work/logs/access-error.log')
+        const uri = `/f1/page/.%2e/.%2e/README.md?log-test=${randomId(8)}`
+        const adminJar = {}
+        await reqApi('set_config', { values: { dont_log_net: '' } }, 200, { auth, jar: adminJar })()
+        try {
+            await req(uri, 404, { jar: {} })()
+            const found = await waitFor(() =>
+                existsSync(logPath) && readFileSync(logPath, 'utf8').includes(uri))
+            if (!found)
+                throw Error('traversal request was not written to the error log')
+        }
+        finally {
+            await reqApi('set_config', { values: { dont_log_net: '127.0.0.1|::1' } }, 200, { auth, jar: adminJar })()
+        }
+    })
+})
+
 function login(usr: string, pwd=password) {
     return srpClientSequence(srp, usr, pwd, (cmd: string, params: any) =>
         reqApi(cmd, params, (x,res)=> res.statusCode < 400)())

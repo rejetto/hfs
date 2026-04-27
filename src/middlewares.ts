@@ -50,7 +50,6 @@ export const headRequests: Koa.Middleware = async (ctx, next) => {
 let proxyDetected: undefined | Koa.Context
 export let cloudflareDetected: undefined | Date
 export const someSecurity: Koa.Middleware = (ctx, next) => {
-    ctx.request.ip = normalizeIp(ctx.ip)
     const ss = ctx.session
     if (ss?.username && !ss?.[ALLOW_SESSION_IP_CHANGE])
         if (!ss.ip)
@@ -92,6 +91,8 @@ export function getProxyDetected() {
 }
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {
+    // normalize once so auth, filters and logging agree on the same client address
+    ctx.request.ip = normalizeIp(ctx.ip)
     const s = ctx.session
     if (s?.username) {
         if (s.ts < invalidateSessionBefore.get(s?.username)!)
