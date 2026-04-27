@@ -13,8 +13,13 @@ import { state, useSnapState } from './state'
 import VfsPathField from './VfsPathField'
 import { DateTimeField } from './DateTimeField'
 
-interface FormProps { account: Account, groups: string[], done: (username: string)=>void, reload: ()=>void, addToBar: ReactNode }
-export default function AccountForm({ account, done, groups, addToBar, reload }: FormProps) {
+export default function AccountForm({ account, done, groups, addToBar, reload }: {
+    account: Account,
+    groups: string[],
+    done: (username: string, saveBtn?: HTMLButtonElement) => void,
+    reload: () => void,
+    addToBar: ReactNode
+}) {
     const { username } = useSnapState()
     const [values, setValues] = useState<Account & { password?: string, password2?: string }>(account)
     const [belongsOptions, setBelongOptions] = useState<string[]>([])
@@ -117,6 +122,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             ...propsForModifiedValues(isModifiedConfig(values, account)),
             async onClick() {
                 const { password='', password2, adminActualAccess, hasPassword, invalidated, canLogin, members, ...withoutPassword } = values
+                const saveBtn = ref.current?.querySelector<HTMLButtonElement>('button.saveBtn') || undefined
                 if (add) {
                     const got = await apiCall('add_account', withoutPassword)
                     if (password)
@@ -125,7 +131,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                             void apiCall('del_account', { username: values.username }) // best effort, don't wait
                             throw e
                         }
-                    done(got?.username)
+                    done(got?.username, saveBtn)
                     return
                 }
                 const got = await apiCall('set_account', {
@@ -136,7 +142,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                     await apiNewPassword(values.username, password)
                 if (account.username === username)
                     state.username = values.username
-                done(got?.username) // username may have been changed, so we pass it back
+                done(got?.username, saveBtn) // username may have been changed, so we pass it back
             }
         }
     })

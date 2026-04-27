@@ -227,6 +227,7 @@ export function Form<Values extends Dict>({
                 children: "Save",
                 loading: useDebounce(phase !== Phase.Idle), // debounce fixes click being ignored at state change and flickering
                 ...saveBtn,
+                className: `saveBtn ${saveBtn?.className||''}`,
                 onClick() {
                     pleaseSubmitAndValidate()
                 },

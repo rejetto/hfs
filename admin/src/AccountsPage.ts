@@ -7,7 +7,7 @@ import {
     AccountTree, ChevronRight, Close, Delete, DoNotDisturb, ExpandMore, Group, MilitaryTech, Person, PersonAdd, Schedule
 } from '@mui/icons-material'
 import { newDialog, with_, md, Jsonify } from './misc'
-import { Btn, Flex, IconBtn, iconTooltip, reloadBtn, useBreakpoint, useToggleButton } from './mui'
+import { Btn, execDoneMessage, Flex, IconBtn, iconTooltip, reloadBtn, useBreakpoint, useToggleButton } from './mui'
 import { TreeItem, SimpleTreeView } from '@mui/x-tree-view'
 import MenuButton from './MenuButton'
 import AccountForm from './AccountForm'
@@ -58,10 +58,10 @@ export default function AccountsPage() {
                         h(IconBtn, {  icon: Close, title: "Close", onClick: selectNone }),
                     ],
                     reload,
-                    done(username) {
+                    done(username, saveBtn) {
                         setSel(isSideBreakpoint ? [username] : [])
                         reload()
-                        toast("Account saved", 'success')
+                        execDoneMessage('', saveBtn)
                     }
                 }))
     useEffect(() => {
