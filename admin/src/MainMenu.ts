@@ -7,7 +7,7 @@ import {
     SvgIconComponent
 } from '@mui/icons-material'
 import _ from 'lodash'
-import { NavLink } from './router'
+import { Link, useLocation } from './router'
 import MonitorPage from './MonitorPage'
 import OptionsPage from './OptionsPage';
 import VfsPage from './VfsPage';
@@ -52,6 +52,7 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
     const { VERSION } = getHFS()
     const logo = 'hfs-logo.svg'
     const short = useWindowSize().height < 700
+    const currentPath = useLocation().pathname.slice(1)
     return h(Box, { sx: { display: 'flex', flexDirection: 'column', bgcolor: 'primary.main', minHeight: '100%' } },
         h(List, {
             sx:{
@@ -75,11 +76,13 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
             ),
             mainMenu.map((it, idx) => hTooltip( itemTitle(idx), getMenuLabel(it) + ' ' + itemTitle(idx),
                 h(ListItemButton, {
+                    // @ts-expect-error mui createElement overload does not infer custom Link props
+                    component: Link,
                     to: it.path,
-                    component: NavLink,
                     onClick: onSelect,
-                    // @ts-ignore
-                    style: ({ isActive }) => isActive ? { textDecoration: 'underline' } : {},
+                    // home has to match exactly because every path starts with an empty prefix
+                    selected: it.path ? currentPath === it.path || currentPath.startsWith(it.path + '/') : !currentPath,
+                    sx: { '&.Mui-selected': { '&,&:hover': { bgcolor: 'primary.dark', textDecoration: 'underline' } } },
                     children: undefined, // shut up ts
                 },
                     it.icon && h(ListItemIcon, { sx: { color: 'primary.contrastText', minWidth: 48 } }, h(it.icon)),

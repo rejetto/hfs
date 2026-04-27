@@ -1,21 +1,10 @@
 import { Children, cloneElement, createElement as h, forwardRef, Fragment, isValidElement } from 'react'
-import type { AnchorHTMLAttributes, ComponentType, CSSProperties, ReactElement, ReactNode } from 'react'
+import type { AnchorHTMLAttributes, ComponentType, ReactElement, ReactNode } from 'react'
 import { Link as WouterLink, Route as WouterRoute, Router, Switch, useLocation as useWouterLocation } from 'wouter'
 import { useHashLocation } from 'wouter/use-hash-location'
 
 export type LinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> & {
     to: string
-}
-
-type NavLinkRenderProps = {
-    isActive: boolean
-}
-
-type NavLinkProps = Omit<LinkProps, 'children' | 'className' | 'style'> & {
-    children?: ReactNode | ((props: NavLinkRenderProps) => ReactNode)
-    className?: string | ((props: NavLinkRenderProps) => string | undefined)
-    end?: boolean
-    style?: CSSProperties | ((props: NavLinkRenderProps) => CSSProperties | undefined)
 }
 
 type RouteProps = {
@@ -41,25 +30,6 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link({ to,
     // MUI passes refs to custom link components; forwarding it keeps ButtonBase/Link behavior working.
     // MUI may inject an `href` prop; keep our normalized target authoritative for hash routing consistency.
     return h(WouterLink as unknown as ComponentType<any>, { ...rest, ref, href: normalizePath(to) })
-})
-
-export const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(function NavLink({ to, end, className, style, children, ...rest }, ref) {
-    const [pathname] = useWouterLocation()
-    const targetPath = normalizePath(to)
-    const isActive = end
-        ? pathname === targetPath
-        : targetPath === '/'
-            ? pathname === '/'
-            : pathname === targetPath || pathname.startsWith(`${targetPath}/`)
-    const activeProps = { isActive }
-    return h(Link, {
-        ref,
-        to: targetPath,
-        ...rest,
-        className: typeof className === 'function' ? className(activeProps) : className,
-        style: typeof style === 'function' ? style(activeProps) : style,
-        children: typeof children === 'function' ? children(activeProps) : children,
-    })
 })
 
 export function useNavigate() {
