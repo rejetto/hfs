@@ -19,7 +19,7 @@ import { adminApis } from './adminApis'
 import { defineConfig, Version } from './config'
 import { ok } from 'assert'
 import _ from 'lodash'
-import { randomId } from './misc'
+import { httpStream, randomId } from './misc'
 import { selfCheckMiddleware } from './selfCheck'
 import { acmeMiddleware } from './acme'
 import './geo'
@@ -37,6 +37,7 @@ if (new Version(process.versions.node).olderThan('18.15.0')) {
 }
 
 process.title = 'HFS ' + VERSION
+httpStream.defaultUA = 'HFS'
 const keys = process.env.COOKIE_SIGN_KEYS?.split(',')
     || [randomId(30)] // randomness at start gives some extra security, btu also invalidates existing sessions
 export const app = new Koa({ keys })
