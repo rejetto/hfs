@@ -20,8 +20,8 @@ import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
 import {
-    asyncGeneratorToReadable, filterMapGenerator, isValidFileName, loadFileCached, pathEncode, safeDecodeURIComponent,
-    try_,
+    asyncGeneratorToReadable, deleteStoredFileAttrs, filterMapGenerator, isValidFileName, loadFileCached, pathEncode,
+    safeDecodeURIComponent, try_,
 } from './misc'
 import XXH from 'xxhashjs'
 import fs from 'fs'
@@ -112,6 +112,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
             if ((await events.emitAsync('deleting', { node, ctx }))?.isDefaultPrevented())
                 return ctx.status = HTTP_FAILED_DEPENDENCY
             await rm(source, { recursive: true })
+            await deleteStoredFileAttrs(source)
             void setCommentFor(source, '') // necessary only to clean a possible descript.ion or kvstorage
             return ctx.status = HTTP_OK
         } catch (e: any) {

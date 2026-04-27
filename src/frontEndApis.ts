@@ -17,7 +17,7 @@ import fs from 'fs'
 import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
 import { getUploadMeta } from './upload'
-import { apiAssertTypes, pathDecode, pathEncode, popKey } from './misc'
+import { apiAssertTypes, moveStoredFileAttrs, pathDecode, pathEncode, popKey } from './misc'
 import { getCommentFor, setCommentFor } from './comments'
 import { SendListReadable } from './SendList'
 import { ctxAdminAccess } from './adminApis'
@@ -188,7 +188,8 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
                     if (e.code !== 'EXDEV') throw e // exdev = different drive
                     await copyFile(src, dest)
                     await unlink(src)
-                }).catch(e => e.code || String(e))
+                }).then(() => moveStoredFileAttrs(src, dest))
+                    .catch(e => e.code || String(e))
         }))
     }
 }
@@ -210,6 +211,7 @@ export async function requestedRename(node: VfsNode | undefined, newName: string
             try {
                 const destSource = join(dirname(node.source), newName)
                 await rename(node.source, destSource)
+                await moveStoredFileAttrs(node.source, destSource)
                 getCommentFor(node.source).then(c => {
                     if (!c) return
                     void setCommentFor(node.source!, '')
