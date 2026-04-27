@@ -2,7 +2,7 @@
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import {
-    Account, accountCanLoginAdmin, accountHasPassword, accounts, addAccount, delAccount, getAccount,
+    Account, accountCanLoginAdmin, accountHasLoginMethod, accountHasPassword, accounts, addAccount, delAccount, getAccount,
     updateAccount, accountCanLogin, accountCanChangePassword, normalizeUsername
 } from './perm'
 import _ from 'lodash'
@@ -16,9 +16,9 @@ function prepareAccount(ac: Account | undefined) {
         ..._.omit(ac, ['password','hashed_password','srp']),
         username: ac.username, // omit won't copy it because it's a hidden prop
         hasPassword: accountHasPassword(ac),
-        isGroup: !ac.plugin?.auth && !accountHasPassword(ac),
+        isGroup: !accountHasLoginMethod(ac),
         adminActualAccess: accountCanLoginAdmin(ac),
-        canLogin: accountHasPassword(ac) ? accountCanLogin(ac) : undefined,
+        canLogin: accountHasLoginMethod(ac) ? accountCanLogin(ac) : undefined,
         canChangePassword: accountCanChangePassword(ac),
         invalidated: invalidateSessionBefore.get(ac.username),
         directMembers: Object.values(accounts.get()).filter(a => a.belongs?.includes(ac.username)).map(x => x.username),
@@ -34,7 +34,7 @@ function prepareAccount(ac: Account | undefined) {
     }
 }
 
-const ALLOWED_KEYS: (keyof Account)[] = ['admin', 'allow_net', 'belongs', 'days_to_live', 'disable_password_change',
+const ALLOWED_KEYS: (keyof Account)[] = ['admin', 'allow_net', 'auto_login_net', 'belongs', 'days_to_live', 'disable_password_change',
     'disabled', 'expire', 'ignore_limits', 'notes', 'password', 'redirect', 'require_password_change', 'username']
 
 export default  {

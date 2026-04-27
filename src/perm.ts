@@ -23,6 +23,7 @@ export interface Account {
     expire?: Date
     days_to_live?: number // this is not inherited, but it will affect sub-accounts via 'expire'
     allow_net?: string
+    auto_login_net?: string
     require_password_change?: boolean // not inherited
     notes?: string
     plugin?: { id?: string, auth?: boolean, [rest: string]: unknown }
@@ -222,8 +223,12 @@ export function accountHasPassword(account: Account) {
     return Boolean(account.password || account.srp)
 }
 
+export function accountHasLoginMethod(account: Account) {
+    return Boolean(accountHasPassword(account) || account.plugin?.auth || account.auto_login_net)
+}
+
 export function accountCanLogin(account: Account) {
-    return (accountHasPassword(account) || account.plugin?.auth) && !accountIsDisabled(account)
+    return accountHasLoginMethod(account) && !accountIsDisabled(account)
 }
 
 export function accountIsDisabled(account: Account): boolean {

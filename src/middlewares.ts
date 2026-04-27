@@ -6,7 +6,7 @@ import { API_URI, DEV } from './const'
 import { ALLOW_SESSION_IP_CHANGE, DAY, hasDirTraversal, isLocalHost, netMatches, splitAt, stream2string, try_, tryJson } from './misc'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
-import { Account, accountCanLogin, getAccount, getFromAccount } from './perm'
+import { Account, accountCanLogin, accounts, getAccount, getFromAccount } from './perm'
 import { Connection, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
 import { clearTextLogin, invalidateSessionBefore, setLoggedIn } from './auth'
 import { constants } from 'zlib'
@@ -101,7 +101,8 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     }
     // calculate these once and for all
     ctx.state.connection = socket2connection(ctx.socket)!
-    let a = await urlLogin() || await getHttpAccount()
+    // explicit credentials and existing sessions must take precedence, so a matching IP cannot override a chosen account
+    let a = await urlLogin() || await getHttpAccount() || !s?.username && autoLogin()
     const loggedInNotBySession = a
     ctx.state.account = a ||= getAccount(s?.username, false) // with least precedence, we consider session
     if (a)
@@ -134,6 +135,12 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
             return clearTextLogin(ctx, u, p||'', 'header')
         }
         catch {}
+    }
+
+    function autoLogin() {
+        // keep the mask direct so group inheritance cannot make identity depend on account order
+        return Object.values(accounts.get()).find(a =>
+            accountCanLogin(a) && a.auto_login_net && netMatches(ctx.ip, a.auto_login_net, true))
     }
 }
 

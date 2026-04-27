@@ -799,6 +799,18 @@ describe('sessions', () => {
             await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
         }
     })
+    test('auto_login_net.canLogin', async () => {
+        const user = `auto-login-${randomId(6)}`.toLowerCase()
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: user, overwrite: true, auto_login_net: '::1' }, res => res?.username === user, adminReq)()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar: {} })()
+            await reqApi('refresh_session', {}, res => !res?.username, { baseUrl: BASE_URL_127, jar: {} })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
     test('change_srp enforces self/admin permissions', async () => {
         const selfUser = `change-srp-self-${randomId(6)}`.toLowerCase()
         const otherUser = `change-srp-other-${randomId(6)}`.toLowerCase()
