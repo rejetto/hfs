@@ -20,6 +20,7 @@ import { reloadList } from './useFetchList'
 import { cut } from './clip'
 import { Btn, BtnProps, Checkbox, CustomCode } from './components'
 import i18n from './i18n'
+import { encodeUrlList } from '../../src/urlList'
 const { t, useI18N } = i18n
 
 export function MenuPanel() {
@@ -40,9 +41,11 @@ export function MenuPanel() {
         setTimeout(() => setJustStarted(true), 1000)
     }, [stopSearch, setJustStarted])
 
-    // passing files as string in the url should allow 1-2000 items before hitting the url limit of 64KB. Shouldn't be a problem, right?
+    // compact repeated folder names so search selections from the same folders are less likely to hit URL limits (64kb)
     const ofs = location.pathname.length
-    const list = useMemo(() => Object.keys(selected).map(s => s.slice(ofs, s.endsWith('/') ? -1 : Infinity)).join('//'), [selected])
+    const list = useMemo(() => encodeUrlList(
+        Object.keys(selected).map(s => s.slice(ofs, s.endsWith('/') ? -1 : Infinity))
+    ), [selected])
 
     // avoid useless dom changes while we are still waiting for necessary data
     const [changingButton, setChangingButton] = useState<'' | 'upload' | 'delete'>('')

@@ -11,10 +11,11 @@ import { applyRange, forceDownload, monitorAsDownload } from './serveFile'
 import { HTTP_OK, IS_WINDOWS } from './const'
 import { paramsToFilter } from './api.get_file_list'
 import { getCommentFor } from './comments'
+import { decodeUrlList } from './urlList'
 
 // expects 'node' to have had permissions checked by caller
 export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
-    const list = wantArray(ctx.query.list)[0]?.split('//') // slash is the only char not allowed in file names both for windows and unix, but still we need to encode whole paths, so the only safe choice to separate the entries is the double slash
+    const list = decodeUrlList(wantArray(ctx.query.list)[0])
     if (!list && statusCodeForMissingPerm(node, 'can_archive', ctx)) return
     ctx.status = HTTP_OK
     ctx.mime = 'zip'
