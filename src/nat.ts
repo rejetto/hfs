@@ -10,6 +10,7 @@ import { isIP } from 'net'
 import { getIps, getServerStatus } from './listen'
 import { exec } from 'child_process'
 import { IS_MAC, IS_WINDOWS } from './const'
+import { defineConfig } from './config'
 
 export const defaultBaseUrl = proxy({
     proto: 'http',
@@ -26,6 +27,8 @@ export const defaultBaseUrl = proxy({
     }
 })
 
+export const mappedPort = defineConfig('mapped_port', 0)
+
 export const upnpClient = new Client({ timeout: 4_000 })
 const originalMethod = upnpClient.getGateway
 // other client methods call getGateway too, so this will ensure they reuse this same result
@@ -40,6 +43,15 @@ repeat(MINUTE, () => upnpClient.getPublicIp().then(v => {
     getPublicIps.clearRetain()
     return defaultBaseUrl.externalIp = v
 }, () => {}))
+
+export function upnpMappingParam(privatePort: number, publicPort: number, description='hfs', ttl=0) {
+    // nat-upnp-rejetto requires the object form of `public` to preserve the host field correctly
+    return { private: privatePort, public: { host: '', port: publicPort }, description, ttl }
+}
+
+export function createUpnpMapping(...args: Parameters<typeof upnpMappingParam>) {
+    return upnpClient.createMapping(upnpMappingParam(...args))
+}
 
 export const getPublicIps = debounceAsync(async () => {
     const res = await getProjectInfo()
@@ -73,13 +85,19 @@ export const getNatInfo = debounceAsync(async () => {
     const gatewayIpPromise = findGateway().catch(() => undefined)
     const res = await haveTimeout(10_000, upnpClient.getGateway()).catch(() => null)
     const status = await getServerStatus()
-    const mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
+    let mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
     console.debug("Mappings found:", mappings?.map(x => x.description).join(', ') || "none")
     const localIps = await getIps(false)
     const gatewayIp = await gatewayIpPromise
     const localIp = res?.address || (gatewayIp ? _.maxBy(localIps, x => inCommon(x, gatewayIp)) : localIps[0])
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port || undefined
-    const mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
+    let mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
+    if (mappings && localIp && internalPort && !mapped && mappedPort.get())
+        // restore the HFS-created mapping after routers that forget UPnP state across reboots
+        await haveTimeout(5_000, createUpnpMapping(internalPort, mappedPort.get())).then(async () => {
+            mappings = await haveTimeout(5_000, upnpClient.getMappings()) // confirm router state after restore
+            mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
+        }).catch(e => console.warn('UPnP mapping restore failed:', e?.message || String(e)))
     const externalPort = mapped?.public.port
     if (localIp)
         defaultBaseUrl.localIp = localIp

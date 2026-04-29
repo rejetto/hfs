@@ -3,7 +3,7 @@ import {
 } from './misc'
 import { createServer, IncomingMessage, ServerResponse } from 'http'
 import { Middleware } from 'koa'
-import { getNatInfo, upnpClient } from './nat'
+import { getNatInfo, upnpClient, upnpMappingParam } from './nat'
 import { cert, getCertObject, getServerStatus, privateKey } from './listen'
 import { ApiError } from './apiMiddleware'
 import acme from 'acme-client'
@@ -29,8 +29,9 @@ export const acmeMiddleware: Middleware = (ctx, next) => { // koa format
         return next()
 }
 
-const TEMP_MAP = { private: 80, public: { host: '', port: 80 }, description: 'hfs temporary', ttl: 5000 } // from my tests (zyxel VMG8825), lower values won't make a working mapping
+const TEMP_MAP = upnpMappingParam(80, 80, 'hfs temporary', 5000) // from my tests (zyxel VMG8825), lower values won't make a working mapping
 
+// remove temporary port mapping, if any is left from previous execution
 repeat(MINUTE, async stop => {
     await upnpClient.getGateway() // without this, the next call will break upnp support
     const res = await upnpClient.getMappings()
@@ -61,7 +62,7 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
         let check = await selfCheck(checkUrl) // some check services may not consider the domain, but we already verified that
         if (check?.success === false && nat.upnp && !nat.mapped80) {
             console.debug("Setting temporary port forward")
-            tempMap = await haveTimeout(10_000, upnpClient.createMapping(TEMP_MAP).catch(() => {})).catch(() => {})
+            tempMap = await haveTimeout(10_000, upnpClient.createMapping(TEMP_MAP)).catch(() => {})
             check = await selfCheck(checkUrl) // repeat test
         }
         //if (!check) throw new ApiError(HTTP_FAILED_DEPENDENCY, "couldn't test port 80")
@@ -131,4 +132,3 @@ const renewCert = debounceAsync(async () => {
     await makeCert(domain, undefined, altNames)
         .catch(e => console.log(acmeRenewError = `Error renewing certificate, expiring ${formatDate(validTo)}: ${String(e.message || e)}`))
 }, { retain: DAY, retainFailure: HOUR })
-

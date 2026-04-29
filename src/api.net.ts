@@ -10,7 +10,7 @@ import { getProjectInfo } from './github'
 import { apiAssertTypes, onlyTruthy, promiseBestEffort } from './misc'
 import { lookup, Resolver } from 'dns/promises'
 import { isIPv6 } from 'net'
-import { getNatInfo, getPublicIps, upnpClient } from './nat'
+import { createUpnpMapping, getNatInfo, getPublicIps, mappedPort, upnpClient } from './nat'
 import { makeCert } from './acme'
 import { selfCheck } from './selfCheck'
 
@@ -54,11 +54,12 @@ export default {
         if (externalPort)
             try { await upnpClient.removeMapping({ public: { host: '', port: externalPort } }) }
             catch (e: any) { return new ApiError(HTTP_SERVER_ERROR, "removeMapping failed: " + String(e) ) }
-        if (external) // must use the object form of 'public' to work around a bug of the library
-            await upnpClient.createMapping({ private: internal || internalPort, public: { host: '', port: external }, description: 'hfs', ttl: 0 })
+        if (external)
+            await createUpnpMapping(internal || internalPort, external)
                 .catch(res => {
                     throw new ApiError(res.errorCode || HTTP_SERVER_ERROR, res.errorCode === 718 ? "Port not available" : res.errorDescription || res.message || "unknown error")
                 })
+        mappedPort.set(external || 0) // remember only successful HFS mappings
         return {}
     },
 
