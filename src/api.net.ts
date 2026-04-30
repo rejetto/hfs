@@ -10,7 +10,7 @@ import { getProjectInfo } from './github'
 import { apiAssertTypes, onlyTruthy, promiseBestEffort } from './misc'
 import { lookup, Resolver } from 'dns/promises'
 import { isIPv6 } from 'net'
-import { createUpnpMapping, getNatInfo, getPublicIps, mappedPort, upnpClient } from './nat'
+import { getNatInfo, getPublicIps, getUpnpClient, mappedPort, upnpMappingParam } from './nat'
 import { makeCert } from './acme'
 import { selfCheck } from './selfCheck'
 
@@ -52,10 +52,10 @@ export default {
         if (!internalPort)
             return new ApiError(HTTP_FAILED_DEPENDENCY, "no internal port")
         if (externalPort)
-            try { await upnpClient.removeMapping({ public: { host: '', port: externalPort } }) }
+            try { await getUpnpClient().removeMapping({ public: { host: '', port: externalPort } }) }
             catch (e: any) { return new ApiError(HTTP_SERVER_ERROR, "removeMapping failed: " + String(e) ) }
         if (external)
-            await createUpnpMapping(internal || internalPort, external)
+            await getUpnpClient().createMapping(upnpMappingParam(internal || internalPort, external))
                 .catch(res => {
                     throw new ApiError(res.errorCode || HTTP_SERVER_ERROR, res.errorCode === 718 ? "Port not available" : res.errorDescription || res.message || "unknown error")
                 })

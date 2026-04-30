@@ -3,7 +3,7 @@ import {
 } from './misc'
 import { createServer, IncomingMessage, ServerResponse } from 'http'
 import { Middleware } from 'koa'
-import { getNatInfo, upnpClient, upnpMappingParam } from './nat'
+import { getNatInfo, getUpnpClient, upnpEnabled, upnpMappingParam } from './nat'
 import { cert, getCertObject, getServerStatus, privateKey } from './listen'
 import { ApiError } from './apiMiddleware'
 import acme from 'acme-client'
@@ -33,13 +33,16 @@ const TEMP_MAP = upnpMappingParam(80, 80, 'hfs temporary', 5000) // from my test
 
 // remove temporary port mapping, if any is left from previous execution
 repeat(MINUTE, async stop => {
-    await upnpClient.getGateway() // without this, the next call will break upnp support
-    const res = await upnpClient.getMappings()
+    if (!await upnpEnabled.getWhenReady())
+        return stop()
+    const client = getUpnpClient()
+    await client.getGateway() // without this, the next call will break upnp support
+    const res = await client.getMappings()
     const leftover = res.find(x => x.description === TEMP_MAP.description) // in case the process is interrupted
     if (!leftover) return void stop() // we are good
     if (acmeOngoing) return // it doesn't count, as we are in the middle of something. Retry later
     stop()
-    return upnpClient.removeMapping(TEMP_MAP)
+    return client.removeMapping(TEMP_MAP)
 })
 
 async function generateSSLCert(domain: string, email?: string, altNames?: string[]) {
@@ -62,7 +65,7 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
         let check = await selfCheck(checkUrl) // some check services may not consider the domain, but we already verified that
         if (check?.success === false && nat.upnp && !nat.mapped80) {
             console.debug("Setting temporary port forward")
-            tempMap = await haveTimeout(10_000, upnpClient.createMapping(TEMP_MAP)).catch(() => {})
+            tempMap = await haveTimeout(10_000, getUpnpClient().createMapping(TEMP_MAP)).catch(() => {})
             check = await selfCheck(checkUrl) // repeat test
         }
         //if (!check) throw new ApiError(HTTP_FAILED_DEPENDENCY, "couldn't test port 80")
@@ -87,9 +90,9 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
         return { key, cert }
     }
     finally {
-        if (tempMap) {
+        if (tempMap && upnpEnabled.get()) {
             console.debug("Removing temporary port forward")
-            upnpClient.removeMapping(TEMP_MAP).catch(() => {}) // clean after ourselves
+            getUpnpClient().removeMapping(TEMP_MAP).catch(() => {}) // clean after ourselves
         }
         acmeOngoing = false
         if (tempSrv) await new Promise(res => tempSrv.close(res))

@@ -113,14 +113,17 @@ export default function OptionsPage() {
         },
         fields: [
             h(Section, { title: "Networking" }),
-            { k: 'port', comp: PortField, xs: 12, sm: 6, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
-            { k: 'https_port', comp: PortField, xs: 12, sm: 6, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
+            { k: 'port', comp: PortField, xs: 12, sm: 4, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
+            { k: 'https_port', comp: PortField, xs: 12, sm: 4, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
                 onChange(v: number) {
                     if (v >= 0 && !httpsEnabled && !values.cert)
                         void suggestMakingCert()
                     return v
                 }
             },
+            { k: CFG.upnp_enabled, comp: BoolField, xs: 12, sm: 4, label: "UPnP/SSDP",
+                helperText: "Port forwarding and double-NAT detection" },
+
             httpsEnabled && { k: 'cert', comp: FileField, sm: 4, label: "HTTPS certificate file",
                 helperText: wikiLink('HTTPS#certificate', "What is this?"),
                 error: with_(status?.https.error, e => isCertError(e) && (
@@ -130,7 +133,6 @@ export default function OptionsPage() {
             httpsEnabled && { k: 'private_key', comp: FileField, sm: 4, label: "HTTPS private key file",
                 ...with_(status?.https.error, e => isKeyError(e) ? { error: true, helperText: e } : null)
             },
-
             httpsEnabled && { k: 'force_https', comp: BoolField, label: "Force HTTPS", sm: 4, disabled: !httpsEnabled || values.port < 0,
                 helperText: "Not applied to localhost. Doesn't work with proxies."
             },

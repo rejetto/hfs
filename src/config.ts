@@ -66,6 +66,10 @@ export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler
         get(): T {
             return getConfig(k)
         },
+        async getWhenReady() {
+            await configReady
+            return this.get()
+        },
         sub(cb: Subscriber<T>) {
             if (started) // initial event already passed, we'll make the first call
                 cb(getConfig(k), { k, was: defaultValue, defaultValue, version: configVersion.compiled(), object })
@@ -224,7 +228,7 @@ export function subMultipleConfigs(cb: () => any, configs: Array<ReturnType<type
 }
 
 export const showHelp = argv.help
-export const configReady = events.once('configReady') // the boolean value means startedWithoutConfig
+export const configReady = events.once('configReady').then(x => x[0] as Boolean) // the value is startedWithoutConfig. The .then also avoids exposing the cancel-subscription function.
 configReady.then(() => {
     if (!showHelp) return
     console.log(`HELP
