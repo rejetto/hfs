@@ -320,10 +320,10 @@ export default function InternetPage({ setTitleSide }: PageProps) {
             !direct && h(DataLine),
             !direct && h(Device, {
                 name: "Router", icon: RouterTwoTone, ip: data?.gatewayIp,
-                color: data?.mapped && (wrongMap ? 'warning' : 'success'),
+                color: checkResult ? 'success' : data?.mapped && (wrongMap ? 'warning' : 'success'),
                 below: mapping ? h(LinearProgress, { sx: { height: '1em' } })
                     : h(LinkBtn, { sx: { fontSize: 'smaller', display: 'block' }, onClick: configure },
-                        "port ", wrongMap ? 'is wrong' : data?.externalPort || "unknown"),
+                        "port ", wrongMap ? "is wrong" : data?.externalPort || (checkResult ? "verified" : "unknown")),
             }),
             h(DataLine),
             h(Device, { name: "Internet", icon: PublicTwoTone, ip: publicIps,
