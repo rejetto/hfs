@@ -420,7 +420,10 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                 && fixPort()
         if (!data.upnp)
             return alertDialog(h(Box, { sx: { lineHeight: 1.5 } }, md(`We cannot help you configuring your router because UPnP is not available.\nFind more help [on this website](${PORT_FORWARD_URL}).`)), 'info')
-        const res = await promptDialog(md(`This will ask the router to map your port, so that it can be reached from the Internet.\nYou can set the same number of the local network (${port}), or a different one.`), {
+        const msg = `For HFS to work over the Internet, you need a port on your modem/router forwarded to this computer's port ${port}.\n\n`
+            + (data?.mapped ? '' : `You may want to check if that's already the case before trying the following.\n\n`)
+            + `This will ask the router to forward a port.\nYou can use the same number as the local network port (${port}), or a different one.`
+        const res = await promptDialog(md(msg), {
             value: data.externalPort || port,
             field: { label: "Port seen from the Internet", comp: NumberField },
             addToBar: data.mapped && [h(Button, { color: 'warning', onClick: remove }, "Remove")],
