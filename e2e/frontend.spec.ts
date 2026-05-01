@@ -5,6 +5,9 @@ import {
     clickAdminMenu, clickIconBtn, forwardConsole, loginAdmin, password, resetTimestamp, FRONTEND_URL, username
 } from './common'
 
+const screenshotStyle = fs.readFileSync('e2e/screenshot.css', 'utf8')
+const screenshotCounters = new WeakMap<object, number>()
+
 // a generic test touch several parts
 test('around1', async ({ page }) => {
     forwardConsole(page)
@@ -299,10 +302,34 @@ test('admin1', async ({ page }) => {
 
 async function screenshot(page: Page, selectorForMask = '') {
     if (process.env.NO_SS) return
+    const testInfo = test.info()
+    const snapshotName = nextScreenshotName(testInfo)
+    const snapshotPath = testInfo.snapshotPath(snapshotName, { kind: 'screenshot' })
     if (selectorForMask)
         selectorForMask = ',' + selectorForMask
     await wait(1000) // this accounts especially for our DataTable component which takes time to set the layout
-    return expect(page).toHaveScreenshot({ fullPage: true, mask: [page.locator(`.maskInTests${selectorForMask}`)] })
+    const mask = [page.locator(`.maskInTests${selectorForMask}`)]
+    // write the missing baseline ourselves so Playwright does not turn the first run into a failure
+    if (!fs.existsSync(snapshotPath)) {
+        await page.screenshot({
+            path: snapshotPath,
+            fullPage: true,
+            mask,
+            animations: 'disabled',
+            caret: 'hide',
+            scale: 'css',
+            style: screenshotStyle,
+        })
+        return
+    }
+    return expect(page).toHaveScreenshot(snapshotName, { fullPage: true, mask })
+}
+
+function nextScreenshotName(testInfo: ReturnType<typeof test.info>) {
+    const nextIndex = (screenshotCounters.get(testInfo) ?? 0) + 1
+    screenshotCounters.set(testInfo, nextIndex)
+    const testName = testInfo.titlePath.slice(1).join(' ')
+    return `${testName}-${nextIndex}.png`
 }
 
 test('anew', async ({ page, browserName }) => {
