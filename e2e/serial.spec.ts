@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type ConsoleMessage, type Page, type Request, type Response, type TestInfo } from '@playwright/test'
 import { ADMIN_URL, clearUploads, clickAdminMenu, clickIconBtn, loginAdmin, password, uploadName, FRONTEND_URL, username } from './common'
 
 // this test is separated to run serially, as it will modify folder timestamp for a few seconds, during which other tests may fail
@@ -10,57 +10,151 @@ export const fileToUpload = {
     buffer: Buffer.alloc(100_000),
 }
 
-test('upload1', async ({ page, context, browserName }) => {
+test('upload1', async ({ page, context, browserName }, testInfo) => {
     if (browserName !== 'chromium') return // only chromium has cdpSession
-    await page.goto(FRONTEND_URL)
-    await page.getByRole('button', { name: 'Login' }).click()
-    await page.getByRole('textbox', { name: 'Username' }).fill(username)
-    await page.getByRole('textbox', { name: 'Password' }).fill(password)
-    await page.getByRole('button', { name: 'Continue' }).click()
-    await page.locator('div').filter({ hasText: 'Logged in' }).nth(3).click()
+    const diagnostics = await startUpload1Diagnostics(page)
+    try {
+        await page.goto(FRONTEND_URL)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await page.locator('div').filter({ hasText: 'Logged in' }).nth(3).click()
 
-    await page.getByRole('link', { name: 'for-admins, Folder' }).click()
-    await page.getByRole('link', { name: 'upload, Folder' }).click()
+        await page.getByRole('link', { name: 'for-admins, Folder' }).click()
+        await page.getByRole('link', { name: 'upload, Folder' }).click()
 
-    await page.getByRole('button', { name: 'Options' }).click()
-    const pageAdminPromise = page.waitForEvent('popup')
-    await page.getByRole('button', { name: 'Admin-panel' }).click()
-    const pageAdmin = await pageAdminPromise
-    await pageAdmin.goto(ADMIN_URL + '#/monitoring'); // cross-device way of changing page
-    await page.locator('div').filter({ hasText: 'xOptionsAdmin-panelSort by:' }).nth(2).click()
-    await page.getByRole('button', { name: 'Close' }).click()
-    await page.getByRole('button', { name: 'Upload' }).click()
-    const fileChooserPromise = page.waitForEvent('filechooser')
-    await page.getByRole('button', { name: 'Pick files' }).click()
-    const fileChooser = await fileChooserPromise
-    await fileChooser.setFiles(fileToUpload)
-    // can't do without cdp to slow down the upload. I tried using route.continue, but i can't send half-body keeping the full content-length, and i also cannot pass a stream (to throttle)
-    const cdpSession = await context.newCDPSession(page)
-    await cdpSession.send('Network.emulateNetworkConditions', NETWORK_PRESETS.Regular2G)
-    await page.getByRole('button', { name: 'Edit' }).click()
-    const renameDialog = page.locator('.dialog-prompt')
-    const renameInput = renameDialog.getByRole('textbox')
-    await expect(renameInput).toHaveValue(fileToUpload.name) // promptDialog initializes the field value in useEffect, so we wait for that init to avoid our fill being overwritten
-    await renameInput.fill(uploadName)
-    await renameDialog.getByRole('button', { name: 'Continue' }).click()
-    await expect(page.getByText(uploadName)).toBeVisible() // rename was effective
-    // we send the upload, slowly, so that we can interrupt it in the admin-panel to test the upload resume
-    await page.getByRole('button', { name: 'Send 1 file' }).click()
-    const uploadCells = pageAdmin.locator('.MuiDataGrid-cell')
-        .filter({ hasText: uploadName })
-        .filter({ hasText: '/for-admins/upload' })
-    await expect(uploadCells.first()).toBeVisible()
-    // during upload resume, monitoring can briefly show two rows for the same path
-    await uploadCells.last().click()
-    await clickIconBtn('Disconnect', pageAdmin)
-    await clickIconBtn('Close', pageAdmin)
-    await pageAdmin.close()
-    await page.getByText('Copy links').click()
-    await page.getByText('Operation successful').click()
-    await page.getByRole('button', { name: 'Close' }).click()
-    await cdpSession?.send('Network.emulateNetworkConditions', NETWORK_PRESETS.NoThrottle)
-    clearUploads()
+        await page.getByRole('button', { name: 'Options' }).click()
+        const pageAdminPromise = page.waitForEvent('popup')
+        await page.getByRole('button', { name: 'Admin-panel' }).click()
+        const pageAdmin = await pageAdminPromise
+        diagnostics.trackPage(pageAdmin, 'admin')
+        await pageAdmin.goto(ADMIN_URL + '#/monitoring'); // cross-device way of changing page
+        await page.locator('div').filter({ hasText: 'xOptionsAdmin-panelSort by:' }).nth(2).click()
+        await page.getByRole('button', { name: 'Close' }).click()
+        await page.getByRole('button', { name: 'Upload' }).click()
+        const fileChooserPromise = page.waitForEvent('filechooser')
+        await page.getByRole('button', { name: 'Pick files' }).click()
+        const fileChooser = await fileChooserPromise
+        await fileChooser.setFiles(fileToUpload)
+        // can't do without cdp to slow down the upload. I tried using route.continue, but i can't send half-body keeping the full content-length, and i also cannot pass a stream (to throttle)
+        const cdpSession = await context.newCDPSession(page)
+        await cdpSession.send('Network.emulateNetworkConditions', NETWORK_PRESETS.Regular2G)
+        await page.getByRole('button', { name: 'Edit' }).click()
+        const renameDialog = page.locator('.dialog-prompt')
+        const renameInput = renameDialog.getByRole('textbox')
+        await expect(renameInput).toHaveValue(fileToUpload.name) // promptDialog initializes the field value in useEffect, so we wait for that init to avoid our fill being overwritten
+        await renameInput.fill(uploadName)
+        await renameDialog.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByText(uploadName)).toBeVisible() // rename was effective
+        // we send the upload, slowly, so that we can interrupt it in the admin-panel to test the upload resume
+        await page.getByRole('button', { name: 'Send 1 file' }).click()
+        const uploadCells = pageAdmin.locator('.MuiDataGrid-cell')
+            .filter({ hasText: uploadName })
+            .filter({ hasText: '/for-admins/upload' })
+        await expect(uploadCells.first()).toBeVisible()
+        // during upload resume, monitoring can briefly show two rows for the same path
+        await uploadCells.last().click()
+        await clickIconBtn('Disconnect', pageAdmin)
+        await clickIconBtn('Close', pageAdmin)
+        await pageAdmin.close()
+        await page.getByText('Copy links').click()
+        await page.getByText('Operation successful').click()
+        await page.getByRole('button', { name: 'Close' }).click()
+        await cdpSession?.send('Network.emulateNetworkConditions', NETWORK_PRESETS.NoThrottle)
+        clearUploads()
+    }
+    catch (err) {
+        await diagnostics.attach(testInfo)
+        throw err
+    }
 })
+
+const MAX_DIAGNOSTIC_LINES = 300
+
+async function startUpload1Diagnostics(page: Page) {
+    const lines: string[] = []
+    const started = Date.now()
+    addLine('diagnostics started')
+    await page.exposeBinding('__upload1Diag', (_source, entry: Record<string, unknown>) => {
+        addLine(`xhr ${formatEntry(entry)}`)
+    })
+    await page.addInitScript(() => {
+        const originalOpen = XMLHttpRequest.prototype.open
+        const originalSend = XMLHttpRequest.prototype.send
+        XMLHttpRequest.prototype.open = function(method: string, url: string | URL, ...args: any[]) {
+            ;(this as any).__upload1DiagRequest = { method: String(method), url: String(url) }
+            return Reflect.apply(originalOpen, this, [method, url, ...args])
+        }
+        XMLHttpRequest.prototype.send = function(...args: any[]) {
+            const req = (this as any).__upload1DiagRequest
+            if (req?.method === 'PUT' && req.url.includes('/for-admins/upload/')) {
+                const log = (event: string, progress?: ProgressEvent) => {
+                    // record XHR state before Playwright closes the browser
+                    Promise.resolve((window as any).__upload1Diag?.({
+                        event,
+                        readyState: this.readyState,
+                        status: this.status,
+                        url: req.url,
+                        loaded: progress?.loaded,
+                        total: progress?.lengthComputable ? progress.total : undefined,
+                    })).catch(() => {})
+                }
+                for (const event of ['loadstart', 'abort', 'error', 'timeout', 'loadend'])
+                    this.addEventListener(event, log.bind(null, event))
+                this.upload.addEventListener('progress', e => log('upload-progress', e))
+                this.addEventListener('readystatechange', () => log('readystatechange'))
+            }
+            return originalSend.apply(this, args)
+        }
+    })
+    trackPage(page, 'main')
+    return { attach, trackPage }
+
+    function trackPage(trackedPage: Page, label: string) {
+        trackedPage.on('console', msg => addLine(`console:${label} ${formatConsole(msg)}`))
+        trackedPage.on('requestfailed', request => addLine(`requestfailed:${label} ${formatRequest(request)} ${request.failure()?.errorText ?? ''}`))
+        trackedPage.on('response', response => {
+            if (isUploadResponse(response))
+                addLine(`response:${label} ${response.status()} ${response.request().method()} ${response.url()}`)
+        })
+    }
+
+    async function attach(testInfo: TestInfo) {
+        await testInfo.attach('upload1-diagnostics', {
+            body: lines.join('\n') + '\n',
+            contentType: 'text/plain',
+        })
+    }
+
+    function addLine(text: string) {
+        const offset = `${Date.now() - started}ms`.padStart(7)
+        lines.push(`${offset} ${text}`)
+        if (lines.length > MAX_DIAGNOSTIC_LINES)
+            lines.splice(0, lines.length - MAX_DIAGNOSTIC_LINES)
+    }
+
+    function formatConsole(msg: ConsoleMessage) {
+        return `${msg.type()} ${msg.text()}`
+    }
+
+    function formatRequest(request: Request) {
+        return `${request.method()} ${request.url()}`
+    }
+
+    function isUploadResponse(response: Response) {
+        const request = response.request()
+        return request.method() === 'PUT' && response.url().includes('/for-admins/upload/')
+    }
+
+    function formatEntry(entry: Record<string, unknown>) {
+        return Object.entries(entry)
+            .filter(([, value]) => value !== undefined)
+            .map(([key, value]) => `${key}=${String(value)}`)
+            .join(' ')
+    }
+
+}
 
 const NETWORK_PRESETS = {
     Offline: {
