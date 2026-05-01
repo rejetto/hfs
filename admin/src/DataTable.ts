@@ -1,12 +1,13 @@
 import { DataGrid, DataGridProps, getGridStringOperators, GridColDef, GridFooter, GridFooterContainer,
-    GridValidRowModel, useGridApiRef, GridRenderCellParams } from '@mui/x-data-grid'
+    GridValidRowModel, useGridApiRef, GridRenderCellParams, QuickFilter, QuickFilterControl } from '@mui/x-data-grid'
 import { enUS } from '@mui/x-data-grid/locales'
 import { Alert, Box, BoxProps, LinearProgress, useTheme } from '@mui/material'
 import type { Breakpoint } from '@mui/material/styles'
-import { createElement as h, Fragment, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createElement as h, type ElementType, Fragment, ReactNode, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { callable, Callback, Falsy, newDialog, onlyTruthy, useGetSize } from '@hfs/shared'
 import _ from 'lodash'
-import { Center, Flex, mergeSx } from './mui'
+import { Center, Flex, IconBtn, mergeSx } from './mui'
+import { Search } from '@mui/icons-material'
 import { SxProps } from '@mui/system'
 import { state, updateStateObject } from './state'
 import { useDebounce } from 'usehooks-ts'
@@ -24,6 +25,8 @@ export type DataTableColumn<R extends GridValidRowModel=any> = GridColDef<R> & {
 export interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridProps<R>, 'columns'> {
     columns: Array<DataTableColumn<R> | Falsy>
     actions?: ({ row, id }: any) => ReactNode[]
+    actionsHeader?: ReactNode | Callback<any, ReactNode>
+    quickFilter?: boolean
     actionsProps?: Partial<GridColDef<R>> & { hideUnder?: Breakpoint | number }
     initializing?: boolean
     noRows?: ReactNode
@@ -35,12 +38,13 @@ export interface DataTableProps<R extends GridValidRowModel=any> extends Omit<Da
     details?: boolean
 }
 export function DataTable({
-    columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, footerSide, fillFlex,
-    persist, details, slots, slotProps, ...rest
+    columns, initialState={}, actions, actionsHeader, actionsProps, initializing, noRows, error, compact, footerSide, fillFlex,
+    persist, details, quickFilter, slots, slotProps, ...rest
 }: DataTableProps) {
     const theme = useTheme()
     const apiRef = useGridApiRef()
     const [actionsLength, setActionsLength] = useState(0)
+    const [quickFilterOpen, setQuickFilterOpen] = useState(false)
     const [merged, setMerged] = useState(0)
     const manipulatedColumns = useMemo(() => {
         const { localeText } = enUS.components.MuiDataGrid.defaultProps as any
@@ -89,6 +93,7 @@ export function DataTable({
                 headerName: '',
                 align: 'center',
                 headerAlign: 'center',
+                sortable: false,
                 hideSortIcons: true,
                 disableColumnMenu: true,
                 renderCell(params: any) {
@@ -96,10 +101,11 @@ export function DataTable({
                     setTimeout(() => setActionsLength(ret.length)) // cannot update state during rendering
                     return h(Box, { sx: { whiteSpace: 'nowrap' } }, ...ret)
                 },
-                ...actionsProps
+                ...actionsProps,
+                renderHeader: quickFilter || actionsHeader ? renderActionsHeader : actionsProps?.renderHeader,
             })
         return ret
-    }, [columns, actions, actionsLength])
+    }, [columns, actions, actionsHeader, actionsLength, actionsProps, quickFilter])
     const sizeGrid = useGetSize()
     const width = useDebounce(sizeGrid.w || 0, 500) // stabilize width
     const hideCols = useMemo(() => {
@@ -108,10 +114,12 @@ export function DataTable({
             && field))
         const o = Object.fromEntries(fields.map(x => [x, false]))
         _.merge(initialState, { columns: { columnVisibilityModel: o } })
+        if (quickFilter)
+            _.merge(initialState, { filter: { filterModel: { quickFilterExcludeHiddenColumns: false } } })
         // count the hidden columns that are merged into visible columns
         setMerged(_.sumBy(fields, k => _.find(columns, col => col && !fields.includes(col.field) && col.mergeRender?.[k]) ? 1 : 0))
         return fields
-    }, [manipulatedColumns, width])
+    }, [manipulatedColumns, width, quickFilter])
     const [vis, setVis] = useState(persist && state.dataTablePersistence[persist]?.columnVisibility || {})
 
     const displayingDetails = useRef<any>({})
@@ -147,6 +155,7 @@ export function DataTable({
             disableRowSelectionOnClick: true,
             ref: sizeGrid.refToPass,
             ...rest,
+            ...quickFilter && { showToolbar: quickFilterOpen || rest.showToolbar },
             sx: mergeSx({
                 ...fillFlex && { height: 0, flex: 'auto' }, // limit table to available screen space, if parent is flex. Consider using fillFlexParentSx
                 '& .MuiDataGrid-virtualScroller': { minHeight: '3em' }, // without this, no-entries gets just 1px
@@ -155,10 +164,12 @@ export function DataTable({
             slots: {
                 footer: CustomFooter,
                 noRowsOverlay: NoRowsOverlay,
-                ...slots
+                ...slots,
+                ...quickFilterOpen && { toolbar: DataTableQuickFilterToolbar as any }
             } as any,
             slotProps: {
                 ...slotProps,
+                ...quickFilterOpen && { toolbar: { ...(slotProps as any)?.toolbar, onExpandedChange: setQuickFilterOpen } },
                 footer: { ...(slotProps as any)?.footer, add: wrappedFooterSide },
                 noRowsOverlay: { ...(slotProps as any)?.noRowsOverlay, initializing, noRows },
                 pagination: {
@@ -224,6 +235,17 @@ export function DataTable({
         })
     )
 
+    function renderActionsHeader(params: any) {
+        return h(Box, { sx: { display: 'flex', width: '100%', justifyContent: 'center' }, onClick: stopPropagation, onKeyDown: stopPropagation },
+            actionsHeader !== undefined ? callable(actionsHeader, params) : actionsProps?.renderHeader?.(params),
+            quickFilter && h(IconBtn, { icon: Search, title: "Search", size: 'small', onClick: () => setQuickFilterOpen(true) }))
+
+        function stopPropagation(ev: SyntheticEvent) {
+            // prevent header controls from triggering grid sorting or column interactions
+            ev.stopPropagation()
+        }
+    }
+
     function renderCell(col: GridColDef, row: any) {
         const api = apiRef.current
         let value = row[col.field]
@@ -235,6 +257,30 @@ export function DataTable({
             : col.valueFormatter ? col.valueFormatter(value, row, col, api)
                 : value
     }
+}
+
+function DataTableQuickFilterToolbar({ onExpandedChange }: {
+    onExpandedChange?: (expanded: boolean) => void
+}) {
+    const inputRef = useRef<HTMLInputElement>(null)
+    useEffect(() => {
+        // focus after mount because the toolbar is created only after the header search button is pressed
+        requestAnimationFrame(() => inputRef.current?.focus())
+    }, [])
+    return h(Box, {
+        sx: {
+            p: '4px 8px',
+            '.MuiFormControl-root': { width: '100%' },
+            '.MuiInputBase-root': { height: 36 },
+            '.MuiInputAdornment-positionStart': {
+                // MUI filled inputs reserve label space for adornments, but this toolbar field has no label
+                mt: '3px !important',
+            },
+            '.MuiInputBase-input': { pt: '7px', pb: '6px' },
+        }
+    },
+        h(QuickFilter, { expanded: true, debounceMs: 300, onExpandedChange },
+            h(QuickFilterControl as ElementType, { fullWidth: true, inputRef, size: 'small', placeholder: "Search" })))
 }
 
 function CustomFooter({ add, ...props }: { add?: ReactNode }) {

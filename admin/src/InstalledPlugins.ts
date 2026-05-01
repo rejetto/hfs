@@ -44,6 +44,8 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
         fillFlex: true,
         initializing,
         disableColumnSelector: true,
+        quickFilter: !updates,
+        actionsHeader: !updates && pauseButton,
         getRowHeight: updates && (({ model }) => model.changelog ? 'auto' as const : 50),
         noRows: updates && `No updates available. Only plugins available on "search online" are checked.`,
         columns: [
@@ -95,7 +97,6 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 }
             }
         ],
-        footerSide: () => !updates && pauseButton,
         actions: ({ row, id }) => updates ? [
             h(IconBtn, {
                 icon: Upgrade,

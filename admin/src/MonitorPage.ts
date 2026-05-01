@@ -149,8 +149,8 @@ function Connections() {
                     rows,
                     fillFlex: true,
                     noRows: monitorOnlyFiles && "No downloads/uploads at the moment",
+                    actionsHeader: pauseButton,
                     footerSide: () => h(Flex, {},
-                        pauseButton,
                         h(Btn, {
                             size: 'small',
                             icon: DisconnectIcon,
