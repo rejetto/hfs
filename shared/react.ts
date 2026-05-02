@@ -209,6 +209,7 @@ export function isCtrlKey(ev: KeyboardEvent) {
     return (ev.ctrlKey || isMac && ev.metaKey) && ev.key
 }
 
+// returns a callback to be passed as ref of the element
 export function useAutoScroll(dependency: any) {
     const ref = useRef<HTMLElement | null>(null)
     const lastScrollListenerRef = useRef<any>()

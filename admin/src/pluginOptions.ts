@@ -50,7 +50,6 @@ export async function showPluginOptions(row: any, maxWidth: string) {
             const { list, setList } = useApiList('get_plugin_log', { id }, {
                 map(x) { x.ts = new Date(x.ts) }
             })
-            const autoScroll = useAutoScroll(list)
             let lastDate: any
             return h(Flex, { alignItems: 'stretch', justifyContent: 'center', flexWrap: 'wrap', flexDirection: showOptions ? undefined : 'column' },
                 h(Box, { sx: { maxWidth, minWidth: 'min-content' /*in case content requires more space (eg: reverse-proxy's table)*/ } }, children),
@@ -60,9 +59,9 @@ export async function showPluginOptions(row: any, maxWidth: string) {
                         h(Btn, { size: 'small', sx: { p: 0 }, onClick() { setList([]) } }, "Clear")
                     ),
                     h(Box, {
-                            sx: { position: 'absolute', bottom: 0, top: '31px', left: 0, right: 0, overflowY: 'auto' },
-                            ref: autoScroll,
-                        },
+                        ref: useAutoScroll(list),
+                        sx: { position: 'absolute', bottom: 0, top: '31px', left: 0, right: 0, overflowY: 'auto' }
+                    },
                         !list.length && h(Box, { sx: { p: 1 } }, "Log is empty"),
                         h(Box, {
                             sx: {
