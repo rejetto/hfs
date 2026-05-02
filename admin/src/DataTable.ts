@@ -107,7 +107,7 @@ export function DataTable({
         return ret
     }, [columns, actions, actionsHeader, actionsLength, actionsProps, quickFilter])
     const sizeGrid = useGetSize()
-    const width = useDebounce(sizeGrid.w || 0, 500) // stabilize width
+    const width = useDebounce(sizeGrid.w || 0, 100) // stabilize width
     const hideCols = useMemo(() => {
         const fields = onlyTruthy(manipulatedColumns.map(({ field, hideUnder }) =>
             (hideUnder === true || hideUnder && width < (typeof hideUnder === 'number' ? hideUnder : theme.breakpoints.values[hideUnder]))

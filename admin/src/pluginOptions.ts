@@ -21,6 +21,8 @@ import { Account, account2icon } from './AccountsPage'
 export async function showPluginOptions(row: any, maxWidth: string) {
     const {id} = row
     const { config: lastSaved } = await apiCall('get_plugin', { id })
+    // array fields contain a DataGrid whose intrinsic width settles in steps, so give the form a stable preferred width
+    const workaround = _.some(callable(row.config, lastSaved), { type: 'array' }) ? `min(100%, ${maxWidth})` : undefined
     const apiRef = { current: undefined as FormApi | undefined }
     // support css values without having to wrap in sx, as in DialogProps it only supports breakpoints
     const showOptions = Boolean(row.config)
@@ -52,7 +54,11 @@ export async function showPluginOptions(row: any, maxWidth: string) {
             })
             let lastDate: any
             return h(Flex, { alignItems: 'stretch', justifyContent: 'center', flexWrap: 'wrap', flexDirection: showOptions ? undefined : 'column' },
-                h(Box, { sx: { maxWidth, minWidth: 'min-content' /*in case content requires more space (eg: reverse-proxy's table)*/ } }, children),
+                h(Box, { sx: {
+                    maxWidth,
+                    width: workaround,
+                    minWidth: 'min-content', // in case content requires more space (eg: reverse-proxy's table)
+                } }, children),
                 h(Paper, { elevation: 1, sx: { position: 'relative', fontFamily: 'monospace', flex: 1, minWidth: 'min(40em, 90vw)', minHeight: '20em', px: .5 } },
                     h(Box, { sx: { my: .5, pb: .5, borderBottom: '1px solid', display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
                         "Output",
