@@ -2,7 +2,7 @@
 
 import { apiCall, useApiList } from './api'
 import { createElement as h, Fragment, useEffect, useState } from 'react'
-import { Box, Link, Table, TableCell, TableRow, useTheme } from '@mui/material'
+import { Box, Link, Table, TableBody, TableCell, TableRow, useTheme } from '@mui/material'
 import type { Breakpoint } from '@mui/material/styles'
 import { DataTable, DataTableColumn } from './DataTable'
 import {
@@ -84,11 +84,13 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 renderCell({ value, row }) {
                     if (!Array.isArray(value)) return null
                     return h(Table, { sx: { td: { p: 0 } } },
-                        _.uniq(_.sortBy(value, 'version').filter(x => _.isString(x.message) && x.message && x.version > row.installedVersion))
-                            .map((x, i) => h(TableRow, { key: i },
-                                h(TableCell, { sx: { whiteSpace: 'pre', verticalAlign: 'top' } }, `• ${x.version}: `),
-                                h(TableCell, {}, md(x.message))
-                            ))
+                        h(TableBody, {},
+                            _.uniq(_.sortBy(value, 'version').filter(x => _.isString(x.message) && x.message && x.version > row.installedVersion))
+                                .map((x, i) => h(TableRow, { key: i },
+                                    h(TableCell, { sx: { whiteSpace: 'pre', verticalAlign: 'top' } }, `• ${x.version}: `),
+                                    h(TableCell, {}, md(x.message))
+                                ))
+                        )
                     )
                 }
             }
