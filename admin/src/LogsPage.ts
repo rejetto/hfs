@@ -27,7 +27,7 @@ import { useRoutedTab } from './router'
 
 const logLabels = {
     log: "Served",
-    error_log: "Not served",
+    error_log: "Failed",
     console: "Console",
     disconnections: "Disconnections",
     ips: "IPs",
