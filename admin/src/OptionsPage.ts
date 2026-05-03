@@ -260,7 +260,7 @@ export default function OptionsPage() {
 
             { k: CFG.force_webdav_login, comp: WebdavAgentAuthField, sm: true, label: "WebDAV force login",
                 fallbackRE: 'Microsoft-WebDAV', // ms-webdav won't send credentials even with the initial_auth – it must be forced, so we offer it as preset regex if you don't like the *always* value
-                helperText: "Force login for clients that mishandle mixed anonymous/protected access",
+                helperText: ["Force login for clients that mishandle mixed anonymous/protected access. ", wikiLink('webdav', "Why?") ],
             },
             values[CFG.force_webdav_login] !== true && { k: CFG.webdav_initial_auth, comp: WebdavAgentAuthField, sm: 6, label: "WebDAV initial auth",
                 helperText: "Force login only once. Used only when previous option does not match",
