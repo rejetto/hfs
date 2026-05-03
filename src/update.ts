@@ -5,7 +5,7 @@ import { ARGS_FILE, HFS_REPO, IS_BINARY, IS_WINDOWS, IS_MAC, PREVIOUS_TAG, RUNNI
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
 import {
-    DAY, exists, unzip, prefix, xlate, HOUR, httpStream, statWithTimeout, repeat, debounceAsync, formatPerc
+    DAY, exists, unzip, prefix, xlate, HOUR, httpStream, statWithTimeout, repeat, debounceAsync, formatPerc, retrySync
 } from './misc'
 import { createReadStream, createWriteStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { pluginsWatcher } from './plugins'
@@ -192,7 +192,7 @@ export async function update(tagOrUrl: string='') {
             catch {}
             renameSync(bin, oldBin)
             if (!preserveTerminal) {
-                try { renameSyncWithBusyRetry(newBin, join(binPath, binFile)) }
+                try { retrySync(() => renameSync(newBin, join(binPath, binFile))) }
                 catch (e) {
                     try { renameSync(oldBin, bin) } // restore the service target because hfs.exe was already moved aside
                     catch (rollbackError) { console.error("Couldn't restore original binary after failed update", rollbackError) }
@@ -212,18 +212,6 @@ export async function update(tagOrUrl: string='') {
     catch (e: any) {
         pluginsWatcher.unpause()
         throw e?.message || String(e)
-    }
-}
-
-function renameSyncWithBusyRetry(src: string, dest: string) {
-    const sleepSyncBuffer = new Int32Array(new SharedArrayBuffer(4))
-    for (let retry = 0; ; retry++) {
-        try { return renameSync(src, dest) }
-        catch (e: any) {
-            if (e?.code !== 'EBUSY' || retry >= 20)
-                throw e
-            Atomics.wait(sleepSyncBuffer, 0, 0, 500)
-        }
     }
 }
 
