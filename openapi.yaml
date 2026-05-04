@@ -1,7 +1,7 @@
 openapi: 3.0.1
 info:
   title: HFS 3
-  description: ''
+  description: Browser-facing HTTP API used by the HFS frontend and upload flows.
   version: 1.0.0
 tags:
   - name: Front-end
@@ -38,6 +38,24 @@ paths:
           required: false
           schema:
             type: string
+        - name: searchComment
+          in: query
+          description: search for files by comment, also in subfolders.
+          required: false
+          schema:
+            type: string
+        - name: fileMask
+          in: query
+          description: filter files by name mask.
+          required: false
+          schema:
+            type: string
+        - name: wild
+          in: query
+          description: set to `no` to use plain substring matching instead of wildcard matching.
+          required: false
+          schema:
+            type: string
         - name: c
           in: query
           description: >-
@@ -47,6 +65,24 @@ paths:
           required: false
           schema:
             type: string
+        - name: onlyFolders
+          in: query
+          description: return only folders.
+          required: false
+          schema:
+            type: boolean
+        - name: onlyFiles
+          in: query
+          description: return only files.
+          required: false
+          schema:
+            type: boolean
+        - name: admin
+          in: query
+          description: request the list with admin privileges.
+          required: false
+          schema:
+            type: boolean
       responses:
         '200':
           description: all files accordingly to the specified parameters
@@ -55,9 +91,475 @@ paths:
               schema:
                 $ref: '#/components/schemas/inline_response_200'
       security: []
+  /~/api/refresh_session:
+    get:
+      summary: Refresh session
+      deprecated: false
+      description: returns the current browser session state
+      tags:
+        - Front-end
+      responses:
+        '200':
+          description: current session state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+      security: []
+  /~/api/login:
+    post:
+      summary: Login
+      deprecated: false
+      description: clear-text login
+      tags:
+        - Front-end
+      parameters:
+        - name: x-hfs-anti-csrf
+          in: header
+          example: '1'
+          schema:
+            type: string
+            default: '1'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                allow_session_ip_change:
+                  type: boolean
+      responses:
+        '200':
+          description: login succeeded
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Session'
+                  - type: object
+                    properties:
+                      redirect:
+                        type: string
+      security: []
+  /~/api/loginSrp1:
+    post:
+      summary: Login SRP step 1
+      deprecated: false
+      description: returns the server SRP challenge
+      tags:
+        - Front-end
+      parameters:
+        - name: x-hfs-anti-csrf
+          in: header
+          example: '1'
+          schema:
+            type: string
+            default: '1'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+              properties:
+                username:
+                  type: string
+      responses:
+        '200':
+          description: SRP challenge
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SrpStep1'
+      security: []
+  /~/api/loginSrp2:
+    post:
+      summary: Login SRP step 2
+      deprecated: false
+      description: finishes SRP login
+      tags:
+        - Front-end
+      parameters:
+        - name: x-hfs-anti-csrf
+          in: header
+          example: '1'
+          schema:
+            type: string
+            default: '1'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - pubKey
+                - proof
+              properties:
+                pubKey:
+                  type: string
+                proof:
+                  type: string
+      responses:
+        '200':
+          description: login succeeded
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Session'
+                  - type: object
+                    required:
+                      - proof
+                    properties:
+                      proof:
+                        type: string
+      security: []
+  /~/api/logout:
+    post:
+      summary: Logout
+      deprecated: false
+      description: clears the current session
+      tags:
+        - Front-end
+      parameters:
+        - name: x-hfs-anti-csrf
+          in: header
+          example: '1'
+          schema:
+            type: string
+            default: '1'
+      responses:
+        '401':
+          description: session cleared
+      security: []
+  /~/api/change_srp:
+    post:
+      summary: Change password with SRP
+      deprecated: false
+      description: updates the current account SRP verifier
+      tags:
+        - Front-end
+      parameters:
+        - name: x-hfs-anti-csrf
+          in: header
+          example: '1'
+          schema:
+            type: string
+            default: '1'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - salt
+                - verifier
+              properties:
+                username:
+                  type: string
+                salt:
+                  type: string
+                verifier:
+                  type: string
+      responses:
+        '200':
+          description: password changed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+      security: []
+  /~/api/get_notifications:
+    get:
+      summary: Subscribe to notifications
+      deprecated: false
+      description: server-sent events channel used by the frontend
+      tags:
+        - Front-end
+      parameters:
+        - name: channel
+          in: query
+          description: notification channel name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+      security: []
+  /~/api/get_file_details:
+    get:
+      summary: File details
+      deprecated: false
+      description: returns extra metadata for one or more file URIs
+      tags:
+        - Front-end
+      parameters:
+        - name: uris
+          in: query
+          description: file URIs to inspect
+          required: true
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: details for the requested URIs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileDetailsResponse'
+      security: []
+  /~/api/create_folder:
+    post:
+      summary: Create folder
+      deprecated: false
+      description: creates a new folder inside the specified parent
+      tags:
+        - Front-end
+      parameters:
+        - name: x-hfs-anti-csrf
+          in: header
+          example: '1'
+          schema:
+            type: string
+            default: '1'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - uri
+                - name
+              properties:
+                uri:
+                  type: string
+                name:
+                  type: string
+      responses:
+        '200':
+          description: folder created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+      security: []
+  /~/api/rename:
+    post:
+      summary: Rename entry
+      deprecated: false
+      description: renames a file or folder
+      tags:
+        - Front-end
+      parameters:
+        - name: x-hfs-anti-csrf
+          in: header
+          example: '1'
+          schema:
+            type: string
+            default: '1'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - uri
+                - dest
+              properties:
+                uri:
+                  type: string
+                dest:
+                  type: string
+      responses:
+        '200':
+          description: rename completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+      security: []
+  /~/api/move_files:
+    post:
+      summary: Move files
+      deprecated: false
+      description: moves one or more files to another folder
+      tags:
+        - Front-end
+      parameters:
+        - name: x-hfs-anti-csrf
+          in: header
+          example: '1'
+          schema:
+            type: string
+            default: '1'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - uri_from
+                - uri_to
+              properties:
+                uri_from:
+                  type: array
+                  items:
+                    type: string
+                uri_to:
+                  type: string
+      responses:
+        '200':
+          description: move results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoveFilesResponse'
+      security: []
+  /~/api/copy_files:
+    post:
+      summary: Copy files
+      deprecated: false
+      description: copies one or more files to another folder
+      tags:
+        - Front-end
+      parameters:
+        - name: x-hfs-anti-csrf
+          in: header
+          example: '1'
+          schema:
+            type: string
+            default: '1'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - uri_from
+                - uri_to
+              properties:
+                uri_from:
+                  type: array
+                  items:
+                    type: string
+                uri_to:
+                  type: string
+      responses:
+        '200':
+          description: copy results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoveFilesResponse'
+      security: []
+  /~/api/comment:
+    post:
+      summary: Set comment
+      deprecated: false
+      description: stores a comment for a file or folder
+      tags:
+        - Front-end
+      parameters:
+        - name: x-hfs-anti-csrf
+          in: header
+          example: '1'
+          schema:
+            type: string
+            default: '1'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - uri
+                - comment
+              properties:
+                uri:
+                  type: string
+                comment:
+                  type: string
+      responses:
+        '200':
+          description: comment saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+      security: []
+  /~/api/get_folder_size:
+    get:
+      summary: Folder size
+      deprecated: false
+      description: calculates the total size of a folder
+      tags:
+        - Front-end
+      parameters:
+        - name: uri
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: folder size
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FolderSize'
+      security: []
+  /~/api/get_folder_size_partial:
+    get:
+      summary: Folder size progress
+      deprecated: false
+      description: returns partial progress for an in-flight folder size computation
+      tags:
+        - Front-end
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: current partial progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FolderSize'
+        '404':
+          description: computation not found anymore
+      security: []
   /{folder}:
     post:
-      summary: 'Upload '
+      summary: Upload
       deprecated: false
       description: Equivalent to curl -F upload=@FILE FOLDER/
       tags:
@@ -70,41 +572,32 @@ paths:
           example: ''
           schema:
             type: string
-        - name: x-hfs-anti-csrf
-          in: header
-          description: necessary only for POST requests
-          example: '1'
-          schema:
-            type: string
-            default: '1'
       requestBody:
         content:
           multipart/form-data:
             schema:
               type: object
               properties:
-                file:
+                upload:
                   type: string
                   description: The file to upload.
                   format: binary
             encoding:
-              file:
+              upload:
                 contentType: application/octet-stream
       responses:
         '200':
-          description: File uploaded successfully
+          description: file uploaded successfully
           content:
             application/json:
               schema:
-                type: object
-                properties: {}
+                $ref: '#/components/schemas/MultipartUploadResult'
         '400':
-          description: Bad request
+          description: bad request
           content:
             application/json:
               schema:
-                type: object
-                properties: {}
+                $ref: '#/components/schemas/MultipartUploadResult'
       security: []
   /~/api/add_account:
     post:
@@ -115,7 +608,6 @@ paths:
       parameters:
         - name: x-hfs-anti-csrf
           in: header
-          description: necessary only for POST requests
           example: '1'
           schema:
             type: string
@@ -278,12 +770,13 @@ paths:
               format: binary
       responses:
         '200':
-          description: File uploaded successfully
+          description: file uploaded successfully
           content:
             application/json:
               schema:
-                type: object
-                properties: {}
+                $ref: '#/components/schemas/UploadResult'
+        '204':
+          description: partial upload chunk stored without finalizing the file
       security: []
   /~/api/set_account:
     post:
@@ -294,7 +787,6 @@ paths:
       parameters:
         - name: x-hfs-anti-csrf
           in: header
-          description: necessary only for POST requests
           example: '1'
           schema:
             type: string
@@ -336,7 +828,6 @@ paths:
       parameters:
         - name: x-hfs-anti-csrf
           in: header
-          description: necessary only for POST requests
           example: '1'
           schema:
             type: string
@@ -373,7 +864,6 @@ paths:
       parameters:
         - name: x-hfs-anti-csrf
           in: header
-          description: necessary only for POST requests
           example: '1'
           schema:
             type: string
@@ -388,49 +878,6 @@ paths:
                   type: string
               required:
                 - username
-            example: ''
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties: {}
-      security: []
-  /~/api/change_srp:
-    post:
-      summary: safer update of the password
-      deprecated: false
-      description: >-
-        use SRP protocol to change the password without transmitting it. If your
-        channel is trusted, you can just specify 'password' in set_account or
-        add_account, that's much simpler.
-      tags: []
-      parameters:
-        - name: x-hfs-anti-csrf
-          in: header
-          description: necessary only for POST requests
-          example: '1'
-          schema:
-            type: string
-            default: '1'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                username:
-                  type: string
-                salt:
-                  type: string
-                verifier:
-                  type: string
-              required:
-                - username
-                - salt
-                - verifier
             example: ''
       responses:
         '200':
@@ -532,6 +979,102 @@ components:
     Date:
       type: string
       format: date-time
+    Session:
+      type: object
+      properties:
+        username:
+          type: string
+        expandedUsername:
+          type: array
+          items:
+            type: string
+        adminUrl:
+          type: string
+        canChangePassword:
+          type: boolean
+        requireChangePassword:
+          type: boolean
+        exp:
+          $ref: '#/components/schemas/Date'
+        accountExp:
+          $ref: '#/components/schemas/Date'
+        redirect:
+          type: string
+    SrpStep1:
+      type: object
+      required:
+        - salt
+        - pubKey
+      properties:
+        salt:
+          type: string
+        pubKey:
+          type: string
+    UploadResult:
+      type: object
+      required:
+        - uri
+      properties:
+        uri:
+          type: string
+    MultipartUploadResult:
+      type: object
+      properties:
+        uris:
+          type: array
+          items:
+            type: string
+        errors:
+          type: array
+          items:
+            type: string
+    FolderSize:
+      type: object
+      required:
+        - bytes
+        - files
+        - folders
+      properties:
+        bytes:
+          type: number
+        files:
+          type: number
+        folders:
+          type: number
+    UploadMeta:
+      type: object
+      properties:
+        username:
+          type: string
+        ip:
+          type: string
+    FileDetails:
+      type: object
+      properties:
+        upload:
+          $ref: '#/components/schemas/UploadMeta'
+    FileDetailsResponse:
+      type: object
+      required:
+        - details
+      properties:
+        details:
+          type: array
+          items:
+            oneOf:
+              - type: boolean
+                enum:
+                  - false
+              - $ref: '#/components/schemas/FileDetails'
+    MoveFilesResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            oneOf:
+              - type: integer
+              - type: string
     Account:
       type: object
       properties:
