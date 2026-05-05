@@ -180,7 +180,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, filename: string, c
                 if (isPartial) // we are supposed to leave the unfinished upload as it is, with its temp name
                     return ctx.status = HTTP_NO_CONTENT // lockMiddleware contains an empty string, so we must take care of the status
                 let dest = fullPath // final destination, considering numbering if necessary
-                if (dontOverwriteUploading.get() && !await overwriteAnyway() && fs.existsSync(dest)) {
+                if (dontOverwriteUploading.get() && fs.existsSync(dest) && !await overwriteAnyway()) {
                     if (overwriteRequestedButForbidden) {
                         await rm(tempName).catch(e => console.warn(String(e)))
                         releaseFile()

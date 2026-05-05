@@ -398,6 +398,65 @@ describe('webdav', () => {
             await rmAny(destPath)
         }
     })
+    test('webdav.put failed overwrite does not grant grace', async () => {
+        const name = `wd-failed-grace-${randomId(6)}.txt`
+        const uri = `${CANT_OVERWRITE_URI}${name}`
+        const dir = await ensureCantOverwriteDir()
+        const destPath = resolve(dir, name)
+        await writeFile(destPath, 'dest')
+        try {
+            await req(uri, 403, {
+                method: 'PUT',
+                auth,
+                jar,
+                headers: { 'content-length': '0', 'user-agent': WEBDAV_UA },
+                body: '',
+            })()
+            await webdavUpload(uri, 403, 'source')()
+            if (readFileSync(destPath, 'utf8') !== 'dest')
+                throw "destination changed"
+        }
+        finally {
+            await rmAny(destPath)
+        }
+    })
+    test('webdav.put grants grace after successful encoded empty upload', async () => {
+        const name = `wd-grace-${randomId(6)} %#.txt`
+        const uri = `${CANT_OVERWRITE_URI}${pathEncode(name)}`
+        const dir = await ensureCantOverwriteDir()
+        const destPath = resolve(dir, name)
+        try {
+            await req(uri, (x, res) => {
+                if (res.statusCode !== 200)
+                    throw `expected first PUT 200, got ${res.statusCode}`
+                if (x?.uri !== uri)
+                    throw "first PUT uri mismatch"
+            }, {
+                method: 'PUT',
+                auth,
+                jar,
+                headers: { 'content-length': '0', 'user-agent': WEBDAV_UA },
+                body: '',
+            })()
+            await req(uri, (x, res) => {
+                if (res.statusCode !== 200)
+                    throw `expected second PUT 200, got ${res.statusCode}`
+                if (x?.uri !== uri)
+                    throw "second PUT uri mismatch"
+            }, {
+                method: 'PUT',
+                auth,
+                jar,
+                headers: { 'x-expected-entity-length': String(Buffer.byteLength('source')), 'user-agent': WEBDAV_UA },
+                body: 'source',
+            })()
+            if (readFileSync(destPath, 'utf8') !== 'source')
+                throw "destination not overwritten"
+        }
+        finally {
+            await rmAny(destPath)
+        }
+    })
     test('webdav.put grace is bound to username', async () => {
         const firstUser = `wd-grace-a-${randomId(6)}`.toLowerCase()
         const secondUser = `wd-grace-b-${randomId(6)}`.toLowerCase()
