@@ -289,11 +289,21 @@ jobs:
           merge-multiple: true
           path: release-assets
 
+      - name: Normalize release title
+        id: release_title
+        shell: bash
+        run: |
+          # keep the release tag untouched, but strip the optional leading v from the display title
+          tag='${{ inputs.tag }}'
+          echo "name=${tag#v}" >> "$GITHUB_OUTPUT"
+
       - name: Create draft release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
-          name: ${{ inputs.tag }}
+          name: ${{ steps.release_title.outputs.name }}
+          # release tags with a dash are treated as pre-releases so beta-style builds stay separated from stable ones
+          prerelease: ${{ contains(inputs.tag, '-') }}
           target_commitish: ${{ inputs.commitish || github.event.repository.default_branch }}
           draft: true
           files: release-assets/*.zip
