@@ -15,6 +15,7 @@ export const ALLOW_SESSION_IP_CHANGE = 'allow_session_ip_change'
 export const HIDE_IN_TESTS = 'hideInTests' // elements that have variable size, where masking would produce changes, must be hidden
 export const MASK_IN_TESTS = 'maskInTests'
 export const EMBEDDED_LANGUAGE = 'en' // frontend includes this language in the code, and not need to import the translation-json
+export const BASIC_AUTHENTICATE_HEADER = 'Basic realm="HFS"'
 
 export const HTTP_OK = 200
 export const HTTP_CREATED = 201
@@ -49,4 +50,3 @@ export const HTTP_MESSAGES: Record<number, string> = {
     [HTTP_SERVER_ERROR]: "Server error",
     [HTTP_TOO_MANY_REQUESTS]: "Too many requests",
 }
-

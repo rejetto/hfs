@@ -13,6 +13,7 @@ import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { mkdir, rm, rename, writeFile, access } from 'fs/promises'
 import { Readable } from 'stream'
 import { XMLValidator } from 'fast-xml-parser'
+import { BASIC_AUTHENTICATE_HEADER } from '../src/cross'
 /*
 import { PORT, srv } from '../src'
 
@@ -42,6 +43,7 @@ const BIG_CONTENT = _.repeat(randomId(10), 300_000) // 3MB, big enough to satura
 const throttle = BIG_CONTENT.length /1000 /0.8 // KB, finish in 0.8s, quick but still overlapping downloads
 const SAMPLE_FILE_PATH = resolve(__dirname, 'page/gpl.png')
 const WEBDAV_UA = 'Microsoft-WebDAV-MiniRedir/10.0.22000'
+const OFFICE_WEBDAV_UA = 'Microsoft Office Existence Discovery'
 const TOKEN_HEADER = 'lock-token'
 const WEBDAV_LOCK_BODY = `<?xml version="1.0" encoding="utf-8"?>
 <lockinfo xmlns="DAV:">
@@ -312,6 +314,41 @@ describe('webdav', () => {
     const jar = {}
     after(() => rmAny(resolve(__dirname, UPLOAD_DIR)))
     test('webdav force login.scope propfind', req('/f1/', 401, { method: 'PROPFIND', headers: { depth: '0' }, jar }))
+    test('webdav force login.scope options', req('/f1/', (_data, res) =>
+        res.statusCode === 401 && res.headers?.['www-authenticate'] === BASIC_AUTHENTICATE_HEADER, {
+        method: 'OPTIONS',
+        headers: { 'user-agent': OFFICE_WEBDAV_UA },
+        jar: {},
+    }))
+    test('webdav force login.scope get', req('/f1/protected', (_data, res) =>
+        res.statusCode === 401 && res.headers?.['www-authenticate'] === BASIC_AUTHENTICATE_HEADER, {
+        headers: { 'user-agent': OFFICE_WEBDAV_UA },
+        jar: {},
+    }))
+    test('webdav.get keeps webdav challenge after denied read', async () => {
+        const user = `wd-read-${randomId(6)}`.toLowerCase()
+        const pass = `pw-${randomId(8)}`
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: user, overwrite: true, password: pass }, res => res?.username === user, adminReq)()
+            await req('/f1/protected', (_data, res) =>
+                res.statusCode === 401 && res.headers?.['www-authenticate'] === BASIC_AUTHENTICATE_HEADER, {
+                auth: `${user}:${pass}`,
+                headers: { 'user-agent': OFFICE_WEBDAV_UA },
+                jar: {},
+            })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
+    test('webdav options works after auth', req('/f1/', (_data, res) =>
+        res.statusCode === 200 && res.headers?.dav === '1,2', {
+        method: 'OPTIONS',
+        auth,
+        headers: { 'user-agent': OFFICE_WEBDAV_UA },
+        jar: {},
+    }))
     test('webdav.put detects client after propfind', async () => {
         const name = `wd-detected-${randomId(6)}.txt`
         const ua = `hfs-test-detected-${randomId(6)}`

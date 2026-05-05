@@ -7,7 +7,7 @@ import {
     HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_CREATED, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_OK,
     HTTP_PRECONDITION_FAILED, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED, HTTP_LOCKED, HTTP_FORBIDDEN, HTTP_MESSAGES,
     DAY, CFG, enforceFinal, removeFinal, pathEncode, prefix, getOrSet, Dict, Timeout, join as crossJoin, try_,
-    safeDecodeURIComponent, wantArray,
+    safeDecodeURIComponent, wantArray, BASIC_AUTHENTICATE_HEADER,
 } from './cross'
 import { PassThrough } from 'stream'
 import { mkdir, rm, utimes } from 'fs/promises'
@@ -33,7 +33,7 @@ const webdavDetectedAgents = expiringCache<boolean>(DAY)
 const TOKEN_HEADER = 'lock-token'
 const WEBDAV_METHODS = new Set(['PROPFIND', 'PROPPATCH', 'MKCOL', 'MOVE', 'LOCK', 'UNLOCK'])
 const WEBDAV_HINT_HEADERS = ['depth', 'destination', 'overwrite', 'translate', 'if', TOKEN_HEADER, 'x-expected-entity-length']
-const KNOWN_UA = /webdav|miniredir|davclnt/i
+const KNOWN_UA = /webdav|miniredir|davclnt|microsoft office|ms-office/i
 const LOCK_DEFAULT_SECONDS = 3600
 const LOCK_MAX_SECONDS = DAY / 1000
 const xmlParser = new XMLParser({ ignoreAttributes: false, removeNSPrefix: true, trimValues: true })
@@ -102,16 +102,25 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         ctx.state.webdavDetected = true
         return ctx.status = HTTP_FORBIDDEN
     }
-    const isWebdavAuthRequest = WEBDAV_METHODS.has(ctx.method) || WEBDAV_HINT_HEADERS.some(h => ctx.get(h))
+    // office starts document access with OPTIONS, then LOCK/GET; challenging OPTIONS keeps the whole exchange in the same WebDAV auth realm
+    const isCorsPreflight = ctx.method === 'OPTIONS' && ctx.get('Access-Control-Request-Method')
+    const isKnownWebdavAgent = KNOWN_UA.test(ua) || webdavDetectedAgents.has(webdavAgentKey(ctx, ua))
+    const isWebdavAuthRequest = !isCorsPreflight && (ctx.method === 'OPTIONS' || WEBDAV_METHODS.has(ctx.method) || WEBDAV_HINT_HEADERS.some(h => ctx.get(h))
+        || ctx.method === 'GET' && isKnownWebdavAgent
+    )
     if (isWebdavAuthRequest)
         ctx.state.webdavDetected = true
     if (isWebdavAuthRequest && ua && getCurrentUsername(ctx))
         webdavDetectedAgents.try(webdavAgentKey(ctx, ua), () => true)
 
-    if (ctx.method === 'OPTIONS')
-        return handleOptions()
+    if (isCorsPreflight)
+        return next()
     if (isWebdavAuthRequest && shouldChallengeWebdav())
         return
+    if (ctx.method === 'OPTIONS')
+        return handleOptions()
+    if (ctx.method === 'GET' && isWebdavAuthRequest)
+        return handleGet()
     switch (ctx.method) {
         case 'PUT': return handlePut()
         case 'MKCOL': return handleMkcol()
@@ -125,10 +134,21 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
     return next()
 
     async function handleOptions() {
-        if (ctx.get('Access-Control-Request-Method')) // it's a preflight cors request, not webdav
-            return next()
         setWebdavHeaders()
         ctx.body = ''
+    }
+
+    async function handleGet() {
+        const node = await urlToNode(path, ctx)
+        if (!node || nodeIsFolder(node))
+            return next()
+        // webdav file reads must not fall through to the browser frontend when auth rejects them
+        if (statusCodeForMissingPerm(node, 'can_read', ctx)) {
+            if (ctx.status === HTTP_UNAUTHORIZED)
+                setWebdavHeaders(true)
+            return
+        }
+        return next()
     }
 
     async function handlePut() {
@@ -147,7 +167,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         if (x && ctx.length === undefined) // missing length can make PUT fail
             ctx.req.headers['content-length'] = x
 
-        if (KNOWN_UA.test(ua) || webdavDetectedAgents.has(webdavAgentKey(ctx, ua)))
+        if (isKnownWebdavAgent)
             ctx.query.existing ??= 'overwrite' // with webdav this is our default
         await next()
         if (ctx.status === HTTP_OK)
@@ -359,7 +379,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         ctx.set('MS-Author-Via', 'DAV')
         ctx.set('Allow', 'PROPFIND,PROPPATCH,OPTIONS,DELETE,MOVE,LOCK,UNLOCK,MKCOL,PUT')
         if (authenticate)
-            ctx.set('WWW-Authenticate', `Basic realm="HFS WebDAV"`) // keep a dedicated realm for WebDAV so Windows credential cache is isolated from other basic-auth flows
+            ctx.set('WWW-Authenticate', BASIC_AUTHENTICATE_HEADER)
     }
 
     function shouldChallengeWebdav() {

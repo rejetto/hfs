@@ -1,5 +1,5 @@
 import { getCurrentUsername, setLoggedIn } from './auth'
-import { HTTP_UNAUTHORIZED } from './cross-const'
+import { BASIC_AUTHENTICATE_HEADER, HTTP_UNAUTHORIZED } from './cross-const'
 import Koa from 'koa'
 import { defineConfig } from './config'
 import { getNodeName, hasDefaultFile, nodeIsFolder, VfsNode, walkNode } from './vfs'
@@ -16,7 +16,7 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
         if (getCurrentUsername(ctx))
             ctx.redirect(ctx.get('referer'))
         else {
-            ctx.set('WWW-Authenticate', 'Basic')
+            ctx.set('WWW-Authenticate', BASIC_AUTHENTICATE_HEADER)
             ctx.status = HTTP_UNAUTHORIZED
         }
         return true
@@ -63,4 +63,3 @@ export function detectBasicAgent(ctx: Koa.Context) {
     return autoBasic.get() && /^$|Mozilla\/4|WebKit\/([234]\d\d|5[012]\d|53[0123456])[. ]|Trident|Lynx|curl|Firefox\/(\d|[1234]\d)\./.test(ua)
         || autoBasic.compiled()?.test(ua)
 }
-

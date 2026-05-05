@@ -5,7 +5,8 @@ import { sendErrorPage } from './errorPages'
 import events from './events'
 import {
     ADMIN_URI, FRONTEND_URI, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND,
-    HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK, ICONS_URI, HTTP_FAILED_DEPENDENCY, UPLOAD_TEMP_HASH
+    HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK, ICONS_URI, HTTP_FAILED_DEPENDENCY, UPLOAD_TEMP_HASH,
+    BASIC_AUTHENTICATE_HEADER
 } from './cross-const'
 import { getUploadTempFor, uploadWriter } from './upload'
 import { handleMultipartUpload } from './multipartUpload'
@@ -131,7 +132,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
             : !node.source ? sendErrorPage(ctx, HTTP_METHOD_NOT_ALLOWED) // !dir && !source is not supported at this moment
             : !statusCodeForMissingPerm(node, 'can_read', ctx) ? serveFileNode(ctx, node) // all good
             : ctx.status !== HTTP_UNAUTHORIZED ? null // all errors don't need extra handling, except unauthorized
-            : detectBasicAgent(ctx) ? (ctx.set('WWW-Authenticate', 'Basic'), sendErrorPage(ctx))
+            : detectBasicAgent(ctx) ? (ctx.set('WWW-Authenticate', BASIC_AUTHENTICATE_HEADER), sendErrorPage(ctx))
             : ctx.query.dl === undefined && (ctx.state.serveApp = true) && serveFrontendFiles(ctx, next)
     if (!path.endsWith('/'))
         return ctx.redirect(ctx.state.revProxyPath + ctx.originalUrl.replace(/(\?|$)/, '/$1')) // keep query-string, if any
@@ -142,7 +143,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
         const { authenticate } = ctx.query
         const downloadManagerDetected = /DAP|FDM|[Mm]anager/.test(ctx.get('user-agent'))
         if (downloadManagerDetected || authenticate || detectBasicAgent(ctx))
-            return ctx.set('WWW-Authenticate', authenticate || 'Basic') // basic authentication for DMs getting the folder as a zip
+            return ctx.set('WWW-Authenticate', authenticate || BASIC_AUTHENTICATE_HEADER) // basic authentication for DMs getting the folder as a zip
         ctx.state.serveApp = true
         return serveFrontendFiles(ctx, next)
     }
