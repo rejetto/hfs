@@ -9,6 +9,7 @@ import { totalGot, totalInSpeedKb, totalOutSpeedKb, totalSent } from './throttle
 import { getCurrentUsername } from './auth'
 import { SendListReadable } from './SendList'
 import { storedMap } from './persistence'
+import { countUniqueBy } from './cross'
 
 export default {
 
@@ -29,25 +30,22 @@ export default {
     get_connections({}, ctx) {
         const list = new SendListReadable({
             diff: true,
-            addAtStart: getConnections().map(c =>
-                !ignore(c) && serializeConnection(c)).filter(Boolean),
+            addAtStart: getConnections().map(serializeConnection),
         })
         type Change = Partial<Omit<Connection,'ip'>>
         list.props({ you: ctx.ip })
         return list.events(ctx, {
             connection(conn: Connection) {
-                if (ignore(conn)) return
                 list.add(serializeConnection(conn))
             },
             connectionClosed(conn: Connection) {
-                if (ignore(conn)) return
                 list.remove(getConnAddress(conn))
             },
             connectionNewIp(conn: Connection, oldIp: string, newIp: string) {
                 list.update(getConnAddress(conn, oldIp), { ip: newIp })
             },
             connectionUpdated(conn: Connection, change: Change) {
-                if (conn.socket.closed || ignore(conn) || ignore(change as any) || _.isEmpty(change)) return
+                if (conn.socket.closed || _.isEmpty(change)) return
                 if (change.ctx) {
                     Object.assign(change, fromCtx(change.ctx))
                     change.ctx = undefined
@@ -59,13 +57,13 @@ export default {
 
     async *get_connection_stats() {
         while (1) {
-            const filtered = getConnections().filter(x => !ignore(x))
+            const connections = getConnections()
             yield {
                 outSpeedKb: totalOutSpeedKb,
                 inSpeedKb: totalInSpeedKb,
                 sent_got: [totalSent.get(), totalGot.get(), totalGotSentResetTime.get()] as const,
-                connections: filtered.length,
-                ips: _.uniqBy(filtered, x => x.ip).length,
+                connections: connections.length,
+                ips: countUniqueBy(connections, conn => conn.ip),
             }
             await wait(1000)
         }
@@ -79,10 +77,6 @@ export default {
     },
 
 } satisfies ApiHandlers
-
-function ignore(conn: Connection) {
-    return false //conn.socket && isLocalHost(conn)
-}
 
 export function serializeConnection(conn: Connection) {
     const { socket, started, secure } = conn

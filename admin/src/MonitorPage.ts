@@ -36,7 +36,7 @@ export default function MonitorPage({ setTitleSide }: PageProps) {
 function MoreInfo() {
     const { data: status, element, reload } = useApiEx<typeof adminApis.get_status>('get_status')
     useInterval(reload, 10_000) // status hardly change, but it can
-    const { data: connections } = useApiEvents('get_connection_stats')
+    const { data: stats } = useApiEvents('get_connection_stats')
     const [allInfo, setAllInfo] = useState(false)
     const md = useBreakpoint('md')
     const sm = useBreakpoint('sm')
@@ -57,7 +57,7 @@ function MoreInfo() {
         }),
         pair('outSpeedKb', { label: "Output", render: formatSpeedK, minWidth: '8.5em' }),
         pair('inSpeedKb', { label: "Input", render: formatSpeedK, minWidth: '8.5em' }),
-        (allInfo || sm) && pair('ips', { label: "IPs", title: () => "Currently connected" }),
+        (allInfo || sm) && pair('ips', { label: "IPs", title: () => stats && `${stats.connections.toLocaleString()} connections` }),
         (md || allInfo && md || status?.http?.error) && pair('http', { label: "HTTP", render: port }),
         (md || allInfo && md || status?.https?.error) && pair('https', { label: "HTTPS", render: port }),
         (xl || allInfo) && pair('ram', { label: "RAM", render: formatBytes }),
@@ -81,7 +81,7 @@ function MoreInfo() {
     }
 
     function pair(k: string, { label, minWidth, render, title, onDelete }: PairOptions = {}) {
-        let v = _.get(connections, k) ?? _.get(status, k)
+        let v = _.get(stats, k) ?? _.get(status, k)
         if (v === undefined)
             return null
         let color: Color = undefined
@@ -118,7 +118,7 @@ function Connections() {
     const { monitorOnlyFiles } = useSnapState()
     const { pause, pauseButton } = usePauseButton()
     const rows = useMemo(() =>
-            list?.filter((x: any) => !monitorOnlyFiles || x.op).map((x: any, id: number) => ({ id, ...x })),
+        (!monitorOnlyFiles ? list : list?.filter((x: any) => x.op)) ?? [],
         [!pause && list, monitorOnlyFiles]) //eslint-disable-line
     const logAble = useBreakpoint('md')
     const [wantLog, wantLogButton] = useToggleButton("Show log", "Hide log", v => ({
@@ -147,6 +147,7 @@ function Connections() {
                     persist: 'connections',
                     error,
                     rows,
+                    getRowId: (row: any) => row.ip + ':' + row.port,
                     fillFlex: true,
                     noRows: monitorOnlyFiles && "No downloads/uploads at the moment",
                     actionsHeader: pauseButton,

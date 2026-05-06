@@ -198,6 +198,22 @@ export function onlyTruthy<T>(arr: T[]) {
     return arr.filter(truthy)
 }
 
+export function countUniqueBy<T, K>(items: Iterable<T>, keyFn: (item: T) => K, predicate?: (item: T) => boolean) {
+    // use a Set so unique counting stays linear even on very large live lists
+    const seen = new Set<K>()
+    let count = 0
+    for (const item of items) {
+        if (predicate && !predicate(item))
+            continue
+        const key = keyFn(item)
+        if (seen.has(key))
+            continue
+        seen.add(key)
+        count++
+    }
+    return count
+}
+
 export function setHidden<T, ADD>(dest: T, src: ADD) {
     return Object.defineProperties(dest, newObj(src as any, value => ({
         enumerable: false,
