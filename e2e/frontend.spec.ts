@@ -307,7 +307,7 @@ async function screenshot(page: Page, selectorForMask = '') {
     const snapshotPath = testInfo.snapshotPath(snapshotName, { kind: 'screenshot' })
     if (selectorForMask)
         selectorForMask = ',' + selectorForMask
-    await wait(1000) // this accounts especially for our DataTable component which takes time to set the layout
+    await wait(200) // this accounts especially for our DataTable component which takes time to set the layout
     const mask = [page.locator(`.maskInTests${selectorForMask}`)]
     // write the missing baseline ourselves so Playwright does not turn the first run into a failure
     if (!fs.existsSync(snapshotPath)) {
