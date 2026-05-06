@@ -41,6 +41,11 @@ export const APP_PATH = dirname(IS_BINARY ? process.execPath : __dirname) // __d
 export const MIME_AUTO = 'auto'
 export const CONFIG_FILE = 'config.yaml'
 
+if (argv.version) {
+    process.stdout.write(VERSION+ '\n')
+    process.exit(0)
+}
+
 // we want this to be the first stuff to be printed, then we print it in this module, that is executed at the beginning
 if (DEV) {
     console.clear()
