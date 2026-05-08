@@ -68,7 +68,7 @@ async function login(username: string, password: string, extra?: object) {
             : err?.name === 'AbortError' ? "Server didn't respond"
             : (err?.message || "Unknown error")
     })
-    if (!res.adminUrl)
+    if (!res.isAdmin)
         throw "This account has no Admin access"
 
     // login was successful, update state

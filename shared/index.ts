@@ -146,7 +146,7 @@ export function makeSessionRefresher(state: any) {
 
     function refreshSession(response?: any) {
         clearTimeout(timeout)
-        const keys = ['username', 'adminUrl', 'canChangePassword', 'accountExp', 'expandedUsername', 'requireChangePassword']
+        const keys = ['username', 'isAdmin', 'adminUrl', 'canChangePassword', 'accountExp', 'expandedUsername', 'requireChangePassword']
         response ??= objFromKeys(keys, () => undefined)
         const { exp } = response
         getHFS().session = Object.assign(state, _.pick(response, keys))
