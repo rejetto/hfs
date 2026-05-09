@@ -6,6 +6,7 @@ import { loadFileAttr, singleWorkerFromBatchWorker, storeFileAttr } from './misc
 import _ from 'lodash'
 import iconv from 'iconv-lite'
 import { unlink } from 'node:fs/promises'
+import { expiringCache } from './expiringCache'
 
 export const DESCRIPT_ION = 'descript.ion'
 export const DESCRIPT_ION_ALT = 'DESCRIPT.ION'
@@ -82,13 +83,15 @@ async function filePathHelper(folder: string) {
 }
 
 const MULTILINE_SUFFIX = Buffer.from([4, 0xC2])
+const pathCache = expiringCache<Promise<string>>(2_000)
+// this can be called many times when listing a folder, and we want to also not check too often as it can be expensive, especially on a networked drive
 async function readDescriptIon(path: string) {
-    // decoding could also be done with native TextDecoder.decode, but we need iconv for the encoding anyway
-    return parseFile(await filePathHelper(path), raw => {
-        // for simplicity we "remove" the sequence MULTILINE_SUFFIX before iconv.decode messes it up
+    return parseFile(await pathCache.try(path, filePathHelper), raw => {
+        // for simplicity, we "remove" the sequence MULTILINE_SUFFIX before iconv.decode messes it up
         for (let i=0; i<raw.length; i++)
             if (raw[i] === MULTILINE_SUFFIX[0] && raw[i+1] === MULTILINE_SUFFIX[1] && [undefined,13,10].includes(raw[i+2]))
                 raw[i] = raw[i+1] = 10
+        // decoding could also be done with native TextDecoder.decode, but we need iconv for the encoding anyway
         const decoded = iconv.decode(raw, descriptIonEncoding.get())
         const ret = new Map(decoded.split('\n').map(line => {
             const quoted = line[0] === '"' ? 1 : 0
@@ -99,7 +102,7 @@ async function readDescriptIon(path: string) {
         }))
         ret.delete('')
         return ret
-    })
+    }, 2000)
 }
 
 descriptIonEncoding.sub(() => { // invalidate cache at encoding change
