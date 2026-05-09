@@ -117,10 +117,14 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
         const name = getNodeName(node)
         const isFolder = nodeIsFolder(node)
         try {
-            const st = source ? await (node.stats || statWithTimeout(source).catch(e => {
-                if (!isFolder || !node.children?.length) // folders with virtual children, keep them
-                    throw e
-            })) : undefined
+            const [web, comment, st] = await Promise.all([
+                hasDefaultFile(node, ctx).then(x => x ? true : undefined),
+                node.comment ?? getCommentFor(source),
+                source ? (node.stats || statWithTimeout(source).catch(e => {
+                    if (!isFolder || !node.children?.length) // folders with virtual children, keep them
+                        throw e
+                })) : undefined
+            ])
             // permissions of entries are sent as a difference with permissions of parent
             const pl = node.can_list === WHO_NO_ONE ? 'l'
                 : !hasPermission(node, 'can_list', ctx) ? 'L'
@@ -142,9 +146,9 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
                 url,
                 target: node.target,
                 order: node.order,
-                comment: node.comment ?? await getCommentFor(source),
+                comment,
                 icon: getNodeIcon(node),
-                web: await hasDefaultFile(node, ctx) ? true : undefined,
+                web,
             }
         }
         catch {

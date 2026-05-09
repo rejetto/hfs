@@ -4,7 +4,7 @@ import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
     makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who, debounceAsync,
-    isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_, matches,
+    isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, HTTP_SERVER_ERROR, try_, matches, Promisable,
     statWithTimeout, safeDecodeURIComponent, getUncHost,
 } from './misc'
 import Koa from 'koa'
@@ -44,7 +44,7 @@ export interface VfsNode extends VfsNodeStored { // include fields that are only
     original?: VfsNode // if this is a temp node but reflecting an existing node
     parent?: VfsNode // available when original is available (therefore, only for isTemp)
     isFolder?: boolean // use nodeIsFolder() instead of relying on this field
-    stats?: Promise<Stats>
+    stats?: Promisable<Stats>
 }
 
 export function permsFromParent(parent: VfsNode, child: VfsNode) {
@@ -381,8 +381,7 @@ export async function* walkNode(parent: VfsNode, {
                         const name = prefixPath + (renamed || path)
                         if (taken?.has(normalizeFilename(name))) // taken by vfs node above
                             return false // false just in case it's a folder
-
-                        const item: VfsNode = { name, isFolder, source: join(source, path), parent }
+                        const item: VfsNode = { name, isFolder, source: join(source, path), parent, stats: entry.stats }
                         // masks containing '/' must be matched against the relative path while keeping walkDir recursion enabled
                         await pathMaskApplier(item, renamed || path)
                         if (await cantSee(item)) // can't see: don't produce and don't recur
