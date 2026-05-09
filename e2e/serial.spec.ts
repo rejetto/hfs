@@ -40,7 +40,7 @@ test('upload1', async ({ page, context, browserName }, testInfo) => {
         // can't do without cdp to slow down the upload. I tried using route.continue, but i can't send half-body keeping the full content-length, and i also cannot pass a stream (to throttle)
         const cdpSession = await context.newCDPSession(page)
         await cdpSession.send('Network.emulateNetworkConditions', NETWORK_PRESETS.Regular2G)
-        await page.getByRole('button', { name: 'Edit' }).click()
+        await openUploadRename(page)
         const renameDialog = page.locator('.dialog-prompt')
         const renameInput = renameDialog.getByRole('textbox')
         await expect(renameInput).toHaveValue(fileToUpload.name) // promptDialog initializes the field value in useEffect, so we wait for that init to avoid our fill being overwritten
@@ -69,6 +69,14 @@ test('upload1', async ({ page, context, browserName }, testInfo) => {
         throw err
     }
 })
+
+async function openUploadRename(page: Page) {
+    const editButton = page.getByRole('button', { name: 'Edit' })
+    if (await editButton.isVisible())
+        return editButton.click()
+    await page.locator('.upload-list').getByRole('button', { name: 'Menu' }).click()
+    await page.getByRole('link', { name: 'Rename' }).click()
+}
 
 const MAX_DIAGNOSTIC_LINES = 300
 

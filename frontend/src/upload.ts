@@ -185,9 +185,12 @@ function FileList({ entries, actions }: { entries: ToUpload[], actions: { [icon:
                 const working = e.file === uploading?.file // e is a proxy, so we check 'file' as it's a ref
                 return h(Fragment, { key: i },
                     h('tr', {},
-                        h('td', { className: 'nowrap '}, ..._.map(actions, (cb, icon) =>
-                            cb && iconBtn(icon, () => cb(entries[i]), { className: `action-${icon}` })) ),
-                        h('td', {}, formatBytes(e.file.size)),
+                        h('td', { className: 'nowrap upload-list-actions' },
+                            h('span', { className: 'upload-list-inline-actions' }, ..._.map(actions, (cb, icon) =>
+                                cb && iconBtn(icon, () => cb(entries[i]), { className: `action-${icon}` })) ),
+                            iconBtn('menu', () => openUploadActions(entries[i], actions), { className: 'upload-list-menu-button' }),
+                        ),
+                        h('td', { className: 'upload-list-size' }, formatBytes(e.file.size)),
                         h('td', {},
                             h('span', {}, e.path),
                             working && h('span', { className: 'upload-progress', title }, formatBytes(partial)),
@@ -201,6 +204,42 @@ function FileList({ entries, actions }: { entries: ToUpload[], actions: { [icon:
             rest > 0 && h('tr', {}, h('td', { colSpan: 99 }, h('a', { href: '#', onClick: () => setAll(true) }, t('more_items', { n: rest }, "{n} more item(s)"))))
         )
     )
+}
+
+function openUploadActions(rec: ToUpload, actions: { [icon:string]: null | ((rec :ToUpload) => any) }) {
+    const { close } = newDialog({
+        title: t`Menu`,
+        icon: () => hIcon('menu'),
+        Content() {
+            return h(Fragment, {},
+                h('dl', { className: 'file-dialog-properties upload-action-properties' },
+                    h('div', {},
+                        h('dt', {}, t`Size`),
+                        h('dd', {}, formatBytes(rec.file.size))
+                    )
+                ),
+                h('div', { className: 'upload-action-menu file-menu' },
+                    ..._.map(actions, (cb, icon) => cb && h('a', {
+                        href: '#',
+                        className: `action-${icon}`,
+                        onClick(ev) {
+                            ev.preventDefault()
+                            close()
+                            void cb(rec)
+                        }
+                    },
+                        hIcon(icon),
+                        h('label', {}, uploadActionLabel(icon))
+                    ))
+                )
+            )
+        }
+    })
+}
+
+function uploadActionLabel(icon: string) {
+    // edit changes the upload path, so users see the familiar rename label
+    return icon === 'edit' ? t`Rename` : t(_.capitalize(icon))
 }
 
 function formatTime(time: number, decimals=0, length=Infinity) {

@@ -509,6 +509,17 @@ button .icon + .label {
     td:nth-child(2) { text-align: right; width: 0; white-space: nowrap; padding-left: 0.5em; }
     td:nth-child(3) { padding: .2em .5em; word-break: break-word; }
 }
+.upload-list-menu-button {
+    display: none;
+}
+.upload-action-menu {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+.upload-action-properties {
+    margin-bottom: 1em;
+}
 .nowrap { white-space: nowrap }
 
 .login-dialog {
@@ -885,6 +896,18 @@ form label+input { margin-top: .2em; }
     }
     #root>.tiles-mode {
         margin: 0;
+    }
+}
+
+@media (max-width: 30em) {
+    .upload-list-inline-actions {
+        display: none;
+    }
+    .upload-list-menu-button {
+        display: inline-block;
+    }
+    .upload-list-size {
+        display: none;
     }
 }
 
