@@ -48,7 +48,7 @@ test('upload1', async ({ page, context, browserName }, testInfo) => {
         await renameDialog.getByRole('button', { name: 'Continue' }).click()
         await expect(page.getByText(uploadName)).toBeVisible() // rename was effective
         // we send the upload, slowly, so that we can interrupt it in the admin-panel to test the upload resume
-        await page.getByRole('button', { name: 'Send 1 file' }).click()
+        await page.getByRole('button', { name: 'Send' }).click()
         const uploadCells = pageAdmin.locator('.MuiDataGrid-cell')
             .filter({ hasText: uploadName })
             .filter({ hasText: '/for-admins/upload' })

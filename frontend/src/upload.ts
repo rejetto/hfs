@@ -82,14 +82,17 @@ export function showUpload() {
                         !isMobile && h(Flex, { gap: 4 }, hIcon('info'), t('upload_dd_hint', "You can upload files by dragging and dropping them onto the file list")),
                         h(UploadStatus, { margin: '.5em 0' }),
                         adding.length > 0 && h(Flex, { center: true, flexWrap: 'wrap' },
-                            h('button', {
-                                className: 'upload-send',
-                                onClick() {
-                                    void enqueueUpload(uploadState.adding)
-                                    clear()
-                                }
-                            }, t('send_files', { n: adding.length, size }, "Send {n,plural,one{# file} other{# files}}, {size}")),
-                            h('button', { onClick: clear }, t`Clear`),
+                            t('ready_to_upload', { n: adding.length, size }, "{n,plural,one{# file} other{# files}}, {size}, ready to upload"),
+                            h(Flex, {}, // avoid just one button to wrap
+                                h('button', {
+                                    className: 'upload-send',
+                                    onClick() {
+                                        void enqueueUpload(uploadState.adding)
+                                        clear()
+                                    }
+                                }, t`Send`),
+                                h('button', { onClick: clear }, t`Clear`),
+                            ),
                         )
                     ),
             ),
