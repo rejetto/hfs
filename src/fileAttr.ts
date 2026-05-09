@@ -39,7 +39,7 @@ export async function storeFileAttr(path: string, k: string, v: any) {
 export async function loadFileAttr(path: string, k: string) {
     return await fsx?.get(path, FILE_ATTR_PREFIX + k)
             .then((x: any) => x === '' ? undefined : tryJson(String(x)),
-                () => fileAttrDb.isOpen() ? fileAttrDb.get(fileAttrKey(path, k)) : null)
+                () => fileAttrDb.isOpen() ? fileAttrDb.get(fileAttrKey(path, k)).catch(console.error) : null)
         ?? undefined // normalize, as we get null instead of undefined on windows
 }
 
