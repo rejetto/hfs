@@ -190,6 +190,7 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
     let proxy: Koa.Middleware
     import('koa-better-http-proxy').then(lib => // dynamic import to avoid having this in final distribution
         proxy = lib.default('127.0.0.1:'+port, {
+            parseReqBody: false, // the dev GUI proxy serves app/assets, so avoid koa-better-http-proxy trying to reread ctx.req
             proxyReqPathResolver: (ctx) =>
                 shouldServeApp(ctx) ? '/' : ctx.path,
             userResDecorator(res, data, ctx) {
