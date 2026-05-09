@@ -457,7 +457,7 @@ button .icon + .label {
     position: sticky;
     bottom: 0;
     display: flex;
-    gap: .1em;
+    gap: .3em;
     background-color: var(--bg);
     padding: 0 0.2em 0.2em;
     &>button { z-index: 1; }
@@ -468,6 +468,7 @@ button .icon + .label {
         display: flex;
         gap: .5em;
         flex: 1;
+        min-width: 0;
         overflow-x: auto;
     }
     #paging-middle>button {
@@ -480,6 +481,34 @@ button .icon + .label {
         text-align: center;
         white-space: nowrap;
         padding: .5em; /* fit more buttons on screen */
+    }
+    #alphabet-paging {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        margin-left: .2em;
+        &.open #alphabet-paging-toggle {
+            min-width: 2.4em;
+        }
+    }
+    #alphabet-paging-toggle {
+        min-width: 2.8em;
+    }
+    #alphabet-paging-bar {
+        position: absolute;
+        right: 100%;
+        bottom: 0;
+        display: flex;
+        gap: .2em;
+        max-width: calc(100vw - 5.5em);
+        overflow-x: auto;
+        padding: .2em .2em .2em .5em;
+        background: var(--bg);
+        box-shadow: -.2em 0 .3em .2em var(--bg);
+        button {
+            min-width: 2.2em;
+            padding: .5em .6em;
+        }
     }
 }
 

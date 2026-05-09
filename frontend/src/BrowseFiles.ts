@@ -21,6 +21,7 @@ import { ClipBar } from './clip'
 import { fileShow, getShowComponent } from './show'
 import i18n from './i18n'
 import { dragFilesSource } from './dragFiles'
+import { PAGE_SEPARATOR_CLASS, Paging, scrollIntoView } from './Paging'
 const { t, useI18N } = i18n
 
 export const MISSING_PERM = "Missing permission"
@@ -66,24 +67,24 @@ function FilesList() {
     const snap = useSnapState()
     const midnight = useMidnight() // as an optimization, we calculate this only once per list and pass it down
     const pageSize = Math.max(1, Math.floor(snap.page_size ?? 100))
-    const [page, setPage] = useState(0)
+    const [offset, setOffset] = useState(0)
     const [extraPages, setExtraPages] = useState(0)
     const [scrolledPages, setScrolledPages] = useState(0)
     const [atBottom, setAtBottom] = useState(false)
-    const offset = page * pageSize
     const theList = snap.filteredList || snap.list
     const total = theList.length
     const nPages = Math.ceil(total / pageSize)
+    const page = Math.floor(offset / pageSize)
     const pageEnd = offset + pageSize * (1+extraPages) - 1
     const thisPage = theList.slice(offset, pageEnd + 1)
 
-    useEffect(() => setPage(0), [theList[0]]) // reset page if the list changes
+    useEffect(() => setOffset(0), [theList[0]]) // reset page if the list changes
     // reset scrolling if the page changes
     useEffect(() => {
         document.scrollingElement?.scrollTo(0, 0)
         setExtraPages(0)
         setScrolledPages(0)
-    }, [page])
+    }, [offset])
 
     // continuous-scrolling
     const calcScrolledPages = useMemo(() =>
@@ -94,7 +95,7 @@ function FilesList() {
             setAtBottom(window.innerHeight + Math.ceil(window.scrollY) >= document.body.offsetHeight)
         }, 200),
         [])
-    const canAddPage = page + extraPages < nPages - 1
+    const canAddPage = pageEnd < total - 1
     useEffect(() => domOn('scroll', () => {
         if (!theList.length) return
         const timeToAdd = window.innerHeight * 1.3 + window.scrollY >= document.body.offsetHeight // 30vh before the end
@@ -168,7 +169,7 @@ function FilesList() {
         if (offset && (ret < 0 || ret > pageEnd))
             ret = search(0) // search again on the whole list
         if (ret >= 0)
-            setPage(Math.floor(ret / pageSize))
+            setOffset(Math.floor(ret / pageSize) * pageSize)
         return ret
 
         function search(offset: number) {
@@ -209,12 +210,17 @@ function FilesList() {
         if (pleaseGoBottom)
             setGoBottom(true)
         if (i < page || i > page + extraPages)
-            return setPage(i)
+            return setOffset(i * pageSize)
         i -= page + 1
         const el = i < 0 ? ref.current?.querySelector('*')
             : document.querySelectorAll('.' + PAGE_SEPARATOR_CLASS)[i]
         scrollIntoView(el, 'center')
-    }, [page, extraPages])
+    }, [page, extraPages, pageSize])
+    const changePageToIndex = useCallback((i: number) => {
+        setFocus('')
+        // alphabetical paging is entry-anchored, so the chosen group starts at the top instead of at the numeric page boundary
+        setOffset(i)
+    }, [])
 
     const {t} = useI18N()
 
@@ -242,65 +248,12 @@ function FilesList() {
             current: page + scrolledPages,
             atBottom,
             pageSize,
+            list: theList as DirEntry[],
+            showAlphabet: snap.sort_by === 'name' && !snap.invert_order,
             changePage,
+            changePageToIndex,
         })
     )
-}
-
-interface PagingProps {
-    nPages: number
-    current: number
-    atBottom: boolean
-    pageSize: number
-    changePage: (newPage:number, goBottom?:boolean) => void
-}
-const Paging = memo(({ nPages, current, pageSize, changePage, atBottom }: PagingProps) => {
-    useEffect(() => {
-        document.body.style.overflowY = 'scroll'
-        return () => { document.body.style.overflowY = '' }
-    }, [])
-    const lastScrollTimeRef = useRef(0)
-    useEffect(() => domOn('scroll', () => lastScrollTimeRef.current = Date.now()), [])
-    const ref = useRef<HTMLElement>()
-    useEffect(() => { // in case the page changed using the continuous-scrolling, we want to re-center, but only if it happened for a user interaction different from the scrolling
-        if (Date.now() - lastScrollTimeRef.current > 500)
-            scrollIntoView(ref.current, 'nearest')
-    }, [current])
-    const shrink = nPages > 20
-    const from = _.floor(current, -1)
-    const to = from + 10
-    return h('div', { id: 'paging' },
-        h('button', {
-            title: t('go_first', "Go to first item"),
-            className: !current ? 'toggled' : undefined,
-            onClick() { changePage(0) },
-        }, hIcon('to_start')),
-        h('div', { id: 'paging-middle' },  // using sticky first/last would prevent scrollIntoView from working
-            _.range(1, nPages).map(i => {
-                if (shrink && i % 10 && (i < from || i >= to))
-                    return false
-                const pageStart = i * pageSize
-                return h('button', {
-                    key: i,
-                    ...i === current && { className: 'toggled', ref },
-                    onClick: () => changePage(i),
-                }, shrink && !(i % 10) && pageStart >= 1000 ? (pageStart / 1000) + 'K' : pageStart)
-            })
-        ),
-        h('button', {
-            title: t('go_last', "Go to last item"),
-            className: atBottom ? 'toggled' : undefined,
-            onClick(){ changePage(nPages-1, true) }
-        }, hIcon('to_end')),
-    )
-})
-
-function scrollIntoView(el: Element | undefined | null, block: ScrollLogicalPosition) {
-    if (!el) return
-    try { el.scrollIntoView({ block }) }
-    catch { // firefox 52 rejects modern scrollIntoView options, so we fall back to the legacy boolean signature
-        el.scrollIntoView(block === 'center')
-    }
 }
 
 export function useMidnight() {
@@ -318,8 +271,6 @@ export function useMidnight() {
         return recent < midnight ? recent : midnight
     }
 }
-
-const PAGE_SEPARATOR_CLASS = 'page-separator'
 
 interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
 const Entry = ({ entry, midnight, separator }: EntryProps) => {
