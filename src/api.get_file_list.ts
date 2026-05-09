@@ -78,7 +78,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     async function* produceEntries() {
         for await (const sub of walker) {
             let name = getNodeName(sub)
-            name = basename(name) || name // on windows, basename('C:') === ''
+            name = basename(name) || name // on Windows, basename('C:') === ''
             if (filterName && !filterName(name) || fileMask && !nodeIsFolder(sub) && !fileMask(name)
             || filterComment && !filterComment(await getCommentFor(sub.source) || ''))
                 continue

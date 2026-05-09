@@ -812,7 +812,7 @@ This section is still partially documented, and you may need to have a look at t
     - `ctx: Context`
     - `node: VfsNode`
   - async supported
-  - preventable
+  - preventable (the entry will be skipped)
   - note: legacy `onDirEntry` hooks run first; use this event for new code
   - types `DirEntryBackend` fields:
     - `n: string` name of the entry. (May include the relative path when searching in subfolders.)

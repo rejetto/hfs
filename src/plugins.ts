@@ -282,7 +282,7 @@ events.once('app', () => Object.assign(app.context, {
 
 // return false to ask to exclude this entry from results
 interface OnDirEntryParams { entry:DirEntry, ctx:Koa.Context, node:VfsNode }
-type OnDirEntry = (params:OnDirEntryParams) => void | false
+type OnDirEntry = (params:OnDirEntryParams) => Promisable<unknown | false>
 
 export class Plugin implements CommonPluginInterface {
     started: Date | null = new Date()
@@ -455,16 +455,16 @@ export async function rescan() {
     const patterns = [PATH + '/*']
     if (APP_PATH !== process.cwd())
         patterns.unshift(escapeGlobPath(APP_PATH) + '/' + patterns[0]) // first search bundled plugins, because otherwise they won't be loaded because of the folders with same name in .hfs/plugins (used for storage)
-    const existing = []
+    const existing = new Set<string>()
     for (const { path, dirent } of await glob(patterns, { onlyFiles: false, suppressErrors: true, objectMode: true })) {
         if (!dirent.isDirectory() || path.endsWith(DISABLING_SUFFIX)) continue
         const id = path.split('/').slice(-1)[0]!
-        existing.push(id)
+        existing.add(id)
         if (!pluginWatchers.has(id))
             pluginWatchers.set(id, watchPlugin(id, join(path, PLUGIN_MAIN_FILE)))
     }
     for (const [id, cancelWatcher] of pluginWatchers.entries())
-        if (!existing.includes(id)) {
+        if (!existing.has(id)) {
             enablePlugin(id, false)
             cancelWatcher()
             pluginWatchers.delete(id)
