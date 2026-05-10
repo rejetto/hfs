@@ -45,6 +45,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
+          # disable the action's automatic latest tag so prereleases cannot overwrite latest
+          flavor: |
+            latest=false
           images: |
             ghcr.io/${{ github.repository }}
             docker.io/rejetto/hfs
