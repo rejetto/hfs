@@ -1,6 +1,6 @@
 import Koa from 'koa'
 import { basename, dirname, join } from 'path'
-import { getNodeName, nodeIsFolder, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, walkNode } from './vfs'
+import { getDefaultFile, getNodeName, nodeIsFolder, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, walkNode } from './vfs'
 import { sendErrorPage } from './errorPages'
 import events from './events'
 import {
@@ -120,11 +120,10 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
             return ctx.status = HTTP_SERVER_ERROR
         }
     }
-    if (node.default && path.endsWith('/') && !get) { // final/ needed on browser to make resource urls correctly with html pages
-        const found = await urlToNode(node.default, ctx, node)
-        if (found && /\.html?/i.test(node.default))
+    if (path.endsWith('/') && !get) { // final slash needed on browsers to make resource urls working with html pages
+        const found = await getDefaultFile(node, ctx)
+        if (found && /\.html?/i.test(getNodeName(node = found)))
             ctx.state.considerAsGui = true
-        node = found ?? node
     }
     if (get === 'icon')
         return serveFile(ctx, node.icon || '|') // pipe to cause not-found

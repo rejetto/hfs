@@ -252,7 +252,7 @@ export function nodeIsFolder(node: VfsNode) {
     }
 }
 
-export async function hasDefaultFile(node: VfsNode, ctx: Koa.Context) {
+export async function getDefaultFile(node: VfsNode, ctx: Koa.Context) {
     return node.default && nodeIsFolder(node) && await urlToNode(node.default, ctx, node) || undefined
 }
 

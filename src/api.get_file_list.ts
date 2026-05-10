@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    applyParentToChild, getNodeName, hasDefaultFile, hasPermission, masksCouldGivePermission, nodeIsFolder, nodeStats,
+    applyParentToChild, getNodeName, getDefaultFile, hasPermission, masksCouldGivePermission, nodeIsFolder, nodeStats,
     statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
 } from './vfs'
 import { ApiError, ApiHandler } from './apiMiddleware'
@@ -37,7 +37,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     if (!node)
         return fail(HTTP_NOT_FOUND)
     admin &&= ctxAdminAccess(ctx) // validate 'admin' flag
-    if (await hasDefaultFile(node, ctx) || !nodeIsFolder(node)) // for files without permission, the frontend is sent, and the location is the file itself
+    if (await getDefaultFile(node, ctx) || !nodeIsFolder(node)) // for files without permission, the frontend is sent, and the location is the file itself
         // so, we first check if you have a permission problem, to tell frontend to show login, otherwise we fall back to method_not_allowed, as it's proper for files.
         return fail(!admin && statusCodeForMissingPerm(node, 'can_read', ctx) ? undefined : HTTP_METHOD_NOT_ALLOWED)
     if (!admin && statusCodeForMissingPerm(node, 'can_list', ctx))
@@ -119,7 +119,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
         const isFolder = nodeIsFolder(node)
         try {
             const [web, comment, st] = await Promise.all([
-                hasDefaultFile(node, ctx).then(x => x ? true : undefined),
+                getDefaultFile(node, ctx).then(x => x ? true : undefined),
                 node.comment ?? getCommentFor(source),
                 nodeStats(node).catch(e => {
                     if (!isFolder || !node.children?.length) // folders with virtual children, keep them
