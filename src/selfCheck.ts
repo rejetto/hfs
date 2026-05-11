@@ -48,7 +48,7 @@ export async function selfCheck(url: string) {
                     console.debug(svc)
                     body = applySymbols(body)
                     serviceUrl = applySymbols(serviceUrl)!
-                    const res = await haveTimeout(6_000, httpString(serviceUrl, { family, ...rest, body }))
+                    const res = await haveTimeout(8_000, httpString(serviceUrl, { family, ...rest, body }))
                     const success = new RegExp(regexpSuccess).test(res)
                     const failure = new RegExp(regexpFailure).test(res)
                     if (success === failure) throw 'inconsistent: ' + service + ': ' + res // this result cannot be trusted
