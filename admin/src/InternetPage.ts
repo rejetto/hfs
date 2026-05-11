@@ -1,5 +1,7 @@
 import { createElement as h, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link, Typography } from '@mui/material'
+import {
+    Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link, Typography, Skeleton,
+} from '@mui/material'
 import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Send, Storage,
     Error as ErrorIcon, SvgIconComponent, Search } from '@mui/icons-material'
 import { apiCall, useApiEvents, useApiEx } from './api'
@@ -311,8 +313,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
 
     function networkBox() {
         if (nat.error) return nat.element
-        if (!data || !publicIps) return h(CircularProgress)
-        const direct = publicIps.includes(data?.localIp!)
+        const direct = publicIps?.includes(data?.localIp!)
         return h(Flex, { justifyContent: 'space-around' },
             h(Device, { name: "Server", icon: direct ? Storage : HomeWorkTwoTone, color: localColor, ip: data?.localIp,
                 below: port && h(Box, { sx: { fontSize: 'smaller' }, className: 'port ' + HIDE_IN_TESTS }, "port ", port),
@@ -322,17 +323,17 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                 name: "Router", icon: RouterTwoTone, ip: data?.gatewayIp,
                 color: checkResult ? 'success' : data?.mapped && (wrongMap ? 'warning' : 'success'),
                 below: mapping ? h(LinearProgress, { sx: { height: '1em' } })
-                    : h(LinkBtn, { sx: { fontSize: 'smaller', display: 'block' }, onClick: configure },
+                    : data && h(LinkBtn, { sx: { fontSize: 'smaller', display: 'block' }, onClick: configure },
                         "port ", wrongMap ? "is wrong" : data?.externalPort || (checkResult ? "verified" : "unknown")),
             }),
             h(DataLine),
             h(Device, { name: "Internet", icon: PublicTwoTone, ip: publicIps,
                 color: checkResult ? 'success' : checkResult === false ? 'error' : doubleNat ? 'warning' : undefined,
-                below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : h(Box, { sx: { fontSize: 'smaller' }, className: HIDE_IN_TESTS },
+                below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : publicIps && h(Box, { sx: { fontSize: 'smaller' }, className: HIDE_IN_TESTS },
                     doubleNat && h(LinkBtn, { sx: { display: 'block', fontSize: 'smaller' }, onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
                     checkResult ? "Working!" : checkResult === false ? "Failed!" : '',
                     ' ',
-                    (baseUrl > '' || publicIps.length > 0) && data.internalPort && h(LinkBtn, { onClick: () => verify() }, "Verify")
+                    (baseUrl > '' || publicIps?.length > 0) && data?.internalPort && h(LinkBtn, { onClick: () => verify() }, "Verify")
                         || ' ' // steadier layout, mainly for testing
                 )
             }),
@@ -474,8 +475,8 @@ function Device({ name, icon, color, ip, below }: any) {
     return h(Box, { sx: { display: 'inline-block', textAlign: 'center' } },
         h(icon, { color, sx: { fontSize, mb: '-0.1em' } }),
         h(Box, { sx: { fontSize: 'larger' } }, name),
-        h(Box, { sx: { fontSize: 'smaller', whiteSpace: 'pre-wrap' }, className: 'ip ' + HIDE_IN_TESTS }, wantArray(ip).join('\n') || "unknown"),
-        below,
+        ip === undefined ? h(Skeleton) : h(Box, { sx: { fontSize: 'smaller', whiteSpace: 'pre-wrap' }, className: 'ip ' + HIDE_IN_TESTS }, wantArray(ip).join('\n') || "unknown"),
+        below ?? h(Skeleton),
     )
 }
 
