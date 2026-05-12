@@ -23,7 +23,7 @@ import { defaultBaseUrl } from './nat'
 import { storedMap } from './persistence'
 import { argv } from './argv'
 import { consoleHint } from './consoleLog'
-import { onProcessExit } from './first'
+import { onProcessExit, quitting } from './first'
 import { fileAttrDb } from './fileAttr'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
@@ -280,7 +280,8 @@ export function stopServer(srv?: http.Server) {
                 console.debug("Failed to stop server", String(err))
             resolve(err)
         })
-        srv.closeAllConnections()
+        if (quitting)
+            srv.closeAllConnections()
     })
 }
 
