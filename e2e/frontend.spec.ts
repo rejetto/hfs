@@ -148,7 +148,7 @@ test('search1', async ({ page }) => {
     await page.getByRole('button', { name: 'Search' }).click()
     await page.locator('input[name="name"]').fill('a*')
     await page.locator('input[name="name"]').press('Enter')
-    await page.getByText('files, 36 B').click()
+    await page.getByText('files, 42 B').click()
 
     await page.getByRole('link', { name: 'home' }).click()
     await page.getByRole('button', { name: 'Close' }).click()
@@ -356,4 +356,8 @@ test('order field', async ({ page }) => {
     await page.goto(FRONTEND_URL + 'renameChild/orderTest/')
     await expect(page.getByText('orderTest')).toBeVisible()
     await expect(page.locator('.entry-name')).toHaveText(['B', 'A', 'C'])
+    await page.goto(FRONTEND_URL + 'renameChild/')
+    await page.getByRole('link', { name: 'gui#%2, Folder' }).click()
+    await expect(page.getByRole('link', { name: 'alfa.txt' })).toBeVisible()
+    await expect(page.getByText('Not found')).not.toBeVisible()
 })

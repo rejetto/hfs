@@ -77,6 +77,10 @@ vfs:
           rename:
             alfa.txt: renamed1
             page/gpl.png: renamed2
+        - name: gui#%2
+          can_see: true
+          children:
+            - source: ../alfa.txt
         - name: orderTest
           can_see: true
           children:
@@ -227,7 +231,7 @@ accounts:
   admins:
     allow_net: ::1
     admin: true
-version: 3.1.4
+version: 3.2.0-alpha1
 max_downloads_per_account: 2
 max_downloads: 1
 roots:

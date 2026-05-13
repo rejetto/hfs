@@ -26,8 +26,8 @@ export function useNavigate() {
 }
 
 export function useLocation(): { pathname: string } {
-    const [pathname] = useWouterLocation()
-    return { pathname }
+    useWouterLocation() // used just to cause render
+    return { pathname: location.pathname }
 }
 
 type RouteProps = {
