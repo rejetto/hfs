@@ -9,7 +9,7 @@ import {
 } from '@mui/icons-material'
 import { Box, Typography } from '@mui/material'
 import { deleteVfs, id2vfsNode, isDescendantUri, reindexVfs, VfsNodeAdmin } from './VfsPage'
-import { onlyTruthy, pathEncode, prefix, toMutable, wantArray, Who, with_ } from './misc'
+import { onlyTruthy, pathEncode, prefix, toMutable, wantArray, WhoVfs, with_ } from './misc'
 import { Flex, iconTooltip, useToggleButton } from './mui'
 import VfsMenuBar from './VfsMenuBar'
 import { ApiObject } from './api'
@@ -96,7 +96,7 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
             ...node.children?.map(x => h(Branch, { key: x.id, node: x })) || []
         )
 
-        function isRestricted(who: Who | undefined) {
+        function isRestricted(who: WhoVfs | undefined) {
             return who != null && who !== true
         }
 

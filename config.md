@@ -43,6 +43,13 @@ Configuration can be done in several ways
 `NAME` stands for the property name that you want to change. See the complete list below.
 
 ### Configuration properties
+
+Some properties use a `Who` descriptor, with one of these values:
+- `true`: anyone can, even people who didn't log in.
+- `false`: no one can.
+- `"*"`: any account can, i.e. anyone who logged in.
+- `[ frank, peter ]`: the list of accounts who can.
+
 - `port` where to accept http connections. Default is 80.
 - `vfs` the files and folders you want to expose. For details see the dedicated following section.
 - `log` path of the log file. Default is `access.log`.
@@ -108,6 +115,7 @@ Configuration can be done in several ways
 - `sort_numerics` starting value for sort-numeric-names. Default is false.
 - `folders_first` starting value for sort-folders-first. Default is true.
 - `invert_order` starting value for invert-order. Default is false.
+- `show_uploader` who can see who uploaded files. Value is a `Who` descriptor. Default is false.
 - `update_to_beta` includes beta versions searching for updates. Default is false.
 - `roots` maps hosts (or mask of hosts) to a root different from the home folder. Default is none. E.g.
   ```
@@ -173,20 +181,18 @@ Valid keys in a node are:
   The value must be the name of the file to serve. E.g.: `index.html`. 
   The value must be an absolute or relative path in the VFS, not a path on disk. It works also with other type of files.
   Using this will make `mime` default to "auto".
-- `can_read`: specify who can download this entry. Value is a `WhoCan` descriptor, which is one of these values
-    - `true`: anyone can, even people who didn't log in. This is normally the default value.
-    - `false`: no one can.
-    - `"*"`: any account can, i.e. anyone who logged in.
-    - `[ frank, peter ]`: the list of accounts who can.
-    - `can_SOMETHING`: copy the permission from another permission. This is convenient to have same value for different permissions. E.g. `can_see` 
-    - `{ this?: WhoCan, children?: WhoCan }`: this form is useful only for folders. By using it, you can have
-      different permission for the folder itself and its children. For example, having only the `this` property
-      will make the permission limited to the folder and not be inherited by children. Otherwise, having only
-      the `children` will make the permission have no effect on the folder, but only on its content.  
-        - `this` specifies permission for this folder
-        - `children` specifies permission for the content.
+- `can_read`: specify who can download this entry. Value is a `Who` descriptor, or a VFS-specific extension. Default is `true`.
+
+  VFS permissions also accept these extra forms:
+  - `can_SOMETHING`: copy the permission from another permission. This is convenient to have same value for different permissions. E.g. `can_see`
+  - `{ this?: ..., children?: ... }`: this form is useful only for folders. Each value uses the same permission descriptor. By using it, you can have
+    different permission for the folder itself and its children. For example, having only the `this` property
+    will make the permission limited to the folder and not be inherited by children. Otherwise, having only
+    the `children` will make the permission have no effect on the folder, but only on its content.
+      - `this` specifies permission for this folder
+      - `children` specifies permission for the content.
 - `can_see`: specify who can see this element. Even if a user can download you can still make the file not appear in the list.
-  Value is a `WhoCan` descriptor, refer above. Default is `can_read`.
+  Value uses the same permission descriptor described above. Default is `can_read`.
 - `can_upload`: specify who can upload. Applies to folders with a source. Default is none.
 - `can_list`: specify who can see the content of a folder. Default is `can_read`.
 - `can_archive`: specify who can get the zip a folder or a set of files. Default is `can_read`.

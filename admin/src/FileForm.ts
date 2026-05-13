@@ -6,10 +6,10 @@ import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList, useThem
 import {
     BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, NumberField, SelectField, StringField
 } from '@hfs/mui-grid-form'
-import { apiCall, UseApi } from './api'
+import { apiCall, UseApi, useApiEx } from './api'
 import {
     basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, objSameKeys,
-    onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, xlate, md, Callback, MASK_IN_TESTS,
+    onlyTruthy, prefix, VfsPerms, wantArray, WhoVfs, WhoObject, matches, xlate, md, Callback, MASK_IN_TESTS,
     useRequestRender, splitAt, IMAGE_FILEMASK, copyTextToClipboard, normalizeHost, CFG, try_, WHO_ANY_ACCOUNT,
 } from './misc'
 import { isModifiedConfig } from './AccountForm'
@@ -28,7 +28,8 @@ import { AddVfsBtn } from './VfsMenuBar'
 import { SYS_ICONS } from '@hfs/frontend/src/sysIcons'
 import { hIcon } from '@hfs/frontend/src/misc'
 import { TextEditorField } from './TextEditor'
-import { Account, account2icon } from './AccountsPage'
+import { account2icon } from './AccountsPage'
+import apiAccounts from '../../src/api.accounts'
 
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
 
@@ -36,11 +37,11 @@ interface FileFormProps {
     file: VfsNodeAdmin
     addToBar?: ReactNode
     statusApi: UseApi
-    accounts: Account[]
+    accountsApi: AccountsApi
     saved: Callback
     isSideBreakpoint: boolean
 }
-export default function FileForm({ file, addToBar, statusApi, accounts, saved, isSideBreakpoint }: FileFormProps) {
+export default function FileForm({ file, addToBar, statusApi, accountsApi, saved, isSideBreakpoint }: FileFormProps) {
     const { parent, children, isRoot, byMasks, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
@@ -235,12 +236,13 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved, i
         return {
             comp: WhoField,
             k: perm, sm: 6, lg: 12, xl: 4,
-            parent, accounts, helperText, isDir,
+            parent, accountsApi, helperText, isDir,
             otherPerms: others.map(x => ({ value: x, label: who2desc(x) })),
             label: "Who can " + perm2word(perm),
             inherit,
             byMasks: byMasks?.[perm],
-            fromField: (v?: Who) => v ?? null,
+            offerInheritance: true,
+            fromField: (v?: WhoVfs) => v ?? null,
             ...props
         }
     }
@@ -251,29 +253,41 @@ function perm2word(perm: string) {
     return xlate(perm.split('_')[1], { read: 'download', archive: 'zip', list: 'access list' })
 }
 
-interface WhoFieldProps extends FieldProps<Who | undefined> {
-    accounts: Account[],
-    otherPerms: any[],
+type AccountsApi = ReturnType<typeof useAccountsApi>
+export function useAccountsApi() {
+    return useApiEx<typeof apiAccounts.get_accounts>('get_accounts', {}, {
+        onResponse(_res, data) {
+            if (!data) return
+            data.list = _.sortBy(data.list, 'username')
+        }
+    })
+}
+
+interface WhoFieldProps extends FieldProps<WhoVfs | undefined> {
+    accountsApi?: AccountsApi,
+    otherPerms?: any[],
     isChildren?: boolean,
     isDir: boolean
     contentText?: string
 }
-function WhoField({ value, onChange, parent, inherit, accounts, helperText, otherPerms, byMasks,
-        hideValues, isChildren, isDir, contentText="folder content", setApi, ...rest }: WhoFieldProps): ReactElement {
+export function WhoField({ value, onChange, parent, inherit, accountsApi, helperText, otherPerms, byMasks,
+        hideValues, isChildren, isDir, contentText="folder content", setApi, offerInheritance, ...rest }: WhoFieldProps): ReactElement {
     const defaultLabel = who2desc(byMasks ?? inherit)
         + prefix(' (', byMasks !== undefined ? "from masks" : parent !== undefined ? "as parent folder" : "default", ')')
     const objectMode = isWhoObject(value)
     const thisValue = objectMode ? value.this : value
+    accountsApi ??= useAccountsApi() // it's important that the "accounts" prop is stable in the truthy sense
+    const accounts = accountsApi?.data?.list
 
     const options = useMemo(() =>
         onlyTruthy([
-            { value: null, label: defaultLabel },
+            offerInheritance && { value: null, label: defaultLabel },
             { value: true },
             { value: false },
             { value: '*' },
-            ...otherPerms,
+            ...otherPerms || [],
             { value: [], label: "Select accounts" },
-        ].map(x => !hideValues?.includes(x.value)
+        ].map(x => x && !hideValues?.includes(x.value)
             && { label: who2desc(x.value), ...x })), // default label
         [inherit, parent, thisValue, ...wantArray(hideValues)])
 
@@ -312,7 +326,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
         !isChildren && h(Collapse, { in: objectMode, timeout },
             h(WhoField, {
                 label: "Permission for " + contentText,
-                parent, inherit, accounts, otherPerms, isDir,
+                parent, inherit, accountsApi, otherPerms, isDir,
                 value: objectMode ? value?.children : undefined,
                 isChildren: true,
                 hideValues: [thisValue ?? inherit, thisValue],

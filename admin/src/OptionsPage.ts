@@ -23,6 +23,7 @@ import { proxyWarning } from './HomePage'
 import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
 import { TextEditorField } from './TextEditor'
+import { WhoField } from './FileForm';
 
 let loaded: Dict | undefined
 let exposedReloadStatus: undefined | (() => void)
@@ -44,7 +45,7 @@ export default function OptionsPage() {
     const status = statusApi.data
     const reloadStatus = exposedReloadStatus = statusApi.reload
     useEffect(() => void reloadStatus(), [data]) //eslint-disable-line
-    useEffect(() => () => exposedReloadStatus = undefined, []) // clear on unmount
+    useEffect(() => () => exposedReloadStatus = undefined, []) // clear this on unmount
     const sm = useBreakpoint('sm')
     const saveBtnRef = useRef<HTMLButtonElement>(null)
 
@@ -209,8 +210,9 @@ export default function OptionsPage() {
             { k: 'folders_first', comp: BoolField, xs: 6, md: 3 },
             { k: 'sort_numerics', comp: BoolField, xs: 6, md: 3, label: "Sort numeric names" },
             { k: 'title_with_path', comp: BoolField, xs: 6, md: 3 },
-            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, xs: 12, sm: 9,
+            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, xs: 12, sm: 6,
                 helperText: "The icon associated to your website" },
+            { k: CFG.show_uploader, comp: WhoField, xs: true },
             { k: 'page_size', comp: NumberField, xs: true, min: 1, required: true, helperText: "Entries per page" },
 
             h(Section, { title: "Uploads" }),

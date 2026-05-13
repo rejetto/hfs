@@ -161,10 +161,10 @@ describe('basics', () => {
         headers: { 'x-hfs-anti-csrf': '1', 'content-type': 'application/json' },
         body: '{'
     }))
-    test('file_details.missing', reqApi('get_file_details', { uris: ['/missing'] }, res => res?.details?.[0] === false))
-    test('file_details.hidden', reqApi('get_file_details', { uris: ['/tests/config.yaml'] }, res => res?.details?.[0] === false))
-    test('file_details.for-admins', reqApi('get_file_details', { uris: ['/for-admins/alfa.txt'] }, res => res?.details?.[0] === false))
-    test('file_details.traversal', reqApi('get_file_details', { uris: ['/f1/%2e%2e/for-admins/alfa.txt'] }, res => res?.details?.[0] === false))
+    test('file_details.missing', reqApi('get_file_details', { uris: ['/missing'] }, noVisibleDetails))
+    test('file_details.hidden', reqApi('get_file_details', { uris: ['/tests/config.yaml'] }, noVisibleDetails))
+    test('file_details.for-admins', reqApi('get_file_details', { uris: ['/for-admins/alfa.txt'] }, noVisibleDetails))
+    test('file_details.traversal', reqApi('get_file_details', { uris: ['/f1/%2e%2e/for-admins/alfa.txt'] }, noVisibleDetails))
     test('file_list.traversal', reqApi('get_file_list', { uri: '/f1/%2e%2e/for-admins' }, 404))
     test('file_list.bad encoding', reqApi('get_file_list', { uri: '/f1/%E0%A4%A' }, 404))
     test('forbidden list', req('/cantListPage/page/', 403))
@@ -910,7 +910,7 @@ describe('after-login', () => {
         const u = res?.details?.[0]?.upload
         throwIf(!u?.ip ? 'ip' : u?.username !== username ? 'username' : '')
     }))
-    test('file_details.non-admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, res => res?.details?.[0] === false, { jar: {} }))
+    test('file_details.non-admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, noVisibleDetails, { jar: {} }))
     test('percent name apis.details', async () => {
         const percentName = `x%25-${randomId(4)}`
         const percentUri = `${UPLOAD_ROOT}${pathEncode(percentName)}`
@@ -1528,6 +1528,10 @@ function reqList(uri:string, tester:Tester, params?: object, options?: ReqOption
 
 function isInList(res:any, name:string) {
     return Array.isArray(res?.list) && (res.list as any[]).some(x => x.n===name)
+}
+
+function noVisibleDetails(res: any) {
+    return Array.isArray(res?.details) && res.details.length === 0
 }
 
 function rmAny(path: string) {

@@ -11,19 +11,22 @@ import {
     HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED
 } from './const'
 import {
-    hasPermission, isRoot, nodeIsFolder, nodeStats, statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
+    hasPermission, isRoot, nodeIsFolder, nodeStats,
+    simpleWhoToError, statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
 } from './vfs'
 import fs from 'fs'
 import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
 import { getUploadMeta } from './upload'
-import { apiAssertTypes, moveStoredFileAttrs, pathDecode, pathEncode, popKey } from './misc'
+import { apiAssertTypes, CFG, moveStoredFileAttrs, pathDecode, pathEncode, popKey } from './misc'
+import { defineConfig } from './config'
 import { getCommentFor, setCommentFor } from './comments'
 import { SendListReadable } from './SendList'
 import { ctxAdminAccess } from './adminApis'
 import _ from 'lodash'
 
 const partialFolderSize: any = {}
+const showUploader = defineConfig(CFG.show_uploader, false)
 
 export const frontEndApis: ApiHandlers = {
     get_file_list,
@@ -45,18 +48,19 @@ export const frontEndApis: ApiHandlers = {
             return new ApiError(HTTP_BAD_REQUEST, 'bad uris')
         const isAdmin = ctxAdminAccess(ctx)
         return {
-            details: await Promise.all(uris.map(async (uri: any) => {
-                if (typeof uri !== 'string')
-                    return false // false means error
-                const node = await urlToNode(uri, ctx)
-                if (!node || !hasPermission(node, 'can_see', ctx))
-                    return false
-                let upload = node.source && await getUploadMeta(node.source).catch(() => undefined)
-                if (!upload) return
-                if (!isAdmin)
-                    upload = _.omit(upload, 'ip')
-                return { upload }
-            }))
+            details: simpleWhoToError(showUploader.get(), ctx) ? [] // return early because at the moment we only have the uploader
+                : await Promise.all(uris.map(async (uri: any) => {
+                    if (typeof uri !== 'string')
+                        return false // false means error
+                    const node = await urlToNode(uri, ctx)
+                    if (!node || !hasPermission(node, 'can_see', ctx))
+                        return false
+                    let upload = node.source && await getUploadMeta(node.source).catch(() => undefined)
+                    if (!upload) return
+                    if (!isAdmin)
+                        upload = _.omit(upload, 'ip')
+                    return { upload }
+                }))
         }
     },
 

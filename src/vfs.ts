@@ -3,9 +3,9 @@
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
-    makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who, debounceAsync,
+    makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, WhoVfs, debounceAsync,
     isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, HTTP_SERVER_ERROR, try_, matches, Promisable,
-    statWithTimeout, safeDecodeURIComponent, getUncHost,
+    statWithTimeout, safeDecodeURIComponent, getUncHost, Who,
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -51,7 +51,7 @@ export function permsFromParent(parent: VfsNode, child: VfsNode) {
     const ret: VfsPerms = {}
     for (const k of PERM_KEYS) {
         let p: VfsNode | undefined = parent
-        let inheritedPerm: Who | undefined
+        let inheritedPerm: WhoVfs | undefined
         while (p) {
             inheritedPerm = p[k]
             // in case of object without children, parent is skipped in favor of the parent's parent
@@ -277,7 +277,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
         || !node.source && perm === 'can_upload') // Upload possible only if we know where to store. First check node.source because is supposedly faster.
             return HTTP_FORBIDDEN
         // calculate value of permission resolving references to other permissions, avoiding infinite loop
-        let who: Who | undefined
+        let who: WhoVfs | undefined
         let max = PERM_KEYS.length
         let cur = perm
         do {
@@ -293,6 +293,8 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
             }
             cur = who
         } while (1)
+        if (isWhoObject(who) || isWhoVfsPerms(who))
+            throw Error(`permission type-guard: ${JSON.stringify(who)}`)
         const eventName = 'checkVfsPermission'
         if (events.anyListener(eventName)) {
             const first = _.max(events.emit(eventName, { who, node, perm, ctx }))
@@ -300,12 +302,21 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
                 return first
         }
 
-        if (Array.isArray(who))
-            return ctxBelongsTo(ctx, who) ? 0 : HTTP_UNAUTHORIZED
-        return typeof who === 'boolean' ? (who ? 0 : HTTP_FORBIDDEN)
-            : who === WHO_ANY_ACCOUNT ? (getCurrentUsername(ctx) ? 0 : HTTP_UNAUTHORIZED)
-                : throw_(Error(`invalid permission: ${perm}=${try_(() => JSON.stringify(who))}`))
+        return simpleWhoToError(who, ctx)
+            ?? throw_(Error(`invalid permission: ${perm}=${try_(() => JSON.stringify(who))}`))
     }
+}
+
+export function simpleWhoToError(who: Who, ctx: Koa.Context) {
+    if (Array.isArray(who))
+        return ctxBelongsTo(ctx, who) ? 0 : HTTP_UNAUTHORIZED
+    return typeof who === 'boolean' ? (who ? 0 : HTTP_FORBIDDEN)
+        : who === WHO_ANY_ACCOUNT ? (getCurrentUsername(ctx) ? 0 : HTTP_UNAUTHORIZED)
+            : undefined
+}
+
+function isWhoVfsPerms(who: WhoVfs | undefined): who is keyof VfsPerms {
+    return typeof who === 'string' && (PERM_KEYS as readonly string[]).includes(who)
 }
 
 interface WalkNodeOptions {
@@ -513,7 +524,7 @@ events.on('accountRenamed', ({ from, to }) => {
     })(vfs)
     saveVfs()
 
-    function renameInPerm(a?: Who) {
+    function renameInPerm(a?: WhoVfs) {
         if (!Array.isArray(a)) return
         for (let i=0; i < a.length; i++)
             if (a[i] === from)

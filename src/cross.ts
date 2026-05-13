@@ -33,7 +33,7 @@ export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_u
     'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua', 'log_spam', 'track_ips',
     'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'force_address', 'split_uploads',
     'force_lang', 'suspend_plugins', 'base_url', 'size_1024', 'disable_custom_html', 'comments_storage',
-    'force_webdav_login', 'webdav_initial_auth', 'outbound_proxy', 'mapped_port', 'upnp_enabled'])
+    'force_webdav_login', 'webdav_initial_auth', 'outbound_proxy', 'mapped_port', 'upnp_enabled', 'show_uploader'])
 export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
@@ -44,12 +44,12 @@ export type Promisable<T> = T | Promise<T>
 export type Functionable<T, Args extends any[] = any[]> = T | ((...args: Args) => T)
 export type Timeout = ReturnType<typeof setTimeout>
 export interface VfsPerms {
-    can_see?: Who
-    can_read?: Who
-    can_list?: Who
-    can_upload?: Who
-    can_delete?: Who
-    can_archive?: Who
+    can_see?: WhoVfs
+    can_read?: WhoVfs
+    can_list?: WhoVfs
+    can_upload?: WhoVfs
+    can_delete?: WhoVfs
+    can_archive?: WhoVfs
 }
 export const WHO_ANYONE = true
 export const WHO_NO_ONE = false
@@ -58,10 +58,9 @@ type AccountList = string[]
 export type Who = typeof WHO_ANYONE
     | typeof WHO_NO_ONE
     | typeof WHO_ANY_ACCOUNT
-    | keyof VfsPerms
-    | WhoObject
     | AccountList // use false instead of empty array to keep the type boolean-able
-export interface WhoObject { this?: Who, children?: Who }
+export type WhoVfs = Who | keyof VfsPerms | WhoObject
+export interface WhoObject { this?: WhoVfs, children?: WhoVfs }
 export type Jsonify<T> = T extends string | number | boolean | null | undefined ? T : // undefined is necessary to preserve union types, like number|undefined
     T extends Date ? string :
     T extends (infer U)[] ? Jsonify<U>[] :
@@ -98,7 +97,7 @@ function constMap<T extends string>(a: T[]): { [K in T]: K } {
     return Object.fromEntries(a.map(x => [x, x])) as { [K in T]: K };
 }
 
-export function isWhoObject(v: undefined | Who): v is WhoObject {
+export function isWhoObject(v: undefined | WhoVfs): v is WhoObject {
     return v !== null && typeof v === 'object' && !Array.isArray(v)
 }
 
