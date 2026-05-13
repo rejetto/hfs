@@ -18,7 +18,7 @@ import fs from 'fs'
 import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
 import { getUploadMeta } from './upload'
-import { apiAssertTypes, CFG, moveStoredFileAttrs, pathDecode, pathEncode, popKey } from './misc'
+import { apiAssertTypes, CFG, moveStoredFileAttrs, pathDecode, pathEncode, popKey, Who, WHO_ADMIN } from './misc'
 import { defineConfig } from './config'
 import { getCommentFor, setCommentFor } from './comments'
 import { SendListReadable } from './SendList'
@@ -26,7 +26,7 @@ import { ctxAdminAccess } from './adminApis'
 import _ from 'lodash'
 
 const partialFolderSize: any = {}
-const showUploader = defineConfig(CFG.show_uploader, false)
+const showUploader = defineConfig<Who>(CFG.show_uploader, WHO_ADMIN)
 
 export const frontEndApis: ApiHandlers = {
     get_file_list,
@@ -126,7 +126,7 @@ export const frontEndApis: ApiHandlers = {
         return {}
     },
 
-    async get_folder_size_partial({ id }, ctx) {
+    async get_folder_size_partial({ id }) {
         apiAssertTypes({ string: { id } })
         return partialFolderSize[id] || new ApiError(HTTP_NOT_FOUND)
     },

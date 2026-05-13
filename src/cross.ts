@@ -54,10 +54,9 @@ export interface VfsPerms {
 export const WHO_ANYONE = true
 export const WHO_NO_ONE = false
 export const WHO_ANY_ACCOUNT = '*'
+export const WHO_ADMIN = 'admin'
 type AccountList = string[]
-export type Who = typeof WHO_ANYONE
-    | typeof WHO_NO_ONE
-    | typeof WHO_ANY_ACCOUNT
+export type Who = typeof WHO_ANYONE | typeof WHO_NO_ONE | typeof WHO_ANY_ACCOUNT | typeof WHO_ADMIN
     | AccountList // use false instead of empty array to keep the type boolean-able
 export type WhoVfs = Who | keyof VfsPerms | WhoObject
 export interface WhoObject { this?: WhoVfs, children?: WhoVfs }
@@ -68,12 +67,12 @@ export type Jsonify<T> = T extends string | number | boolean | null | undefined 
     never
 
 export const defaultPerms: Required<VfsPerms> = {
-    can_see: 'can_read',
     can_read: WHO_ANYONE,
+    can_see: 'can_read',
     can_list: 'can_read',
-    can_upload: WHO_NO_ONE,
-    can_delete: WHO_NO_ONE,
-    can_archive: 'can_read'
+    can_archive: 'can_read',
+    can_upload: WHO_ADMIN,
+    can_delete: WHO_ADMIN,
 }
 
 export type VfsNodeAdminSend = {

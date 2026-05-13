@@ -153,12 +153,12 @@ export default function OptionsPage() {
             { k : CFG.max_downloads_per_ip, ...maxDownloadsDefaults, label: "Max downloads per-IP" },
             { k : CFG.max_downloads_per_account, ...maxDownloadsDefaults, label: "Max downloads per-account", helperText: "Overrides other limits" },
 
-            { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
+            { k: 'admin_net', comp: NetmaskField, xs: 12, sm: 6, label: "Admin-panel accessible from", placeholder: "any address",
                 helperText: "IP address of browser machine"
             },
-            { k: 'localhost_admin', comp: BoolField, xs: 12, sm: 6, label: "Unprotected Admin-panel on localhost",
+            { k: 'localhost_admin', comp: BoolField, xs: 12, sm: 6, label: "Consider localhost access as Admin",
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
-                helperText: "Access without entering credentials"
+                helperText: "Access admin-panel without entering credentials"
             },
 
             { k: 'proxies', comp: NumberField, xs: 12, sm: 4, md: 4, max: 9, label: "Number of incoming HTTP proxies", placeholder: "none",

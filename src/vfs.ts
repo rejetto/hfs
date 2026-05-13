@@ -4,7 +4,7 @@ import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
     makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, WhoVfs, debounceAsync,
-    isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, HTTP_SERVER_ERROR, try_, matches, Promisable,
+    isWhoObject, WHO_ANY_ACCOUNT, WHO_ADMIN, defaultPerms, PERM_KEYS, HTTP_SERVER_ERROR, try_, matches, Promisable,
     statWithTimeout, safeDecodeURIComponent, getUncHost, Who,
 } from './misc'
 import Koa from 'koa'
@@ -19,6 +19,7 @@ import fswin from 'fswin'
 import { DESCRIPT_ION, DESCRIPT_ION_ALT, usingDescriptIon } from './comments'
 import { walkDir } from './walkDir'
 import { Readable } from 'node:stream'
+import { ctxAdminAccess } from './adminApis'
 
 const showHiddenFiles = defineConfig('show_hidden_files', false)
 
@@ -285,7 +286,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
             if (isWhoObject(who))
                 who = who.this
             who ??= defaultPerms[cur]
-            if (typeof who !== 'string' || who === WHO_ANY_ACCOUNT)
+            if (typeof who !== 'string' || who === WHO_ANY_ACCOUNT || who === WHO_ADMIN)
                 break
             if (!max--) {
                 console.error(`Endless loop in permission ${perm}=${node[perm] ?? defaultPerms[perm]} for ${node.url || getNodeName(node)}`)
@@ -312,7 +313,8 @@ export function simpleWhoToError(who: Who, ctx: Koa.Context) {
         return ctxBelongsTo(ctx, who) ? 0 : HTTP_UNAUTHORIZED
     return typeof who === 'boolean' ? (who ? 0 : HTTP_FORBIDDEN)
         : who === WHO_ANY_ACCOUNT ? (getCurrentUsername(ctx) ? 0 : HTTP_UNAUTHORIZED)
-            : undefined
+            : who === WHO_ADMIN ? (ctxAdminAccess(ctx) ? 0 : HTTP_UNAUTHORIZED)
+                : undefined
 }
 
 function isWhoVfsPerms(who: WhoVfs | undefined): who is keyof VfsPerms {

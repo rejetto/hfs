@@ -8,9 +8,9 @@ import {
 } from '@hfs/mui-grid-form'
 import { apiCall, UseApi, useApiEx } from './api'
 import {
-    basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, objSameKeys,
-    onlyTruthy, prefix, VfsPerms, wantArray, WhoVfs, WhoObject, matches, xlate, md, Callback, MASK_IN_TESTS,
-    useRequestRender, splitAt, IMAGE_FILEMASK, copyTextToClipboard, normalizeHost, CFG, try_, WHO_ANY_ACCOUNT,
+    basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, objSameKeys, useRequestRender, try_,
+    onlyTruthy, prefix, VfsPerms, wantArray, WhoVfs, WhoObject, matches, xlate, md, Callback, copyTextToClipboard,
+    normalizeHost, splitAt, IMAGE_FILEMASK, CFG, MASK_IN_TESTS, WHO_ANY_ACCOUNT, WHO_ADMIN, WHO_NO_ONE, WHO_ANYONE,
 } from './misc'
 import { isModifiedConfig } from './AccountForm'
 import { Btn, Flex, IconBtn, LinkBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'
@@ -231,7 +231,7 @@ export default function FileForm({ file, addToBar, statusApi, accountsApi, saved
         while (typeof inherit === 'string' && _.get(show, inherit) === false) // is 'inherit' referring to another permission that is not displayed?
             inherit = _.get(values, inherit)
                 // non-permission who values (like WHO_ANY_ACCOUNT) are not valid keys for inherited lookup
-                ?? (inherit !== WHO_ANY_ACCOUNT ? getInheritedPerms(file)?.[inherit] : undefined)
+                ?? (inherit !== WHO_ANY_ACCOUNT && inherit !== WHO_ADMIN ? getInheritedPerms(file)?.[inherit] : undefined)
                 ?? _.get(defaultPerms, inherit)! // then show its value instead
         return {
             comp: WhoField,
@@ -282,9 +282,10 @@ export function WhoField({ value, onChange, parent, inherit, accountsApi, helper
     const options = useMemo(() =>
         onlyTruthy([
             offerInheritance && { value: null, label: defaultLabel },
-            { value: true },
-            { value: false },
-            { value: '*' },
+            { value: WHO_NO_ONE },
+            { value: WHO_ANY_ACCOUNT },
+            { value: WHO_ADMIN },
+            { value: WHO_ANYONE },
             ...otherPerms || [],
             { value: [], label: "Select accounts" },
         ].map(x => x && !hideValues?.includes(x.value)
@@ -346,10 +347,11 @@ export function WhoField({ value, onChange, parent, inherit, accountsApi, helper
 function who2desc(who: any) {
     return who === false ? "No one"
         : who === true ? "Anyone"
-            : who === '*' ? "Any logged-in account"
-                : Array.isArray(who) ? who.join(', ')
-                    : typeof who === 'string' ? `As "can ${perm2word(who)}"`
-                        : "*UNKNOWN*" + JSON.stringify(who)
+            : who === WHO_ANY_ACCOUNT ? "Any logged-in account"
+                : who === WHO_ADMIN ? "Any admin"
+                    : Array.isArray(who) ? who.join(', ')
+                        : typeof who === 'string' ? `As "can ${perm2word(who)}"`
+                            : "*UNKNOWN*" + JSON.stringify(who)
 }
 
 interface LinkFieldProps extends FieldProps<string> {
