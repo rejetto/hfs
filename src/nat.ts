@@ -71,7 +71,10 @@ export const getPublicIps = debounceAsync(async () => {
             if (!validIps.length) throw "no good"
             return validIps
         }) )))
-    return defaultBaseUrl.publicIps = _.uniq(ips.flat())
+    const ret = defaultBaseUrl.publicIps = _.uniq(ips.flat())
+    if (!ret.length) // don't keep empty results for long
+        setTimeout(() => getPublicIps.clearRetain(), 5_000)
+    return ret
 }, { retain: 10 * MINUTE })
 
 export const getNatInfo = debounceAsync(async () => {
