@@ -65,10 +65,15 @@ vfs:
     - name: for-disabled
       can_list:
         - disabled_account
-    - source: ..
+    - name: tests
+      source: ..
       masks:
         "**/!*.png|files|":
           can_see: false
+      children:
+        - name: "C:"
+          children:
+            - source: ../page/gpl.png
     - name: renameChild
       can_upload: true
       children:

@@ -162,7 +162,8 @@ async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
         const { URL } = ctx
         const base = prepend === undefined && baseUrl.get()
             || URL.protocol + '//' + URL.host + ctx.state.revProxyPath
-        prepend = base + pathEncode(decodeURI(ctx.path)) // redo the encoding our way, keeping unicode chars unchanged
+        // redo the encoding our way, keeping unicode chars unchanged. decode each segment separately because decodeURI preserves reserved escapes like %3A, which pathEncode would double-encode
+        prepend = base + ctx.path.split('/').map(x => pathEncode(safeDecodeURIComponent(x)).replaceAll('/', '%2F')).join('/')
     }
     const walker = walkNode(node, { ctx, depth: depth === '*' ? Infinity : Number(depth), parallelizeRecursion: false }) // parallelization produces out-of-order results, and we don't want it like that here
     ctx.body = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {

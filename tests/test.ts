@@ -153,6 +153,12 @@ describe('basics', () => {
     test('name encoding', req(FUNNY_NAME_ENCODED, 200))
     test('name encoding list', reqList('/', { inList: [FUNNY_NAME] }))
     test('name encoding search', reqList('/', { inList: [FUNNY_NAME] }, { search: FUNNY_NAME }))
+    test('folder list preserves encoded colon in prepend', req('/tests/C%3A/?get=list&folders=*', data => {
+        if (!String(data).includes('/tests/C%3A/gpl.png'))
+            throw Error('missing correctly encoded path in list: ' + data)
+        if (String(data).includes('/tests/C%253A/'))
+            throw Error('double encoded path in list: ' + data)
+    }))
 
     test('missing perm', reqList('/for-admins/', 401))
     test('missing perm.file', req('/for-admins/alfa.txt', 401))
