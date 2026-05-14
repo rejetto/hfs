@@ -30,7 +30,7 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
             if (referer && try_(() => new URL(referer).pathname.startsWith(ctx.state.revProxyPath + ADMIN_URI))) return // exclude apis for admin-panel
         }
         if (_.isEmpty(roots.get())) return
-        const root = ctx.state.root = roots.compiled()?.(ctx.host)
+        const root = ctx.state.root = roots.compiled()(ctx.host)
         if (!ctx.state.skipFilters && forceAddress.get()
         && root === undefined && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled())
             return disconnect(ctx, forceAddress.key()) // returning truthy will not call next
