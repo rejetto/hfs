@@ -235,6 +235,8 @@ describe('basics', () => {
     test('zip.partial', req('/f1/?get=zip', { re:/^page$/, length: zipLength }, { headers: { Range: `bytes=${zipOfs}-${zipOfs+zipLength-1}` } }) )
     test('zip.partial.resume', req('/f1/?get=zip', { re:/^page/, length:zipSize-zipOfs }, { headers: { Range: `bytes=${zipOfs}-` } }) )
     test('zip.partial.end', req('/f1/f2/?get=zip', { re:/^6/, length:10 }, { headers: { Range: 'bytes=-10' } }) )
+    test('zip.list.selected folder decodes prefix', req('/tests/?get=zip&list=C%253A', data =>
+        String(data).includes('C:/gpl.png') && !String(data).includes('C%3A/gpl.png')))
     test('zip.list.bad encoding', req('/f1/?get=zip&list=%E0%A4%A//%00', { status: 200, length: 22 })) // basically empty
     test('zip.list.null filename', req('/f1/?get=zip&list=%00', 400)) // tries to name the output with null-byte
     test('zip.masked deep', req('/cantSearchForMasksDeep/?get=zip', {

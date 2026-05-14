@@ -2,7 +2,7 @@
 
 import { getNodeName, hasPermission, nodeIsFolder, nodeIsLink, urlToNode, VfsNode, walkNode, statusCodeForMissingPerm } from './vfs'
 import Koa from 'koa'
-import { filterMapGenerator, isWindowsDrive, safeDecodeURIComponent, statWithTimeout, wantArray } from './misc'
+import { filterMapGenerator, isWindowsDrive, pathDecodeSegments, safeDecodeURIComponent, statWithTimeout, wantArray } from './misc'
 import { QuickZipStream } from './QuickZipStream'
 import { createReadStream } from 'fs'
 import { defineConfig } from './config'
@@ -35,7 +35,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
                 if (nodeIsFolder(subNode)) { // a directory needs to be walked
                     if (hasPermission(subNode, 'can_list', ctx) && hasPermission(subNode, 'can_archive', ctx)) {
                         yield subNode // it could be empty
-                        yield* walkNode(subNode, { ctx, prefixPath: decodeURI(uri) + '/', requiredPerm: 'can_archive' })
+                        yield* walkNode(subNode, { ctx, prefixPath: pathDecodeSegments(uri) + '/', requiredPerm: 'can_archive' })
                     }
                     continue
                 }
