@@ -4,7 +4,8 @@ import { clickAdminMenu, loginAdmin } from './common'
 const pluginId = 'test'
 
 function pluginRow(page: Page) {
-    return page.getByRole('grid').getByRole('button', { name: /^Options$/ }).locator('xpath=ancestor::*[@role="row"][1]')
+    // target the fixture plugin row because other running plugins can expose their own Options button
+    return page.getByRole('grid').getByRole('row', { name: new RegExp(`\\b${pluginId}\\b`) })
 }
 
 async function ensureAuthAndGoPlugins(page: Page) {
