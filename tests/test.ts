@@ -154,6 +154,20 @@ describe('basics', () => {
         if (String(data).includes('/tests/C%253A/'))
             throw Error('double encoded path in list: ' + data)
     }))
+    test('folder list strips base_url root', req('/f1/f2/?get=list&folders=*', data => {
+        data = String(data)
+        if (!data.includes(`${BASE_URL_127}/f2/alfa.txt`))
+            throw Error('missing base_url-rooted path in list: ' + data)
+        if (data.includes(`${BASE_URL_127}/f1/f2/alfa.txt`))
+            throw Error('base_url root still present in list: ' + data)
+    }))
+    test('folder list ignores base_url outside its root', req('/tests/?get=list&folders=*', data => {
+        data = String(data)
+        if (!data.includes(`${BASE_URL}/tests/page/`))
+            throw Error('missing request-host path in list: ' + data)
+        if (data.includes(BASE_URL_127))
+            throw Error('base_url used outside its root: ' + data)
+    }))
 
     test('missing perm', reqList('/for-admins/', 401))
     test('missing perm.file', req('/for-admins/alfa.txt', 401))

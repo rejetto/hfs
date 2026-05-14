@@ -1,4 +1,5 @@
 port: 8081
+base_url: http://127.0.0.1:8081
 open_browser_at_start: false
 allowed_referer: x.com
 localhost_admin: false

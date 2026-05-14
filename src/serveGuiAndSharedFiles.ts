@@ -23,6 +23,7 @@ import {
     asyncGeneratorToReadable, filterMapGenerator, isValidFileName, loadFileCached, pathEncode, safeDecodeURIComponent,
     try_, pathDecodeSegments,
 } from './misc'
+import { roots } from './roots'
 import XXH from 'xxhashjs'
 import fs from 'fs'
 import { rm } from 'fs/promises'
@@ -160,10 +161,19 @@ async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
     ctx.type = 'text'
     if (prepend === undefined || prepend === '*') { // * = force auto-detection even if we have baseUrl set
         const { URL } = ctx
-        const base = prepend === undefined && baseUrl.get()
-            || URL.protocol + '//' + URL.host + ctx.state.revProxyPath
+        const requestBase = URL.protocol + '//' + URL.host + ctx.state.revProxyPath
+        const configuredBaseUrl = prepend === undefined && baseUrl.get()
+        const configuredRoot = configuredBaseUrl && roots.compiled()(baseUrl.compiled() || '')
+        const pathInConfiguredRoot = configuredRoot && (configuredRoot === '/' ? ctx.path
+            : ctx.path.startsWith(configuredRoot) ? ctx.path.slice(configuredRoot.length - 1)
+                : ctx.path === configuredRoot.slice(0, -1) ? '/'
+                    : false)
+        // base_url may expose a host-rooted home; use it only for VFS paths inside that host root
+        const [base, path] = !configuredBaseUrl ? [requestBase, ctx.path]
+            : pathInConfiguredRoot === false ? [requestBase, ctx.path]
+                : [configuredBaseUrl, pathInConfiguredRoot || ctx.path]
         // redo the encoding our way, keeping unicode chars unchanged. decode each segment separately because decodeURI preserves reserved escapes like %3A, which pathEncode would double-encode
-        prepend = base + pathDecodeSegments(ctx.path, pathEncode)
+        prepend = base + pathDecodeSegments(path, pathEncode)
     }
     const walker = walkNode(node, { ctx, depth: depth === '*' ? Infinity : Number(depth), parallelizeRecursion: false }) // parallelization produces out-of-order results, and we don't want it like that here
     ctx.body = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
