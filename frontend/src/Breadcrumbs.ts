@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Link, LinkProps } from './router'
-import { createElement as h, Fragment, ReactElement } from 'react'
+import { createElement as h, Fragment, MouseEvent, ReactElement } from 'react'
+import { Link } from 'wouter'
 import { getPrefixUrl, hIcon } from './misc'
 import { DirEntry, state, useSnapState } from './state'
 import { usePath, reloadList } from './useFetchList'
@@ -33,7 +33,7 @@ export function Breadcrumbs() {
     }
 }
 
-function Breadcrumb({ path, label, current, ...rest }: { current?: boolean, path: string, label?: string | ReactElement } & Omit<LinkProps,'to'>) {
+function Breadcrumb({ path, label, current, id }: { id?: string, current?: boolean, path: string, label?: string | ReactElement }) {
     const PAD = '\u00A0\u00A0' // make small elements easier to tap. Don't use min-width 'cause it requires display-inline that breaks word-wrapping
     if (typeof label === 'string' && label.length < 3)
         label = PAD + label + PAD
@@ -42,10 +42,10 @@ function Breadcrumb({ path, label, current, ...rest }: { current?: boolean, path
     const p = props?.can_archive ? '' : 'a'
     return h(Link, {
         className: 'breadcrumb',
-        to: path || '/',
+        href: path || '/',
         ...!current && dragFilesDestination, // we don't really know if this folder allows upload, but in the worst case the user will get an error
-        ...rest,
-        onClick(ev) {
+        id,
+        onClick(ev: MouseEvent) {
             if (!current) return
             ev.preventDefault()
             void openFileMenu(new DirEntry(decodeURIComponent(path), { p, comment: props?.comment }), ev, [

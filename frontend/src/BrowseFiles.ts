@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Link, useNavigate } from './router'
+import { Link } from 'wouter'
+import { navigate } from './App'
 import {
     createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState, useId
 } from 'react'
@@ -121,7 +122,6 @@ function FilesList() {
     useEffect(() => setFocus(''), [theList]) // reset
     const focusTypingId = 'focus-typing'
     const endReached = () => restartAnimation(document.getElementById(focusTypingId), 'spin .3s')
-    const navigate = useNavigate()
     const timeout = useRef()
     useEventListener('keydown', ev => {
         if (anyDialogOpen()) return // won't work while dialogs are open
@@ -317,7 +317,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
             !isFolder ? h('a', { href: uri, ...commonProps, target: entry.target, rel: entry.target && 'noopener noreferrer' })
                 : h(Fragment, {},
                     // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
-                    h(Link, { to: uri, reloadDocument: entry.web, ...commonProps }), // Link = internal navigation
+                    h(entry.web ? 'a' : Link, { href: uri, ...commonProps }), // Link = internal navigation
                     // popup button is here to be able to detect link-wrapper:hover
                     file_menu_on_link && !showingButton && h('button', {
                         className: 'popup-menu-button',

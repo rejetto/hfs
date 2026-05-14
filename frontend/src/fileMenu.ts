@@ -8,7 +8,7 @@ import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
 import { DirEntry, state } from './state'
 import { deleteFiles } from './menu'
-import { Link, LinkProps } from './router'
+import { Link, LinkProps } from 'wouter'
 import { fileShow, getShowComponent } from './show'
 import { alertDialog, promptDialog, toast } from './dialog'
 import { apiCall, useApi } from '@hfs/shared/api'
@@ -84,7 +84,7 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
             id: 'folder',
             label: t`Folder`,
             value: h(Link, {
-                to: (folder.startsWith('/') ? '' : location.pathname) + pathEncode(folder) + '/',
+                href: (folder.startsWith('/') ? '' : location.pathname) + pathEncode(folder) + '/',
                 onClick: () => closeDialog(null, true)
             }, folder.replaceAll('/', ' / '))
         },
@@ -214,15 +214,15 @@ function updateEntry(entry: DirEntry, cb: (e: DirEntry) => unknown) {
     cb(_.find(state.list, { n: entry.n })!)
 }
 
-export function LinkClosingDialog(props: LinkProps) {
-    return h(Link, props.reloadDocument ? props : {
+export function LinkClosingDialog({ to, reloadDocument, ...props }: LinkProps & { reloadDocument?: boolean }) {
+    return reloadDocument ? h('a', { ...props, href: to }) : h(Link, {
         ...props,
-        to: '', // workaround to get dialogs and browser-history work correctly
-        async onClick(ev) {
+        href: '', // workaround to get dialogs and browser-history work correctly
+        async onClick(ev: MouseEvent) {
             ev.preventDefault()
             while (anyDialogOpen())
                 await closeDialog()?.closed
-            getHFS().navigate(props.to)
+            getHFS().navigate(to)
         }
     })
 }

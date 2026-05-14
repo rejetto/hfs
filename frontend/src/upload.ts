@@ -13,7 +13,7 @@ import { alertDialog, promptDialog } from './dialog'
 import { reloadList } from './useFetchList'
 import { apiCall } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
-import { Link } from './router'
+import { Link } from 'wouter'
 import { LinkClosingDialog } from './fileMenu'
 import {
     abortCurrentUpload, enqueueUpload, getFilePath, normalizeAccept, resetCounters, resetReloadOnClose,
@@ -138,7 +138,7 @@ export function showUpload() {
                 ),
                 qs.map((q,idx) =>
                     h('div', { key: q.to },
-                        h(Link, { to: q.to, onClick: close }, t`Destination`, ' ', decodeURI(q.to)),
+                        h(Link, { href: q.to, onClick: close }, t`Destination`, ' ', decodeURI(q.to)),
                         h(FileList, {
                             entries: uploadState.qs[idx].entries,
                             actions: {
