@@ -1195,6 +1195,25 @@ describe('admin', () => {
         }
         finally { await rmAny(resolve(__dirname, rawName)) }
     })
+    test('monitor.connections upload path decodes colon folder', async () => {
+        const body = makeReadableThatTakes(700)
+        const size = body.length
+        const folderName = `colon:${randomId(4)}`
+        const fileName = 'slow-upload.txt'
+        const uploadPromise = reqUpload(`${UPLOAD_ROOT}${pathEncode(folderName)}/${fileName}`, () => true, body, size, 0, { auth })()
+        try {
+            await wait(200)
+            const res = await readEventStreamOnce(`${API}get_connections`, { auth })
+            await uploadPromise
+            const expectedPath = `${UPLOAD_ROOT}${folderName}/${fileName}`
+            const encodedPath = `${UPLOAD_ROOT}${pathEncode(folderName)}/${fileName}`
+            if (!res.data.includes(expectedPath))
+                throw Error('missing decoded upload path: ' + res.data)
+            if (res.data.includes(encodedPath))
+                throw Error('upload path still encoded: ' + res.data)
+        }
+        finally { await rmAny(resolve(__dirname, folderName)) }
+    })
     test('plugins.start_stop', async () => {
         const id = 'download-counter'
         await reqApi('stop_plugin', { id }, 200, { auth })()
@@ -1369,7 +1388,7 @@ function login(usr: string, pwd=password) {
         reqApi(cmd, params, (x,res)=> res.statusCode < 400)())
 }
 
-function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?: number, resume=0) {
+function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?: number, resume=0, options?: ReqOptions) {
     if (resume)
         dest += (dest.includes('?') ? '&' : '?') + 'resume=' + resume
     size ??= (body as any)?.length ?? statSync(SAMPLE_FILE_PATH).size  // it's ok that Readable.length is undefined
@@ -1390,7 +1409,8 @@ function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?
     return req(dest, tester, {
         method: 'PUT',
         headers: { connection: 'close', 'content-length': size === undefined ? size : size - resume },
-        body: body ?? createReadStream(SAMPLE_FILE_PATH)
+        body: body ?? createReadStream(SAMPLE_FILE_PATH),
+        ...options,
     })
 }
 
