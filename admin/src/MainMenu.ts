@@ -7,7 +7,7 @@ import {
     SvgIconComponent
 } from '@mui/icons-material'
 import _ from 'lodash'
-import { Link, useLocation } from './router'
+import { Link, useLocation } from 'wouter'
 import MonitorPage from './MonitorPage'
 import OptionsPage from './OptionsPage';
 import VfsPage from './VfsPage';
@@ -26,7 +26,7 @@ import { PageProps } from './App'
 import { confirmDialog } from './dialog'
 
 export interface MenuEntry {
-    path: string
+    path: `/${string}`
     icon: SvgIconComponent
     label?: string
     title?: string
@@ -36,24 +36,24 @@ export interface MenuEntry {
 }
 
 export const mainMenu: MenuEntry[] = [
-    { path: '', icon: Home, label: "Home", comp: HomePage },
-    { path: 'fs', icon: AccountTree, label: "Shared files", comp: VfsPage },
-    { path: 'accounts', icon: ManageAccounts, comp: AccountsPage },
-    { path: 'options', icon: Settings, comp: OptionsPage },
-    { path: 'internet', icon: Public, comp: InternetPage },
-    { path: 'monitoring', icon: Monitor, comp: MonitorPage, noPaddingOnMobile: true },
-    { path: 'logs', icon: History, comp: LogsPage, noPaddingOnMobile: true, subRoutes: true },
-    { path: 'language', icon: Translate, comp: LangPage },
-    { path: 'plugins', icon: Extension, comp: PluginsPage, noPaddingOnMobile: true, subRoutes: true },
-    { path: 'html', icon: Code, label: "Custom HTML", comp: CustomHtmlPage },
-    { path: 'logout', icon: Logout, comp: LogoutPage }
+    { path: '/', icon: Home, label: "Home", comp: HomePage },
+    { path: '/fs', icon: AccountTree, label: "Shared files", comp: VfsPage },
+    { path: '/accounts', icon: ManageAccounts, comp: AccountsPage },
+    { path: '/options', icon: Settings, comp: OptionsPage },
+    { path: '/internet', icon: Public, comp: InternetPage },
+    { path: '/monitoring', icon: Monitor, comp: MonitorPage, noPaddingOnMobile: true },
+    { path: '/logs', icon: History, comp: LogsPage, noPaddingOnMobile: true, subRoutes: true },
+    { path: '/language', icon: Translate, comp: LangPage },
+    { path: '/plugins', icon: Extension, comp: PluginsPage, noPaddingOnMobile: true, subRoutes: true },
+    { path: '/html', icon: Code, label: "Custom HTML", comp: CustomHtmlPage },
+    { path: '/logout', icon: Logout, comp: LogoutPage }
 ]
 
 export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, itemTitle: (idx: number) => string }) {
     const { VERSION } = getHFS()
     const logo = 'hfs-logo.svg'
     const short = useWindowSize().height < 700
-    const currentPath = useLocation().pathname.slice(1)
+    const currentPath = useLocation()[0]
     return h(Box, { sx: { display: 'flex', flexDirection: 'column', bgcolor: 'primary.main', minHeight: '100%' } },
         h(List, {
             sx:{
@@ -79,7 +79,7 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
                 h(ListItemButton, {
                     // @ts-expect-error mui createElement overload does not infer custom Link props
                     component: Link,
-                    to: it.path,
+                    href: it.path,
                     onClick: onSelect,
                     selected: matchesMenuPath(it, currentPath),
                     sx: { '&.Mui-selected': { '&,&:hover': { bgcolor: 'primary.dark', textDecoration: 'underline' } } },
@@ -96,9 +96,9 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
 }
 
 export function getMenuLabel(it: MenuEntry) {
-    return it && (it.label ?? _.capitalize(it.path))
+    return it && (it.label ?? _.capitalize(it.path.slice(1)))
 }
 
 export function matchesMenuPath(it: MenuEntry, path: string) {
-    return it.path ? path === it.path || path.startsWith(it.path + '/') : !path
+    return path === it.path || path.startsWith(it.path + '/')
 }

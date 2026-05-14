@@ -17,7 +17,7 @@ import {
 import { dontBotherWithKeys, restartAnimation, useBatch, useStateMounted } from '@hfs/shared'
 import { mergeSx, Promisable, StringField } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
-import { Link as RouterLink, LinkProps as RouterLinkProps, useNavigate } from './router'
+import { Link as RouterLink, useLocation } from 'wouter'
 import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
 import _ from 'lodash'
 import { ALL as COUNTRIES } from './countries'
@@ -239,16 +239,16 @@ export function iconTooltip(icon: SvgIconComponent, tooltip: ReactNode, sx?: SxP
 }
 
 // link for internal navigation
-export function InLink({ ...props }: LinkProps & RouterLinkProps) {
+export function InLink({ to, ...props }: LinkProps & { to: `/${string}` }) {
     // make links inside dialogs work correctly
-    const nav = useNavigate()
+    const navigate = useLocation()[1]
     props.onClickCapture = async ev => {
         ev.preventDefault()
         while (anyDialogOpen())
             await closeDialog()?.closed
-        nav(props.to)
+        navigate(to)
     }
-    return h(Link, { component: RouterLink, ...props })
+    return h(Link, { component: RouterLink, href: to, ...props })
 }
 
 export const Center = forwardRef(({ sx, ...props }: BoxProps, ref) =>

@@ -4,7 +4,7 @@ import { Box, Button, Divider, FormHelperText } from '@mui/material';
 import { createElement as h, useEffect, useId, useRef, useState } from 'react'
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
-import { Link as RouterLink } from './router'
+import { Link as RouterLink } from 'wouter'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { adminApis } from '../../src/adminApis'
 import {
@@ -105,7 +105,7 @@ export default function OptionsPage() {
             }, "Reload"),
             h(Button, { // @ts-ignore
                 component: RouterLink,
-                to: "/config",
+                href: "/config",
                 startIcon: h(EditNote),
             }, sm ? "Config file" : "File"),
         ],
@@ -439,7 +439,7 @@ export async function suggestMakingCert() {
             onClose: resolve,
             Content: () => h(Box, { sx: { p: 1, lineHeight: 1.5 } },
                 h(Box, {}, "HTTPS needs a certificate to work."),
-                h(Box, {}, "We suggest you to ", h(InLink, { to: 'internet' }, "get a free but proper certificate"), '.'),
+                h(Box, {}, "We suggest you to ", h(InLink, { to: '/internet' }, "get a free but proper certificate"), '.'),
                 h(Box, {}, "If you don't have a domain ", h(LinkBtn, { onClick: makeCertAndSave }, "make a self-signed certificate"),
                     " but that ", wikiLink('HTTPS#certificate', " won't be perfect"), '.' ),
             )

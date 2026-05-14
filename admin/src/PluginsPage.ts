@@ -4,7 +4,7 @@ import { createElement as h, Fragment } from 'react'
 import { Tab, Tabs } from '@mui/material'
 import InstalledPlugins from './InstalledPlugins'
 import OnlinePlugins from './OnlinePlugins'
-import { useRoutedTab } from './router'
+import { useRoutedTab } from './routing'
 
 const TABS = [
     { label: "Installed", path: 'installed', Pane: InstalledPlugins },

@@ -347,7 +347,7 @@ test('anew', async ({ page, browserName }) => {
     await page.getByRole('button', { name: 'Admin-panel' }).click()
     const adminPage = await page1Promise
     await adminPage.getByRole('link', { name: 'add some' }).click()
-    const addBtn = adminPage.getByRole('button').nth(1)
+    const addBtn = adminPage.getByRole('button', { name: 'Add item to virtual file system' })
     await addBtn.click()
     await adminPage.getByRole('menuitem', { name: 'from disk' }).click()
     await expect(adminPage.getByText('data.kv')).toBeVisible()

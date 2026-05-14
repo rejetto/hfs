@@ -72,7 +72,7 @@ export default function HomePage() {
             vfs && !vfs.children?.length && !vfs.source ? entry('warning', "You have no shared files", SOLUTION_SEP, fsLink("add some")) : null,
             account?.adminActualAccess ? entry('', "Welcome, "+username)
                 : entry('', md("You're accessing the Admin-panel without an account because you are on localhost"),
-                    ...status.anyAccountCanLoginAdmin ? [] : [SOLUTION_SEP, "to access from another computer, you must ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission"))] ),
+                    ...status.anyAccountCanLoginAdmin ? [] : [SOLUTION_SEP, "to access from another computer, you must ", h(InLink, { to:'/accounts' }, md("create an account with *admin* permission"))] ),
             !href && entry('warning', "Frontend unreachable: ",
                 _.map(serverErrors, (v,k) => k + " " + (v ? "is in error" : "is off")).join(', '),
                 !errors.length && [ SOLUTION_SEP, cfgLink("switch http or https on") ]
@@ -81,7 +81,7 @@ export default function HomePage() {
             with_(status.blacklistedInstalledPlugins, x => x?.length > 0
                 && entry('warning', "Found blacklisted plugin(s): ", x.join(', ')) ),
             with_(plugins?.filter(x => x.error || x.badApi).length, x => x > 0
-                && entry('warning', `${x} plugin(s) failing`, SOLUTION_SEP, h(InLink, { to:'plugins' }, "check now"))),
+                && entry('warning', `${x} plugin(s) failing`, SOLUTION_SEP, h(InLink, { to:'/plugins' }, "check now"))),
             !cfg.data?.split_uploads && (Date.now() - Number(status.cloudflareDetected || 0)) < DAY
                 && entry('', wikiLink('Reverse-proxy#cloudflare', "Cloudflare detected, read our guide")),
             with_(proxyWarning(cfg.data, status), x => x && entry('warning', x,
@@ -227,11 +227,11 @@ function entry(color: Color, ...content: ReactNode[]) {
 }
 
 function fsLink(text=`File System page`) {
-    return h(InLink, { to:'fs' }, text)
+    return h(InLink, { to:'/fs' }, text)
 }
 
 function cfgLink(text=`Options page`) {
-    return h(InLink, { to: 'options' }, text)
+    return h(InLink, { to: '/options' }, text)
 }
 
 export function proxyWarning(cfg: any, status: any) {

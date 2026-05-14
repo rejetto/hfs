@@ -1,7 +1,7 @@
 import { apiCall } from '@hfs/shared/api'
 import { createElement as h, Fragment, useMemo } from 'react'
 import { Box, Link, Paper } from '@mui/material'
-import { callable, formatDate, formatTime, newObj } from '../../src/cross'
+import { callable, formatDate, formatTime, newObj } from './misc'
 import { Btn, Flex, iconTooltip, NetmaskField } from './mui'
 import { MilitaryTech, Clear } from '@mui/icons-material'
 import { Html, md, replaceStringToReact, useAutoScroll } from '@hfs/shared'

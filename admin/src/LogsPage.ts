@@ -23,7 +23,7 @@ import { BoolField, SelectField } from '@hfs/mui-grid-form'
 import { toast, useDialogBarColors } from './dialog'
 import { BlockIpBtn } from './blockIp'
 import { ALL as COUNTRIES } from './countries'
-import { useRoutedTab } from './router'
+import { useRoutedTab } from './routing'
 
 const logLabels = {
     log: "Served",
