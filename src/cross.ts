@@ -486,6 +486,10 @@ export function pathEncode(s: string, all=false) {
 export function pathDecode(s: string) {
     return decodeURI(s).replace(/%23/g, '#')
 }
+export function pathDecodeSegments(s: string, map: (segment: string) => string = String) {
+    // decode segment by segment so reserved escapes are decoded without turning encoded slashes into separators
+    return s.split('/').map(x => map(safeDecodeURIComponent(x)).replaceAll('/', '%2F')).join('/')
+}
 
 // run at a specific point in time, also solving the limit of setTimeout, which doesn't work with +32bit delays
 export function runAt(ts: number, cb: Callback) {
