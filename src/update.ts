@@ -134,9 +134,7 @@ export async function update(tagOrUrl: string='') {
             throw "No update has been found"
         const plat = '-' + xlate(process.platform, { win32: 'windows', darwin: 'mac' })
         const assetSearch = `${plat}-${process.arch}`
-        const legacyAssetSearch = `${plat}${prefix('-', xlate(process.arch, { x64: '', arm64: 'arm' }))}.zip` // legacy pre-0.53.0-rc16
         const asset = update.assets.find((x: any) => x.name.includes(assetSearch) && x.name.endsWith('.zip'))
-            || update.assets.find((x: any) => x.name.endsWith(legacyAssetSearch))
         if (!asset)
             throw `Asset not found: ${assetSearch}`
         url = asset.browser_download_url
