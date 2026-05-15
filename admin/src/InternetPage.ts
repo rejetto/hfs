@@ -53,13 +53,14 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     setTitleSide(useMemo(() =>
         h(Alert, { severity: 'info', sx: { display: { xs: 'none', sm: 'inherit' }  } }, "This page makes sure your site is working correctly on the Internet"),
         []))
-    return h(Flex, { vert: true, gap: '2em', maxWidth: '40em' },
-        networkBox(),
-        baseUrlBox(),
-        httpsBox(),
-        geoBox(),
-        ddnsBox(),
-    )
+    return h(Flex, { vert: true, gap: '2em' },
+        h(Box, { sx: { maxWidth: '40em' } }, networkBox()),
+        h(Flex, { gap: '2em', flexWrap: 'wrap', maxWidth: '84em', '&>*': { maxWidth: '40em', width: { md: '40em' } }, alignItems: 'flex-start', justifyContent: 'space-between' },
+            baseUrlBox(),
+            httpsBox(),
+            geoBox(),
+            ddnsBox(),
+    ))
 
     function stripTags(html: string) {
         return html.replace(/.+<body>(.+)<\/body>.+/is, (all,x) => x || all) // extract body, if any
