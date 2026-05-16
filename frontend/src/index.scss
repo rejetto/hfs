@@ -904,6 +904,7 @@ form label+input { margin-top: .2em; }
         }
     }
     button { padding: .4em .8em; }
+    audio.showing { zoom: 1.5 }
 }
 @media (max-width: 42em) {
     :root { --ghost-contrast: #8883; } /* phones have different curve */
