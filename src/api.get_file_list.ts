@@ -109,7 +109,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     }
 
     function getNodeIcon(node: VfsNode) {
-        return node.icon?.includes('.') || node.icon // true = specific for this file, otherwise is a SYS_ICONS
+        return node.icon?.includes('.') || node.icon // send just true when the icon is specific and must be retrieved by the frontend with ?get=icon, otherwise is a SYS_ICONS
     }
 
     async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry | null> {
