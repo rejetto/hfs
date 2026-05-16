@@ -852,6 +852,7 @@ form label+input { margin-top: .2em; }
         position: absolute;
         width: .5em; // closer to the edge
         font-size: var(--nav-size);
+        height: 1em; line-height: 1em; // ensure same height on android
         cursor: pointer;
         opacity: .3;
         -webkit-text-stroke: 2px black;
@@ -959,6 +960,5 @@ form label+input { margin-top: .2em; }
 }
 
 @media (pointer: coarse) {
-    .file-show .nav { height: 1.6em; } // correct centering on android
     #root>.tiles-mode .file-menu-button { font-size: 1em; margin-top: 0.3em; } // easier to tap
 }
