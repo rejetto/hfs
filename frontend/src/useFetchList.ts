@@ -90,7 +90,6 @@ export default function useFetchList() {
                 case 'connected':
                     if (autoPlayOnce === '') play = true
                     if (autoPlayOnce === 'shuffle') playShuffle = true
-                    autoPlayOnce = undefined
                     firstListRequest = undefined
                     return
                 case 'error':
@@ -141,6 +140,7 @@ export default function useFetchList() {
                         if (uri && !uri.endsWith('/'))  // now we know it was a folder for sure
                             return navigate(uri + '/')
                         if (op === LIST.props) {
+                            autoPlayOnce = undefined
                             state.props = par
                             continue
                         }
