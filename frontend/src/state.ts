@@ -150,7 +150,7 @@ export class DirEntry implements ServerDirEntry {
     }
 
     getDefaultIcon() {
-        return hIcon(this.icon === true ? `${this.n}?get=icon` : (this.icon ?? (this.isFolder || this.web ? 'folder' : this.url ? 'link' : ext2type(this.ext) || 'file')))
+        return hIcon(this.icon === true ? `${this.uri}?get=icon` : (this.icon ?? (this.isFolder || this.web ? 'folder' : this.url ? 'link' : ext2type(this.ext) || 'file')))
     }
 
     canArchive() {
