@@ -1,11 +1,10 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from 'lodash'
-import { HTTP_BAD_REQUEST, objRenameKey, objSameKeys, setHidden, typedEntries, wantArray } from './misc'
+import { objRenameKey, objSameKeys, setHidden, typedEntries, wantArray } from './misc'
 import { defineConfig, saveConfigAsap } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
-import { ApiError } from './apiMiddleware'
 import { getCurrentUsername } from './auth'
 import Koa from 'koa'
 

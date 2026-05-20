@@ -1,6 +1,6 @@
 import { defineConfig } from './config'
 import { CFG, DAY, httpStream, isIpLan, isLocalHost, statWithTimeout, unzip } from './misc'
-import { rename, unlink } from 'node:fs/promises'
+import { rename } from 'node:fs/promises'
 import { IP2Location } from 'ip2location-nodejs'
 import _ from 'lodash'
 import { Middleware } from 'koa'
@@ -36,8 +36,8 @@ function isOpen() {
 
 async function checkFiles() {
     if (!enabled.get()) return
-    const ZIP_FILE = 'IP2LOCATION-LITE-DB1.IPV6.BIN'
-    const URL = `https://download.ip2location.com/lite/${ZIP_FILE}.ZIP`
+    const BIN_FILE = 'IP2LOCATION-LITE-DB1.IPV6.BIN'
+    const URL = `https://download.ip2location.com/lite/${BIN_FILE}.ZIP`
     const LOCAL_FILE = 'geo_ip.bin'
     const TEMP = LOCAL_FILE + '.downloading'
     const { mtime=0 } = await statWithTimeout(LOCAL_FILE).catch(() => ({ mtime: 0 }))
@@ -47,11 +47,12 @@ async function checkFiles() {
         try {
             const req = await httpStream(URL)
             console.log(`Downloading ${name}`)
-            await unzip(req, path => path.toUpperCase().endsWith(ZIP_FILE) && TEMP)
-            await statWithTimeout(TEMP) // check existence
+            await unzip(req, path => path.toUpperCase().endsWith(BIN_FILE) && TEMP) // give a temp name
+            const s = await statWithTimeout(TEMP) // check existence
+            if (s.size < 1E6)
+                throw `Bad size for geo_ip: ${s.size}`
             if (isOpen())
                 ip2location.close()
-            await unlink(LOCAL_FILE).catch(() => {})
             await rename(TEMP, LOCAL_FILE)
             ip2country.cache.clear?.()
             console.log(`${name} download completed`)
