@@ -3,7 +3,7 @@
 import _ from 'lodash'
 import { apiCall } from './api'
 import {
-    DAY, Dict, formatBytes, HOUR, MINUTE, objFromKeys, objSameKeys, typedEntries, wantArray, stringBefore,
+    DAY, Dict, formatBytes, HOUR, MINUTE, objFromKeys, typedEntries, wantArray, stringBefore,
     PLUGINS_PUB_URI
 } from '../src/cross'
 export * from './react'
@@ -202,7 +202,7 @@ type DurationUnit = 'day' | 'hour' | 'minute' | 'second'
 export function createDurationFormatter({ locale=undefined, unitDisplay='narrow', largest='day', smallest='second', maxTokens, skipZeroes }:
             { skipZeroes?: boolean, largest?: DurationUnit, smallest?: DurationUnit, locale?: string, unitDisplay?: 'long' | 'short' | 'narrow', maxTokens?: 1 | 2 | 3 }={}) {
     const multipliers: Record<DurationUnit, number> = { day: DAY, hour: HOUR, minute: MINUTE, second: 1000 }
-    const fmt = objSameKeys(multipliers, (v,k) => Intl.NumberFormat(locale, { style: 'unit', unit: k, unitDisplay }).format)
+    const fmt = _.mapValues(multipliers, (v,k) => Intl.NumberFormat(locale, { style: 'unit', unit: k, unitDisplay }).format)
     const fmtList = new Intl.ListFormat(locale, { style: 'narrow', type: 'unit' })
     return (ms: number) => {
         const a = []

@@ -3,13 +3,14 @@ import dayjs from 'dayjs'
 import { FieldProps } from '@hfs/mui-grid-form'
 import { createElement as h } from 'react'
 import { Box } from '@mui/material'
-import { isTimestampString, objSameKeys } from './misc'
+import { isTimestampString } from './misc'
+import _ from 'lodash'
 import { mergeSx } from './mui'
 
 export function DateTimeField({ onChange, error, helperText, ...rest }: FieldProps<Date>) {
     return h(Box, {},
         h(DateTimePicker, {
-            ...objSameKeys(rest, x => isTimestampString(x) || x && x instanceof Date ? dayjs(x) : (x ?? null)), // null to not be considered uncontrolled
+            ..._.mapValues(rest, x => isTimestampString(x) || x && x instanceof Date ? dayjs(x) : (x ?? null)), // null to not be considered uncontrolled
             sx: mergeSx({ width: '100%', color: 'error.main' }, rest.sx),
             onChange(v: any) {
                 onChange(v && new Date(v), { was: rest.value, event: undefined })

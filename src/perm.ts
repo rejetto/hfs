@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from 'lodash'
-import { objRenameKey, objSameKeys, setHidden, typedEntries, wantArray } from './misc'
+import { objRenameKey, setHidden, typedEntries, wantArray } from './misc'
 import { defineConfig, saveConfigAsap } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
@@ -88,7 +88,7 @@ export async function updateAccount(account: Account, change: Partial<Account> |
         const u = normalizeUsername(change.username || '')
         if (u && u !== usernameWas && getAccount(u))
             throw "username already exists"
-        Object.assign(account, objSameKeys(change, x => x || undefined))
+        Object.assign(account, _.mapValues(change, x => x || undefined))
     }
     for (const [k,v] of typedEntries(account))
         if (!v) delete account[k] // we consider all account fields, when falsy, as equivalent to be missing (so, default value applies)

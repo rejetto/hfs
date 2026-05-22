@@ -8,7 +8,7 @@ import {
 } from '@hfs/mui-grid-form'
 import { apiCall, UseApi, useApiEx } from './api'
 import {
-    basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, objSameKeys, useRequestRender, try_,
+    basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, useRequestRender, try_,
     onlyTruthy, prefix, VfsPerms, wantArray, WhoVfs, WhoObject, matches, xlate, md, Callback, copyTextToClipboard,
     normalizeHost, splitAt, IMAGE_FILEMASK, CFG, MASK_IN_TESTS, WHO_ANY_ACCOUNT, WHO_ADMIN, WHO_NO_ONE, WHO_ANYONE,
 } from './misc'
@@ -45,7 +45,7 @@ export default function FileForm({ file, addToBar, statusApi, accountsApi, saved
     const { parent, children, isRoot, byMasks, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
-        setValues(Object.assign(objSameKeys(defaultPerms, () => null), rest))
+        setValues(Object.assign(_.mapValues(defaultPerms, () => null), rest))
     }, [file]) //eslint-disable-line
 
     const inheritedDefault = useMemo(() => {

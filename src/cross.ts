@@ -143,10 +143,6 @@ export function haveTimeout<T>(ms: number, job: Promise<T>, error?: any) {
     ])
 }
 
-export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Truthy<S[keyof S]>, key:keyof S)=>VR) {
-    return Object.fromEntries(Object.entries(src).map(([k,v]) => [k, newValue(v,k as keyof S)])) as { [K in keyof S]:VR }
-}
-
 export function objFromKeys<K extends string, VR=unknown>(src: K[], getValue: (value: K)=> VR) {
     return Object.fromEntries(src.map(k => [k, getValue(k)]))
 }

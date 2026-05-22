@@ -4,7 +4,7 @@ import { createElement as h, ReactNode, useState } from 'react'
 import { Box, Card, CardContent, Link } from '@mui/material'
 import { apiCall, useApiEx, useApiList } from './api'
 import {
-    dontBotherWithKeys, objSameKeys, onlyTruthy, prefix, REPO_URL, md,
+    dontBotherWithKeys, onlyTruthy, prefix, REPO_URL, md,
     replaceStringToReact, wait, with_, DAY, HOUR, PREVIOUS_TAG
 } from './misc'
 import { Btn, Flex, InLink, LinkBtn, wikiLink, } from './mui'
@@ -40,7 +40,7 @@ export default function HomePage() {
     const goSecure = !http?.listening && https?.listening ? 's' : ''
     const srv = goSecure ? https : (http?.listening && http)
     const href = srv && `http${goSecure}://`+window.location.hostname + (srv.port === (goSecure ? 443 : 80) ? '' : ':'+srv.port)
-    const serverErrors = objSameKeys({ http, https }, v =>
+    const serverErrors = _.mapValues({ http, https }, v =>
         v.busy ? [`port ${v.configuredPort} already used by ${v.busy}${SOLUTION_SEP}choose a `, cfgLink('different port'), ` or stop ${v.busy}`]
             : v.error )
     const errors = serverErrors && onlyTruthy(Object.entries(serverErrors).map(([k,v]) =>

@@ -11,7 +11,7 @@ import { authApis } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname, sep } from 'path'
 import {
-    CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, objSameKeys, onlyTruthy, parseFile,
+    CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, onlyTruthy, parseFile,
     enforceStarting, statWithTimeout, shortenAgent
 } from './misc'
 import { favicon, title } from './adminApis'
@@ -130,7 +130,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                     ${getSection('htmlHead')}`}
                 `
             function iconsToObj(icons: CustomizedIcons, pre='') {
-                return icons && objSameKeys(icons, (v, k) => ctx.state.revProxyPath + ICONS_URI + pre + k)
+                return icons && _.mapValues(icons, (v, k) => ctx.state.revProxyPath + ICONS_URI + pre + k)
             }
 
             if (isBody && isOpen)
@@ -171,7 +171,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                 v = ctx.state.revProxyPath + v
         }
         else if (type === 'array' && Array.isArray(v))
-            v = v.map(x => objSameKeys(x, (xv, xk) => adjustValueByConfig(xv, cfg.fields[xk])))
+            v = v.map(x => _.mapValues(x, (xv, xk) => adjustValueByConfig(xv, cfg.fields[xk])))
         return v
     }
 

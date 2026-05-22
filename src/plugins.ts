@@ -10,7 +10,7 @@ import {
 import * as Const from './const'
 import Koa from 'koa'
 import {
-    escapeGlobPath, callable, Callback, CFG, debounceAsync, Dict, objSameKeys, onlyTruthy, prefix,
+    escapeGlobPath, callable, Callback, CFG, debounceAsync, Dict, onlyTruthy, prefix,
     PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir, objFromKeys, patchKey
 } from './misc'
 import * as misc from './misc'
@@ -129,7 +129,7 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict) {
     const controlledEvents = Object.create(events, objFromKeys(['on', 'once', 'multi'], k => ({
         value() {
             if (k === 'multi')
-                arguments[0] = objSameKeys(arguments[0], trap)
+                arguments[0] = _.mapValues(arguments[0], trap)
             else
                 arguments[1] = trap(arguments[1])
             const ret = (events[k] as any)(...arguments)
@@ -581,7 +581,7 @@ function watchPlugin(id: string, path: string) {
                 getConfig(cfgKey?: string) {
                     const cur = pluginsConfig.get()?.[id]
                     return cfgKey ? cur?.[cfgKey] ?? pluginData.config?.[cfgKey]?.defaultValue
-                        : _.defaults(cur, objSameKeys(pluginData.config, x => x.defaultValue))
+                        : _.defaults(cur, _.mapValues(pluginData.config, x => x.defaultValue))
                 },
                 setConfig: (cfgKey: string, value: any) =>
                     setPluginConfig(id, { [cfgKey]: value }),

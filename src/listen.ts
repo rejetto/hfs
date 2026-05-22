@@ -10,7 +10,7 @@ import { getConnections, newConnection } from './connections'
 import { TLSSocket } from 'node:tls'
 import open from 'open'
 import {
-    CFG, debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, prefix, runAt, wait, xlate
+    CFG, debounceAsync, ipForUrl, makeNetMatcher, MINUTE, onlyTruthy, prefix, runAt, wait, xlate
 } from './misc'
 import { PORT_DISABLED, ADMIN_URI, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
@@ -105,7 +105,7 @@ export function getCertObject() {
     if (!c) return
     const all = new X509Certificate(c)
     const some = _.pick(all, ['subject', 'issuer', 'validFrom', 'validTo'])
-    const ret = objSameKeys(some, v => v?.includes('=') ? Object.fromEntries(v.split('\n').map(x => x.split('='))) : v)
+    const ret = _.mapValues(some, v => v?.includes('=') ? Object.fromEntries(v.split('\n').map(x => x.split('='))) : v)
     return Object.assign(ret, { altNames: all.subjectAltName?.replace(/DNS:/g, '').split(/, */) })
 }
 

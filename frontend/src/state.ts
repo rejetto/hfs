@@ -3,7 +3,7 @@
 import _ from 'lodash'
 import { proxy, useSnapshot } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
-import { Dict, FRONTEND_OPTIONS, getHFS, hfsEvent, hIcon, objSameKeys, pathEncode, typedKeys } from './misc'
+import { FRONTEND_OPTIONS, getHFS, hfsEvent, hIcon, pathEncode, typedKeys } from './misc'
 import { DirEntry as ServerDirEntry } from '../../src/api.get_file_list'
 
 export const state = proxy<typeof FRONTEND_OPTIONS & {
@@ -45,7 +45,7 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
     uri: '',
     canChangePassword: false,
     props: {},
-    ...objSameKeys(FRONTEND_OPTIONS, (v,k) => getHFS()[k] ?? v),
+    ..._.mapValues(FRONTEND_OPTIONS, (v,k) => getHFS()[k] ?? v),
     iconsReady: false,
     username: '',
     list: [],

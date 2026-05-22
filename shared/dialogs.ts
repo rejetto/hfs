@@ -3,7 +3,8 @@
 import { createElement as h, Fragment, FunctionComponent, isValidElement, ReactNode, useEffect, useRef,
     HTMLAttributes, useState } from 'react'
 import { proxy, ref, useSnapshot } from 'valtio'
-import { domOn, isPrimitive, objSameKeys, wait } from '.'
+import _ from 'lodash'
+import { domOn, isPrimitive, wait } from '.'
 
 export interface DialogOptions {
     Content: FunctionComponent<any>,
@@ -209,7 +210,7 @@ export function componentOrNode(x: ReactNode | FunctionComponent) {
 export function newDialog(options: DialogOptions) {
     const $id = Math.random()
     const ts = performance.now()
-    const d: Dialog = Object.assign(objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options, { // encapsulate elements as React will try to write, but valtio makes them readonly
+    const d: Dialog = Object.assign(_.mapValues(options, x => isValidElement(x) ? ref(x) : x) as typeof options, { // encapsulate elements as React will try to write, but valtio makes them readonly
         close, ts, $id, // object identity is not working on dialog object because it's proxied (valtio). This is a possible workaround
         restoreFocus: options.restoreFocus ?? ref(document.activeElement || {}),
     })
