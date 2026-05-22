@@ -7,7 +7,7 @@ import { reindexVfs, VfsNodeAdmin } from './VfsPage'
 import { addToChildrenOf } from './VfsTree'
 import { prepareVfsUndo, state } from './state'
 import FilePicker from './FilePicker'
-import { basename, extname, focusSelector, getHFS } from '@hfs/shared'
+import { basename, extname, focusSelector, getHFS, Optional } from '@hfs/shared'
 
 let lastFolder: undefined | string
 export default function addFiles() {
@@ -24,7 +24,7 @@ export default function addFiles() {
                 h(FilePicker, {
                     from: lastFolder ?? parent.source,
                     async onSelect(sel) {
-                        addNodes(parent, sel.map(source => ({ source, name: basename(source), id: '' })))
+                        addNodes(parent, sel.map(source => ({ source, name: basename(source) })))
                         lastFolder = sel[0].slice(0, sel[0].lastIndexOf('/'))
                         close()
                     }
@@ -34,16 +34,18 @@ export default function addFiles() {
     })
 }
 
-function addNodes(parent: VfsNodeAdmin, nodes: VfsNodeAdmin[]) {
+function addNodes(parent: VfsNodeAdmin, nodes: Optional<VfsNodeAdmin, 'id' | 'originalId'>[]) {
     for (const n of nodes) {
         if (n.source?.endsWith(getHFS().pathSeparator) || !n.source && !n.url)
             n.type = 'folder'
         n.id ||= parent.id + n.name + (n.type === 'folder' ? '/' : '')
+        n.originalId ||= n.id
         n.parent = parent
     }
     prepareVfsUndo()
-    addToChildrenOf(parent, nodes)
-    reindexVfs({ select: nodes, sortChildren: true })
+    const select = nodes as VfsNodeAdmin[]
+    addToChildrenOf(parent, select)
+    reindexVfs({ select, sortChildren: true })
 }
 
 function getFreeName(parent: VfsNodeAdmin, name: string) {
@@ -72,7 +74,7 @@ export async function addVirtual() {
         const parent = getFolderFromSelected()
         name = getFreeName(parent, name)
         if (!name) return
-        addNodes(parent, [{ name, id: '', type: 'folder' }])
+        addNodes(parent, [{ name, type: 'folder' }])
     }
     catch(e) {
         await alertDialog(e as Error)
@@ -84,7 +86,7 @@ export async function addLink() {
         const parent = getFolderFromSelected()
         const name = getFreeName(parent, 'new link')
         if (!name) return
-        addNodes(parent, [{ name, url: 'https://example.com', id: '' }])
+        addNodes(parent, [{ name, url: 'https://example.com' }])
         toast("Link created", 'success', {
             onClose: () => focusSelector('input[name=url]')
         })

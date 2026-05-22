@@ -7,7 +7,7 @@ import addFiles, { addLink, addVirtual } from './addFiles'
 import MenuButton from './MenuButton'
 import { osIcon } from './LogsPage'
 import { reloadVfs } from './VfsPage'
-import { prefix, VFS_STORED_KEYS } from './misc'
+import { Dict, prefix, VFS_STORED_KEYS } from './misc'
 import { state, undoVfs, useSnapState } from './state'
 import _ from 'lodash'
 import { Btn, Flex, reloadBtn, useBreakpoint, useCtrlShortcutButton } from './mui'
@@ -34,7 +34,7 @@ export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusA
             disabled: !vfsModified && "No changes to save",
             modified: vfsModified,
             doneAnimation: true,
-            onClick: saveVfs
+            onClick: () => saveVfs().finally(statusApi.reload)
         }),
         h(Btn, {
             icon: Undo,
@@ -109,13 +109,24 @@ function SystemIntegrationButton({ platform }: { platform: string | undefined })
 }
 
 async function saveVfs() {
+    const uriRemaps: Dict<string> = {}
+    recurVfs(n => n.originalId !== n.id && (uriRemaps[n.originalId] = n.id))
     await apiCall('set_vfs', {
         uri: '/',
+        uriRemaps,
         props: (function recur(n=state.vfs) {
             const ret = _.pick(n, VFS_STORED_KEYS)
             ret.children = n?.children?.map(recur) as any
             return ret
         })()
     })
+    recurVfs(n => n.originalId = n.id) // reset
     state.vfsModified = false
+}
+
+function recurVfs(cb: (n: NonNullable<typeof state.vfs>) => any, node=state.vfs) {
+    if (!node) return
+    cb(node)
+    node?.children?.forEach(child => recurVfs(cb, child))
+    return node
 }

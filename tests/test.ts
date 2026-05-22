@@ -1167,12 +1167,15 @@ describe('admin', () => {
         await reqApi('del_vfs', { uris: ['/' + name] }, data => [0, 404].includes(data?.errors?.[0]), { auth })().catch(() => {})
     })
     test('set_vfs.rename and props', async () => {
-        const name = `set-vfs-${randomId(6)}`
+        const name = `set vfs ${randomId(6)}`
         const renamed = `${name}-renamed`
         const uri = '/' + name
         const renamedUri = '/' + renamed
+        const rootsHost = `set-vfs-${randomId(6)}.example.com`
+        const oldRoots = await reqApi('get_config', { only: ['roots'] }, 200, { auth })().then(res => res.roots)
         try {
             await reqApi('add_vfs', { source: '.', name }, 200, { auth })()
+            await reqApi('set_config', { values: { roots: { ...oldRoots, [rootsHost]: uri } } }, 200, { auth })()
             await reqApi('set_vfs', { uri, props: { name: renamed, comment: 'test note', can_list: false } }, 200, { auth })()
             await reqApi('get_vfs', {}, res => {
                 const children = res?.root?.children || []
@@ -1183,8 +1186,11 @@ describe('admin', () => {
                         : renamedNode.comment !== 'test note' ? 'comment not updated'
                             : renamedNode.can_list !== false ? 'can_list not updated' : '')
             }, { auth })()
+            await reqApi('get_config', { only: ['roots'] }, res =>
+                throwIf(res?.roots?.[rootsHost] === renamedUri + '/' ? '' : 'root not updated'), { auth })()
         }
         finally {
+            await reqApi('set_config', { values: { roots: oldRoots } }, 200, { auth })().catch(() => {})
             await reqApi('del_vfs', { uris: [renamedUri] }, data =>
                 [0, 404].includes(data?.errors?.[0]), { auth })().catch(() => {})
             await reqApi('del_vfs', { uris: [uri] }, data =>

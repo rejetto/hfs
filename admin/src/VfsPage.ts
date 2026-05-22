@@ -207,6 +207,7 @@ export function reindexVfs({
         if (oldId && oldId !== newId)
             id2vfsNode.delete(oldId)
         node.id = newId
+        node.originalId ||= newId // set only first value (all are truthy)
         id2vfsNode.set(newId, node)
         if (!node.children) return
         if (sortChildren)
@@ -284,4 +285,5 @@ export interface VfsNodeAdmin extends Omit<VfsNodeAdminSend, 'birthtime' | 'mtim
     children?: VfsNodeAdmin[]
     parent?: VfsNodeAdmin
     isRoot?: true
+    originalId: string
 }

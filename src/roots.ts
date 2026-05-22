@@ -43,7 +43,7 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
             if (!params) return
             for (const [k, v] of Object.entries(params))
                 if (k.startsWith('uri'))
-                    params[k] = Array.isArray(v) ? v.map(cb) : cb(v)
+                    params[k] = Array.isArray(v) ? v.map(cb) : _.isString(v) ? cb(v) : v
         }
     })() || next()
 
