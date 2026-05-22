@@ -9,7 +9,7 @@ import {
 } from '@mui/icons-material'
 import { Box, Typography } from '@mui/material'
 import { deleteVfs, id2vfsNode, isDescendantUri, reindexVfs, VfsNodeAdmin } from './VfsPage'
-import { getOrSet, onlyTruthy, pathEncode, prefix, toMutable, wantArray, Who, with_ } from './misc'
+import { getOrSet, onlyTruthy, pathDecode, pathEncode, prefix, toMutable, wantArray, Who, with_ } from './misc'
 import { Flex, iconTooltip, useToggleButton } from './mui'
 import VfsMenuBar from './VfsMenuBar'
 import { ApiObject } from './api'
@@ -32,6 +32,8 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
         const ref = useRef<HTMLLIElement | null>()
         if (isRoot && ref.current)
             ref.current.firstElementChild?.classList.toggle('Mui-selected', !(selectedFiles.length && !_.find(selectedFiles, { id: '/' })))
+        const rootValue = pathDecode(id.slice(1))
+        const rootFor = _.findKey(statusApi.data?.roots, v => v === rootValue)
         return h(TreeItem, {
             ref(el) {
                 if (el)
@@ -88,8 +90,7 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
                         node.default && iconTooltip(Web, "Show as web-page"),
                         node.masks && iconTooltip(TheaterComedy, "Masks"),
                         node.size === -1 && iconTooltip(HighlightOff, "Source not found"),
-                        with_(_.findKey(statusApi.data?.roots, root => root === id.slice(1)), host =>
-                            host && iconTooltip(Home, `home for ${host}`))
+                        rootFor && iconTooltip(Home, `home for ${rootFor}`)
                     ),
                 ),
                 isRoot ? "Home folder" : name
