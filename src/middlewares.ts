@@ -175,7 +175,7 @@ export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
 let internalSessionMw: any
 let options: any
 events.once('app', () => // wait for app to be defined
-    internalSessionMw = session(options = { signed: true, rolling: true, sameSite: 'lax' } as const, app) )
+    internalSessionMw = session(options = { signed: true, renew: true, sameSite: 'lax' } as const, app) )
 export const sessionMiddleware: Koa.Middleware = (ctx, next) => {
     options.key = 'hfs_' + ctx.protocol
     return internalSessionMw(ctx, next)
