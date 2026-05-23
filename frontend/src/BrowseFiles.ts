@@ -192,8 +192,10 @@ function FilesList() {
         }
     }, [focus, focusSkip])
     useEffect(() => { // wait for possible page-change before focusing
-        if (focusIndex >= 0)
-            (document.querySelector(`a[href="${theList[focusIndex]?.uri}"]`) as HTMLElement)?.focus()
+        if (focusIndex < 0) return
+        const e = theList[focusIndex]
+        if (!e) return
+        (document.querySelector(`a[href="${e.url || e.uri}"]`) as HTMLElement)?.focus()
     }, [focusIndex])
 
     const ref = useRef<HTMLElement>()
@@ -363,7 +365,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
         }),
         h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
             // we treat webpages as folders, with menu to comment
-            !isFolder ? h('a', { href: uri, ...commonProps, target: entry.target, rel: entry.target && 'noopener noreferrer' })
+            !isFolder ? h('a', { href: entry.url || uri, ...commonProps, target: entry.target, rel: entry.target && 'noopener noreferrer' })
                 : h(Fragment, {},
                     // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
                     h(Link, { to: uri, reloadDocument: entry.web, ...commonProps }), // Link = internal navigation
