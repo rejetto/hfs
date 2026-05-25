@@ -243,6 +243,14 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
         ] : isIps || file === 'disconnections' ? [
             tsColumn,
             ipColumn,
+            isIps && {
+                field: 'served',
+                headerName: "Requests",
+                width: 85,
+                sx: { whiteSpace: 'pre-line' },
+                valueGetter: (v, row) => v === undefined ? undefined : v + row.failed, // is this heavy with many records?
+                renderCell: ({ row, value }) => value >= 0 && `✅ ${value}\n 🚫 ${row.failed}`,
+            },
             {
                 headerName: "Country",
                 field: 'country',
@@ -261,7 +269,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             {
                 headerName: "Country",
                 field: 'country',
-                valueGetter: (_value: any, row: any) => row.extra?.country,
+                valueGetter: (_value, row) => row.extra?.country,
                 hideUnder: !showCountry || 'xl',
                 renderCell: ({ value }) => h(Country, { code: value, def: '-' }),
             },
