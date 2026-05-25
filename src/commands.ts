@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createAdmin, getAccount, updateAccount } from './perm'
-import { configKeyExists, setConfig, getWholeConfig, showHelp } from './config'
+import { configKeyExists, setConfig, getWholeConfig, showHelp, defineConfig } from './config'
 import _ from 'lodash'
 import { getBestUpdate, update } from './update'
 import { openAdmin } from './listen'
@@ -12,13 +12,14 @@ import { quitting } from './first'
 import { getInactivePlugins, mapPlugins, startPlugin, stopPlugin } from './plugins'
 import { purgeFileAttr } from './fileAttr'
 import { downloadPlugin } from './github'
-import { Dict, formatBytes, formatPerc, formatSpeed, formatTimestamp, makeMatcher, with_ } from './cross'
+import { CFG, Dict, formatBytes, formatPerc, formatSpeed, formatTimestamp, makeMatcher, with_ } from './cross'
 import apiMonitor, { inferOperation, serializeConnection } from './api.monitor'
 import { getConnections } from './connections'
 import { argv } from './argv'
 import { getServerStatus } from './listen'
 
-let debugEnabled = argv.debug || process.env.HFS_DEBUG || DEV
+const debug = defineConfig(CFG.debug, Boolean(argv.debug || process.env.HFS_DEBUG || DEV))
+debug.dontStore()
 
 if (!argv.updating && !showHelp) {
     try {
@@ -46,7 +47,7 @@ if (!argv.updating && !showHelp) {
         for (const k of ['log', 'warn', 'error', 'debug'] as const) {
             const original = console[k]
             ;(console as any)[k] = (...args: any[]) =>  {
-                if (k === 'debug' && !debugEnabled) return
+                if (k === 'debug' && !debug.get()) return
                 if (!quitting && tty)
                     clean()
                 try { original(...args) }
@@ -59,7 +60,7 @@ if (!argv.updating && !showHelp) {
     catch {
         console.log("Console commands not available")
         const original = console.debug
-        console.debug = (...args: any[]) => debugEnabled && original(...args)
+        console.debug = (...args: any[]) => debug.get() && original(...args)
     }
 }
 
@@ -164,8 +165,8 @@ const commands = {
     debug: {
         params: '',
         cb() {
-            debugEnabled = !debugEnabled
-            console.log(`Debug messages ${debugEnabled ? "on" : "off"}`)
+            debug.set(v => !v)
+            console.log(`Debug messages ${debug.get() ? "on" : "off"}`)
         }
     },
     'start-plugin': {

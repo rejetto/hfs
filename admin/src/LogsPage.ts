@@ -104,6 +104,7 @@ export default function LogsPage({ setTitleSide }: PageProps) {
                                     onClick: () => apiCall('reset_ips').then(reloadIps)
                                 }, "Reset")
                             },
+                            { k: CFG.debug, sm: 6, comp: BoolField, label: "Debug" },
                         ]
                     }
                 })

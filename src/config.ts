@@ -15,6 +15,7 @@ import { statWithTimeout } from './util-files'
 
 // keep definition of config properties
 const configProps: Record<string, { defaultValue?: unknown }> = {}
+const dontStore: string[] = []
 
 let started = false // this will tell the difference for subscribeConfig()s that are called before or after config is loaded
 let state: Record<string, any> = {} // current state of config properties
@@ -93,7 +94,8 @@ export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler
             compiled = v
             const was = getConfig(k)
             return events.emitAsync(CONFIG_CHANGE_EVENT_PREFIX + k, was, was, VERSION, true)
-        }
+        },
+        dontStore() { dontStore.push(k) },
     }
     let compiled = compiler?.(defaultValue, { k, version: currentVersion, defaultValue, object })
     if (compiler)
@@ -189,11 +191,11 @@ const saveDebounced = debounceAsync(async () => {
     if (await statWithTimeout(bak).then(x => aWeekAgo > x.mtimeMs, () => true))
         await copyFile(filePath, bak).catch(() => {}) // ignore errors
 
-    await configFile.save(stringify({
+    await configFile.save(stringify(_.omit({
         ...state,
         version: VERSION,
         platform: `${process.platform}-${process.arch}${prefix('-', !IS_BINARY && basename(process.execPath))}`,
-    })).catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
+    }, dontStore))).catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
 })
 export const saveConfigAsap = () => void saveDebounced()
 

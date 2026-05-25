@@ -29,7 +29,7 @@ export const FRONTEND_OPTIONS = {
 export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time', 'creation']
 export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
 // had found an interesting way to infer a type from all the calls to defineConfig (by the literals passed), but would not be usable also by admin-panel
-export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown', 'dynamic_dns_url',
+export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown', 'dynamic_dns_url', 'debug',
     'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua', 'log_spam', 'track_ips',
     'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'force_address', 'split_uploads',
     'force_lang', 'suspend_plugins', 'base_url', 'size_1024', 'disable_custom_html', 'comments_storage',
