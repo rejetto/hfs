@@ -34,8 +34,7 @@ export default defineConfig({
         host: '127.0.0.1',
         proxy: {
             '/~/': {
-                target:
-                    'http://localhost',
+                target: 'http://localhost',
                 proxyTimeout: 2000,
                 changeOrigin: true,
                 ws: true,

@@ -227,6 +227,3 @@ const commands = {
         }
     }
 }
-
-type ConnectionSnapshot = ReturnType<typeof serializeConnection>
-type TransferSnapshot = ConnectionSnapshot & { op: 'upload' | 'download' }
