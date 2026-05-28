@@ -8,7 +8,7 @@ import {
 } from '@hfs/mui-grid-form'
 import { apiCall, UseApi, useApiEx } from './api'
 import {
-    basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, useRequestRender, try_,
+    basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, useRequestRender, try_, pathEncode,
     onlyTruthy, prefix, VfsPerms, wantArray, WhoVfs, WhoObject, matches, xlate, md, Callback, copyTextToClipboard,
     normalizeHost, splitAt, IMAGE_FILEMASK, CFG, MASK_IN_TESTS, WHO_ANY_ACCOUNT, WHO_ADMIN, WHO_NO_ONE, WHO_ANYONE,
 } from './misc'
@@ -365,12 +365,28 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
     const data = statusApi.getData()
 
     const urls: string[] = data && (data.urls.https || data.urls.http || [data.base_url])
-    const baseHost = try_(() => normalizeHost(new URL(data?.baseUrl).host)) // URL can throw on malformed data
-    const root = useMemo(() => baseHost && _.find(data.roots, (_root, host) => matches(baseHost, host)),
-        [data])
+    const baseHost = try_(() => new URL(data?.baseUrl).host) // URL can throw on malformed data
+    const roots = data?.roots || {}
+    const root = baseHost && _.find(roots, (_root, host) => matches(baseHost, host))
+    const originalValue = value
     if (root)
-        value &&= value.indexOf(root) === 1 ? value.slice(root.length) : undefined
-    const link = prefix(data?.baseUrl || '', value)
+        value = pathInRoot(value, root)
+    let linkBase = data?.baseUrl || ''
+    if (value === undefined) { // baseUrl didn't match, but other hosts in roots may
+        const base = try_(() => new URL(linkBase))
+        if (base) {
+            const sorted = _.sortBy(Object.entries(roots), ([, root]) => -String(root).length) // prioritize longer roots because are more specific
+            for (const [hostMask, root] of sorted) {
+                if (typeof root !== 'string') continue
+                value = pathInRoot(originalValue, root)
+                const host = value && hostMask.split('|').find(x => x && !/[*?]/.test(x) && x !== baseHost)
+                if (!host) continue
+                linkBase = base.protocol + '//' + host
+                break
+            }
+        }
+    }
+    const link = prefix(linkBase, value)
     const RenderLink = useMemo(() => forwardRef((props: any, ref) =>
         h(Link, {
             ref,
@@ -429,6 +445,12 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
         } catch (error) {
             console.error('Error generating QR code:', error)
         }
+    }
+
+    function pathInRoot(uri: string | undefined, root: string | undefined) {
+        if (!root || root === '/') return uri
+        root = pathEncode(root)
+        return uri?.startsWith(root, 1) ? uri.slice(root.length) : undefined
     }
 }
 
