@@ -26,7 +26,7 @@
     "test-ui": "npm run port-is-free -- 8081 && rm -rf tests/work tests/work2 && npx playwright test frontend && npx playwright test serial && npx playwright test admin-vfs",
     "test-with-ui": "sh -c 'npm run port-is-free -- 3005 && npm run start-frontend & npm run port-is-free -- 3006 && npm run start-admin & cross-env TEST_WITH_UI=1 npx playwright test --ui \"$@\"' --",
     "pub": "cd dist && npm publish",
-    "dist": "STASHED=; if ! git diff-index --quiet HEAD --; then git stash push -m 'dist' && STASHED=1; fi; CI=1 FORCE_COLOR=1 npm run dist-uncommitted || (EXIT_CODE=$?; [ -n \"$STASHED\" ] && git stash pop; exit $EXIT_CODE); [ -n \"$STASHED\" ] && git stash pop",
+    "dist": "STASHED=; if ! git diff-index --quiet HEAD --; then git stash push -m 'dist' && STASHED=1; fi; npm audit fix && CI=1 FORCE_COLOR=1 npm run dist-uncommitted || (EXIT_CODE=$?; [ -n \"$STASHED\" ] && git stash pop; exit $EXIT_CODE); [ -n \"$STASHED\" ] && git stash pop",
     "dist-uncommitted": "npm audit --omit=dev --audit-level=moderate && rm -rf dist && npm run build-server && npm run test-with-server && (npm run build-frontend & npm run build-admin) && npm run test-ui && npm run dist-bin",
     "dist-bin": "npm run dist-modules && npm run dist-bin-win && npm run dist-bin-linux && npm run dist-bin-linux-arm && npm run dist-bin-mac && npm run dist-bin-mac-arm",
     "dist-modules": "cp package.json central.json README.md dist && cd dist && npm pkg delete devDependencies workspaces scripts.postinstall && rm -rf node_modules && npm install --omit=dev && npm shrinkwrap && cd .. && node scripts/prune_modules.js",
