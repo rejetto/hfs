@@ -25,6 +25,7 @@ export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusA
         gap: 1,
         backgroundColor: 'background.paper',
         width: 'fit-content',
+        flexWrap: 'wrap',
     },
         h(AddVfsBtn),
         h(Btn, {
