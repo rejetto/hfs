@@ -182,7 +182,6 @@ function Update({ info, title, bodyCollapsed, fromAuto }: { title?: ReactNode, i
 
 function renderChangelog(s: string) {
     return md(s, {
-        html: false,
         onText: s => replaceStringToReact(s, /(?<=^|\W)#(\d+)\b|(https:.*\S+)/g, m =>  // link issues and urls
             m[1] ? h(Link, { href: REPO_URL + 'issues/' + m[1], target: '_blank' }, h(OpenInNew, { fontSize: 'small' }) )
                 : h(Link, { href: m[2], target: '_blank' }, m[2] )
