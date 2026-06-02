@@ -10,7 +10,7 @@ import { apiCall, UseApi, useApiEx } from './api'
 import {
     basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, useRequestRender, try_, pathEncode,
     onlyTruthy, prefix, VfsPerms, wantArray, WhoVfs, WhoObject, matches, xlate, md, Callback, copyTextToClipboard,
-    normalizeHost, splitAt, IMAGE_FILEMASK, CFG, MASK_IN_TESTS, WHO_ANY_ACCOUNT, WHO_ADMIN, WHO_NO_ONE, WHO_ANYONE,
+    splitAt, IMAGE_FILEMASK, CFG, MASK_IN_TESTS, WHO_ANY_ACCOUNT, WHO_ADMIN, WHO_NO_ONE, WHO_ANYONE,
 } from './misc'
 import { isModifiedConfig } from './AccountForm'
 import { Btn, Flex, IconBtn, LinkBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'

@@ -43,7 +43,7 @@ export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRec
         let n = 0
         let last: DirStreamEntry | undefined
 
-        const res = (await events.emitAsync('listDiskFolder', { path: base, ctx }))?.[0] // consider only first result
+        const res = (await events.emitAsync('listDiskFolder', { path: base, ctx, hidden }))?.[0] // consider only first result
         const pluginReceiver = _.isFunction(res) && res || null
         const pluginIterator = _.isFunction(res?.[Symbol.asyncIterator] || res?.[Symbol.iterator]) && res as Dir
 

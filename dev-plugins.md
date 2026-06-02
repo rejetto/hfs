@@ -827,7 +827,7 @@ This section is still partially documented, and you may need to have a look at t
     - `icon?: string | true` icon override or true for "specific for this file".
     - `order?: number` custom sort order.  
 - `listDiskFolder` called when a list is read from the disk; useful to implement a cache
-  - parameters: { path, ctx? } 
+  - parameters: { path, ctx?, hidden }
   - async supported 
   - return: to prevent the default listing and provide such a list yourself, return an array or iterator;
     to let the default behavior while getting the content of the list, return a function, and it will be called for each
@@ -1205,3 +1205,4 @@ If you want to override a text regardless of the language, use the special langu
   - config.type=show_html
 - 13.1 (v3.2.0)
   - backend events: logRotated
+  - listDiskFolder gets "hidden" parameter
