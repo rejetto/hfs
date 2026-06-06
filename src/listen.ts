@@ -25,6 +25,7 @@ import { argv } from './argv'
 import { consoleHint } from './consoleLog'
 import { onProcessExit, quitting } from './first'
 import { fileAttrDb } from './fileAttr'
+import { uploadOwners } from './uploadOwners'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
@@ -53,7 +54,7 @@ const commonServerOptions: http.ServerOptions = {
 // these are properties that can be assigned to the server object
 const commonServerAssign = { headersTimeout: 30_000, timeout: MINUTE } // 'headersTimeout' is not recognized by type lib, and 'timeout' is not effective when passed in parameters
 
-const readyToListen = Promise.all([ storedMap.isOpening(), fileAttrDb.isOpening(), events.once('app') ])
+const readyToListen = Promise.all([ storedMap.isOpening(), fileAttrDb.isOpening(), uploadOwners.isOpening(), events.once('app') ])
 
 const considerHttp = debounceAsync(async () => {
     await readyToListen

@@ -33,7 +33,8 @@ export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_u
     'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua', 'log_spam', 'track_ips',
     'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'force_address', 'split_uploads',
     'force_lang', 'suspend_plugins', 'base_url', 'size_1024', 'disable_custom_html', 'comments_storage',
-    'force_webdav_login', 'webdav_initial_auth', 'outbound_proxy', 'mapped_port', 'upnp_enabled', 'show_uploader'])
+    'force_webdav_login', 'webdav_initial_auth', 'outbound_proxy', 'mapped_port', 'upnp_enabled', 'show_uploader',
+    'own_upload_delete_hours'])
 export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
@@ -147,7 +148,7 @@ export function objFromKeys<K extends string, VR=unknown>(src: K[], getValue: (v
     return Object.fromEntries(src.map(k => [k, getValue(k)]))
 }
 
-export function enforceFinal(sub:string, s:string, evenEmpty=false) {
+export function enforceFinal(sub:string, s='', evenEmpty=false) {
     return (s ? !s.endsWith(sub) : evenEmpty) ? s + sub : s
 }
 
@@ -155,7 +156,7 @@ export function removeFinal(sub:string, s:string) {
     return s.endsWith(sub) ? s.slice(0, -sub.length) : s
 }
 
-export function enforceStarting(sub:string, s:string, evenEmpty=false) {
+export function enforceStarting(sub:string, s='', evenEmpty=false) {
     return (s ? !s.startsWith(sub) : evenEmpty) ? sub + s : s
 }
 
