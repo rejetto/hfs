@@ -2,7 +2,7 @@ import { getCurrentUsername, setLoggedIn } from './auth'
 import { BASIC_AUTHENTICATE_HEADER, HTTP_UNAUTHORIZED } from './cross-const'
 import Koa from 'koa'
 import { defineConfig } from './config'
-import { getNodeName, getDefaultFile, nodeIsFolder, VfsNode, walkNode } from './vfs'
+import { getNodeName, getDefaultFile, nodeIsFolder, VfsNodeWithPath, walkNode } from './vfs'
 import { asyncGeneratorToReadable, Dict, escapeHTML, filterMapGenerator, pathEncode } from './misc'
 import _ from 'lodash'
 import { title } from './adminApis'
@@ -10,7 +10,7 @@ import { getSection } from './customHtml'
 
 const autoBasic = defineConfig<boolean|string, null|RegExp>('auto_basic', true, v => _.isString(v) ? new RegExp(v, 'i') : null)
 
-export function basicWeb(ctx: Koa.Context, node: VfsNode) {
+export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
     const { get } = ctx.query
     if (get === 'login') {
         if (getCurrentUsername(ctx))

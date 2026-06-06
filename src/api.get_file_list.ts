@@ -2,7 +2,7 @@
 
 import {
     applyParentToChild, getNodeName, getDefaultFile, hasPermission, masksCouldGivePermission, nodeIsFolder, nodeStats,
-    statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
+    statusCodeForMissingPerm, urlToNode, VfsNode, VfsNodeWithPath, walkNode
 } from './vfs'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { mapPlugins } from './plugins'
@@ -113,7 +113,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
         return node.icon?.includes('.') || node.icon // send just true when the icon is specific and must be retrieved by the frontend with ?get=icon, otherwise is a SYS_ICONS
     }
 
-    async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry | null> {
+    async function nodeToDirEntry(ctx: Koa.Context, node: VfsNodeWithPath): Promise<DirEntry | null> {
         const { source, url } = node
         const name = getNodeName(node)
         const isFolder = nodeIsFolder(node)

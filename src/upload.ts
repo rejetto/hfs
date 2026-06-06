@@ -1,4 +1,4 @@
-import { getNodeByName, statusCodeForMissingPerm, VfsNode } from './vfs'
+import { getNodeByName, statusCodeForMissingPerm, VfsNodeWithPath } from './vfs'
 import Koa from 'koa'
 import {
     HTTP_CONFLICT, HTTP_FOOL, HTTP_INSUFFICIENT_STORAGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_NO_CONTENT, HTTP_SERVER_ERROR,
@@ -21,6 +21,7 @@ import events from './events'
 import { rm, rename, utimes } from 'fs/promises'
 import { expiringCache } from './expiringCache'
 import { onProcessExit } from './first'
+import { setUploadOwner } from './uploadOwners'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
@@ -59,7 +60,7 @@ export function getUploadTempFor(fullPath: string) {
 const diskSpaceCache = expiringCache<ReturnType<typeof getDiskSpaceSync>>(3_000) // invalidate shortly
 const uploadingFiles = new Map<string, { ctx: Koa.Context, size: number, got: number }>()
 // initially sync for formidable; still sync to avoid async races and PUT piping gaps
-export function uploadWriter(base: VfsNode, baseUri: string, filename: string, ctx: Koa.Context) {
+export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: string, ctx: Koa.Context) {
     if (!filename || !isValidFileName(filename) || !filename)
         return fail(HTTP_FOOL)
     if (statusCodeForMissingPerm(base, 'can_upload', ctx))
@@ -206,6 +207,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, filename: string, c
                     if (ctx.query.comment)
                         void setCommentFor(dest, String(ctx.query.comment))
                     obj.uri = enforceFinal('/', baseUri) + pathEncode(basename(dest))
+                    await setUploadOwner(obj.uri, ctx)
                     events.emit('uploadFinished', obj)
                     console.debug("Upload finished", dest)
                     if (resEvent) for (const cb of resEvent)

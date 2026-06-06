@@ -1,14 +1,14 @@
 import Koa from 'koa'
 import Busboy from 'busboy'
 import { once } from 'events'
-import { hasPermission, urlToNode, VfsNode } from './vfs'
+import { hasPermission, urlToNode, VfsNodeWithPath } from './vfs'
 import { dirname } from 'path'
 import { uploadWriter } from './upload'
 import { HTTP_BAD_REQUEST } from './cross-const'
 import { onFirstEvent } from './first'
 import { try_ } from './cross'
 
-export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNode) {
+export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithPath) {
     if (ctx.request.type !== 'multipart/form-data')
         return ctx.status = HTTP_BAD_REQUEST
     ctx.state.uploads = []
