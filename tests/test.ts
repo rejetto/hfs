@@ -1119,14 +1119,142 @@ describe('after-login', () => {
         const name = `cant-delete`
         await mkdir(resolve(UPLOAD_DISK_ROOT, name), { recursive: true })
         await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        await reqApi('set_config', { values: { own_upload_delete_hours: 0 } }, 200)()
         try {
             const dest = `${UPLOAD_ROOT}${name}/no-delete.txt`
             await reqUpload(dest, 200)()
             await req(dest, 403, { method: 'delete' })()
         }
         finally {
+            await reqApi('set_config', { values: { own_upload_delete_hours: 24 } }, 200)().catch(() => {})
             await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
             await rmAny(resolve(UPLOAD_DISK_ROOT, name))
+        }
+    })
+    test('upload owner can delete without delete permission', async () => {
+        const name = `owner-delete-${randomId(6)}`
+        const otherUser = `owner-other-${randomId(6)}`.toLowerCase()
+        const otherPass = `pw-${randomId(8)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const dest = `${UPLOAD_ROOT}${name}/owned.txt`
+        const adminReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        try {
+            await reqApi('add_account', { username: otherUser, overwrite: true, password: otherPass, belongs: ['admins'] }, res => res?.username === otherUser, adminReq)()
+            await reqUpload(dest, 200)()
+            await req(dest, 403, { method: 'delete', auth: `${otherUser}:${otherPass}`, jar: {} })()
+            await req(dest, 200, { method: 'delete' })()
+        }
+        finally {
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('upload owner follows rename and move', async () => {
+        const name = `owner-move-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const start = `${UPLOAD_ROOT}${name}/start.txt`
+        const renamed = `${UPLOAD_ROOT}${name}/renamed.txt`
+        const folder = `${UPLOAD_ROOT}${name}/folder/`
+        const moved = `${folder}renamed.txt`
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        try {
+            await reqUpload(start, 200)()
+            await reqApi('rename', { uri: start, dest: 'renamed.txt' }, 200)()
+            await reqApi('create_folder', { uri: `${UPLOAD_ROOT}${name}/`, name: 'folder' }, 200)()
+            await reqApi('move_files', { uri_from: [renamed], uri_to: folder }, res => !res?.errors?.[0])()
+            await req(moved, 200, { method: 'delete' })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('upload owner is bound to session', async () => {
+        const name = `session-owner-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const sameJar = {}
+        const otherJar = {}
+        const first = `${UPLOAD_ROOT}${name}/same-session.txt`
+        const second = `${UPLOAD_ROOT}${name}/other-session.txt`
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: true, can_delete: false }, 200)()
+        try {
+            await reqUpload(first, 200, undefined, undefined, 0, { jar: sameJar })()
+            await req(first, 200, { method: 'delete', jar: sameJar })()
+            await reqUpload(second, 200, undefined, undefined, 0, { jar: sameJar })()
+            await req(second, 403, { method: 'delete', jar: otherJar })()
+            await req(second, 200, { method: 'delete', jar: sameJar })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('upload owner session survives login', async () => {
+        const name = `session-login-owner-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const anonJar = {}
+        const user = `anon-login-${randomId(6)}`.toLowerCase()
+        const pass = `pw-${randomId(8)}`
+        const dest = `${UPLOAD_ROOT}${name}/before-login.txt`
+        const adminReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: true, can_delete: false }, 200)()
+        try {
+            await reqApi('add_account', { username: user, overwrite: true, password: pass }, res => res?.username === user, adminReq)()
+            await reqUpload(dest, 200, undefined, undefined, 0, { jar: anonJar })()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar: anonJar, auth: `${user}:${pass}` })()
+            await req(dest, 200, { method: 'delete', jar: anonJar })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('upload owner session is cleared by logout', async () => {
+        const name = `session-logout-owner-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const anonJar = {}
+        const user = `session-logout-${randomId(6)}`.toLowerCase()
+        const pass = `pw-${randomId(8)}`
+        const dest = `${UPLOAD_ROOT}${name}/before-logout.txt`
+        const adminReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: true, can_delete: false }, 200)()
+        try {
+            await reqApi('add_account', { username: user, overwrite: true, password: pass }, res => res?.username === user, adminReq)()
+            await reqUpload(dest, 200, undefined, undefined, 0, { jar: anonJar })()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar: anonJar, auth: `${user}:${pass}` })()
+            await reqApi('logout', {}, 401, { jar: anonJar })()
+            await req(dest, 403, { method: 'delete', jar: anonJar })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('upload owner delete window expires', async () => {
+        const name = `owner-expire-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const dest = `${UPLOAD_ROOT}${name}/expired.txt`
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        await reqApi('set_config', { values: { own_upload_delete_hours: 0.00001 } }, 200)()
+        try {
+            await reqUpload(dest, 200)()
+            await wait(60)
+            await req(dest, 403, { method: 'delete' })()
+        }
+        finally {
+            await reqApi('set_config', { values: { own_upload_delete_hours: 24 } }, 200)().catch(() => {})
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
         }
     })
     test('move.overwrite needs delete', async () => {

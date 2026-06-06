@@ -1,6 +1,6 @@
 import Koa from 'koa'
 import { basename, dirname, join } from 'path'
-import { getDefaultFile, getNodeName, nodeIsFolder, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, walkNode } from './vfs'
+import { getDefaultFile, getNodeName, nodeIsFolder, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, VfsNodeWithPath, walkNode } from './vfs'
 import { sendErrorPage } from './errorPages'
 import events from './events'
 import {
@@ -31,6 +31,7 @@ import { setCommentFor } from './comments'
 import { basicWeb, detectBasicAgent } from './basicWeb'
 import { customizedIcons, ICONS_FOLDER } from './icons'
 import { getPluginInfo } from './plugins'
+import { deleteUploadOwner } from './uploadOwners'
 
 const serveFrontendFiles = serveGuiFiles(process.env.FRONTEND_PROXY, FRONTEND_URI)
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontendFiles)
@@ -114,6 +115,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
                 return ctx.status = HTTP_FAILED_DEPENDENCY
             await rm(source, { recursive: true })
             await deleteStoredFileAttrs(source)
+            deleteUploadOwner(path)
             void setCommentFor(source, '') // necessary only to clean a possible descript.ion or kvstorage
             return ctx.status = HTTP_OK
         } catch (e: any) {
@@ -154,7 +156,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
         : (basicWeb(ctx, node) || serveFrontendFiles(ctx, next))
 }
 
-async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
+async function sendFolderList(node: VfsNodeWithPath, ctx: Koa.Context) {
     if ((await events.emitAsync('getList', { node, ctx }))?.isDefaultPrevented())
         return
     let { depth=0, folders, prepend } = ctx.query

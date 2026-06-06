@@ -12,13 +12,14 @@ import {
 } from './const'
 import {
     hasPermission, isRoot, nodeIsFolder, nodeStats,
-    simpleWhoToError, statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
+    simpleWhoToError, statusCodeForMissingPerm, urlToNode, VfsNode, VfsNodeWithPath, walkNode
 } from './vfs'
 import fs from 'fs'
 import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
 import { getUploadMeta } from './upload'
-import { apiAssertTypes, CFG, moveStoredFileAttrs, pathDecode, pathEncode, popKey, Who, WHO_ADMIN } from './misc'
+import { apiAssertTypes, CFG, join as joinVfs, moveStoredFileAttrs, pathDecode, pathEncode, popKey, Who, WHO_ADMIN } from './misc'
+import { moveUploadOwner } from './uploadOwners'
 import { defineConfig } from './config'
 import { getCommentFor, setCommentFor } from './comments'
 import { SendListReadable } from './SendList'
@@ -95,7 +96,7 @@ export const frontEndApis: ApiHandlers = {
             throw new ApiError(HTTP_NOT_FOUND)
         if (isRoot(node) || !isValidFileName(dest))
             return new ApiError(HTTP_FORBIDDEN)
-        await requestedRename(node, dest, ctx)
+        await requestedRename(node, dest, ctx, uri)
         return {}
     },
 
@@ -193,12 +194,13 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
                     await copyFile(src, dest)
                     await unlink(src)
                 }).then(() => moveStoredFileAttrs(src, dest))
+                    .then(() => moveUploadOwner(from1, joinVfs(uri_to, destName)))
                     .catch(e => e.code || String(e))
         }))
     }
 }
 
-export async function requestedRename(node: VfsNode | undefined, newName: string, ctx: Koa.Context) {
+export async function requestedRename(node: VfsNodeWithPath | undefined, newName: string, ctx: Koa.Context, uri=ctx.path) {
     if (!node)
         throw new ApiError(HTTP_NOT_FOUND)
     // requestedRename is exported, so keep disk rename confinement here even when callers pre-validate
@@ -218,12 +220,14 @@ export async function requestedRename(node: VfsNode | undefined, newName: string
             const destSource = join(dirname(node.source), newName)
             await rename(node.source, destSource)
             await moveStoredFileAttrs(node.source, destSource)
-            getCommentFor(node.source).then(c => {
-                if (!c) return
-                void setCommentFor(node.source!, '')
-                void setCommentFor(destSource, c)
-            })
-            return {}
+            await moveUploadOwner(uri, joinVfs(dirname(uri), pathEncode(newName)))
+                getCommentFor(node.source).then(c => {
+                    if (!c) return
+                    void setCommentFor(node.source!, '')
+                    void setCommentFor(destSource, c)
+                })
+                return {}
+
         }
         catch (e: any) {
             throw new ApiError(HTTP_SERVER_ERROR, e)

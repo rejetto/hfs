@@ -85,6 +85,7 @@ Some properties use a `Who` descriptor, with one of these values:
 - `localhost_admin` should Admin be accessed without credentials when on localhost. Default is true.
 - `proxies` number of proxies between server and clients to be trusted about providing clients' IP addresses. Default is 0.
 - `delete_unfinished_uploads_after` should unfinished uploads be deleted after a number of seconds. 0 for immediate, empty for never. Default is 1 day.
+- `own_upload_delete_hours` for how many hours an uploader can delete their own uploaded file. 0 disables. Default is 24.
 - `favicon` path to file to be used as favicon. Default is none.
 - `force_https` redirect http traffic to https. Requires https to be working. Default is true.
 - `force_lang` force translation for frontend. Default is none, meaning *let browser decide*.

@@ -5,7 +5,7 @@ import { basename, dirname, join, resolve } from 'path'
 import {
     makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, WhoVfs, debounceAsync,
     isWhoObject, WHO_ANY_ACCOUNT, WHO_ADMIN, defaultPerms, PERM_KEYS, HTTP_SERVER_ERROR, try_, matches, Promisable,
-    statWithTimeout, safeDecodeURIComponent, getUncHost, Who,
+    statWithTimeout, safeDecodeURIComponent, getUncHost, Who, enforceFinal, pathEncode,
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -46,6 +46,17 @@ export interface VfsNode extends VfsNodeStored { // include fields that are only
     parent?: VfsNode // available when original is available (therefore, only for isTemp)
     isFolder?: boolean // use nodeIsFolder() instead of relying on this field
     stats?: Promisable<Stats>
+    vfsPath?: string // runtime-only; assign with setHidden so saveVfs doesn't persist it
+}
+export interface VfsNodeWithPath extends VfsNode {
+    parent?: VfsNodeWithPath
+    vfsPath: string
+}
+
+function setVfsPath(node: VfsNode, vfsPath: string, parent?: VfsNodeWithPath) {
+    return setHidden(node, { // setHidden because we don't want to persist vfsPath
+        vfsPath: enforceFinal('/', parent?.vfsPath) + pathEncode(vfsPath)
+    }) as VfsNodeWithPath
 }
 
 export function permsFromParent(parent: VfsNode, child: VfsNode) {
@@ -90,15 +101,15 @@ export function normalizeFilename(x: string) {
     return (IS_WINDOWS || IS_MAC ? x.toLocaleLowerCase() : x).normalize()
 }
 
-export async function applyParentToChild(child: VfsNode | undefined, parent: VfsNode, name?: string) {
-    const ret: VfsNode = {
+export async function applyParentToChild(child: VfsNode | undefined, parent: VfsNodeWithPath, name?: string) {
+    name ||= child ? getNodeName(child) : ''
+    const ret = setVfsPath({
         original: child, // this can be overridden by passing an 'original' in `child`
         ...child,
         isFolder: child?.isFolder ?? (child?.children?.length! > 0 || undefined), // isFolder is hidden in original node, so we must copy it explicitly
         isTemp: true,
         parent,
-    }
-    name ||= child ? getNodeName(child) : ''
+    }, name, parent)
     inheritMasks(ret, parent, name)
     await parentMaskApplier(parent)(ret, name)
     inheritFromParent(ret)
@@ -108,9 +119,9 @@ export async function applyParentToChild(child: VfsNode | undefined, parent: Vfs
 export async function urlToNode(
     url: string,
     ctx?: Koa.Context,
-    parent: VfsNode=vfs,
+    parent: VfsNodeWithPath=vfs,
     allowMissing?: boolean // true means missing path segments still resolve to temporary nodes with a computed source path
-) : Promise<VfsNode | undefined> {
+) : Promise<VfsNodeWithPath | undefined> {
     let initialSlashes = 0
     while (url[initialSlashes] === '/')
         initialSlashes++
@@ -127,6 +138,7 @@ export async function urlToNode(
     const ret = await getNodeByName(name, parent, assumeFolder)
     if (!ret)
         return
+    setVfsPath(ret, name, parent)
     if (rest || ret?.original)
         return urlToNode(rest, ctx, ret, allowMissing)
     if (ret.source)
@@ -151,7 +163,7 @@ async function isHiddenFile(path: string) {
         : path[path.lastIndexOf('/') + 1] === '.'
 }
 
-export async function getNodeByName(name: string, parent: VfsNode, assumeMissingToBeFolder=false) {
+export async function getNodeByName(name: string, parent: VfsNodeWithPath, assumeMissingToBeFolder=false) {
     // does the tree node have a child that goes by this name, otherwise attempt disk
     let child = parent.children?.find(isSameFilenameAs(name))
     if (child) // found as vfs node
@@ -193,14 +205,14 @@ async function setIsFolder(node: VfsNode) {
     return isFolder
 }
 
-export let vfs: VfsNode = {}
+export let vfs = setVfsPath({}, '')
 defineConfig('vfs', vfs).sub(async x => {
-    await reviewVfs(x)
+    await reviewVfs(setVfsPath(x, ''))
     console.log('VFS ready')
 })
 
 async function reviewVfs(data=vfs) {
-    await (async function recur(node) {
+    await (async function recur(node: VfsNode) {
         if (node.source && !node.children?.length && node.isFolder === undefined)
             await setIsFolder(node)
         if (node.children)
@@ -253,7 +265,7 @@ export function nodeIsFolder(node: VfsNode) {
     }
 }
 
-export async function getDefaultFile(node: VfsNode, ctx: Koa.Context) {
+export async function getDefaultFile(node: VfsNodeWithPath, ctx: Koa.Context) {
     return node.default && nodeIsFolder(node) && await urlToNode(node.default, ctx, node) || undefined
 }
 
@@ -296,12 +308,9 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
         } while (1)
         if (isWhoObject(who) || isWhoVfsPerms(who))
             throw Error(`permission type-guard: ${JSON.stringify(who)}`)
-        const eventName = 'checkVfsPermission'
-        if (events.anyListener(eventName)) {
-            const first = _.max(events.emit(eventName, { who, node, perm, ctx }))
-            if (first !== undefined)
-                return first
-        }
+        const first = _.max(events.emit('checkVfsPermission', { who, node, perm, ctx }))
+        if (first !== undefined)
+            return first
 
         return simpleWhoToError(who, ctx)
             ?? throw_(Error(`invalid permission: ${perm}=${try_(() => JSON.stringify(who))}`))
@@ -331,7 +340,7 @@ interface WalkNodeOptions {
     parallelizeRecursion?: boolean,
 }
 // it's the responsibility of the caller to verify you have list permission on parent, as callers have different needs.
-export async function* walkNode(parent: VfsNode, {
+export async function* walkNode(parent: VfsNodeWithPath, {
     ctx,
     depth = Infinity,
     prefixPath = '',
@@ -349,13 +358,13 @@ export async function* walkNode(parent: VfsNode, {
             const { source } = parent
             const taken = new Set()
             const maskApplier = parentMaskApplier(parent)
-            const visitLater: [VfsNode, string][] = []
+            const visitLater: [VfsNodeWithPath, string][] = []
             const childrenWorking = parent.children?.length && Promise.all(parent.children.map(async child => {
                 if (ctx?.isAborted()) return
                 const nodeName = getNodeName(child)
                 const name = prefixPath + nodeName
                 taken?.add(normalizeFilename(name))
-                const item = { ...child, original: child, name, parent }
+                const item = setVfsPath({ ...child, original: child, name, parent }, name, parent)
                 if (await cantSee(item)) return
                 if (item.source && !item.children?.length) // real items must be accessible, unless there's more to it
                     try { await fs.access(item.source) }
@@ -394,7 +403,7 @@ export async function* walkNode(parent: VfsNode, {
                         const name = prefixPath + (renamed || path)
                         if (taken?.has(normalizeFilename(name))) // taken by vfs node above
                             return false // false just in case it's a folder
-                        const item: VfsNode = { name, isFolder, source: join(source, path), parent, stats: entry.stats }
+                        const item = setVfsPath({ name, isFolder, source: join(source, path), parent, stats: entry.stats }, name, parent)
                         // masks containing '/' must be matched against the relative path while keeping walkDir recursion enabled
                         await pathMaskApplier(item, renamed || path)
                         if (await cantSee(item)) // can't see: don't produce and don't recur
@@ -420,12 +429,12 @@ export async function* walkNode(parent: VfsNode, {
                 stream.push(null)
             }
 
-            function cantRecur(item: VfsNode) {
+            function cantRecur(item: VfsNodeWithPath) {
                 return ctx && !hasPermission(item, 'can_list', ctx)
             }
 
             // item will be changed, so be sure to pass a temp node
-            async function cantSee(item: VfsNode) {
+            async function cantSee(item: VfsNodeWithPath) {
                 await maskApplier(item)
                 inheritFromParent(item)
                 if (ctx && !hasPermission(item, 'can_see', ctx)) return true
@@ -437,7 +446,7 @@ export async function* walkNode(parent: VfsNode, {
     // must use a stream to be able to work with the callback-based mechanism of walkDir, but Readable is not typed so we wrap it with a generator
     for await (const item of stream) {
         if (ctx?.isAborted()) return
-        yield item as VfsNode
+        yield item as VfsNodeWithPath
     }
 }
 
