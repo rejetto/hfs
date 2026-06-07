@@ -2,10 +2,9 @@
     "dnsServers": ["1.1.1.1", "8.8.8.8"],
     "selfCheckServices": [
         {
-            "url": "http://hfstest.rejetto.com/v3?url=$URL",
-            "headers": {"User-Agent": "HFS"},
-            "regexpFailure": "\"error\"",
-            "regexpSuccess": "\"good\""
+            "url": "https://hfstest-fkchzspt7q-ew.a.run.app?url=$URL",
+            "regexpFailure": "false",
+            "regexpSuccess": "true"
         }
     ],
     "selfCheckServices_disabled": [
@@ -18,6 +17,12 @@
             "url": "https://byhmniehcu2jzoeododjam6i5a0yszsf.lambda-url.eu-central-1.on.aws/?url=$URL",
             "regexpFailure": "false",
             "regexpSuccess": "true"
+        },
+        {
+            "url": "http://hfstest.rejetto.com/v3?url=$URL",
+            "headers": {"User-Agent": "HFS"},
+            "regexpFailure": "\"error\"",
+            "regexpSuccess": "\"good\""
         }
     ],
     "publicIpServices": [
