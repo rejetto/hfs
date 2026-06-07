@@ -7,7 +7,7 @@ import {
 import _ from 'lodash'
 import { getCertObject } from './listen'
 import { getProjectInfo } from './github'
-import { apiAssertTypes, onlyTruthy, promiseBestEffort } from './misc'
+import { apiAssertTypes, haveTimeout, onlyTruthy, promiseBestEffort } from './misc'
 import { lookup, Resolver } from 'dns/promises'
 import { isIPv6 } from 'net'
 import { getNatInfo, getPublicIps, getUpnpClient, mappedPort, upnpMappingParam } from './nat'
@@ -20,13 +20,14 @@ export default {
 
     async check_domain({ domain }) {
         apiAssertTypes({ string: { domain } })
-        const resolver = new Resolver()
+        const resolver = new Resolver({ timeout: 3_000, tries: 2 })
         const prjInfo = await getProjectInfo()
         resolver.setServers(prjInfo.dnsServers)
+        const timeout = 7_000 // the external timeout should be larger
         const settled = await Promise.allSettled([
-            resolver.resolve(domain, 'A'),
-            resolver.resolve(domain, 'AAAA'),
-            lookup(domain).then(x => [x.address]),
+            haveTimeout(timeout, resolver.resolve(domain, 'A')),
+            haveTimeout(timeout, resolver.resolve(domain, 'AAAA')),
+            haveTimeout(timeout, lookup(domain).then(x => [x.address])),
         ])
         if (settled[0].status === 'rejected' && settled[0].reason.code === 'ECONNREFUSED')
             return new ApiError(HTTP_SERVICE_UNAVAILABLE, "cannot resolve domain")
