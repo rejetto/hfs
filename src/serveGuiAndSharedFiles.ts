@@ -73,7 +73,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
         const decPath = safeDecodeURIComponent(path, '')
         const fn = basename(decPath)
         const folderUri = pathEncode(dirname(decPath)) // re-encode to get readable urls
-        const folder = await urlToNode(folderUri, ctx, vfs, true) // we don't require the folder to already exist, but to be mapped on disk AND to have proper permissions
+        const folder = await urlToNode(folderUri, ctx, vfs.get(), true) // we don't require the folder to already exist, but to be mapped on disk AND to have proper permissions
         if (!folder)
             return sendErrorPage(ctx, HTTP_NOT_FOUND)
         ctx.state.uploadPath = decPath
