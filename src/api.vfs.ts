@@ -35,7 +35,7 @@ export default {
     async get_vfs() {
         return { root: await recur() }
 
-        async function recur(node=vfs): Promise<VfsNodeAdminSend> {
+        async function recur(node=vfs.get()): Promise<VfsNodeAdminSend> {
             const { source } = node
             const stats = await nodeStats(node)
             const isFolder = nodeIsFolder(node)
@@ -126,7 +126,7 @@ export default {
             return new ApiError(HTTP_BAD_REQUEST, 'name or source required')
         if (name && !isValidFileName(name))
             return new ApiError(HTTP_BAD_REQUEST, 'bad name')
-        const parentNode = parent ? await urlToNodeOriginal(parent) : vfs
+        const parentNode = parent ? await urlToNodeOriginal(parent) : vfs.get()
         if (!parentNode)
             return new ApiError(HTTP_NOT_FOUND, 'parent not found')
         if (!nodeIsFolder(parentNode))
