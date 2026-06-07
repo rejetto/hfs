@@ -3,7 +3,7 @@ import { Middleware } from 'koa'
 import { getProjectInfo } from './github'
 import { isIP, isIPv6 } from 'net'
 import _ from 'lodash'
-import { haveTimeout } from './cross'
+import { findDefined, haveTimeout } from './cross'
 import { httpString } from './util-http'
 
 let selfChecking = false
@@ -40,7 +40,7 @@ export async function selfCheck(url: string) {
         selfChecking = true
         for (const services of _.chunk(_.shuffle<PortScannerService>(prjInfo.selfCheckServices), 2)) {
             try {
-                return await Promise.any(services.map(async svc => {
+                const results = await Promise.allSettled(services.map(async svc => {
                     if (!svc.url || svc.type) throw 'unsupported ' + svc.type // only default type supported for now
                     let { url: serviceUrl, body, regexpSuccess, regexpFailure, ...rest } = svc
                     const service = new URL(serviceUrl).hostname
@@ -56,6 +56,9 @@ export async function selfCheck(url: string) {
                     console.debug(service, 'responded', success)
                     return { success, service, url }
                 }))
+                // prefer a positive check so a fast false negative doesn't mask a working service
+                return findDefined(results, x => x.status === 'fulfilled' && x.value.success ? x.value : undefined)
+                    || findDefined(results, x => x.status === 'fulfilled' ? x.value : undefined)
             }
             catch (e: any) {
                 console.debug(e?.errors?.map(String) || e?.cause || String(e))
