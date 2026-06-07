@@ -9,7 +9,7 @@ import {
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
-import { defineConfig, setConfig } from './config'
+import { defineConfig, saveConfigAsap } from './config'
 import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_MAC, IS_WINDOWS } from './const'
 import events from './events'
 import { ctxBelongsTo } from './perm'
@@ -119,7 +119,7 @@ export async function applyParentToChild(child: VfsNode | undefined, parent: Vfs
 export async function urlToNode(
     url: string,
     ctx?: Koa.Context,
-    parent: VfsNodeWithPath=vfs,
+    parent: VfsNodeWithPath=vfs.compiled(),
     allowMissing?: boolean // true means missing path segments still resolve to temporary nodes with a computed source path
 ) : Promise<VfsNodeWithPath | undefined> {
     let initialSlashes = 0
@@ -205,29 +205,31 @@ async function setIsFolder(node: VfsNode) {
     return isFolder
 }
 
-export let vfs = setVfsPath({}, '')
-defineConfig(CFG.vfs, vfs).sub(async x => {
-    await reviewVfs(setVfsPath(x, ''))
+// compiled is the stable mutable tree, while get() may return a fresh clone of the default
+export const vfs = defineConfig<VfsNode, VfsNodeWithPath>(CFG.vfs, {}, x =>
+    setVfsPath(structuredClone(x && typeof x === 'object' ? x : {}), '')) // ensure the type is right
+vfs.sub(async () => {
+    await reviewVfs()
     console.log('VFS ready')
 })
 
-async function reviewVfs(data=vfs) {
+async function reviewVfs() {
     await (async function recur(node: VfsNode) {
         if (node.source && !node.children?.length && node.isFolder === undefined)
             await setIsFolder(node)
         if (node.children)
             await Promise.allSettled(node.children.map(recur))
-    })(data)
-    vfs = data
+    })(vfs.compiled())
 }
 
 export const saveVfs = debounceAsync(async () => {
-    await reviewVfs()
-    await setConfig({ vfs }, true)
+    await reviewVfs() // refresh runtime-derived folder flags before saving mutated VFS state
+    vfs.set(vfs.compiled()) // sync the mutable runtime tree back to config state before persisting it
+    saveConfigAsap()
 })
 
 export function isRoot(node: VfsNode) {
-    return node === vfs
+    return node === vfs.compiled()
 }
 
 export function getNodeName(node: VfsNode) {
@@ -532,7 +534,7 @@ events.on('accountRenamed', ({ from, to }) => {
         if (n.masks)
             Object.values(n.masks).forEach(renameInNode)
         n.children?.forEach(renameInNode)
-    })(vfs)
+    })(vfs.compiled())
     saveVfs()
 
     function renameInPerm(a?: WhoVfs) {
