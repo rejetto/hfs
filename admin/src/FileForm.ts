@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { markVfsModified, prepareVfsUndo, state, useSnapState } from './state'
-import { createElement as h, forwardRef, ReactElement, ReactNode, useEffect, useMemo, useState } from 'react'
+import { createElement as h, forwardRef, memo, ReactElement, ReactNode, useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList, useTheme } from '@mui/material'
 import {
     BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, NumberField, SelectField, StringField
@@ -27,7 +27,6 @@ import { moveVfs } from './VfsTree'
 import QrCreator from 'qr-creator'
 import { AddVfsBtn } from './VfsMenuBar'
 import { SYS_ICONS } from '@hfs/frontend/src/sysIcons'
-import { hIcon } from '@hfs/frontend/src/misc'
 import { TextEditorField } from './TextEditor'
 import { account2icon } from './AccountsPage'
 import apiAccounts from '../../src/api.accounts'
@@ -519,4 +518,29 @@ export async function changeBaseUrl() {
             }
         })
     })
+}
+
+
+interface IconProps { name:string, className?:string, alt?:string, [rest:string]: any }
+// name = null ? none : unicode ? unicode : "?" ? file_url : font_icon_class
+const Icon = memo(({ name, alt, className='', ...props }: IconProps) => {
+    if (!name) return null
+    const [emoji, clazz=name] = SYS_ICONS[name] || []
+    className += ' icon'
+    const nameIsTheIcon = name.length === 1 ||
+        name.match(/^[\uD800-\uDFFF\u2600-\u27BF\u2B00-\u2BFF\u3030-\u303F\u3297\u3299\u00A9\u00AE\u200D\u20E3\uFE0F\u2190-\u21FF\u2300-\u23FF\u2400-\u243F\u25A0-\u25FF\u2600-\u26FF\u2700-\u27BF]*$/)
+    const nameIsUrl = !nameIsTheIcon && /[/?]/.test(name)
+    const isFontIcon = clazz
+    className += nameIsUrl ? ' file-icon' : isFontIcon ? ` font-icon fa-${clazz}` : ' emoji-icon'
+    return h('span',{
+        ...alt ? { 'aria-label': alt } : { 'aria-hidden': true },
+        role: 'img',
+        ...props,
+        ...nameIsUrl ? { style: { backgroundImage: `url(${JSON.stringify(name)})`, ...props?.style } } : undefined,
+        className,
+    }, nameIsTheIcon ? name : isFontIcon ? null : (emoji||'#'))
+})
+
+function hIcon(name: string, props?: Omit<IconProps, 'name'>) {
+    return h(Icon, { name, ...props })
 }
