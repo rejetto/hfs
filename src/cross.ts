@@ -179,9 +179,9 @@ export function stringAfter(sub: string, all: string) {
     return i < 0 ? '' : all.slice(i + sub.length)
 }
 
-export function stringBefore(sub: string, all: string, returnEmptyWhenSubMissing=true) {
+export function stringBefore(sub: string, all: string, returnEmptyWhenSubIsMissing=true) {
     const i = all.indexOf(sub)
-    return i >= 0 ? all.slice(0, i + sub.length - 1) : returnEmptyWhenSubMissing ? '' : all
+    return i >= 0 ? all.slice(0, i) : returnEmptyWhenSubIsMissing ? '' : all
 }
 
 export function truthy<T>(value: T): value is Truthy<T> {
@@ -461,7 +461,8 @@ export function isIpLan(ip: string) {
 }
 
 export function ipForUrl(ip: string) {
-    return ip.includes(':') ? '[' + ip + ']' : ip
+    const i = ip.indexOf(':')
+    return i >= 0 && ip.indexOf(':', i + 1) >= 0 ? `[${ip}]` : ip
 }
 
 export function escapeHTML(text: string) {

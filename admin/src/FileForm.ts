@@ -10,7 +10,8 @@ import { apiCall, UseApi, useApiEx } from './api'
 import {
     basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, useRequestRender, try_, pathEncode,
     onlyTruthy, prefix, VfsPerms, wantArray, WhoVfs, WhoObject, matches, xlate, md, Callback, copyTextToClipboard,
-    splitAt, IMAGE_FILEMASK, CFG, MASK_IN_TESTS, WHO_ANY_ACCOUNT, WHO_ADMIN, WHO_NO_ONE, WHO_ANYONE,
+    splitAt, IMAGE_FILEMASK, CFG, MASK_IN_TESTS, WHO_ANY_ACCOUNT, WHO_ADMIN, WHO_NO_ONE, WHO_ANYONE, stringBefore,
+    ipForUrl
 } from './misc'
 import { isModifiedConfig } from './AccountForm'
 import { Btn, Flex, IconBtn, LinkBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'
@@ -294,7 +295,7 @@ export function WhoField({ value, onChange, parent, inherit, accountsApi, helper
 
     const timeout = 500
     const arrayMode = Array.isArray(thisValue)
-    // a large side band will convey union across the fields
+    // a large sideband will convey union across the fields
     return h(Box, { sx: { borderRight: objectMode ? '8px solid #8884' : undefined, transition: `all ${timeout}ms` } },
         h(SelectField as typeof SelectField<typeof thisValue | null>, {
             ...rest,
@@ -466,7 +467,7 @@ export async function changeBaseUrl() {
             title: "Main address",
             Content() {
                 const [v, setV] = useState(base_url || '')
-                const proto = new URL(v || urls[0]).protocol + '//'
+                const proto = stringBefore('//', v || urls[0]) + '//'
                 const host = urls.includes(v) ? '' : v.slice(proto.length)
                 const check = h(Check, { sx: { ml: 2 } })
                 return h(Box, { sx: { display: 'flex', flexDirection: 'column' } },
@@ -486,7 +487,7 @@ export async function changeBaseUrl() {
                         label: "Custom IP or domain",
                         helperText: md("You can type any address but *you* are responsible to make the address work.\nThis functionality is just to help you copy the link in case you have a domain or a complex network configuration."),
                         value: host,
-                        onChange: v => set(prefix(proto, v)),
+                        onChange: v => set(prefix(proto, ipForUrl(v))),
                         start: h(SelectField as Field<string>, {
                             value: proto,
                             onChange: v => host ? set(v + host) : toast("Enter domain first"),
