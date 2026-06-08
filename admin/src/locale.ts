@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { findDefined } from './misc'
 
-const localeLoaders = import.meta.glob('../../node_modules/dayjs/locale/*.js')
+const localeLoaders = import.meta.glob('../../node_modules/dayjs/esm/locale/*.js')
 const localePaths = new Map(Object.keys(localeLoaders).map(path => [path.match(/([^/]+)\.js$/)![1], path]))
 const localeAliases: Record<string, string> = { zn: 'zh-cn', no: 'nb' }
 
