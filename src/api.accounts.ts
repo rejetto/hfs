@@ -44,7 +44,7 @@ export default  {
     },
 
     get_account({ username }, ctx) {
-        apiAssertTypes({ string: { username } })
+        apiAssertTypes({ string_undefined: { username } })
         return prepareAccount(getAccount(username || getCurrentUsername(ctx)))
             || new ApiError(HTTP_NOT_FOUND)
     },
