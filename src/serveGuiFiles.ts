@@ -63,8 +63,10 @@ function shouldServeApp(ctx: Koa.Context) {
 
 function adjustBundlerLinks(ctx: Koa.Context, uri: string, data: string | Buffer) {
     const ext = extname(ctx.path)
+    const filesUri = ctx.state.revProxyPath + uri
     return ext && !ext.match(/\.(css|html|js|ts|scss)/) ? data
-        : String(data).replace(/((?:import[ (]| from )['"])\//g, `$1${ctx.state.revProxyPath}${uri}`)
+        : String(data).replace(/((?:import[ (]| from )['"])\//g, `$1${filesUri}`)
+            .replace(/(assetsURL=function\(([^)]+)\)\{return)"\/"\+\2\}/g, `$1${JSON.stringify(filesUri)}+$2}`) // vite's preload helper uses the configured absolute base for dependency hints
 }
 
 const getFaviconTimestamp = debounceAsync(async () => {
