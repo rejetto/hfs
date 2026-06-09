@@ -8,14 +8,14 @@ import {
 import { useEventListener, useMediaQuery, useWindowSize } from 'usehooks-ts'
 import {
     domOn, ErrorMsg, hIcon, onlyTruthy, prefix, isMac, isCtrlKey, hfsEvent, formatTimestamp, restartAnimation,
-    anyDialogOpen
+    anyDialogOpen, getHFS, useOnResize
 } from './misc'
 import { Checkbox, CustomCode, Bytes, iconBtn, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
 import { alertDialog } from './dialog'
 import useFetchList, { usePath } from './useFetchList'
-import { useAuthorized } from './login'
+import { MenuPanel } from './menu'
 import _ from 'lodash'
 import { makeOnClickOpen, openFileMenu } from './fileMenu'
 import { ClipBar } from './clip'
@@ -31,6 +31,13 @@ const originalTitle = document.title
 export function BrowseFiles() {
     useFetchList()
     const { props, tile_size=0, error, title_with_path } = useSnapState()
+    const { list, paging } = usePagedFilesList()
+    const [bottomBarHeight, setBottomBarHeight] = useState(0)
+    const menuAtTop = getHFS().menu_at_top
+    const menuPanel = h(Fragment, {},
+        h(MenuPanel),
+        h(CustomCode, { name: 'afterMenuBar' }),
+    )
 
     const path = usePath()
     const title = originalTitle + (title_with_path ? ' ' + decodeURIComponent(path).slice(1, -1) : '')
@@ -43,8 +50,7 @@ export function BrowseFiles() {
     const propsDropFiles = useMemo(() => ({
         id: 'files-dropper',
     }), [props])
-    if (!useAuthorized())
-        return h(CustomCode, { name: 'unauthorized' }, h('h1', { className: 'unauthorized' }, t`Unauthorized`) )
+    const itsScrolling = document.scrollingElement?.scrollHeight! > document.scrollingElement?.clientHeight!
     return h('div', propsDropFiles, // element dedicated to drop-files to cover full screen
         h('div', {
             uri: path, // used by UI tests
@@ -52,19 +58,32 @@ export function BrowseFiles() {
             style: { '--tile-size': tile_size },
         },
             h(CustomCode, { name: 'beforeHeader' }),
-            h(Head),
+            h(Head, { onTop: menuAtTop && menuPanel }),
             h(CustomCode, { name: 'afterHeader' }),
             props?.comment && h('div', { className: 'entry-comment' }, props.comment),
-            error ? h(ErrorMsg, { err: error }) : h(FilesList),
+            error ? h(ErrorMsg, { err: error }) : list,
             h(CustomCode, { name: 'afterList' }),
-            h('div', { id: 'afterListFiller', style: { flex: 1 }}),
-            h(ClipBar),
-            h(CustomCode, { name: 'footer' }),
+            menuAtTop && h('div', { id: 'afterListFiller', style: { flex: 1 }}),
+            h('div', {
+                className: 'bottom-bar-stack',
+                // without this, scrolling the list will end with a part of the list covered by the bottom-bar
+                style: { minHeight: bottomBarHeight },
+            }, h('div', {
+                ref: useOnResize(useCallback((_w, h) => setBottomBarHeight(h), [])).refToPass,
+                className: 'bottom-bar-stack-positioner',
+                style: { bottom: itsScrolling ? 0 : undefined },
+            },
+                !error && paging,
+                h(ClipBar),
+                h(CustomCode, { name: 'footer' }),
+                !menuAtTop && menuPanel,
+            )),
+            !menuAtTop && h('div', { id: 'afterListFiller', style: { flex: 1 }}),
         )
     )
 }
 
-function FilesList() {
+function usePagedFilesList() {
     const snap = useSnapState()
     const midnight = useMidnight() // as an optimization, we calculate this only once per list and pass it down
     const pageSize = Math.max(1, Math.floor(snap.page_size ?? 100))
@@ -231,7 +250,7 @@ function FilesList() {
         : t('empty_list', "Nothing here"))
 
     const focusHint = `${t('focus_hint', "By typing on your keyboard, you search and focus the items in the list.")}\n\nESC: ${t`Cancel`}`
-    return h(Fragment, {},
+    const list = h(Fragment, {},
         focus && h('div', { id: focusTypingId, className: focusIndex < 0 ? 'focus-typing-mismatch' : '' }, focus,
             hIcon('info', { style: { cursor: 'default', marginLeft: '.3em' }, title: focusHint, onClick: () => alertDialog(focusHint) }) ),
         h('ul', { ref, className: 'dir' },
@@ -245,16 +264,18 @@ function FilesList() {
                     })),
             snap.loading && h(Spinner),
         ),
-        total > pageSize && h(Paging, {
-            nPages,
-            current: page + scrolledPages,
-            atBottom,
-            pageSize,
-            list: theList as DirEntry[],
-            changePage,
-            changePageToIndex,
-        })
     )
+    const paging = total > pageSize && h(Paging, {
+        nPages,
+        current: page + scrolledPages,
+        atBottom,
+        pageSize,
+        list: theList as DirEntry[],
+
+        changePage,
+        changePageToIndex,
+    })
+    return { list, paging }
 }
 
 export function useMidnight() {

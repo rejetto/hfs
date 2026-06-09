@@ -194,10 +194,11 @@ export default function OptionsPage() {
             },
 
             h(Section, { title: "Front-end", subtitle: "Following options affect only the front-end" }),
-            { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", md: 4,
+            { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", md: 3,
                 options: { "by clicking on file name": true, "by dedicated button": false  }
             },
-            { k: 'title', md: 8, helperText: "You can see this in the tab of your browser" },
+            { k: 'menu_at_top', comp: SelectField, md: 3, label: "Menu panel", options: { "at top": true, "at bottom": false } },
+            { k: 'title', md: 6, helperText: "You can see this in the tab of your browser" },
 
             { k: 'auto_play_seconds', comp: NumberField, xs: 6, sm: 3, min: 1, max: 10000, required: true,
                 label: "Auto-play seconds delay", helperText: md(`Default value for the [Show interface](${REPO_URL}discussions/270)`) },

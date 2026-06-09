@@ -9,7 +9,8 @@ import { state, useSnapState } from './state'
 import { acceptDropFiles } from './upload'
 import { enqueueUpload, getFilePath, uploadState } from './uploadQueue'
 import { proxy, ref, useSnapshot } from "valtio"
-import { Spinner } from "./components"
+import { CustomCode, Spinner } from "./components"
+import { useAuthorized } from './login'
 import { enforceStarting, getHFS, getPrefixUrl, loadScript } from '@hfs/shared'
 import { Toasts } from './toasts'
 import i18n from './i18n'
@@ -22,6 +23,7 @@ export default function App() {
     const go = useLocation()[1] // expose navigate function for programmatic usage
     getHFS().navigate = (uri: string) => go(getPrefixUrl() + enforceStarting('/', uri))
 
+    const auth = useAuthorized()
     const { ready } = useSnapshot(pageState) // wait for all plugins to be loaded
     const { messageOnly } = useSnapState()
     if (messageOnly)
@@ -41,7 +43,8 @@ export default function App() {
     },
         h(Toasts),
         h(Dialogs, {},
-            h(BrowseFiles)
+            auth ? h(BrowseFiles)
+                : h(CustomCode, { name: 'unauthorized' }, h('h1', { className: 'unauthorized' }, t`Unauthorized`) )
         ),
     )
 }
