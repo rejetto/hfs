@@ -11,7 +11,11 @@ const enabled = defineConfig(CFG.geo_enable, false)
 const allow = defineConfig<boolean | null>(CFG.geo_allow, null)
 const list = defineConfig(CFG.geo_list, [] as string[])
 const allowUnknown = defineConfig(CFG.geo_allow_unknown, false)
-enabled.sub(checkFiles)
+let filesCheck = Promise.resolve()
+enabled.sub(() => {
+    filesCheck = checkFiles().catch((e: any) =>
+        console.error('Failed to load geo-ip db:', e?.message || String(e)))
+})
 setInterval(checkFiles, DAY) // keep updated at run-time
 
 // benchmark: memoize can make this 44x faster
@@ -19,6 +23,8 @@ export const ip2country = _.memoize((ip: string) => ip2location.getCountryShortA
 
 export const geoFilter: Middleware = async (ctx, next) => {
     if (enabled.get() && !isLocalHost(ctx) && !isIpLan(ctx.ip)) {
+        if (!isOpen()) // keep startup independent of the geo db download, but don't classify external requests before the db had a chance to load
+            await filesCheck
         const { connection }  = ctx.state
         const country = connection.country ??= await ip2country(ctx.ip)
         if (country)
