@@ -408,6 +408,26 @@ ul.dir {
         padding: min(1vh, 0.5em) 0; // avoid wasting too much vertical space, and no need for horizontal padding as we are using flex to grow
     }
 }
+.bottom-bar-stack-positioner {
+    @extend .hide-back;
+    padding: .1em 0;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(100%, 54em);
+    box-sizing: border-box;
+    z-index: 3; // keep the bottom menu reachable above file-list controls and selection checkboxes
+    box-shadow: 0 0 .3em .3em var(--bg);
+    &:empty {
+        display: none; // avoid showing an empty fixed bar when only optional bottom content is rendered
+    }
+}
+.bottom-bar-stack {
+    #paging, #clipBar {
+        position: static; // the stack owns bottom positioning, so internal bars must not compete with each other
+        bottom: auto;
+    }
+}
 #search-clear-button { margin-right: .5em }
 #searched {
     margin-bottom: 0.2em;
@@ -457,16 +477,14 @@ button .icon + .label {
     position: sticky;
     bottom: 0;
     display: flex;
-    gap: .3em;
     background-color: var(--bg);
-    padding: 0 0.2em 0.2em;
+    padding-bottom: .2em;
     &>button { z-index: 1; }
-    button { box-shadow: 0 0 .3em .3em #0003; }
     #paging-middle {
         padding: 0 0.5em;
         margin: 0 -0.3em;
         display: flex;
-        gap: .5em;
+        gap: .2em;
         flex: 1;
         min-width: 0;
         overflow-x: auto;
@@ -638,8 +656,8 @@ form label+input { margin-top: .2em; }
     background: var(--bg);
     box-shadow: 0 0 .3em .3em var(--bg);
 
-    display: flex; align-items: center; gap: 0.5em;
-    margin: 0 1px;
+    display: flex; align-items: center; gap: 0.3em;
+    padding-bottom: 0.1em;
 }
 #clipboard-content {
     text-align: left;

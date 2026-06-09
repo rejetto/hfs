@@ -15,6 +15,7 @@ export const DAY = 24 * HOUR
 export const MAX_TILE_SIZE = 10
 export const FRONTEND_OPTIONS = {
     file_menu_on_link: true,
+    menu_at_top: false,
     tile_size: 0,
     page_size: 100,
     sort_by: 'name',
