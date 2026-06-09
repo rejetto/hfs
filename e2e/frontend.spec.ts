@@ -382,7 +382,7 @@ test('anew', async ({ page, browserName }) => {
     await page.getByRole('link', { name: 'folder1, Folder' }).click()
     await page.getByRole('link', { name: 'data.kv' }).click()
     await page.getByRole('button', { name: 'Close' }).click()
-    await page.locator('.list-wrapper > div').press('Control+Backspace')
+    await page.keyboard.press('Control+Backspace')
     await page.getByRole('link', { name: 'work2, Folder' }).click()
     await page.getByRole('link', { name: 'config.yaml', exact: true }).click()
     const page2Promise = page.waitForEvent('popup')
