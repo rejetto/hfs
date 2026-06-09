@@ -36,7 +36,7 @@
     "@types/react": "^18.3.14",
     "@types/react-dom": "^18.3.2",
     "@types/react-window": "^1.8.8",
-    "vite": "^6.4.1"
+    "vite": "^8.0.16"
   },
   "eslintConfig": {
     "extends": [

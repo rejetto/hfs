@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "3.2.0-rc5",
+  "version": "3.2.0-rc6",
   "description": "HTTP File Server",
   "keywords": ["file server", "http server"],
   "homepage": "https://rejetto.com/hfs",
@@ -124,7 +124,7 @@
     "@types/picomatch": "^4.0.2",
     "@types/unzipper": "^0.10.11",
     "@types/yazl": "^3.3.0",
-    "@yao-pkg/pkg": "6.19.0",
+    "@yao-pkg/pkg": "6.20.0",
     "cross-env": "^10.0.0",
     "koa-better-http-proxy": "^0.2.10",
     "nm-prune": "^5.0.0",
