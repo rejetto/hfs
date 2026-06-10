@@ -14,12 +14,11 @@ const { useI18N } = i18n
 export function Breadcrumbs() {
     const base = getPrefixUrl() + '/'
     const currentPath = usePath().slice(base.length,-1)
-    const parent = base + currentPath.slice(0, currentPath.lastIndexOf('/') + 1)
     let prev = base
     const breadcrumbs = currentPath ? currentPath.split('/').map(x => [prev += x + '/', decodeURIComponent(x)]) : []
     const {t} = useI18N()
     return h(Fragment, {},
-        h(Breadcrumb, { id: 'breadcrumb-parent', path: parent, label: hIcon('parent', { alt: t`parent folder` }) }),
+        h(Breadcrumb, { id: 'breadcrumb-parent', path: '..', disabled: currentPath.length <= 0, label: hIcon('parent', { alt: t`parent folder` }) }),
         h(Breadcrumb, { id: 'breadcrumb-home', path: base, ...currentLabel(!currentPath, hIcon('home', { alt: t`home` })) }),
         breadcrumbs.map(([path,label], i) =>
             h(Breadcrumb, { key: path, path, ...currentLabel(i === breadcrumbs.length - 1, label) }) )
@@ -33,7 +32,7 @@ export function Breadcrumbs() {
     }
 }
 
-function Breadcrumb({ path, label, current, id }: { id?: string, current?: boolean, path: string, label?: string | ReactElement }) {
+function Breadcrumb({ path, label, current, id, disabled }: { disabled?: boolean, id?: string, current?: boolean, path: string, label?: string | ReactElement }) {
     const PAD = '\u00A0\u00A0' // make small elements easier to tap. Don't use min-width 'cause it requires display-inline that breaks word-wrapping
     if (typeof label === 'string' && label.length < 3)
         label = PAD + label + PAD
@@ -41,11 +40,12 @@ function Breadcrumb({ path, label, current, id }: { id?: string, current?: boole
     const { props } = useSnapState()
     const p = props?.can_archive ? '' : 'a'
     return h(Link, {
-        className: 'breadcrumb',
+        className: 'breadcrumb' + (disabled ? ' disabled' : ''),
         href: path || '/',
         ...!current && dragFilesDestination, // we don't really know if this folder allows upload, but in the worst case the user will get an error
         id,
         onClick(ev: MouseEvent) {
+            if (disabled) return ev.preventDefault()
             if (!current) return
             ev.preventDefault()
             void openFileMenu(new DirEntry(decodeURIComponent(path), { p, comment: props?.comment }), ev, [
