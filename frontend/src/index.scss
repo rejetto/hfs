@@ -115,6 +115,7 @@ img.file-icon { height: 1em; }
 a {
     text-decoration: none;
     color: var(--link);
+    &.disabled { opacity: .6; cursor: auto; }
 }
 button {
     background-color: var(--button-bg);
