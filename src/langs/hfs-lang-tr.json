@@ -102,6 +102,7 @@
         "upload_finished": "{n} tamamlandı ({size})",
         "upload_errors": "{n} başarısız",
         "upload_file_rejected": "Bazı dosyalar kabul edilmiyor",
+        "delete_unfinished_upload": "Tamamlanmamış yüklemeyi kaldır?",
 
         "File menu": "Dosya Menüsü",
         "Folder menu": "Klasör Menüsü",

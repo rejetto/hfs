@@ -102,6 +102,7 @@
         "upload_finished": "{n,plural, one{# файл загружен} few{# файла загружено} many{# файлов загружено}} ({size})",
         "upload_errors": "{n,plural, one{# файл} few{# файла} many{# файлов}} неуспешно",
         "upload_file_rejected": "Некоторые файлы не были приняты",
+        "delete_unfinished_upload": "Удалить незавершённую загрузку?",
 
         "File menu": "Меню файла",
         "Folder menu": "Меню папки",

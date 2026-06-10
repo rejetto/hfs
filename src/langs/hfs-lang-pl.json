@@ -101,6 +101,7 @@
         "upload_finished": "{n} zakończonych ({size})",
         "upload_errors": "{n} nieudanych",
         "upload_file_rejected": "Niektóre pliki nie zostały zaakceptowane",
+        "delete_unfinished_upload": "Usunąć niedokończone przesyłanie?",
 
         "File menu": "Menu pliku",
         "Folder menu": "Menu folderu",

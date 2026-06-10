@@ -102,6 +102,7 @@
         "upload_finished": "{n} ολοκληρώθηκαν ({size})",
         "upload_errors": "{n} απέτυχαν",
         "upload_file_rejected": "Κάποια αρχεία δεν γίνονται δεκτά",
+        "delete_unfinished_upload": "Να αφαιρεθεί η ημιτελής μεταφόρτωση;",
 
         "File menu": "Μενού αρχείου",
         "Folder menu": "Μενού φακέλου",

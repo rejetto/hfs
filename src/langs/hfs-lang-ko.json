@@ -102,6 +102,7 @@
         "upload_finished": "{n}개 파일 완료 ({size})",
         "upload_errors": "{n}개 파일 실패",
         "upload_file_rejected": "일부 파일은 업로드되지 않았습니다.",
+        "delete_unfinished_upload": "완료되지 않은 업로드를 제거할까요?",
 
         "File menu": "파일 메뉴",
 	    "Folder menu": "폴더 메뉴",

@@ -81,6 +81,8 @@ setInterval(() => {
 }, 2_000)
 
 let currentReq: XMLHttpRequest | undefined
+// cleanup must wait for the aborted request to register its temp file server-side
+let currentRequestIsOver: Promise<unknown> | undefined
 const id = randomId()
 let userAborted = false
 let closeLastDialog: undefined | (() => void)
@@ -105,6 +107,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     do { // at least one iteration, even for empty files
         let req = currentReq = new XMLHttpRequest()
         const requestIsOver = pendingPromise()
+        currentRequestIsOver = requestIsOver
         stuckSince = Date.now()
         // beware of 'abort' event: it isn't triggered if connection isn't established yet
         req.onloadend = async () => { // loadend = fired for both success and error. Safari doesn't always fire this on disconnections, leaving readyState = 3. The problem is mitigated by the abort-when-stuck mechanism above.
@@ -166,6 +169,8 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
             }
             finally {
                 requestIsOver.resolve()
+                if (currentRequestIsOver === requestIsOver) // a stale callback must not hide a newer in-flight upload request
+                    currentRequestIsOver = undefined
             }
         }
         let lastProgress = 0
@@ -232,8 +237,11 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
 
 export function abortCurrentUpload(userAskedForIt=false) {
     userAborted = userAskedForIt
+    const requestIsOver = currentRequestIsOver
     currentReq?.abort()
+    return requestIsOver
 }
+
 subscribe(uploadState, () => {
     const [cur] = uploadState.qs
     if (cur?.entries.length && !uploadState.uploading && !uploadState.paused)
@@ -323,4 +331,3 @@ async function calcHash(file: File, limit=Infinity) {
         return ret
     }
 }
-

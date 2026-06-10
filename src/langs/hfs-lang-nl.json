@@ -101,6 +101,7 @@
         "upload_finished": "{n} voltooid ({size})",
         "upload_errors": "{n} niet voltooid",
         "upload_file_rejected": "Sommige bestanden zijn niet geaccepteerd",
+        "delete_unfinished_upload": "Onvoltooide upload verwijderen?",
 
         "File menu": "Bestand menu",
         "Folder menu": "Map menu",
