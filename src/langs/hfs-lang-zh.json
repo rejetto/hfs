@@ -102,6 +102,7 @@
         "upload_finished": "上传{n} 完成 ({size})",
         "upload_errors": "上传失败{n} 次",
         "upload_file_rejected": "部分文件被服务器拒绝接收",
+        "delete_unfinished_upload": "要移除未完成的上传吗？",
 
         "File menu": "文件菜单",
         "Folder menu": "文件夹菜单",

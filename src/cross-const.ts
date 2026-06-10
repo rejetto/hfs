@@ -8,6 +8,7 @@ export const PORT_DISABLED = -1
 export const NBSP = '\xA0'
 export const PLUGIN_CUSTOM_REST_PREFIX = '_'
 export const HFS_REPO = 'rejetto/hfs'
+export const UPLOAD_TEMP_PREFIX = 'hfs$upload-'
 export const UPLOAD_TEMP_HASH = 'upload-temp-hash'
 export const MTIME_CHECK = 'x-mtime-check'
 export const PREVIOUS_TAG = 'previous'

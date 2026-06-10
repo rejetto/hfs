@@ -102,6 +102,7 @@
         "upload_finished": "{n}個完了 ({size})",
         "upload_errors": "{n} 失敗",
         "upload_file_rejected": "一部のファイルは受け入れられませんでした",
+        "delete_unfinished_upload": "未完了のアップロードを削除しますか？",
 
         "File menu": "ファイルメニュー",
         "Folder menu": "フォルダメニュー",

@@ -100,6 +100,7 @@
     "upload_finished": "{n} завършени ({size})",
     "upload_errors": "{n} неуспешни",
     "upload_file_rejected": "Някои файлове не бяха приети",
+    "delete_unfinished_upload": "Премахване на незавършеното качване?",
 
     "File menu": "Меню на файл",
     "Folder menu": "Меню на папка",

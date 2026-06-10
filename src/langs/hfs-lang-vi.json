@@ -103,6 +103,7 @@
         "upload_finished": "{n} thành công ({size})",
         "upload_errors": "{n} thất bại",
         "upload_file_rejected": "Một số file bị cấm...",
+        "delete_unfinished_upload": "Xóa bản upload chưa hoàn tất?",
 
         "Download counter": "Bộ đếm download",
 

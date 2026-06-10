@@ -101,6 +101,7 @@
         "upload_finished": "{n} baigta ({size})",
         "upload_errors": "{n} nepavyko",
         "upload_file_rejected": "Kai kurie failai nebuvo priimti",
+        "delete_unfinished_upload": "Pašalinti nebaigtą įkėlimą?",
 
         "File menu": "Failo meniu",
         "Folder menu": "Aplanko meniu",

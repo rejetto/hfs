@@ -101,6 +101,7 @@
         "upload_finished": "{n} finalizado ({size})",
         "upload_errors": "{n} faliu",
         "upload_file_rejected": "Alguns arquivos não foram aceitos",
+        "delete_unfinished_upload": "Remover o envio inacabado?",
 
         "File menu": "Menu de arquivo",
         "Folder menu": "Menu de Pasta",

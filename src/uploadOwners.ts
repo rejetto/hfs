@@ -93,7 +93,7 @@ function isExpired(owner: UploadOwner) {
     return !hours || Number(owner.created) + hours * HOUR <= Date.now()
 }
 
-function getSessionId(ctx: Koa.Context) {
+export function getSessionId(ctx: Koa.Context) {
     return ctx.session!.sessionId ||= randomId(30)
 }
 
