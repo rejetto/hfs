@@ -60,6 +60,7 @@
         "upload_finished": "{n} selesai ({size})",
         "upload_errors": "{n} gagal",
         "upload_file_rejected": "Beberapa fail tidak diterima",
+        "delete_unfinished_upload": "Alih keluar muat naik yang belum selesai?",
         "ready_to_upload": "{n,plural,one{# fail} other{# fail}}, {size}, sedia untuk dimuat naik",
         "Send": "Hantar",
         "download counter": "pengira muat turun",

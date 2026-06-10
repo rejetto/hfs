@@ -102,6 +102,7 @@
         "upload_finished": "{n} completado ({size})",
         "upload_errors": "{n} fallido",
         "upload_file_rejected": "Algunos archivos no fueron aceptados",
+        "delete_unfinished_upload": "¿Eliminar la subida sin terminar?",
 
         "File menu": "Archivo",
         "Folder menu": "Carpeta",

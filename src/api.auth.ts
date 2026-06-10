@@ -16,6 +16,7 @@ import { clearTextLogin, getCurrentUsername, setLoggedIn, srpServerStep1 } from 
 import { defineConfig } from './config'
 import events from './events'
 import { apiAssertTypes } from './misc'
+import { getSessionId } from './uploadOwners'
 import { createHmac, randomBytes, randomUUID } from 'node:crypto'
 
 const ongoingLogins:Record<string,SRPServerSessionStep1> = {} // store data that doesn't fit session object
@@ -25,6 +26,8 @@ const fakeSrpSecret = randomBytes(32)
 const refresh_session: ApiHandler = async ({}, ctx) => {
     const username = getCurrentUsername(ctx)
     const isAdmin = ctxAdminAccess(ctx) || undefined
+    if (ctx.session)
+        getSessionId(ctx) // anonymous upload ownership must be bound before any abortible upload request
     return !ctx.session ? new ApiError(HTTP_SERVER_ERROR) : {
         username,
         expandedUsername: Array.from(expandUsername(username)),

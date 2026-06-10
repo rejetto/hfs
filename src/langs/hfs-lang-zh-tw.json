@@ -102,6 +102,7 @@
         "upload_finished": "{n} 個檔案完成 ({size})",
         "upload_errors": "{n} 失敗",
         "upload_file_rejected": "部分檔案不被允許",
+        "delete_unfinished_upload": "要移除未完成的上傳嗎？",
 
         "File menu": "檔案選單",
         "Folder menu": "資料夾選單",

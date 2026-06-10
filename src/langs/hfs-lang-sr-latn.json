@@ -102,6 +102,7 @@
         "upload_finished": "{n} završeno ({size})",
         "upload_errors": "{n,plural, one{# nije uspeo} other{# neuspešna}}",
         "upload_file_rejected": "Neke datoteke nisu prihvaćene",
+        "delete_unfinished_upload": "Ukloniti nedovršeno otpremanje?",
 
         "File menu": "Meni datoteke",
         "Folder menu": "Meni fascikle",

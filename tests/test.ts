@@ -8,7 +8,7 @@ import { exec } from 'child_process'
 import _ from 'lodash'
 import yaml from 'yaml'
 import unzipper from 'unzipper'
-import { findDefined, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, wait, waitFor } from '../src/cross'
+import { findDefined, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, UPLOAD_TEMP_PREFIX, wait, waitFor } from '../src/cross'
 import { httpStream, httpWithBody, parseHttpUrl, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { mkdir, rm, rename, writeFile, access } from 'fs/promises'
@@ -1309,7 +1309,7 @@ describe('after-login', () => {
         ..._.range(3).map(i =>  reqUpload(UPLOAD_DEST + i, 200, new StringRepeaterStream(BIG_CONTENT, 50))()) // 3 x 100MB
     ]).then(() => {}))
     test('upload.interrupted', async () => {
-        const fn = resolve(UPLOAD_DISK_ROOT, UPLOAD_RELATIVE.replace('/', '/hfs$upload-'))
+        const fn = resolve(UPLOAD_DISK_ROOT, UPLOAD_RELATIVE.replace('/', '/' + UPLOAD_TEMP_PREFIX))
         await rm(fn, {force: true})
         const neededTime = 600
         const makeAbortedRequest = (afterMs: number) => {
@@ -1337,6 +1337,87 @@ describe('after-login', () => {
         if (!partial)
             throw "partial file missing"
         await reqUpload(UPLOAD_DEST, 200, Readable.from(BIG_CONTENT.slice(partial)), BIG_CONTENT.length, partial)()
+    })
+    test('upload.interrupted cleanup requires owner or delete permission', async () => {
+        const name = `unfinished-cleanup-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const dest = `${UPLOAD_ROOT}${name}/unfinished.txt`
+        const tempName = UPLOAD_TEMP_PREFIX + 'unfinished.txt'
+        const temp = resolve(dir, tempName)
+        const tempUri = `${UPLOAD_ROOT}${name}/${pathEncode(tempName)}`
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        try {
+            await makeAbortedUpload()
+            await req(tempUri, 403, { method: 'delete', jar: {} })()
+            if (!existsSync(temp))
+                throw "temp file removed without permission"
+            await req(tempUri, 200, { method: 'delete' })()
+            if (existsSync(temp))
+                throw "temp file not removed"
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+
+        async function makeAbortedUpload() {
+            await rmAny(temp)
+            const r = reqUpload(dest, 0, makeReadableThatTakes(600))()
+            setTimeout(r.abort, 300)
+            await r.catch(() => {})
+            if (!existsSync(temp))
+                throw "missing temp file"
+        }
+    })
+    test('anonymous upload can delete own unfinished upload', async () => {
+        const name = `anon-unfinished-cleanup-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const jar = {}
+        const dest = `${UPLOAD_ROOT}${name}/unfinished.txt`
+        const tempName = UPLOAD_TEMP_PREFIX + 'unfinished.txt'
+        const temp = resolve(dir, tempName)
+        const tempUri = `${UPLOAD_ROOT}${name}/${pathEncode(tempName)}`
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: true, can_delete: false }, 200)()
+        try {
+            await reqApi('refresh_session', {}, 200, { jar })()
+            const r = reqUpload(dest, 0, makeReadableThatTakes(600), undefined, 0, { jar })()
+            setTimeout(r.abort, 300)
+            await r.catch(() => {})
+            if (!existsSync(temp))
+                throw "missing temp file"
+            await req(tempUri, 200, { method: 'delete', jar })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('upload.interrupted owner is cleared after resume completes', async () => {
+        const name = `unfinished-resume-cleanup-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const dest = `${UPLOAD_ROOT}${name}/unfinished.txt`
+        const tempName = UPLOAD_TEMP_PREFIX + 'unfinished.txt'
+        const temp = resolve(dir, tempName)
+        const tempUri = `${UPLOAD_ROOT}${name}/${pathEncode(tempName)}`
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        try {
+            const r = reqUpload(dest, 0, makeReadableThatTakes(600))()
+            setTimeout(r.abort, 300)
+            await r.catch(() => {})
+            await wait(500)
+            const partial = statSync(temp).size
+            await reqUpload(dest, 200, Readable.from(BIG_CONTENT.slice(partial)), BIG_CONTENT.length, partial)()
+            await writeFile(temp, 'new temp')
+            await req(tempUri, 403, { method: 'delete' })()
+        }
+        finally {
+            await req(dest, 200, { method: 'delete' })().catch(() => {})
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
     })
     test('rename.backslash', async () => {
         await reqApi('rename', { uri: UPLOAD_DEST, dest: 'sub\\file' }, process.platform === 'win32' ? 403 : 200)()

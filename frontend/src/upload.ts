@@ -5,11 +5,11 @@ import { Btn, Flex, FlexV, iconBtn, Select } from './components'
 import {
     basename, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, selectFiles, working, copyTextToClipboard,
     HTTP_CONFLICT, formatSpeed, getHFS, onlyTruthy, cpuSpeedIndex, closeDialog, prefix, operationSuccessful, pathEncode,
-    getPrefixUrl,
+    getPrefixUrl, HTTP_NOT_FOUND, dirname, UPLOAD_TEMP_PREFIX,
 } from './misc'
 import _ from 'lodash'
 import { INTERNAL_Snapshot, ref, useSnapshot } from 'valtio'
-import { alertDialog, promptDialog } from './dialog'
+import { alertDialog, confirmDialog, promptDialog } from './dialog'
 import { reloadList } from './useFetchList'
 import { apiCall } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
@@ -124,9 +124,13 @@ export function showUpload() {
             qs.length > 0 && h('div', {},
                 h(Flex, { center: true, borderTop: '1px dashed', padding: '.5em' },
                     [etaStr, formatSpeed(speed), queueStr].filter(Boolean).join(', '),
-                    inQ > 0 && iconBtn('delete', ()=>  {
+                    inQ > 0 && iconBtn('delete', async () => {
+                        const current = uploadState.uploading
+                        const to = uploadState.qs[0]?.to
                         uploadState.qs = []
-                        abortCurrentUpload(true)
+                        await abortCurrentUpload(true)
+                        if (current && to && uploadState.partial > 0)
+                            await askToRemoveUnfinishedUpload(current, to)
                     }, { title: t`Clear` }),
                     iconBtn(paused ? 'play' : 'pause', () => {
                         uploadState.paused = !uploadState.paused
@@ -142,15 +146,20 @@ export function showUpload() {
                         h(FileList, {
                             entries: uploadState.qs[idx].entries,
                             actions: {
-                                cancel: f => {
+                                cancel: async f => {
+                                    const q = uploadState.qs[idx]
                                     if (f === uploadState.uploading) {
-                                        if (!uploadState.paused)
-                                            return abortCurrentUpload(true)
+                                        const shouldOfferCleanup = uploadState.partial > 0
+                                        if (!uploadState.paused) {
+                                            await abortCurrentUpload(true) // wait for the server to register the temp file as unfinished before offering cleanup
+                                            return shouldOfferCleanup && askToRemoveUnfinishedUpload(f, q.to)
+                                        }
                                         f.error = t`Interrupted`
                                         uploadState.interrupted.push(f)
                                         uploadState.uploading = undefined
+                                        if (shouldOfferCleanup)
+                                            await askToRemoveUnfinishedUpload(f, q.to)
                                     }
-                                    const q = uploadState.qs[idx]
                                     _.pull(q.entries, f)
                                     if (!q.entries.length)
                                         uploadState.qs.splice(idx,1)
@@ -160,6 +169,19 @@ export function showUpload() {
                     ))
             )
         )
+
+        async function askToRemoveUnfinishedUpload(f: ToUpload, to: string) {
+            if (!await confirmDialog(t('delete_unfinished_upload', "Remove the unfinished upload?")))
+                return
+            const dir = dirname(f.path)
+            await apiCall('delete', {}, {
+                restUri: to + pathEncode(prefix('', dir, '/') + UPLOAD_TEMP_PREFIX + basename(f.path).slice(-200))
+            }).then(reloadList, e => {
+                if (e?.code === HTTP_NOT_FOUND)
+                    return
+                alertDialog(e, 'error')
+            })
+        }
 
         function pickFiles(options: Parameters<typeof selectFiles>[1]) {
             selectFiles(list => {

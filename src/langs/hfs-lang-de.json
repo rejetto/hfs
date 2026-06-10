@@ -96,6 +96,7 @@
         "upload_finished": "{n} fertig ({size})",
         "upload_errors": "{n} fehlgeschlagen",
         "upload_file_rejected": "Einige Dateien wurden nicht akzeptiert",
+        "delete_unfinished_upload": "Unvollständigen Upload entfernen?",
         "File menu": "Dateimenü",
         "Folder menu": "Ordnermenü",
         "Name": "Name",

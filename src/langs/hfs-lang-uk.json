@@ -96,6 +96,7 @@
         "upload_finished": "{n,plural, one{# файл завантажено} few{# файли завантажено} many{# файлів завантажено}} ({size})",
         "upload_errors": "{n,plural, one{# файл} few{# файли} many{# файлів}} неуспішно",
         "upload_file_rejected": "Деякі файли не були прийняті",
+        "delete_unfinished_upload": "Видалити незавершене завантаження?",
         "File menu": "Меню файлу",
         "Folder menu": "Меню теки",
         "Name": "Назва",

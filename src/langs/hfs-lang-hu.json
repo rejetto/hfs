@@ -103,6 +103,7 @@
         "upload_finished": "{n} kész ({size})",
         "upload_errors": "{n} sikertelen",
         "upload_file_rejected": "Egyes fájlokat nem sikerült feltölteni",
+        "delete_unfinished_upload": "Eltávolítja a befejezetlen feltöltést?",
 
         "download counter": "letöltés számláló",
 

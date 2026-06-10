@@ -101,6 +101,7 @@
         "upload_finished": "{n} пребачен(о) ({size})",
         "upload_errors": "{n} неуспешно пребачен(их)",
 		"upload_file_rejected": "Нека документа нису прихваћена",
+		"delete_unfinished_upload": "Уклонити недовршено отпремање?",
         "download counter": "бројач преузимања", 
 		
 		"File menu": "Мени документа",
