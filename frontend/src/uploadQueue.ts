@@ -77,7 +77,7 @@ setInterval(() => {
     if (uploadState.paused)
         recentSpeedSamples.length = 0
     uploadState.speed = _.mean(recentSpeedSamples)
-    uploadState.eta = left / uploadState.speed
+    uploadState.eta = left / uploadState.speed || 0
 }, 2_000)
 
 let currentReq: XMLHttpRequest | undefined
