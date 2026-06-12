@@ -8,8 +8,7 @@ import { Link as RouterLink } from 'wouter'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { adminApis } from '../../src/adminApis'
 import {
-    MAX_TILE_SIZE, REPO_URL, SORT_BY_OPTIONS, THEME_OPTIONS, CFG, IMAGE_FILEMASK,
-    Dict, md, with_, try_, ipForUrl,
+    MAX_TILE_SIZE, REPO_URL, SORT_BY_OPTIONS, THEME_OPTIONS, CFG, IMAGE_FILEMASK, Dict, md, with_, try_, ipForUrl, Html,
 } from './misc'
 import {
     iconTooltip, InLink, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported,
@@ -24,6 +23,8 @@ import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
 import { TextEditorField } from './TextEditor'
 import { WhoField } from './FileForm';
+import { SERVER_CODE_SPLIT, parseServerCode } from '../../src/serverCode'
+import { highlight, languages } from 'prismjs'
 
 let loaded: Dict | undefined
 let exposedReloadStatus: undefined | (() => void)
@@ -272,19 +273,36 @@ export default function OptionsPage() {
                 helperText: "Force login only once. Used only when previous option does not match",
             },
 
-            { k: 'server_code', comp: TextEditorField, lang: 'js', xs: 12,
-                helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`)
+            { k: CFG.server_code, comp: ArrayField, xs: 12,
+                fields: [
+                    { k: 'name', $width: 0.4, $render: ({ value }: any) => value.trim() || h('i', {}, "no name") },
+                    { k: 'code', comp: TextEditorField, lang: 'js', $hideUnder: 'sm',
+                        $render: ({ value }: any) => typeof value === 'string' ? h(Html, {}, highlight(value, languages.js, 'js')) : '?',
+                        helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`),
+                    }
+                ],
+                toField: v => !v || typeof v !== 'string' ? [] : parseServerCode(v),
+                fromField: stringifyServerCode,
+                applyButton: {
+                    onClick: (res: any) => save({ [CFG.server_code]: stringifyServerCode(res) }),
+                },
             },
 
         ]
     })
 
-    async function save() {
-        if (_.isEmpty(changes))
+    function stringifyServerCode(rows: any) {
+        return rows.map(({ name='', code='' }, i: number) => i || name ? `${SERVER_CODE_SPLIT}${name}\n${code}\n` : code).join('')
+    }
+
+    async function save(moreChanges: Dict = {}) {
+        // changes is a Valtio snapshot, so build the payload without mutating it
+        const toSave = { ...changes, ...moreChanges }
+        if (_.isEmpty(toSave))
             return toast("Nothing to save")
         const loc = window.location
         const keys = ['port','https_port']
-        if (keys.every(k => changes[k] !== undefined))
+        if (keys.every(k => toSave[k] !== undefined))
             return alertDialog("You cannot change both http and https port at once. Please, do one, save, and then do the other.", 'warning')
         const working = [status?.http?.listening, status?.https?.listening]
         const onHttps = location.protocol === 'https:'
@@ -292,7 +310,7 @@ export default function OptionsPage() {
             keys.reverse()
             working.reverse()
         }
-        const newPort = changes[keys[0]]
+        const newPort = toSave[keys[0]]
         const otherPort = values[keys[1]]
         const otherIsReliable = otherPort > 0 && working[1]
         const otherProtocol = onHttps ? 'http' : 'https'
@@ -303,25 +321,25 @@ export default function OptionsPage() {
         const goingNewPort = newPort > 0 && newPort != loc.port // == loc.port can happen when listening on a temporary port, and the user just set the same port as new config
         if (goingNewPort && !await confirmDialog("You are changing the port and you may be disconnected"))
             return
-        const certChange = 'cert' in changes || 'private_key' in changes
+        const certChange = 'cert' in toSave || 'private_key' in toSave
         if (onHttps && certChange && !await confirmDialog("You may disrupt https service, kicking you out"))
             return
-        await apiCall('set_config', { values: changes })
-        if ('split_uploads' in changes)
+        await apiCall('set_config', { values: toSave })
+        if ('split_uploads' in toSave)
             await alertDialog("Users need to reload for the \"split uploads\" option to take effect", 'warning')
         const ip = ipForUrl(loc.hostname)
         const path = loc.pathname + loc.hash
         const redirect = newPort <= 0 ? `${onHttps ? 'http:' : 'https:'}//${ip}:${otherPort}${path}` // jump protocol also in case of random port, because people must know their port while using GUI
             : goingNewPort ? `${loc.protocol}//${ip}:${newPort || values[keys[0]]}${path}`
                 : await with_(`https://${ip}:${loc.port}${path}`, httpsUrl => // could we be kicked out because of force_https?
-                    !onHttps && (changes.force_https ?? data.force_https) && fetch(httpsUrl).then(() => httpsUrl, () => 0)) // only happens if https is working
+                    !onHttps && (toSave.force_https ?? data.force_https) && fetch(httpsUrl).then(() => httpsUrl, () => 0)) // only happens if https is working
         if (redirect) {
             await alertDialog("You are being redirected but in some cases this may fail. Hold on tight!", 'warning')
             return window.location.href = redirect
         }
-        const portChange = 'port' in changes || 'https_port' in changes
+        const portChange = 'port' in toSave || 'https_port' in toSave
         setTimeout(reloadStatus, portChange || certChange ? 1000 : 0) // give some time to apply news
-        Object.assign(loaded!, changes) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
+        Object.assign(loaded!, toSave) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
         recalculateChanges()
         execDoneMessage(false, saveBtnRef.current)
     }

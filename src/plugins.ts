@@ -35,6 +35,7 @@ import { addAccount, ctxBelongsTo, delAccount, getAccount, getUsernames, renameA
 import { getCurrentUsername } from './auth'
 import { CustomizedIcons, watchIconsFolder } from './icons'
 import { getServerStatus } from './listen'
+import { parseServerCode } from './serverCode'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
@@ -258,7 +259,7 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
 
 
     function printChange(id: string) {
-        if (id === SERVER_CODE_ID || (lastStatus === ctx.status && lastBody === ctx.body)) return
+        if (id.startsWith(SERVER_CODE_ID) || (lastStatus === ctx.status && lastBody === ctx.body)) return
         console.debug("Plugin changed response:", id)
         lastStatus = ctx.status
         lastBody = ctx.body
@@ -357,33 +358,41 @@ export class Plugin implements CommonPluginInterface {
             console.log('Error unloading plugin', id, String(e))
         }
         await this.onUnload()
-        if (!reloading && id !== SERVER_CODE_ID) // we already printed 'reloading'
+        if (!reloading && !id.startsWith(SERVER_CODE_ID)) // we already printed 'reloading'
             console.log('Unloaded plugin', id)
         if (this.data)
             this.data.unload = undefined
     }
 }
 
-export const SERVER_CODE_ID = '.' // a name that will surely be not found among plugin folders
-const serverCode = defineConfig('server_code', '', async (script, { k }) => {
-    try { (await serverCode.compiled())?.unload() }
-    catch {}
-    const res: any = {}
-    try {
-        new Function('exports,require', script)(res, require) // parse
-        await initPlugin(res)
-        res.getCustomHtml = () => callable(res.customHtml) || {}
-        return new Plugin(SERVER_CODE_ID, '', res, _.noop)
-    }
-    catch (e: any) {
-        return console.error(k + ':', e.message || String(e))
-    }
+export const SERVER_CODE_ID = '/' // a name that will surely be not found among plugin folders
+let unloadServerCode = _.noop
+defineConfig(CFG.server_code, '').sub(async text => {
+    await unloadServerCode()
+    const asPlugins = await Promise.all(parseServerCode(text).map(async ({ name, code }, i) => {
+        const res: any = {}
+        try {
+            new Function('exports,require', code)(res, require) // parse
+            await initPlugin(res)
+            res.getCustomHtml = () => callable(res.customHtml) || {}
+            // server-code sections can share or omit names, so include the index to keep internal plugin ids unique
+            return new Plugin(SERVER_CODE_ID + i + ':' + name, '', res, _.noop)
+        }
+        catch (e: any) {
+            return console.error(name + ':', e.message || String(e))
+        }
+    }))
+    // server_code is a side-effect config, so keep its cleanup outside compiled()
+    unloadServerCode = () => Promise.all(asPlugins.map(p => {
+        try { return p?.unload() } // catch sync errors
+        catch(e) { console.error(e) }
+    })).catch(console.error)
 })
 
 export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string, idx:number)=> T, includeServerCode=true) {
     let i = 0
     return Array.from(plugins).map(([plName,pl]) => {
-        if (!includeServerCode && plName === SERVER_CODE_ID) return
+        if (!includeServerCode && plName.startsWith(SERVER_CODE_ID)) return
         try { return cb(pl,plName,i++) }
         catch(e) {
             console.log('Plugin error', plName, String(e))
@@ -393,7 +402,7 @@ export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string, id
 
 export function firstPlugin<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T, includeServerCode=true) {
     for (const [plName, pl] of plugins.entries()) {
-        if (!includeServerCode && plName === SERVER_CODE_ID) continue
+        if (!includeServerCode && plName.startsWith(SERVER_CODE_ID)) continue
         try {
             const ret = cb(pl,plName)
             if (ret !== undefined)

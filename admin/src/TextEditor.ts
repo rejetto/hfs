@@ -1,4 +1,4 @@
-import { ComponentProps, createElement as h, forwardRef, useState } from 'react'
+import { ComponentProps, createElement as h, forwardRef, useEffect, useState } from 'react'
 import Editor from 'react-simple-code-editor'
 import { FieldProps } from '@hfs/mui-grid-form'
 import { Box, TextField, TextFieldProps } from '@mui/material'
@@ -33,14 +33,15 @@ export const TextEditor = forwardRef(({ style, lang='plain', ...props }: TextEdi
     ...props,
 }))
 
-export function TextEditorField({ onChange, value, onBlur, setApi, lang, ...props }: FieldProps<string> & Omit<TextFieldProps, 'onChange'>) {
+export function TextEditorField({ onChange, value, onBlur, setApi, lang, InputLabelProps, ...props }: FieldProps<string> & Omit<TextFieldProps, 'onChange'>) {
     setApi?.({
         getError() {
-            return lang === 'js' && value ? try_(() => new Function(value) && null, e => e.message)
-                : false
+            return lang !== 'js' || !value ? false
+                : try_(() => new Function(value) && null, e => e.message)
         }
     })
     const [state, setState] = useState(value || '')
+    useEffect(() => setState(value || ''), [value])
     return h(TextField, {
         multiline: true,
         fullWidth: true,
@@ -48,6 +49,11 @@ export function TextEditorField({ onChange, value, onBlur, setApi, lang, ...prop
         slotProps: {
             ...props.slotProps,
             input: { ...props.slotProps?.input, inputComponent: TextEditorAsInput },
+            inputLabel: state || props.placeholder || InputLabelProps || props.slotProps?.inputLabel ? {
+                shrink: true, // TextEditorAsInput is custom, so force label shrink from editor state
+                ...InputLabelProps,
+                ...props.slotProps?.inputLabel,
+            } : undefined,
             htmlInput: { ...props.slotProps?.htmlInput, lang },
         },
         onChange(event) { setState(event.target.value) },

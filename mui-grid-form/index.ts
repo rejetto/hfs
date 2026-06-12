@@ -98,6 +98,7 @@ export function Form<Values extends Dict>({
     saveOnEnter,
     gridProps,
     sx,
+    onKeyDown,
     ...boxProps
 }: FormProps<Values>) {
     const mounted = useRef(false)
@@ -141,6 +142,9 @@ export function Form<Values extends Dict>({
             ev.preventDefault()
         },
         onKeyDown(ev) {
+            onKeyDown?.(ev as any)
+            if (ev.defaultPrevented)
+                return
             if (saveBtn && !saveBtn.disabled && (ev.ctrlKey || ev.metaKey) && ev.key === 'Enter')
                 pleaseSubmitAndValidate()
         },
