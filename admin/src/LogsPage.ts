@@ -93,6 +93,7 @@ export default function LogsPage({ setTitleSide }: PageProps) {
                             { k: CFG.log_gui, sm: 6, comp: BoolField, label: "Log interface loading", helperText: "Some requests are necessary to load the interface" },
                             { k: CFG.log_api, sm: 6, comp: BoolField, label: "Log API requests", helperText: "Requests for commands" },
                             { k: CFG.log_ua, sm: 6, comp: BoolField, label: "Log User-Agent", helperText: "Contains browser and possibly OS information. Can double the size of your logs on disk." },
+                            { k: CFG.log_host, sm: 6, comp: BoolField, label: "Log Host", helperText: "Log the host header of each request." },
                             { k: CFG.log_spam, sm: 6, comp: BoolField, label: "Log spam requests", helperText: md`Spam requests are *failed* requests that you probably don't want to see` },
                             { k: CFG.track_ips, sm: 6, comp: BoolField, label: "Keep track of IPs",
                                 parentProps: { display: 'flex', gap: 1 },
@@ -116,6 +117,7 @@ type LogFileProps = { filter?: (row:any) => boolean, limit?: number, hidden?: bo
 export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: LogFileProps) {
     const [showCountry, setShowCountry] = useState(false)
     const [showAgent, setShowAgent] = useState(false)
+    const [showHost, setShowHost] = useState(false)
     const { pause, pauseButton } = usePauseButton()
     const [showApi, showApiButton] = useToggleButton("Show APIs", "Hide APIs", v => ({
         icon: SmartToy,
@@ -302,6 +304,13 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 renderCell: ({ value }) => agentIcons(value),
             },
             {
+                field: 'host',
+                headerName: "Host",
+                width: 100,
+                hideUnder: !showHost || 'md',
+                valueGetter: ({ row }) => row.extra?.host,
+            },
+            {
                 field: 'notes',
                 headerName: "Notes",
                 width: 110,
@@ -345,6 +354,8 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             setShowCountry(true)
         if (extra?.ua && !showAgent)
             setShowAgent(true)
+        if (extra?.host && !showHost)
+            setShowHost(true)
         if (row.uri) {
             const upload = row.method === 'PUT' || extra?.ul
             const partial = upload && stringAfter('?', row.uri).includes('partial=')
