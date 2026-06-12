@@ -140,7 +140,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         if (logUA.get())
             ctx.logExtra({ ua: ctx.get('user-agent') || undefined })
         if (logHost.get())
-            ctx.logExtra({ domain: ctx.get('host') || undefined })
+            ctx.logExtra({ host: ctx.get('host') || undefined })
         const extra = ctx.state.logExtra
         if (events.anyListener(logger.name)) // small optimization: this event can happen often, while most times there's no listener, and the parameters object is constructed pointlessly. A benchmark measured it 20% faster (just the line), while maybe it was not necessary.
             events.emit(logger.name, { ctx, length, user, ts: reqEnd, uri, extra })
