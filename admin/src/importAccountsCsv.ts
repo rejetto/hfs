@@ -25,7 +25,7 @@ export async function importAccountsCsv(cb?: () => void) {
             redirectColumn: 4,
             overwriteExistingAccounts: false,
         }
-        const cfg = await formDialog<typeof initialConfig>({
+        const cfg = await formDialog<typeof initialConfig, typeof initialConfig>({
             title: "Import accounts from CSV",
             dialogProps: { maxWidth: 'sm' },
             values: initialConfig,

@@ -4,13 +4,14 @@ import { Add, Edit, Delete, ArrowUpward, ArrowDownward, Undo, Check } from '@mui
 import { DialogOptions, FormDialog, formDialog } from './dialog'
 import { GridActionsCellItem, GridAlignment, GridColDef } from '@mui/x-data-grid'
 import { BoolField, FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-grid-form'
-import { Box, FormHelperText, FormLabel } from '@mui/material'
+import { Box, Button, ButtonProps, FormHelperText, FormLabel } from '@mui/material'
 import _ from 'lodash'
-import { Center, Flex, IconBtn, mergeSx, useBreakpoint } from './mui'
+import { Center, Flex, IconBtn, mergeSx, useBreakpoint, useCtrlShortcutButton } from './mui'
 import { DataTable, DataTableColumn } from './DataTable'
 import { DateTimeField } from './DateTimeField'
 
-type ArrayFieldProps<T> = FieldProps<T[] | Dict<T>> & {
+type Val<T> = T[] | Dict<T>
+type ArrayFieldProps<T> = FieldProps<Val<T>> & {
     fields: Functionable<FieldDescriptor[] & {
         $width?: number, // 8 or more is px, less is flex
         $column?: Partial<DataTableColumn>,
@@ -29,10 +30,11 @@ type ArrayFieldProps<T> = FieldProps<T[] | Dict<T>> & {
     details?: boolean
     objectK?: string
     saveOn?: 'change' | 'close'
+    applyButton?: Partial<ButtonProps> & { onClick: (values: Val<T>) => unknown }
 }
 export function ArrayField<T extends object>({
     label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, valuesForAdd, autoRowHeight,
-    dialog, form, details, objectK, saveOn, height, error, sx, ...rest
+    dialog, form, details, objectK, saveOn, applyButton, height, error, sx, ...rest
 }: ArrayFieldProps<T>) {
     const valueA = Array.isArray(value) ? value
         : !objectK || !value ? [] // avoid crash if non-array values are passed, especially developing plugins
@@ -105,7 +107,7 @@ export function ArrayField<T extends object>({
                                     title,
                                     size: 'small',
                                     async onClick(ev) {
-                                        const res = await formDialog<T>({
+                                        const res = await formDialog<T, T>({
                                             form: getFormProp({}),
                                             title,
                                             values: valuesForAdd,
@@ -137,14 +139,27 @@ export function ArrayField<T extends object>({
                                     title,
                                     async onClick(ev: MouseEvent) {
                                         ev.stopPropagation()
-                                        const res = await formDialog<T>({
+                                        const res = await formDialog<T, T>({
                                             values: row as any,
-                                            form: getFormProp(saveOn === 'change' && {
+                                            form: (values, { submit }) => getFormProp(saveOn === 'change' && {
                                                 save: false,
                                                 onChange(values: T) {
                                                     updateRec($idx, values, 'change')
                                                 }
-                                            } || saveOn && { save: false }),
+                                            } || applyButton && {
+                                                addToBar: h(ApplyButton, {
+                                                    children: "Apply",
+                                                    sx: { ml: 2, ...applyButton.sx },
+                                                    ...applyButton,
+                                                    onClick() {
+                                                        submit(async values => {
+                                                            const rec = { ...valueA[$idx], ...values }
+                                                            const updated = updateRec($idx, rec, 'save') // keep the table state aligned with the one-shot save result
+                                                            await applyButton!.onClick(updated)
+                                                        })
+                                                    }
+                                                }),
+                                            } || saveOn && { save: false })(values),
                                             title: h(Fragment, {}, title, label && ' - ', label),
                                             dialogProps: dialog
                                         })
@@ -191,16 +206,29 @@ export function ArrayField<T extends object>({
     )
 
     function updateRec($idx: number, rec: T, ev?: any) {
-        set(valueA.map((oldRec, i) => i === $idx ? rec : oldRec), ev)
+        return set(valueA.map((oldRec, i) => i === $idx ? rec : oldRec), ev)
     }
 
     function set(newValue: typeof valueA, event?: any) {
-        onChange(!objectK ? newValue : Object.fromEntries((newValue as any).map(({ [objectK]: k, ...v }) => [k, v])),
-            { was: value, event })
+        const ret = toFieldValue(newValue)
+        onChange(ret, { was: value, event })
         if (saveOn !== 'change')
             setUndo(valueA)
+        return ret
     }
 
+    function toFieldValue(newValue: typeof valueA) {
+        return !objectK ? newValue : Object.fromEntries((newValue as any).map(({ [objectK]: k, ...v }) => [k, v]))
+    }
+
+}
+
+function ApplyButton(props: Parameters<typeof Button>[0]) {
+    return h(Button, {
+        ref: useCtrlShortcutButton(['s']).ref,
+        title: "Apply\n(ctrl+s)",
+        ...props,
+    })
 }
 
 const byType: Dict<{ field?: Partial<FieldDescriptor>, column?: Partial<GridColDef> }> = {

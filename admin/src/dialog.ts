@@ -8,8 +8,8 @@ import {
 } from 'react'
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode, pendingPromise,
-    focusSelector, md, focusableSelector, useIsMobile } from '@hfs/shared'
-import { Form, FormProps } from '@hfs/mui-grid-form'
+    focusSelector, md, focusableSelector, useIsMobile, callable, Functionable } from '@hfs/shared'
+import { Form, FormApi, FormProps } from '@hfs/mui-grid-form'
 import { IconBtn, Flex, Center, mergeSx } from './mui'
 import { useDark } from './theme'
 import _ from 'lodash'
@@ -139,19 +139,27 @@ export function confirmDialog(msg: ReactNode, { href, trueText="Go", falseText="
     }
 }
 
-export type FormDialog<T> = Omit<FormProps<T>, 'values' | 'save' | 'set'>
+type FormDialogSubmit<T> = (onValid?: (values: Partial<T>, dialog: ReturnType<typeof newDialog>) => unknown) => void
+type FormDialogContext<T> = {
+    values: Partial<T>
+    dialog: ReturnType<typeof newDialog>
+    submit: FormDialogSubmit<T>
+}
+
+export type FormDialog<T> = Omit<FormProps<T>, 'values' | 'save' | 'set' | 'addToBar'>
     & Partial<Pick<FormProps<T>, 'save'>>
     & {
         onChange?: (values:Partial<T>, extra: { setValues: Dispatch<SetStateAction<Partial<T>>> }) => void,
         before?: any
+        addToBar?: Functionable<FormProps<T>['addToBar'], [FormDialogContext<T>]>
     }
-export async function formDialog<T>(
+export async function formDialog<T, RT=Partial<T>>(
     { form, values, Wrapper, ...options }: Omit<DialogOptions, 'Content'> & {
         values?: Partial<T>,
-        form: FormDialog<T> | ((values: Partial<T>) => FormDialog<T>), // allow a callback form
+        form: Functionable<FormDialog<T>, [Partial<T>, FormDialogContext<T>]>,
         Wrapper?: FC
     },
-) : Promise<T> {
+): Promise<RT | undefined> {
     let exposedValues: typeof values
     return new Promise(resolve => {
         const dialog = newDialog({
@@ -160,7 +168,10 @@ export async function formDialog<T>(
             ...options,
             Content() {
                 const [curValues, setCurValues] = useState<Partial<T>>(values||{})
-                const { onChange, before, ...props } = typeof form === 'function' ? form(curValues) : form
+                const apiRef = useRef<FormApi>()
+                const submitActionRef = useRef<Parameters<FormDialogSubmit<T>>[0]>()
+                const ctx: FormDialogContext<T> = { values: curValues, dialog, submit }
+                const { onChange, before, addToBar, ...props } = typeof form === 'function' ? form(curValues, ctx) : form
                 if (props.save === false)
                     exposedValues = curValues
                 return h(Wrapper || Fragment, {},
@@ -176,13 +187,23 @@ export async function formDialog<T>(
                             })
                         },
                         save: props.save !== false && {
-                            onClick() {
-                                dialog.close(curValues)
-                            },
                             ...props.save,
-                        }
+                            onClick() {
+                                const { current: submitAction } = submitActionRef
+                                submitActionRef.current = undefined
+                                return submitAction ? submitAction(curValues, dialog) : dialog.close(curValues)
+                            },
+                        },
+                        apiRef,
+                        addToBar: _.castArray(callable(addToBar, ctx)),
                     })
                 )
+
+                function submit(onValid?: Parameters<FormDialogSubmit<T>>[0]) {
+                    // keep alternate submit actions on the dialog submit path so validation and value sync stay identical to Save
+                    submitActionRef.current = onValid
+                    apiRef.current?.submit()
+                }
             }
         })
     })
