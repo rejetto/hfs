@@ -136,7 +136,7 @@ function makeFields(config: any, values: any) {
 
 // centralize usage of eval get a single warning at build time
 export function evalWrapper(s: string) {
-    return eval(s)
+    return (0, eval)(s)
 }
 
 const type2comp = {
