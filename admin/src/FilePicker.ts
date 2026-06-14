@@ -112,9 +112,12 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                         : h(FixedSizeList, {
                             width: '100%', height: listHeight,
                             itemSize: 46, itemCount: filteredList.length, overscanCount: 5,
-                            children({ index, style }) {
+                            itemData: { filteredList, sel, multiple, folders, cwdDelimiter, pathDelimiter, setCwd, onSelect, setSel },
+                            children({ index, style, data }: any) {
+                                const { filteredList, sel, multiple, folders, cwdDelimiter, pathDelimiter, setCwd, onSelect, setSel } = data
                                 const it = filteredList[index]
                                 const isFolder = it.k === 'd'
+                                const id = entrySelId(it, pathDelimiter)
                                 // mui v9 requires MenuItem under MenuList, while these virtualized rows are plain list buttons
                                 return h(ListItemButton, {
                                         style: { ...style, padding: 0 },
@@ -127,11 +130,10 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                                         }
                                     },
                                     multiple && h(Checkbox, {
-                                        checked: sel.includes(it.n),
+                                        checked: sel.includes(id),
                                         disabled: !folders && isFolder,
                                         onClick(ev) {
-                                            const id = it.n + (it.k ? '/' : '')
-                                            const removed = sel.filter(x => x !== id)
+                                            const removed = sel.filter((x: string) => x !== id)
                                             setSel(removed.length < sel.length ? removed : [...sel, id])
                                             ev.stopPropagation()
                                         },
@@ -179,6 +181,10 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                 ),
             )
     )
+}
+
+function entrySelId(it: LsEntry, pathDelimiter: string) {
+    return it.n + (it.k ? pathDelimiter : '')
 }
 
 export function formatDiskSpace({ free, total }: { free: number, total: number }) {

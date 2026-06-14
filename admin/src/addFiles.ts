@@ -34,9 +34,15 @@ export default function addFiles() {
     })
 }
 
+function isFolderSource(source?: string) {
+    if (!source) return false
+    const sep = getHFS().pathSeparator
+    return source.endsWith(sep) || source.endsWith(sep === '\\' ? '/' : '\\')
+}
+
 function addNodes(parent: VfsNodeAdmin, nodes: Optional<VfsNodeAdmin, 'id' | 'originalId'>[]) {
     for (const n of nodes) {
-        if (n.source?.endsWith(getHFS().pathSeparator) || !n.source && !n.url)
+        if (isFolderSource(n.source) || !n.source && !n.url)
             n.type = 'folder'
         n.id ||= parent.id + n.name + (n.type === 'folder' ? '/' : '')
         n.originalId ||= n.id
