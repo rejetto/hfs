@@ -127,7 +127,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                                         }
                                     },
                                     multiple && h(Checkbox, {
-                                        checked: sel.includes(it.n),
+                                        checked: sel.includes(it.n + (it.k ? '/' : '')),
                                         disabled: !folders && isFolder,
                                         onClick(ev) {
                                             const id = it.n + (it.k ? '/' : '')
