@@ -115,6 +115,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                             children({ index, style }) {
                                 const it = filteredList[index]
                                 const isFolder = it.k === 'd'
+                                const selectionId = it.n + (isFolder ? pathDelimiter : '')
                                 // mui v9 requires MenuItem under MenuList, while these virtualized rows are plain list buttons
                                 return h(ListItemButton, {
                                         style: { ...style, padding: 0 },
@@ -127,12 +128,11 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                                         }
                                     },
                                     multiple && h(Checkbox, {
-                                        checked: sel.includes(it.n + (it.k ? '/' : '')),
+                                        checked: sel.includes(selectionId),
                                         disabled: !folders && isFolder,
                                         onClick(ev) {
-                                            const id = it.n + (it.k ? '/' : '')
-                                            const removed = sel.filter(x => x !== id)
-                                            setSel(removed.length < sel.length ? removed : [...sel, id])
+                                            const removed = sel.filter(x => x !== selectionId)
+                                            setSel(removed.length < sel.length ? removed : [...sel, selectionId])
                                             ev.stopPropagation()
                                         },
                                     }),
