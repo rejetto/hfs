@@ -26,7 +26,7 @@ let exposeVfsLoading: Promise<unknown> | undefined
 export const id2vfsNode = new Map<string, VfsNodeAdmin>()
 
 export default function VfsPage({ setTitleSide }: PageProps) {
-    const { vfs, selectedFiles, movingFile, vfsShowDiskContentFor } = useSnapState()
+    const { vfs, selectedFiles, movingFiles, vfsShowDiskContentFor } = useSnapState()
     const { data, reload, element, loading } = useApiEx('get_vfs')
     exposeVfsLoading = loading
     useEffect(() => {
@@ -56,9 +56,9 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     // this will take care of closing the dialog, for the user's convenience, after "cut" button is pressed
     const closeDialogRef = useRef(_.noop)
     useEffect(() => {
-        if (movingFile === selectedFiles[0]?.id)
+        if (selectedFiles[0] && movingFiles.includes(selectedFiles[0].id))
             closeDialogRef.current()
-    }, [movingFile])
+    }, [movingFiles])
 
     const nothingShared = data && !data.root?.children?.length && !data.root?.source
     const hintElement = useMemo(() => nothingShared ? h(Alert, {
@@ -90,9 +90,8 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         : single ? h(FileForm, {
             key: single.id,
             isSideBreakpoint,
-            addToBar: isSideBreakpoint && h(Box, { sx: { flex: 1, textAlign: 'right', mr: 1, color: '#8883' } }, vfsNodeIcon(single)),
             statusApi,
-            saved: () => closeDialogRef.current(),
+            done: () => closeDialogRef.current(),
             accountsApi,
             file: single
         })
@@ -107,7 +106,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
                     h(ListItemText, { primary: f.name, secondary: f.source }) ))
             )
         )
-    , [accountsApi.element, vfs, diskContent.list, single, selectedFiles])
+    , [accountsApi.element, vfs, diskContent.list, isSideBreakpoint, single, selectedFiles])
 
     useEffect(() => {
         if (isSideBreakpoint || !sideContent) return
@@ -172,7 +171,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
             sx: { top: 0, flex: '1 1 auto', height: 0 },
         },
         h(Grid, { size: { xs: 12, [sideBreakpoint]: 5, lg: 6, xl: 5 } as any, sx: scrollProps  },
-            h(VfsTree, { statusApi }) ),
+            h(VfsTree, { statusApi, isSideBreakpoint }) ),
         isSideBreakpoint && sideContent && h(Grid, { size: 'grow', sx: { ...scrollProps, maxWidth: '100%' } },
             h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
                 h(CardContent, {}, sideContent)) )
@@ -191,13 +190,17 @@ export function reindexVfs({
     select?: VfsNodeAdmin[] | string[]
 } = {}) {
     if (!node) return
+    const originalId2vfsNode = new Map<string, VfsNodeAdmin>()
     if (clearMap)
         id2vfsNode.clear()
     recur(node, node.parent?.id || '/', node.parent)
     state.vfsShowDiskContentFor = ''
     // Reindex can update ids/references; remap caller-provided selections to canonical nodes from id2node.
     if (select)
-        state.selectedFiles = onlyTruthy(select.map(x => id2vfsNode.get(typeof x === 'string' ? x : x.id)))
+        // Undo/redo swaps cloned trees; originalId keeps selection attached when id changed by rename/move
+        state.selectedFiles = onlyTruthy(select.map(x =>
+            id2vfsNode.get(typeof x === 'string' ? x : x.id)
+            || originalId2vfsNode.get(typeof x === 'string' ? x : x.originalId)))
 
     function recur(node: VfsNodeAdmin, pre: string, parent: VfsNodeAdmin | undefined) {
         const oldId = node.id
@@ -209,6 +212,7 @@ export function reindexVfs({
         node.id = newId
         node.originalId ||= newId // set only first value (all are truthy)
         id2vfsNode.set(newId, node)
+        originalId2vfsNode.set(node.originalId, node)
         if (!node.children) return
         if (sortChildren)
             node.children = _.sortBy(node.children, ['type', x => x.name?.toLocaleLowerCase()])
@@ -268,8 +272,10 @@ export function deleteVfs(uris: string[]) {
         const siblings = node.parent!.children!
         _.remove(siblings, { id: node.id })
     }
-    if (state.movingFile && topLevelUris.some(uri => state.movingFile === uri || isDescendantUri(state.movingFile, uri)))
-        state.movingFile = ''
+    if (state.movingFiles.some(movingUri => topLevelUris.some(uri => movingUri === uri || isDescendantUri(movingUri, uri))))
+        // deleted nodes cannot remain in the move clipboard because paste would target stale ids
+        state.movingFiles = state.movingFiles.filter(movingUri =>
+            !topLevelUris.some(uri => movingUri === uri || isDescendantUri(movingUri, uri)))
     markVfsModified()
 }
 

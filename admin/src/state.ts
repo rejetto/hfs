@@ -14,7 +14,7 @@ const INIT = {
     selectedFiles: [] as VfsNodeAdmin[],
     vfsShowDiskContentFor: '',
     accountsAsTree: false,
-    movingFile: '',
+    movingFiles: [] as string[],
     vfs: undefined as VfsNodeAdmin | undefined,
     vfsUndo: undefined as VfsNodeAdmin | undefined,
     vfsModified: false,
