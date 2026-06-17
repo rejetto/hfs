@@ -22,6 +22,13 @@ async function expandVfsNode(page: Page, nodeId: string) {
     }, nodeId)).toBe(true)
 }
 
+// desktop auto-applies changes, while the mobile details dialog still requires Apply
+async function applyVfsForm(page: Page) {
+    const apply = page.locator('button:has-text("Apply")')
+    if (await apply.isVisible())
+        await apply.click()
+}
+
 test('move via cut/paste keeps node visible', async ({ page }) => {
     await page.goto(ADMIN_URL)
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
@@ -225,7 +232,10 @@ test('apply keeps unset permissions nullish in-memory', async ({ page }) => {
     await page.getByText('zipNoList', { exact: true }).waitFor({ timeout: 10_000 })
 
     await selectVfsNode(page, 'f1', '/f1/')
-    await page.locator('button:has-text("Apply")').click()
+    const comment = page.getByRole('textbox', { name: 'Comment' })
+    await comment.fill('test')
+    await comment.blur()
+    await applyVfsForm(page)
 
     await expect.poll(() => page.evaluate(() => {
         function findById(node: any, id: string): any {
@@ -240,9 +250,10 @@ test('apply keeps unset permissions nullish in-memory', async ({ page }) => {
         const node = findById((window as any).state?.vfs, '/f1/')
         const unsetPerms = ['can_see', 'can_read', 'can_list', 'can_upload', 'can_delete', 'can_archive']
             .filter(k => node?.[k] == null)
-        return { id: node?.id, unsetPerms }
+        return { id: node?.id, comment: node?.comment, unsetPerms }
     })).toEqual({
         id: '/f1/',
+        comment: 'test',
         unsetPerms: ['can_see', 'can_read', 'can_list', 'can_upload', 'can_delete', 'can_archive'],
     })
 })
@@ -263,7 +274,7 @@ test('apply refreshes inherited permissions for descendants in-memory', async ({
     })).toBe('/')
     await page.getByRole('combobox', { name: 'Who can download' }).click()
     await page.getByRole('option', { name: 'No one' }).click()
-    await page.locator('button:has-text("Apply")').click()
+    await applyVfsForm(page)
 
     await expect.poll(() => page.evaluate(() => {
         function findById(node: any, id: string): any {
@@ -285,7 +296,10 @@ test('apply refreshes inherited permissions for descendants in-memory', async ({
     })
 
     await selectVfsNode(page, 'f1', '/f1/')
-    await page.locator('button:has-text("Apply")').click()
+    const comment = page.getByRole('textbox', { name: 'Comment' })
+    await comment.fill('test')
+    await comment.blur()
+    await applyVfsForm(page)
 
     await expect.poll(() => page.evaluate(() => {
         function findById(node: any, id: string): any {

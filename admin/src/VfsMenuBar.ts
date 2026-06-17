@@ -17,12 +17,13 @@ import { alertDialog, promptDialog } from './dialog'
 import { formatDiskSpace } from './FilePicker'
 import { getDiskSpaces } from '../../src/util-os'
 import { adminApis } from '../../src/adminApis'
+import VfsActionButtons from './VfsActionButtons'
 
-export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusApi: ApiObject }) {
-    const { vfsModified, vfsUndo } = useSnapState()
+export default function VfsMenuBar({ statusApi, add, isSideBreakpoint }: { add: ReactNode, statusApi: ApiObject, isSideBreakpoint: boolean }) {
+    const { vfsModified, vfsUndo, selectedFiles } = useSnapState()
     return h(Flex, {
         zIndex: 2,
-        gap: 1,
+        gap: .5,
         backgroundColor: 'background.paper',
         width: 'fit-content',
         flexWrap: 'wrap',
@@ -43,6 +44,7 @@ export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusA
             disabled: !vfsUndo && "No changes to undo",
             onClick: undoVfs,
         }),
+        isSideBreakpoint && h(VfsActionButtons, { files: selectedFiles, pasteTo: selectedFiles[0] }),
         reloadBtn(() => reloadVfs()),
         h(Btn, {
             icon: Storage,
