@@ -154,7 +154,7 @@ export default function OptionsPage() {
             { k : CFG.max_downloads_per_account, ...maxDownloadsDefaults, label: "Max downloads per-account", helperText: "Overrides other limits" },
 
             { k: 'admin_net', comp: NetmaskField, xs: 12, sm: 6, label: "Admin-panel accessible from", placeholder: "any address",
-                helperText: "IP address of browser machine"
+                helperText: "IP address of browser machine – localhost is an exception"
             },
             { k: 'localhost_admin', comp: BoolField, xs: 12, sm: 6, label: "Consider localhost access as Admin",
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
