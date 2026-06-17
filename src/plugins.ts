@@ -567,7 +567,7 @@ function watchPlugin(id: string, path: string) {
                     return db
                 },
                 log(...args: any[]) {
-                    console.log('Plugin', id+':', ...args)
+                    console.log(`Plugin "${id}":`, ...args)
                     pluginReady.then(() => { // log() maybe invoked during init(), while plugin is undefined
                         if (!plugin) return
                         const msg = { ts: new Date, msg: args.map(x => x && typeof x === 'object' ? JSON.stringify(x) : String(x)).join(' ') }
