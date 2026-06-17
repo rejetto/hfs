@@ -44,7 +44,7 @@ function serveStatic(uri: string): Koa.Middleware {
         const fullPath = join(__dirname, '..', folder, serveApp ? '/index.html': ctx.path)
         const content = await parseFile(fullPath, raw => serveApp || !raw.length ? raw : adjustBundlerLinks(ctx, uri, raw), 1000)
             .catch(e => {
-                if (e?.code !== 'ENOENT') // not supposed to happen, and yet a user reported a strange behavior
+                if (!/^(?:ENOENT|EISDIR)$/.test(e?.code)) // not supposed to happen, and yet a user reported a strange behavior
                     console.error(`serveStatic/parseFile: ${String(e)}`)
                 return null
             })
