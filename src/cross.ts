@@ -462,6 +462,8 @@ export function isIpLan(ip: string) {
 }
 
 export function ipForUrl(ip: string) {
+    if (ip.startsWith('['))
+        return ip
     const i = ip.indexOf(':')
     return i >= 0 && ip.indexOf(':', i + 1) >= 0 ? `[${ip}]` : ip
 }
