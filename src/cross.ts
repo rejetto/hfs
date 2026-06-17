@@ -448,6 +448,7 @@ export function xlate(input: any, table: Record<string, any>) {
     return table[input] ?? input
 }
 
+// remove brackets and port (if any)
 export function normalizeHost(host: string) {
     return host[0] === '[' ? host.slice(1, host.indexOf(']')) : host?.split(':')[0]
 }

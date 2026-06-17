@@ -215,6 +215,7 @@ export function ctxAdminAccess(ctx: Koa.Context) {
         return false
     // whenProxyDetected covers both trusted and misconfigured proxies, so localhost_admin never trusts proxied localhost claims
     return !ctx.state.whenProxyDetected && localhostAdmin.get() && isLocalHost(ctx)
+            && /^(?:|localhost|127\.0\.0\.1|\[::1])(?::\d+)?$/i.test(ctx.get('host')) // check Host to avoid DNS-rebinding attacks
         || ctx.state.account && accountCanLoginAdmin(ctx.state.account)
 }
 
