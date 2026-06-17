@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { markVfsModified, prepareVfsUndo, state, useSnapState } from './state'
+import { state, useSnapState } from './state'
 import { createElement as h, ReactElement, useCallback, useEffect, useRef, MouseEvent } from 'react'
 import { TreeItem, SimpleTreeView } from '@mui/x-tree-view'
 import {
@@ -9,12 +9,13 @@ import {
 } from '@mui/icons-material'
 import { Box, Typography } from '@mui/material'
 import { deleteVfs, id2vfsNode, isDescendantUri, reindexVfs, VfsNodeAdmin } from './VfsPage'
-import { onlyTruthy, pathDecode, pathEncode, prefix, toMutable, wantArray, WhoVfs, with_ } from './misc'
+import { onlyTruthy, pathDecode, toMutable, wantArray, WhoVfs, with_ } from './misc'
 import { Flex, iconTooltip, useToggleButton } from './mui'
 import VfsMenuBar from './VfsMenuBar'
 import { ApiObject } from './api'
-import { alertDialog, toast } from './dialog'
+import { toast } from './dialog'
 import _ from 'lodash'
+import { moveVfs } from './VfsMove'
 
 export const FolderIcon = Folder
 export const FileIcon = InsertDriveFileOutlined
@@ -23,7 +24,7 @@ let once = true
 
 const SPECIAL_TREE_ITEM = '?'
 
-export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
+export default function VfsTree({ statusApi, isSideBreakpoint }:{ statusApi: ApiObject, isSideBreakpoint: boolean }) {
     const { vfs, selectedFiles, expanded } = useSnapState()
     const dragging = useRef<string[]>()
     const Branch = useCallback(function({ node }: { node: Readonly<VfsNodeAdmin> }): ReactElement {
@@ -134,7 +135,7 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
     return h(Flex, { flexDirection: 'column', alignItems: 'stretch', flex: 1 },
         h(Flex, { mb: 1, flexWrap: 'wrap', gap: [1, 2], mt: '2px' /*account for the save button's outline*/ },
             h(Typography, { variant: 'h6' }, "Virtual File System"),
-            h(VfsMenuBar, { statusApi, add: toggleBtn }),
+            h(VfsMenuBar, { statusApi, add: toggleBtn, isSideBreakpoint }),
         ),
         vfs && h(SimpleTreeView, {
             ref,
@@ -169,66 +170,9 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
     )
 }
 
-export function moveVfs(from: string | string[], to: string) {
-    const fromUris = _.uniq(wantArray(from)).sort()
-    if (fromUris.includes('/'))
-        return !alertDialog("Cannot move root", 'error')
-    const topLevelUris = fromUris.filter((uri, idx) =>
-        idx === 0 || _.findLastIndex(fromUris, parentUri => isDescendantUri(uri, parentUri), idx - 1) < 0)
-    const fromNodes = onlyTruthy(topLevelUris.map(uri => id2vfsNode.get(uri)))
-    if (fromNodes.length !== topLevelUris.length)
-        return !alertDialog("Item to move not found", 'error')
-    const toNode = id2vfsNode.get(to)
-    if (!toNode || toNode.type !== 'folder')
-        return !alertDialog("Destination folder not found", 'error')
-    if (topLevelUris.some(uri => isDescendantUri(to, uri)))
-        return !alertDialog("Cannot move inside itself", 'error')
-    if (_.uniqBy(fromNodes, 'name').length !== fromNodes.length)
-        return !alertDialog("Some selected items have the same name", 'error')
-    if (fromNodes.some(fromNode => toNode.children?.some(x => x.name === fromNode.name && x.id !== fromNode.id)))
-        return !alertDialog("Item with same name already present in destination", 'error')
-    if (fromNodes.some(fromNode => !fromNode.parent?.children))
-        return !alertDialog("Source parent not found", 'error')
-    const destinationAncestors = getAncestorIds(toNode)
-    const movedIds = fromNodes.map(fromNode =>
-        prefix(to, pathEncode(fromNode.name), fromNode.type === 'folder' ? '/' : ''))
-    prepareVfsUndo()
-    for (const fromNode of fromNodes) {
-        const oldSiblings = fromNode.parent!.children!
-        _.remove(oldSiblings, { id: fromNode.id })
-        // empty child arrays should not survive moves, or the admin tree keeps phantom expandable folders
-        if (!oldSiblings.length)
-            fromNode.parent!.children = undefined
-    }
-    addToChildrenOf(toNode, fromNodes)
-    // ids and node references change after moving; select by the new ids after reindex
-    reindexVfs({ select: movedIds })
-    state.expanded = _.uniq([...state.expanded, ...destinationAncestors])
-    return true
-
-    function getAncestorIds(node: VfsNodeAdmin) {
-        const ret: string[] = []
-        let cur: typeof node | undefined = node
-        while (cur) {
-            ret.push(cur.id)
-            cur = cur.parent
-        }
-        return ret
-    }
-}
-
 export function vfsNodeIcon(node: VfsNodeAdmin) {
     return node.isRoot ? iconTooltip(Home, "home, or root if you like")
         : node.type === 'folder' ? iconTooltip(FolderIcon, "Folder")
             : node.url ? iconTooltip(Link, "Web-link")
                 : iconTooltip(FileIcon, "File")
-}
-
-export function addToChildrenOf(parent: VfsNodeAdmin, moreChildren: VfsNodeAdmin[]) {
-    if (!parent.children)
-        parent.children = []
-    // keep the assignment above and push separated: on proxied nodes, combining them will push to a stale array reference.
-    parent.children.push(...moreChildren)
-
-    markVfsModified()
 }
