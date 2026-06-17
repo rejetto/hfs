@@ -68,6 +68,7 @@ function errorHandler(err: Error & { code?: string, path?: string }) {
     if (code === 'ECANCELED' || code === 'ECONNRESET' || code === 'ECONNABORTED'  || code === 'EPIPE'
         || code === 'ERR_STREAM_WRITE_AFTER_END' // happens disconnecting uploads, don't care
         || code === 'ERR_STREAM_PREMATURE_CLOSE' // happens when many files are sent (not locally), but I checked that the files are written completely. Introduced after node18.5.0 and is thrown by pipeline() used by PUT method handler.
+        || code === 'ERR_SSL_SSL/TLS_ALERT_BAD_RECORD_MAC' // tls peers/proxies can abort encrypted streams after headers are already sent
         || code?.startsWith('HPE')) return // malformed client/probe HTTP parser errors, not internal failures
     console.error('Server error', err)
 }
