@@ -790,11 +790,11 @@ This section is still partially documented, and you may need to have a look at t
 - `httpsServerOptions` if you need to customize the options of the https server.
   - return: object with some properties [documented here](https://nodejs.org/api/https.html#httpscreateserveroptions-requestlistener).  
 - `uploadStart`
-  - parameters: { ctx, writeStream, fullPath, tempName, resume, fullSize } 
+  - parameters: { ctx, fullPath, tempName, resume, fullSize, writeStream } 
   - preventable
   - return: callback to call when upload is finished
 - `uploadFinished`
-  - parameters: { ctx, uri, writeStream }
+  - parameters: { ctx, uri, fullPath, writeStream }
 - `publicIpsChanged`
   - parameters: { IPs, IP4, IP6, IPX }
 - `newSocket`
@@ -1206,3 +1206,4 @@ If you want to override a text regardless of the language, use the special langu
 - 13.1 (v3.2.0)
   - backend events: logRotated
   - listDiskFolder gets "hidden" parameter
+  - backend event uploadFinished: fullPath corresponds to the path that was actually written 
