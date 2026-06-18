@@ -36,6 +36,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
     const { members } = account
     const pluginAuth = account.plugin?.auth
     return h(Form, {
+        key: account.username, // remount on account changes because Form owns validation state for the current record
         formRef: ref,
         values,
         set(v, k) {
