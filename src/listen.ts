@@ -107,7 +107,8 @@ export function getCertObject() {
     const all = new X509Certificate(c)
     const some = _.pick(all, ['subject', 'issuer', 'validFrom', 'validTo'])
     const ret = _.mapValues(some, v => v?.includes('=') ? Object.fromEntries(v.split('\n').map(x => x.split('='))) : v)
-    return Object.assign(ret, { altNames: all.subjectAltName?.replace(/DNS:/g, '').split(/, */) })
+    return Object.assign(ret, { altNames: all.subjectAltName?.split(/, */)
+        .map(x => x.replace(/^(?:DNS:|IP Address:)/, '')) })
 }
 
 const considerHttps = debounceAsync(async () => {
