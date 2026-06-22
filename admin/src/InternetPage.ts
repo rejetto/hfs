@@ -6,7 +6,7 @@ import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTon
     Error as ErrorIcon, SvgIconComponent, Search } from '@mui/icons-material'
 import { apiCall, useApiEvents, useApiEx } from './api'
 import {
-    closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG, md,
+    closeDialog, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG, md,
     useRequestRender, replace, restartAnimation, prefix, isIpLan, HIDE_IN_TESTS
 } from './misc'
 import { Flex, LinkBtn, Btn, Country, wikiLink, NetmaskField } from './mui'
@@ -229,7 +229,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                     },
                     {
                         k: 'acme_renew',
-                        label: "Automatic renew one month before expiration",
+                        label: "Automatic renew before expiration",
                         comp: BoolField,
                         disabled: !values.acme_domain
                     },
@@ -241,7 +241,10 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                     ...saving && { loading: true },
                     async onClick() {
                         const [domain, ...altNames] = values.acme_domain.split(',')
-                        const fresh = domain === cert.data.subject?.CN && Number(new Date(cert.data.validTo)) - Date.now() >= 30 * DAY
+                        const validTo = Number(new Date(cert.data.validTo))
+                        const renewBefore = (validTo - Number(new Date(cert.data.validFrom))) / 3
+                        const fresh = cert.data.altNames?.includes(domain)
+                            && validTo - Date.now() >= renewBefore
                         if (fresh && !await confirmDialog("Your certificate is still good", { trueText: "Make a new one anyway" }))
                             return
                         if (!await confirmDialog("HFS must temporarily serve HTTP on public port 80, and your router must be configured or this operation will fail")) return

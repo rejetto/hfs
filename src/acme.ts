@@ -1,5 +1,5 @@
 import {
-    CFG, DAY, Dict, haveTimeout, HOUR, HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, MINUTE, repeat, formatDate
+    CFG, DAY, Dict, haveTimeout, HOUR, HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, ipForUrl, MINUTE, repeat, formatDate,
 } from './misc'
 import { createServer, IncomingMessage, ServerResponse } from 'http'
 import { Middleware } from 'koa'
@@ -12,6 +12,7 @@ import fs from 'fs/promises'
 import { defineConfig } from './config'
 import events from './events'
 import { selfCheck } from './selfCheck'
+import { isIP } from 'net'
 
 let acmeOngoing = false
 const acmeTokens: Dict<string> = {}
@@ -45,7 +46,8 @@ repeat(MINUTE, async stop => {
     return client.removeMapping(TEMP_MAP)
 })
 
-async function generateSSLCert(domain: string, email?: string, altNames?: string[]) {
+async function generateSSLCert(domain: string, email?: string, altNames: string[] = []) {
+    const ipCertificate = [domain, ...altNames].some(isIP)
     // will answer the challenge through our koa app (if on port 80) or must we spawn a dedicated server?
     const nat = await getNatInfo()
     const { http } = await getServerStatus()
@@ -61,7 +63,7 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
     console.debug("ACME challenge server ready")
     let tempMap: any
     try {
-        const checkUrl = `http://${domain.split(',')[0]}`
+        const checkUrl = `http://${ipForUrl(domain)}`
         let check = await selfCheck(checkUrl) // some check services may not consider the domain, but we already verified that
         if (check?.success === false && nat.upnp && !nat.mapped80) {
             console.debug("Setting temporary port forward")
@@ -75,6 +77,14 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
             accountKey: await acme.crypto.createPrivateKey(),
             directoryUrl: acme.directory.letsencrypt.production
         })
+        if (ipCertificate) {
+            const original = acmeClient.createOrder.bind(acmeClient)
+            acmeClient.createOrder = order => original({
+                ...order, // acme-client auto() currently labels every CSR name as DNS and cannot select the profile required for IP certificates
+                profile: 'shortlived',
+                identifiers: order.identifiers.map(({ value }) => ({ value, type: isIP(value) ? 'ip' : 'dns' }))
+            } as any) // profile key is not declared in types, but is needed for letsencrypt
+        }
         acme.setLogger(console.debug)
         const [key, csr] = await acme.crypto.createCsr({ commonName: domain, altNames })
         const cert = await acmeClient.auto({
@@ -128,9 +138,11 @@ const renewCert = debounceAsync(async () => {
     const cert = getCertObject()
     if (!cert) return
     const now = new Date()
+    const validFrom = new Date(cert.validFrom)
     const validTo = new Date(cert.validTo)
-    // not expiring in a month
-    if (now > new Date(cert.validFrom) && now < validTo && validTo.getTime() - now.getTime() >= 30 * DAY)
+    // renew during the final third, adapting automatically to short-lived certificates
+    const renewBefore = (validTo.getTime() - validFrom.getTime()) / 3
+    if (now > validFrom && now < validTo && validTo.getTime() - now.getTime() >= renewBefore)
         return console.log("Certificate still good")
     await makeCert(domain, undefined, altNames)
         .catch(e => console.log(acmeRenewError = `Error renewing certificate, expiring ${formatDate(validTo)}: ${String(e.message || e)}`))

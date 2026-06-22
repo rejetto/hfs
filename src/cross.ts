@@ -441,7 +441,7 @@ export function xlate(input: any, table: Record<string, any>) {
 
 // remove brackets and port (if any)
 export function normalizeHost(host: string) {
-    return host[0] === '[' ? host.slice(1, host.indexOf(']')) : host?.split(':')[0]
+    return host[0] === '[' ? host.slice(1, host.indexOf(']')) : host.split(':')[0]!
 }
 
 export function isIpLocalHost(ip: string) {

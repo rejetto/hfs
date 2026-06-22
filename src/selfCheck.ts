@@ -3,7 +3,7 @@ import { Middleware } from 'koa'
 import { getProjectInfo } from './github'
 import { isIP, isIPv6 } from 'net'
 import _ from 'lodash'
-import { findDefined, haveTimeout } from './cross'
+import { findDefined, haveTimeout, normalizeHost } from './cross'
 import { httpString } from './util-http'
 
 let activeSelfChecks = 0
@@ -35,7 +35,8 @@ export async function selfCheck(url: string) {
     const prjInfo = await getProjectInfo()
     console.log(`Checking server ${url}`)
     const parsed = new URL(url)
-    const family = !isIP(parsed.hostname) ? undefined : isIPv6(parsed.hostname) ? 6 : 4
+    const hostname = normalizeHost(parsed.hostname)
+    const family = !isIP(hostname) ? undefined : isIPv6(hostname) ? 6 : 4
     try {
         ++activeSelfChecks
         for (const services of _.chunk(_.shuffle<PortScannerService>(prjInfo.selfCheckServices), 2)) {
@@ -70,7 +71,7 @@ export async function selfCheck(url: string) {
     }
 
     function applySymbols(s?: string) {
-        return s?.replace('$IP', parsed.hostname)
+        return s?.replace('$IP', hostname)
             .replace('$PORT', parsed.port || (parsed.protocol === 'https:' ? '443' : '80'))
             .replace('$URL', url.replace(/\/$/, '') + CHECK_URL)
     }
