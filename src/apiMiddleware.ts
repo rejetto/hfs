@@ -7,6 +7,7 @@ import { asyncGeneratorToReadable, CFG, Promisable } from './misc'
 import { HTTP_BAD_REQUEST, HTTP_FOOL, PLUGIN_CUSTOM_REST_PREFIX } from './const'
 import { defineConfig } from './config'
 import { firstPlugin } from './plugins'
+import { SendListReadable } from './SendList'
 
 export class ApiError extends Error {
     constructor(public status:number, message?:string | Error | object) {
@@ -53,6 +54,9 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         }
         if (isAsyncGenerator(res))
             res = asyncGeneratorToReadable(res)
+        // return the initial list as regular JSON when the caller did not request live updates
+        if (res instanceof SendListReadable && ctx.get('accept') !== 'text/event-stream')
+            res = await res.collectInitial()
         if (res instanceof Readable) { // Readable, we'll go SSE-mode
             res.pipe(createSSE(ctx))
             const resAsReadable = res // satisfy ts
