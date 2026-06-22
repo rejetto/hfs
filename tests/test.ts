@@ -228,6 +228,7 @@ describe('basics', () => {
     test('file_details.traversal', reqApi('get_file_details', { uris: ['/f1/%2e%2e/for-admins/alfa.txt'] }, noVisibleDetails))
     test('file_list.traversal', reqApi('get_file_list', { uri: '/f1/%2e%2e/for-admins' }, 404))
     test('file_list.bad encoding', reqApi('get_file_list', { uri: '/f1/%E0%A4%A' }, 404))
+    test('send-list api without SSE', reqApi('get_plugins', {}, data => Array.isArray(data.list), { auth, jar: {} })) // jar because we don't want to authenticate also next tests
     test('forbidden list', req('/cantListPage/page/', 403))
     test('forbidden list.api', reqList('/cantListPage/page/', 403))
     test('forbidden list.admin flag', reqApi('get_file_list', { uri: '/for-admins/', admin: true }, 401))
@@ -1345,25 +1346,27 @@ describe('after-login', () => {
         const tempName = UPLOAD_TEMP_PREFIX + 'unfinished.txt'
         const temp = resolve(dir, tempName)
         const tempUri = `${UPLOAD_ROOT}${name}/${pathEncode(tempName)}`
+        // use a dedicated session because other suites may change the shared test jar
+        const ownerReq = { auth, jar: {} }
         await mkdir(dir, { recursive: true })
-        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200, ownerReq)()
         try {
             await makeAbortedUpload()
             await req(tempUri, 403, { method: 'delete', jar: {} })()
             if (!existsSync(temp))
                 throw "temp file removed without permission"
-            await req(tempUri, 200, { method: 'delete' })()
+            await req(tempUri, 200, { method: 'delete', ...ownerReq })()
             if (existsSync(temp))
                 throw "temp file not removed"
         }
         finally {
-            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200, ownerReq)().catch(() => {})
             await rmAny(dir)
         }
 
         async function makeAbortedUpload() {
             await rmAny(temp)
-            const r = reqUpload(dest, 0, makeReadableThatTakes(600))()
+            const r = reqUpload(dest, 0, makeReadableThatTakes(600), undefined, 0, ownerReq)()
             setTimeout(r.abort, 300)
             await r.catch(() => {})
             if (!existsSync(temp))
@@ -1401,21 +1404,23 @@ describe('after-login', () => {
         const tempName = UPLOAD_TEMP_PREFIX + 'unfinished.txt'
         const temp = resolve(dir, tempName)
         const tempUri = `${UPLOAD_ROOT}${name}/${pathEncode(tempName)}`
+        // use a dedicated session because other suites may change the shared test jar
+        const ownerReq = { auth, jar: {} }
         await mkdir(dir, { recursive: true })
-        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200, ownerReq)()
         try {
-            const r = reqUpload(dest, 0, makeReadableThatTakes(600))()
+            const r = reqUpload(dest, 0, makeReadableThatTakes(600), undefined, 0, ownerReq)()
             setTimeout(r.abort, 300)
             await r.catch(() => {})
             await wait(500)
             const partial = statSync(temp).size
-            await reqUpload(dest, 200, Readable.from(BIG_CONTENT.slice(partial)), BIG_CONTENT.length, partial)()
+            await reqUpload(dest, 200, Readable.from(BIG_CONTENT.slice(partial)), BIG_CONTENT.length, partial, ownerReq)()
             await writeFile(temp, 'new temp')
-            await req(tempUri, 403, { method: 'delete' })()
+            await req(tempUri, 403, { method: 'delete', ...ownerReq })()
         }
         finally {
-            await req(dest, 200, { method: 'delete' })().catch(() => {})
-            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await req(dest, 200, { method: 'delete', ...ownerReq })().catch(() => {})
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200, ownerReq)().catch(() => {})
             await rmAny(dir)
         }
     })
