@@ -112,6 +112,31 @@ export class SendListReadable<T> extends Readable {
         ctx.res.once('close', events.multi(eventMap, options))
         return this
     }
+    async collectInitial() {
+        const list: T[] = []
+        let props = {}
+        let error: unknown
+        for await (const messages of this)
+            for (const [op, a, b] of messages) {
+                if (op === LIST.add)
+                    list.push(...wantArray(a))
+                else if (op === LIST.remove)
+                    _.remove(list, a)
+                else if (op === LIST.update)
+                    Object.assign(_.find(list, a) || {}, b)
+                else if (op === LIST.props)
+                    Object.assign(props, a)
+                else if (op === LIST.error)
+                    error = a
+                else if (op === LIST.ready) // ready ends the initial snapshot; live updates require SSE
+                    return result()
+            }
+        return result()
+
+        function result() {
+            return { ...props, list, ...(error === undefined ? {} : { error }) }
+        }
+    }
     isClosed() {
         return this.destroyed
     }
