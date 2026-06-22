@@ -1,16 +1,20 @@
-import { DataGrid, DataGridProps, getGridStringOperators, GridColDef, GridFooter, GridFooterContainer,
-    GridValidRowModel, useGridApiRef, GridRenderCellParams, QuickFilter, QuickFilterControl } from '@mui/x-data-grid'
+import { DataGrid, DataGridProps, getGridStringOperators, GridColDef, GridFilterForm, GridFilterItem, GridFilterModel,
+    GridFooter, GridFooterContainer, gridClasses, GridLogicOperator, GridPanelContent, GridPanelFooter, GridPanelWrapper,
+    GridValidRowModel, useGridApiContext, useGridApiRef, GridRenderCellParams, QuickFilter, QuickFilterControl,
+    useGridRootProps } from '@mui/x-data-grid'
 import { enUS } from '@mui/x-data-grid/locales'
+import { GridColumnHeaderFilterIconButton, type ColumnHeaderFilterIconButtonProps } from '@mui/x-data-grid/components'
 import { Alert, Box, BoxProps, LinearProgress, useTheme } from '@mui/material'
 import type { Breakpoint } from '@mui/material/styles'
 import { createElement as h, type ElementType, Fragment, ReactNode, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { callable, Callback, Falsy, newDialog, onlyTruthy, useGetSize } from '@hfs/shared'
 import _ from 'lodash'
 import { Center, Flex, IconBtn, mergeSx } from './mui'
-import { Search } from '@mui/icons-material'
+import { Close, Delete, Search } from '@mui/icons-material'
 import { SxProps } from '@mui/system'
 import { state, updateStateObject } from './state'
 import { useDebounce } from 'usehooks-ts'
+import { applyMultiFilter, countActiveMultiFilters } from './multiFilter'
 
 const ACTIONS = 'Actions'
 
@@ -39,10 +43,18 @@ export interface DataTableProps<R extends GridValidRowModel=any> extends Omit<Da
 }
 export function DataTable({
     columns, initialState={}, actions, actionsHeader, actionsProps, initializing, noRows, error, compact, footerSide, fillFlex,
-    persist, details, quickFilter, slots, slotProps, ...rest
+    persist, details, quickFilter, slots, slotProps, filterModel, onFilterModelChange, ...rest
 }: DataTableProps) {
     const theme = useTheme()
     const apiRef = useGridApiRef()
+    const [localMultiFilterModel, setLocalMultiFilterModel] = useState<GridFilterModel>(() =>
+        filterModel || initialState.filter?.filterModel || { items: [], logicOperator: GridLogicOperator.And })
+    const multiFilterModel = filterModel || localMultiFilterModel
+    const [gridReady, setGridReady] = useState(false)
+    useEffect(() => {
+        // filter operators need the grid API, which is populated only after DataGrid mounts
+        setGridReady(true)
+    }, [])
     const [actionsLength, setActionsLength] = useState(0)
     const [quickFilterOpen, setQuickFilterOpen] = useState(false)
     const [merged, setMerged] = useState(0)
@@ -102,6 +114,7 @@ export function DataTable({
                     return h(Box, { sx: { whiteSpace: 'nowrap' } }, ...ret)
                 },
                 ...actionsProps,
+                filterable: false,
                 renderHeader: quickFilter || actionsHeader ? renderActionsHeader : actionsProps?.renderHeader,
             })
         return ret
@@ -139,6 +152,44 @@ export function DataTable({
         setCausingScrolling(el && (el.scrollWidth > el.clientWidth) || false)
     }, 500), [sizeGrid])
     useEffect(updateCausingScrolling, [sizeGrid, width, sizeFooterSide.w]) // recalculate in case the footerSide changes
+    // keep the multi-filter model outside DataGrid because the Community edition truncates it to one item
+    const filteredRows = useMemo(() =>
+        gridReady ? applyMultiFilter(rest.rows || [], multiFilterModel, apiRef) : rest.rows,
+    // rerun when columns change because filter operators are read from the processed grid columns
+    [gridReady, rest.rows, manipulatedColumns, multiFilterModel, apiRef])
+    const gridInitialState = {
+        ...initialState,
+        filter: {
+            ...initialState.filter,
+            filterModel: { ...initialState.filter?.filterModel, items: [] },
+        },
+    }
+    const effectiveSlotProps = {
+        ...slotProps,
+        columnHeaderFilterIconButton: {
+            ...(slotProps as any)?.columnHeaderFilterIconButton,
+            multiFilterModel,
+        },
+        columnMenu: {
+            ...(slotProps as any)?.columnMenu,
+            slots: {
+                ...(slotProps as any)?.columnMenu?.slots,
+                columnMenuFilterItem: MultiFilterMenuItem,
+            },
+            slotProps: {
+                ...(slotProps as any)?.columnMenu?.slotProps,
+                columnMenuFilterItem: {
+                    ...(slotProps as any)?.columnMenu?.slotProps?.columnMenuFilterItem,
+                    onOpenMultiFilter: openMultiFilter,
+                },
+            },
+        },
+        filterPanel: {
+            ...(slotProps as any)?.filterPanel,
+            model: multiFilterModel,
+            onChange: changeMultiFilterModel,
+        },
+    }
 
     return h(Fragment, {},
         error && h(Alert, { severity: 'error' }, error),
@@ -148,13 +199,14 @@ export function DataTable({
             }) ),
         h(DataGrid, {
             key: width,
-            initialState,
+            initialState: gridInitialState,
             density: compact ? 'compact' : 'standard',
             columns: manipulatedColumns,
             apiRef,
             disableRowSelectionOnClick: true,
             ref: sizeGrid.refToPass,
             ...rest,
+            rows: filteredRows,
             ...quickFilter && { showToolbar: quickFilterOpen || rest.showToolbar },
             sx: mergeSx({
                 ...fillFlex && { height: 0, flex: 'auto' }, // limit table to available screen space, if parent is flex. Consider using fillFlexParentSx
@@ -164,21 +216,24 @@ export function DataTable({
             slots: {
                 footer: CustomFooter,
                 noRowsOverlay: NoRowsOverlay,
+                filterPanel: MultiFilterPanel,
+                filterPanelDeleteIcon: Delete,
+                columnHeaderFilterIconButton: MultiFilterHeaderIconButton,
                 ...slots,
                 ...quickFilterOpen && { toolbar: DataTableQuickFilterToolbar as any }
             } as any,
             slotProps: {
-                ...slotProps,
-                ...quickFilterOpen && { toolbar: { ...(slotProps as any)?.toolbar, onExpandedChange: setQuickFilterOpen } },
-                footer: { ...(slotProps as any)?.footer, add: wrappedFooterSide },
-                noRowsOverlay: { ...(slotProps as any)?.noRowsOverlay, initializing, noRows },
+                ...effectiveSlotProps,
+                ...quickFilterOpen && { toolbar: { ...(effectiveSlotProps as any)?.toolbar, onExpandedChange: setQuickFilterOpen } },
+                footer: { ...(effectiveSlotProps as any)?.footer, add: wrappedFooterSide },
+                noRowsOverlay: { ...(effectiveSlotProps as any)?.noRowsOverlay, initializing, noRows },
                 pagination: {
                     labelRowsPerPage: "Rows",
                     ...!causingScrolling && {
                         showFirstButton: true,
                         showLastButton: true,
                     },
-                    ...(slotProps as any)?.pagination,
+                    ...(effectiveSlotProps as any)?.pagination,
                 },
             },
             onCellClick({ field, row }) {
@@ -246,6 +301,21 @@ export function DataTable({
         }
     }
 
+    function openMultiFilter(column: GridColDef) {
+        if (multiFilterModel.items.some(({ field }) => field === column.field)) return
+        changeMultiFilterModel({
+            ...multiFilterModel,
+            items: [...multiFilterModel.items, newFilterItem(column)],
+        }, 'upsertFilterItem')
+    }
+
+    function changeMultiFilterModel(model: GridFilterModel, reason: MultiFilterReason) {
+        if (filterModel === undefined)
+            setLocalMultiFilterModel(model)
+        if (apiRef.current)
+            onFilterModelChange?.(model, { api: apiRef.current, reason })
+    }
+
     function renderCell(col: GridColDef, row: any) {
         const api = apiRef.current
         let value = row[col.field]
@@ -257,6 +327,100 @@ export function DataTable({
             : col.valueFormatter ? col.valueFormatter(value, row, col, api)
                 : value
     }
+}
+
+type MultiFilterReason = 'upsertFilterItem' | 'upsertFilterItems' | 'deleteFilterItem' | 'changeLogicOperator' | 'removeAllFilterItems'
+
+function MultiFilterHeaderIconButton({ field, multiFilterModel, ...props }: ColumnHeaderFilterIconButtonProps & {
+    multiFilterModel: GridFilterModel
+}) {
+    const apiRef = useGridApiContext()
+    const counter = countActiveMultiFilters(field, multiFilterModel, apiRef)
+    if (!counter) return null
+    return h(Box, {
+        // the grid hides this container because its internal filter model is deliberately empty
+        sx: { display: 'contents', [`& .${gridClasses.iconButtonContainer}`]: { visibility: 'visible', width: 'auto' } },
+    }, h(GridColumnHeaderFilterIconButton, { ...props, field, counter }))
+}
+
+function MultiFilterMenuItem({ colDef, onClick, onOpenMultiFilter }: {
+    colDef: GridColDef
+    onClick: (event: SyntheticEvent) => void
+    onOpenMultiFilter: (column: GridColDef) => void
+}) {
+    const apiRef = useGridApiContext()
+    const rootProps = useGridRootProps()
+    if (rootProps.disableColumnFilter || colDef.filterable === false || !colDef.filterOperators?.length) return null
+    return h(rootProps.slots.baseMenuItem, {
+        onClick(event: SyntheticEvent) {
+            onClick(event)
+            onOpenMultiFilter(colDef)
+            // open the native panel without calling showFilterPanel(field), which would replace the existing rules
+            apiRef.current.showFilterPanel()
+        },
+        iconStart: h(rootProps.slots.columnMenuFilterIcon, { fontSize: 'small' }),
+    }, apiRef.current.getLocaleText('columnMenuFilter'))
+}
+
+function MultiFilterPanel({ model, onChange }: {
+    model: GridFilterModel
+    onChange: (model: GridFilterModel, reason: MultiFilterReason) => void
+}) {
+    const apiRef = useGridApiContext()
+    const rootProps = useGridRootProps()
+    const Button = rootProps.slots.baseButton
+    const AddIcon = rootProps.slots.filterPanelAddIcon
+    const RemoveAllIcon = rootProps.slots.filterPanelRemoveAllIcon
+    const multiple = model.items.length > 1
+    return h(GridPanelWrapper, {},
+        h(Box, { sx: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, pl: 2 } },
+            h(Box, { sx: { color: 'text.primary', fontWeight: 'bold' } }, "Filters"),
+            h(rootProps.slots.baseIconButton, {
+                'aria-label': "Close",
+                title: "Close",
+                size: 'small',
+                onClick: () => apiRef.current.hideFilterPanel(),
+            }, h(Close, { fontSize: 'small' })) ),
+        _.isEmpty(model.items) ? h(Box, { sx: { ml: 2, mb: 1, fontStyle: 'italic', color: 'text.primary' } }, "none")
+            : h(GridPanelContent, {}, model.items.map((item, index) =>
+                h(GridFilterForm, {
+                    key: item.id ?? index,
+                    item,
+                    hasMultipleFilters: multiple,
+                    showMultiFilterOperators: index > 0,
+                    disableMultiFilterOperator: index !== 1,
+                    applyFilterChanges(updated) {
+                        onChange({ ...model, items: model.items.map(x => x.id === updated.id ? updated : x) }, 'upsertFilterItem')
+                    },
+                    applyMultiFilterOperatorChanges(logicOperator) {
+                        onChange({ ...model, logicOperator }, 'changeLogicOperator')
+                    },
+                    deleteFilter(deleted) {
+                        onChange({ ...model, items: model.items.filter(x => x.id !== deleted.id) }, 'deleteFilterItem')
+                        if (model.items.length === 1)
+                            apiRef.current.hideFilterPanel()
+                    },
+                }))),
+        h(GridPanelFooter, {},
+            h(Button, { onClick: addFilter, startIcon: h(AddIcon, {}) }, apiRef.current.getLocaleText('filterPanelAddFilter')),
+            model.items.length > 0 && h(Button, {
+                onClick() {
+                    onChange({ ...model, items: [] }, 'removeAllFilterItems')
+                },
+                startIcon: h(RemoveAllIcon, {}),
+            }, apiRef.current.getLocaleText('filterPanelRemoveAll'))))
+
+    function addFilter() {
+        const column = apiRef.current.getAllColumns().find(x => x.filterable !== false && x.filterOperators?.length)
+        if (!column) return
+        onChange({ ...model, items: [...model.items, newFilterItem(column)] }, 'upsertFilterItems')
+    }
+}
+
+let nextFilterId = 1
+
+function newFilterItem(column: GridColDef): GridFilterItem {
+    return { id: nextFilterId++, field: column.field, operator: column.filterOperators![0].value }
 }
 
 function DataTableQuickFilterToolbar({ onExpandedChange }: {
