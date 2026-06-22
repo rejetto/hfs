@@ -91,7 +91,7 @@ export function openAdmin() {
         const baseUrl = `${srv!.name}://${hostname}:${a.port}`
         open(baseUrl + ADMIN_URI, { wait: true}).catch(async e => {
             console.debug(String(e))
-            console.warn("Cannot launch browser on this machine >PLEASE< open your browser and reach one of these (you may need a different address)",
+            console.warn("Cannot launch browser on this machine – open your browser and reach one of these (you may need a different address)",
                 ...Object.values(await getUrls()).flat().map(x => '\n - ' + x + ADMIN_URI))
             if (! anyAccountCanLoginAdmin())
                 consoleHint(`you can enter this command: create-admin YOUR_PASSWORD`)
