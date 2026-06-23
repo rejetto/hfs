@@ -236,6 +236,7 @@ test('admin2', async ({ page, browserName }) => {
     await logTabs.nth(2).click()
     await logTabs.nth(3).click()
     await logTabs.nth(4).click()
+    await logTabs.nth(0).click()
     const pauseBtn = page.getByLabel('Pause').getByRole('button')
     await expect(pauseBtn).toHaveAttribute('aria-pressed', 'true')
     await pauseBtn.click()

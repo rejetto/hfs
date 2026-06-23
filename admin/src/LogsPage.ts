@@ -122,7 +122,6 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
     const [showApi, showApiButton] = useToggleButton("Show APIs", "Hide APIs", v => ({
         icon: SmartToy,
         sx: { rotate: v ? 0 : '180deg' },
-        disabled: file === 'console',
     }), true)
     const [totalSize, setTotalSize] = useState(NaN)
     const [limited, setLimited] = useState(true)
@@ -215,7 +214,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
         ...rest,
         footerSide: width => h(Box, {}, // 4 icons don't fit the tab row on mobile
             pauseButton,
-            showApiButton,
+            file.endsWith('log') && showApiButton,
             !connecting && skipped > 0 && h(Btn, {
                 icon: ClearAll,
                 variant: 'outlined',
