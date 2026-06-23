@@ -4,13 +4,14 @@ import { DataGrid, DataGridProps, getGridStringOperators, GridColDef, GridFilter
     useGridRootProps } from '@mui/x-data-grid'
 import { enUS } from '@mui/x-data-grid/locales'
 import { GridColumnHeaderFilterIconButton, type ColumnHeaderFilterIconButtonProps } from '@mui/x-data-grid/components'
-import { Alert, Box, BoxProps, LinearProgress, useTheme } from '@mui/material'
+import { Alert, Box, BoxProps, Chip, LinearProgress, useTheme } from '@mui/material'
 import type { Breakpoint } from '@mui/material/styles'
 import { createElement as h, type ElementType, Fragment, ReactNode, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { callable, Callback, Falsy, newDialog, objFromKeys, onlyTruthy, useGetSize } from '@hfs/shared'
 import _ from 'lodash'
 import { Center, Flex, IconBtn, mergeSx } from './mui'
-import { Close, Delete, Search } from '@mui/icons-material'
+import { Close, Delete, FilterAlt, Save, Search } from '@mui/icons-material'
+import { promptDialog } from './dialog'
 import { SxProps } from '@mui/system'
 import { state, updateStateObject } from './state'
 import { useDebounce } from 'usehooks-ts'
@@ -134,6 +135,8 @@ export function DataTable({
         return fields
     }, [manipulatedColumns, width, quickFilter])
     const [vis, setVis] = useState(persist && state.dataTablePersistence[persist]?.columnVisibility || {})
+    const [filterPresets, setFilterPresetsState] = useState<FilterPresets>(() =>
+        _.cloneDeep(persist && state.dataTablePersistence[persist]?.filterPresets || {}))
     const automaticColumnVisibility = useMemo(() => ({
         ...objFromKeys(hideCols, () => false),
         ...rest.columnVisibilityModel,
@@ -156,11 +159,14 @@ export function DataTable({
         setCurRow?.(_.find(rest.rows, { id }))
     })
     const sizeFooterSide = useGetSize()
-    const wrappedFooterSide = h(Box, {
+    const wrappedFooterSide = h(Flex, {
         ref: sizeFooterSide.refToPass,
         className: 'footerSide',
-        sx: { whiteSpace: 'nowrap' }
-    }, footerSide?.(width))
+        gap: 0,
+    },
+        footerSide?.(width),
+        !rest.disableColumnFilter && h(IconBtn, { icon: FilterAlt, title: "Filters", size: 'small', onClick: () => apiRef.current?.showFilterPanel() }),
+    )
     const [causingScrolling, setCausingScrolling] = useState(false)
     const updateCausingScrolling = useCallback(_.debounce(() => {
         const el = sizeGrid.ref.current?.querySelector('.MuiTablePagination-root')
@@ -203,6 +209,12 @@ export function DataTable({
             ...(slotProps as any)?.filterPanel,
             model: multiFilterModel,
             onChange: changeMultiFilterModel,
+            ...persist && {
+                presets: filterPresets,
+                onSavePreset: saveFilterPreset,
+                onLoadPreset: loadFilterPreset,
+                onDeletePreset: deleteFilterPreset,
+            },
         },
     }
 
@@ -292,13 +304,21 @@ export function DataTable({
                 const reset = persist && _.isEqual(vis, apiRef.current?.store.getSnapshot().columns.initialColumnVisibilityModel)
                 if (reset) { // reset restores the persisted mount state, so discard it to restore automatic visibility
                     setVis({})
-                    updateStateObject(state, 'dataTablePersistence', x => { delete x[persist] })
+                    updateStateObject(state, 'dataTablePersistence', x => {
+                        // column reset must not discard independently persisted filter presets
+                        const tablePersistence = x[persist]
+                        if (!tablePersistence) return
+                        delete tablePersistence.columnVisibility
+                        if (_.isEmpty(tablePersistence))
+                            delete x[persist]
+                    })
                     return
                 }
                 setVis(vis)
                 if (!persist) return
                 updateStateObject(state, 'dataTablePersistence', x => {
                     x[persist] = {
+                        ...x[persist],
                         columnVisibility: _.omitBy(vis, (v, k) => hideCols.includes(k) === (v === false))
                     }
                 })
@@ -336,6 +356,39 @@ export function DataTable({
             onFilterModelChange?.(model, { api: apiRef.current, reason })
     }
 
+    async function saveFilterPreset() {
+        const name = (await promptDialog("Preset name"))?.trim()
+        if (!name) return
+        persistFilterPresets({
+            ...filterPresets,
+            [name]: filterPresetFromModel(multiFilterModel),
+        })
+    }
+
+    function loadFilterPreset(name: string) {
+        changeMultiFilterModel(_.cloneDeep(filterPresets[name]), 'restoreState')
+    }
+
+    function deleteFilterPreset(name: string) {
+        persistFilterPresets(_.omit(filterPresets, name))
+    }
+
+    function persistFilterPresets(next: FilterPresets) {
+        if (!persist) return
+        setFilterPresetsState(next)
+        updateStateObject(state, 'dataTablePersistence', x => {
+            x[persist] = { ...x[persist], filterPresets: next }
+        })
+    }
+
+    function filterPresetFromModel(model: GridFilterModel): GridFilterModel {
+        // MUI tags edits with private input state that must not survive as preset data
+        return {
+            items: model.items.map(({ id, field, operator, value }) => ({ id, field, operator, value })),
+            logicOperator: model.logicOperator,
+        }
+    }
+
     function renderCell(col: GridColDef, row: any) {
         const api = apiRef.current
         let value = row[col.field]
@@ -349,7 +402,8 @@ export function DataTable({
     }
 }
 
-type MultiFilterReason = 'upsertFilterItem' | 'upsertFilterItems' | 'deleteFilterItem' | 'changeLogicOperator' | 'removeAllFilterItems'
+type MultiFilterReason = 'upsertFilterItem' | 'upsertFilterItems' | 'deleteFilterItem' | 'changeLogicOperator' | 'removeAllFilterItems' | 'restoreState'
+type FilterPresets = Record<string, GridFilterModel>
 
 function MultiFilterHeaderIconButton({ field, multiFilterModel, ...props }: ColumnHeaderFilterIconButtonProps & {
     multiFilterModel: GridFilterModel
@@ -382,9 +436,13 @@ function MultiFilterMenuItem({ colDef, onClick, onOpenMultiFilter }: {
     }, apiRef.current.getLocaleText('columnMenuFilter'))
 }
 
-function MultiFilterPanel({ model, onChange }: {
+function MultiFilterPanel({ model, onChange, presets, onSavePreset, onLoadPreset, onDeletePreset }: {
     model: GridFilterModel
     onChange: (model: GridFilterModel, reason: MultiFilterReason) => void
+    presets?: FilterPresets
+    onSavePreset?: () => void
+    onLoadPreset?: (name: string) => void
+    onDeletePreset?: (name: string) => void
 }) {
     const apiRef = useGridApiContext()
     const rootProps = useGridRootProps()
@@ -392,6 +450,7 @@ function MultiFilterPanel({ model, onChange }: {
     const AddIcon = rootProps.slots.filterPanelAddIcon
     const RemoveAllIcon = rootProps.slots.filterPanelRemoveAllIcon
     const multiple = model.items.length > 1
+    const activeFilters = countActiveMultiFilters(undefined, model, apiRef)
     return h(GridPanelWrapper, {},
         h(Box, { sx: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, pl: 2 } },
             h(Box, { sx: { color: 'text.primary', fontWeight: 'bold' } }, "Filters"),
@@ -421,8 +480,17 @@ function MultiFilterPanel({ model, onChange }: {
                             apiRef.current.hideFilterPanel()
                     },
                 }))),
-        h(GridPanelFooter, {},
-            h(Button, { onClick: addFilter, startIcon: h(AddIcon, {}) }, apiRef.current.getLocaleText('filterPanelAddFilter')),
+        presets && h(Flex, { px: 2, pb: 1, gap: 1, flexWrap: 'wrap', alignItems: 'center' },
+            !_.isEmpty(presets) && h(Box, { sx: { color: 'text.primary' } }, "Presets:"),
+            ..._.map(presets, (_preset, name) => h(Chip, {
+                key: name,
+                label: name,
+                onClick: () => onLoadPreset?.(name),
+                onDelete: () => onDeletePreset?.(name),
+            })) ),
+        h(GridPanelFooter, { sx: { justifyContent: 'flex-end', gap: 1 } },
+            h(Button, { onClick: addFilter, startIcon: h(AddIcon, {}) }, "Add"),
+            presets && h(Button, { disabled: !activeFilters, onClick: onSavePreset, startIcon: h(Save, {}) }, "Save"),
             model.items.length > 0 && h(Button, {
                 onClick() {
                     onChange({ ...model, items: [] }, 'removeAllFilterItems')
@@ -437,10 +505,8 @@ function MultiFilterPanel({ model, onChange }: {
     }
 }
 
-let nextFilterId = 1
-
 function newFilterItem(column: GridColDef): GridFilterItem {
-    return { id: nextFilterId++, field: column.field, operator: column.filterOperators![0].value }
+    return { id: crypto.randomUUID(), field: column.field, operator: column.filterOperators![0].value }
 }
 
 function DataTableQuickFilterToolbar({ onExpandedChange }: {

@@ -78,8 +78,9 @@ export function IconProgress({ icon, progress, offset, title, sx }: IconProgress
 export { mergeSx }
 
 type FlexProps = { vert?: boolean, center?: boolean, children?: ReactNode, props?: Omit<BoxProps, 'sx'>, component?: ElementType } & Record<string, any>
-export function Flex({ vert=false, center=false, children=null, props={}, component, ...rest }: FlexProps) {
+export const Flex = forwardRef<HTMLElement, FlexProps>(({ vert=false, center=false, children=null, props={}, component, ...rest }, ref) => {
     return h(Box as any, {
+        ref,
         sx: {
             display: 'flex',
             gap: '.8em',
@@ -91,7 +92,7 @@ export function Flex({ vert=false, center=false, children=null, props={}, compon
         component,
         ...props
     }, children)
-}
+})
 
 
 export function wikiLink(uri: string, content: ReactNode) {
