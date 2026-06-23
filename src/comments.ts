@@ -102,7 +102,7 @@ async function readDescriptIon(path: string) {
         }))
         ret.delete('')
         return ret
-    }, 2000)
+    }, 2000).then(x => x.content)
 }
 
 descriptIonEncoding.sub(() => { // invalidate cache at encoding change

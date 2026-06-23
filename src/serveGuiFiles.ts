@@ -10,6 +10,7 @@ import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from 
 import { authApis } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname, sep } from 'path'
+import { readdir } from 'fs/promises'
 import {
     CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, onlyTruthy, parseFile,
     enforceStarting, statWithTimeout, shortenAgent
@@ -30,6 +31,9 @@ _.each(FRONTEND_OPTIONS, (v,k) => defineConfig(k, v)) // define default values
 
 function serveStatic(uri: string): Koa.Middleware {
     const folder = (DEV ? 'dist/' : '') + uri.slice(2,-1)
+    const root = join(__dirname, '..', folder)
+    prewarmGuiAssets(root)  // keep pkg snapshot files in memory before the reported runtime access loss can happen
+        .catch(e => console.error(`GUI asset prewarm failed: ${e?.code || e}`))
     return async ctx => {
         if (!logGui.get())
             ctx.state.dontLog = true
@@ -41,20 +45,40 @@ function serveStatic(uri: string): Koa.Middleware {
         if (ctx.method !== 'GET')
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
         const serveApp = shouldServeApp(ctx)
-        const fullPath = join(__dirname, '..', folder, serveApp ? '/index.html': ctx.path)
-        const content = await parseFile(fullPath, raw => serveApp || !raw.length ? raw : adjustBundlerLinks(ctx, uri, raw), 1000)
+        const fullPath = join(root, serveApp ? '/index.html': ctx.path)
+        const cached = await parseGuiFile(fullPath)
             .catch(e => {
                 if (!/^(?:ENOENT|EISDIR)$/.test(e?.code)) // not supposed to happen, and yet a user reported a strange behavior
                     console.error(`serveStatic/parseFile: ${String(e)}`)
                 return null
             })
-        if (content === null)
+        if (cached === null)
             return ctx.status = HTTP_NOT_FOUND
-        if (!serveApp)
-            return serveFile(ctx, fullPath, MIME_AUTO, content)
+        if (!serveApp) {
+            const c = cached.content
+            return serveFile(ctx, fullPath, MIME_AUTO, { ...cached, content: !c.length ? c : adjustBundlerLinks(ctx, uri, c) })
+        }
         // we don't cache the index as it's small and may prevent plugins change to apply
-        ctx.body = await treatIndex(ctx, uri, String(content))
+        ctx.body = await treatIndex(ctx, uri, String(cached.content))
     }
+
+    async function prewarmGuiAssets(dir: string) {
+        for (const entry of await readdir(dir, { withFileTypes: true })) {
+            const fullPath = join(dir, entry.name)
+            if (entry.isDirectory()) {
+                await prewarmGuiAssets(fullPath)
+                continue
+            }
+            if (!entry.isFile())
+                continue
+            await parseGuiFile(fullPath)
+        }
+    }
+
+    function parseGuiFile(fullPath: string) {
+        return parseFile(fullPath, x => x, DEV ? 1000 : Infinity) // cache raw bytes so reverse-proxy URL rewriting can still use the current request context
+    }
+
 }
 
 function shouldServeApp(ctx: Koa.Context) {
@@ -194,12 +218,12 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
             parseReqBody: false, // the dev GUI proxy serves app/assets, so avoid koa-better-http-proxy trying to reread ctx.req
             proxyReqPathResolver: (ctx) =>
                 shouldServeApp(ctx) ? '/' : ctx.path,
-            userResDecorator(res, data, ctx) {
+            userResDecorator(_res, data, ctx) {
                 return shouldServeApp(ctx) ? treatIndex(ctx, uri, String(data))
                     : adjustBundlerLinks(ctx, uri, data)
             }
         }) )
-    return function (ctx, next) {
+    return function (ctx, _next) {
         if (!logGui.get())
             ctx.state.dontLog = true
         return proxy(ctx, async () => {})

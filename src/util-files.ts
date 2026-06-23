@@ -3,7 +3,7 @@
 import { access, chmod, mkdir, readFile, stat } from 'fs/promises'
 import { Promisable, try_, wait, isWindowsDrive, haveTimeout } from './cross'
 import { defineConfig } from './config'
-import { createWriteStream, mkdirSync, watch, ftruncate } from 'fs'
+import { createWriteStream, mkdirSync, watch, ftruncate, Stats } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
@@ -181,24 +181,25 @@ export function exists(path: string) {
 }
 
 // parse a file, caching unless timestamp has changed
-export const parseFileCache = new Map<string, { ts: Date, lastCheck: number, parsed: unknown }>()
+export interface CachedFile<T> { stats: Stats, content: T }
+export const parseFileCache = new Map<string, { stats: Stats, lastCheck: number, content: Promise<unknown> }>()
 export async function loadFileCached<T>(path: string, loader: (path: string) => T, minInterval=0) {
     const cached = parseFileCache.get(path)
     const now = Date.now()
     if (cached && now - cached.lastCheck < minInterval)
-        return cached.parsed as T
-    const ts = await statWithTimeout(path).then(x => x.mtime, e => {
-        if (e?.message !== 'timeout')
-            throw e
-        return cached?.ts || new Date(0) // on timeout (e.g. thread pool saturated), serve cache if any, or attempt the loader
+        return { stats: cached.stats, content: await cached.content } as CachedFile<Awaited<T>>
+    const stats = await statWithTimeout(path).catch(e => {
+        if (e?.message === 'timeout' && cached)
+            return cached.stats // on timeout (e.g. thread pool saturated), serve cache if any
+        throw e
     })
     if (cached)
         cached.lastCheck = now
-    if (cached && Number(ts) === Number(cached.ts))
-        return cached.parsed as T
-    const parsed = loader(path)
-    parseFileCache.set(path, { ts, parsed, lastCheck: now })
-    return parsed
+    if (cached && Number(stats.mtime) === Number(cached.stats.mtime))
+        return { stats, content: await cached.content } as CachedFile<Awaited<T>>
+    const content = Promise.resolve(loader(path))
+    parseFileCache.set(path, { stats, content, lastCheck: now })
+    return { stats, content: await content } as CachedFile<Awaited<T>>
 }
 
 export async function parseFile<T>(path: string, parse: (raw: Buffer) => T, skipStatIfFresherThan=0) {

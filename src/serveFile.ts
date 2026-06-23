@@ -74,12 +74,12 @@ const mimeCfg = defineConfig<Dict<string>, (name: string) => string | undefined>
 // after this number of seconds, the browser should check the server to see if there's a newer version of the file
 const cacheControlDiskFiles = defineConfig('cache_control_disk_files', 5)
 
-export async function serveFile(ctx: Koa.Context, source:string, mime?:string, content?: string | Buffer) {
-    if (!source)
+export async function serveFile(ctx: Koa.Context, filePath:string, mime?:string, cached?: { stats: Stats, content: string | Buffer }) {
+    if (!filePath)
         return
-    mime ??= mimeCfg.compiled()(basename(source))
+    mime ??= mimeCfg.compiled()(basename(filePath))
     if (mime === undefined || mime === MIME_AUTO)
-        mime = mimetypes.lookup(source) || ''
+        mime = mimetypes.lookup(filePath) || ''
     if (mime)
         ctx.type = mime
     if (ctx.method === 'OPTIONS') {
@@ -90,26 +90,26 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
     if (ctx.method !== 'GET')
         return ctx.status = HTTP_METHOD_NOT_ALLOWED
     try {
-        const stats = await promisify(stat)(source) // using fs's function instead of fs/promises, because only the former is supported by pkg
+        const stats = cached?.stats || await promisify(stat)(filePath) // using fs's function instead of fs/promises, because only the former is supported by pkg
         if (!stats.isFile())
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
         const t = stats.mtime.toUTCString()
         ctx.set('Last-Modified', t)
-        ctx.set('Etag', createHash('sha256').update(source).update(t).digest('hex'))
-        ctx.state.fileSource = source
+        ctx.set('Etag', createHash('sha256').update(filePath).update(t).digest('hex'))
+        ctx.state.fileSource = filePath
         ctx.state.fileStats = stats
         ctx.status = HTTP_OK
         if (ctx.fresh)
             return ctx.status = HTTP_NOT_MODIFIED
-        if (content !== undefined)
-            return ctx.body = content
+        if (cached)
+            return ctx.body = cached.content
         const cc = cacheControlDiskFiles.get()
         if (_.isNumber(cc))
             ctx.set('Cache-Control', `max-age=${cc}`)
         const { size } = stats
         const range = applyRange(ctx, size)
         if (ctx.status >= 400) return // applyRange may have set an error
-        ctx.body = createReadStream(source, range || undefined)
+        ctx.body = createReadStream(filePath, range || undefined)
         if (ctx.state.vfsNode)
             monitorAsDownload(ctx, size, range?.start)
     }
