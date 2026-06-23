@@ -7,7 +7,7 @@ import { GridColumnHeaderFilterIconButton, type ColumnHeaderFilterIconButtonProp
 import { Alert, Box, BoxProps, LinearProgress, useTheme } from '@mui/material'
 import type { Breakpoint } from '@mui/material/styles'
 import { createElement as h, type ElementType, Fragment, ReactNode, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { callable, Callback, Falsy, newDialog, onlyTruthy, useGetSize } from '@hfs/shared'
+import { callable, Callback, Falsy, newDialog, objFromKeys, onlyTruthy, useGetSize } from '@hfs/shared'
 import _ from 'lodash'
 import { Center, Flex, IconBtn, mergeSx } from './mui'
 import { Close, Delete, Search } from '@mui/icons-material'
@@ -134,6 +134,21 @@ export function DataTable({
         return fields
     }, [manipulatedColumns, width, quickFilter])
     const [vis, setVis] = useState(persist && state.dataTablePersistence[persist]?.columnVisibility || {})
+    const automaticColumnVisibility = useMemo(() => ({
+        ...objFromKeys(hideCols, () => false),
+        ...rest.columnVisibilityModel,
+    }), [hideCols, rest.columnVisibilityModel])
+    useEffect(() => {
+        if (!persist || !apiRef.current) return
+        // MUI replaces its reset baseline when columns change, so keep it anchored to automatic visibility
+        apiRef.current.setState(was => ({
+            ...was,
+            columns: {
+                ...was.columns,
+                initialColumnVisibilityModel: automaticColumnVisibility,
+            },
+        }))
+    }, [persist, automaticColumnVisibility])
 
     const displayingDetails = useRef<any>({})
     useEffect(() => {
@@ -274,6 +289,12 @@ export function DataTable({
                 })
             },
             onColumnVisibilityModelChange: vis => {
+                const reset = persist && _.isEqual(vis, apiRef.current?.store.getSnapshot().columns.initialColumnVisibilityModel)
+                if (reset) { // reset restores the persisted mount state, so discard it to restore automatic visibility
+                    setVis({})
+                    updateStateObject(state, 'dataTablePersistence', x => { delete x[persist] })
+                    return
+                }
                 setVis(vis)
                 if (!persist) return
                 updateStateObject(state, 'dataTablePersistence', x => {
@@ -283,8 +304,7 @@ export function DataTable({
                 })
             },
             columnVisibilityModel: {
-                ...Object.fromEntries(hideCols.map(x => [x, false])),
-                ...rest.columnVisibilityModel,
+                ...automaticColumnVisibility,
                 ...vis,
             }
         })
