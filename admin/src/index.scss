@@ -49,7 +49,7 @@ div.MuiTreeItem-content {
   display: flex;
   align-items: center;
 }
-.MuiDataGrid-filterForm { flex-wrap: wrap; justify-content: space-evenly; row-gap: 1em; } // fit on mobile
+.MuiDataGrid-filterForm { flex-wrap: wrap; row-gap: 1em; justify-content: flex-end; } // fit on mobile
 
 .wrap[role=cell] { white-space: normal !important }
 
