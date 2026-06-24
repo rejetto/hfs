@@ -78,6 +78,14 @@ export function ArrayField<T extends object>({
                         showLastButton: true,
                     }
                 },
+                onCellDoubleClick({ field, row }: any, ev: any) {
+                    const f = callable(fields, false).find((x: any) => !isValidElement(x) && x.k === field && x.$type === 'boolean')
+                    if (!f) return
+                    const $idx = row.$idx ?? row.id
+                    const v = row[field]
+                    const newValue = !(f.toField || _.identity)(v)
+                    updateRec($idx, { ...valueA[$idx], [field]: (f.fromField || _.identity)(newValue, { originalValue: v }) }, ev)
+                },
                 columns: [
                     ...callable(fields, false).map(f => {
                         if (isValidElement(f)) return
