@@ -165,8 +165,15 @@ export async function createSafeWriteStream(path: string, options?: Parameters<t
 }
 
 export function isValidFileName(name: string, acceptUnreadable=false) {
-    return name && name !== '.' && !(IS_WINDOWS ? /[/:"*?<>|\\]/ : /\//).test(name) && !hasDirTraversal(name)
+    return name && name !== '.' && !(IS_WINDOWS ? !isValidWindowsFileName(name) : /\//.test(name)) && !hasDirTraversal(name)
         && (acceptUnreadable || !/[\u0000-\u001F\u007F]/.test(name))
+}
+
+export function isValidWindowsFileName(name: string) {
+    return !/[/:"*?<>|\\]/.test(name)
+        && !/[. ]$/.test(name)
+        // windows treats these legacy DOS device names as device paths even when an extension is present
+        && !/^(?:con|prn|aux|nul|conin\$|conout\$|com[1-9\u00b9\u00b2\u00b3]|lpt[1-9\u00b9\u00b2\u00b3])(?:\..*)?$/i.test(name)
 }
 
 export function exists(path: string) {
