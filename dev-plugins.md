@@ -795,6 +795,7 @@ This section is still partially documented, and you may need to have a look at t
   - return: callback to call when upload is finished
 - `uploadFinished`
   - parameters: { ctx, uri, fullPath, writeStream }
+  - if you change the file, you are responsible to update `uri` and `fullPath` of the object parameter.
 - `publicIpsChanged`
   - parameters: { IPs, IP4, IP6, IPX }
 - `newSocket`
