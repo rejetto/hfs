@@ -339,7 +339,7 @@ export function Country({ code, ip, def, long, short }: { code: string, ip?: str
             h(Box as any, {
                 className: `fflag fflag-${code.toUpperCase()}`,
                 component: 'span',
-                sx: { mr: 1, verticalAlign: 'text-bottom' },
+                sx: { mr: '.5em', verticalAlign: 'text-bottom' },
             }),
             long ? country.name + prefix(' (', short && code, ')') : code
         ) )
