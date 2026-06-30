@@ -9,6 +9,7 @@ import { state, useSnapState } from './state'
 import { acceptDropFiles } from './upload'
 import { enqueueUpload, getFilePath, uploadState } from './uploadQueue'
 import { proxy, ref, useSnapshot } from "valtio"
+import _ from 'lodash'
 import { CustomCode, Spinner } from "./components"
 import { useAuthorized } from './login'
 import { enforceStarting, getHFS, getPrefixUrl, loadScript } from '@hfs/shared'
@@ -73,7 +74,10 @@ document.addEventListener('readystatechange', () => {
 
 // load plugins' now, as vite-legacy delayed app's loading
 ;(async () => { // without this wrapper I see a longer delay
-    for (const [plugin, files] of Object.entries(getHFS().loadScripts))
-        if (Array.isArray(files)) for (const f of files)
-            await loadScript(f, { plugin })
+    const loadScripts = getHFS().loadScripts
+    for (const batch of Object.values(_.groupBy(loadScripts, 'group')))
+        await Promise.all(batch.map(async plugin => {
+            for (const url of plugin.js)
+                await loadScript(url, { plugin: plugin.id })
+        }))
 })()
