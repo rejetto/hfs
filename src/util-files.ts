@@ -100,6 +100,8 @@ export async function unzip(stream: Readable, cb: (path: string) => Promisable<f
             .on('entry', (entry: any) =>
                 chain = chain.then(async () => {
                     const { path, type } = entry
+                    if (hasDirTraversal(path))
+                        return entry.autodrain().promise()
                     const dest = await try_(() => cb(path), e => console.warn(String(e)))
                     if (!dest || type !== 'File')
                         return entry.autodrain().promise()
