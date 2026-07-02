@@ -652,6 +652,27 @@ describe('webdav', () => {
             }
         }
     })
+    test('webdav.move rename cannot traverse out of root', async () => {
+        const name = `wd-move-trav-${randomId(6)}.txt`
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        const escapedName = `wd-escaped-${randomId(6)}.txt`
+        const traversal = `../../${escapedName}` // climbs above the upload node's source
+        // encode as a single path segment so dirname(dest) still matches dirname(path) and we hit the rename branch
+        const destination = `${BASE_URL}${UPLOAD_ROOT}${UPLOAD_DIR}/${encodeURIComponent(traversal)}`
+        const escapedDiskPath = resolve(ROOT, UPLOAD_DIR, traversal)
+        let destPath = ''
+        try {
+            destPath = await webdavUpload(uri, x => x?.uri === uri, 'test')()
+            await req(uri, 400, { method: 'MOVE', auth, jar, headers: { destination, overwrite: 'F', 'user-agent': WEBDAV_UA } })()
+            if (await access(escapedDiskPath).then(() => true, () => false))
+                throw "file escaped the VFS root"
+            await req(uri, 200, { auth })() // source must still be there, untouched
+        }
+        finally {
+            await rmAny(escapedDiskPath)
+            await rmAny(destPath)
+        }
+    })
     test('webdav.proppatch accepts dead properties as no-op', async () => {
         const name = `wd-proppatch-${randomId(6)}.txt`
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`

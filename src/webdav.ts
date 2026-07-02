@@ -217,10 +217,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         if (dirname(path) === dirname(dest)) // rename case. `path` is is encoded, so we test before decoding `dest`
             try {
                 // decode the single path segment so reserved chars like %2C become their real name on rename
-                const newName = safeDecodeURIComponent(basename(dest), '')
-                if (!newName)
-                    return ctx.status = HTTP_BAD_REQUEST
-                await requestedRename(node, newName, ctx)
+                await requestedRename(node, safeDecodeURIComponent(basename(dest), ''), ctx)
                 releaseWebdavLock(path) // RFC 4918 says MOVE must not carry locks to destination, so clear source lock on success
                 return ctx.status = HTTP_CREATED
             }

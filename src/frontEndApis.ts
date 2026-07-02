@@ -201,35 +201,32 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
 export async function requestedRename(node: VfsNode | undefined, newName: string, ctx: Koa.Context) {
     if (!node)
         throw new ApiError(HTTP_NOT_FOUND)
+    // requestedRename is exported, so keep disk rename confinement here even when callers pre-validate
+    if (!isValidFileName(newName))
+        throw new ApiError(HTTP_BAD_REQUEST)
     if (statusCodeForMissingPerm(node, 'can_delete', ctx))
-        return new ApiError(ctx.status)
-    try {
-        if (node.name) // virtual name = virtual rename
-            node.name = newName
-        else {
-            if (!node.source)
-                throw new ApiError(HTTP_FAILED_DEPENDENCY)
-            const destNode = await urlToNode(pathEncode(newName), ctx, node.parent)
-            if (destNode && statusCodeForMissingPerm(destNode, 'can_delete', ctx)) // if destination exists, you need delete permission
-                return new ApiError(ctx.status)
-            try {
-                const destSource = join(dirname(node.source), newName)
-                await rename(node.source, destSource)
-                await moveStoredFileAttrs(node.source, destSource)
-                getCommentFor(node.source).then(c => {
-                    if (!c) return
-                    void setCommentFor(node.source!, '')
-                    void setCommentFor(destSource, c)
-                })
-                return {}
-            }
-            catch (e: any) {
-                return new ApiError(HTTP_SERVER_ERROR, e)
-            }
+        throw new ApiError(ctx.status)
+    if (node.name) // virtual name = virtual rename
+        node.name = newName
+    else {
+        if (!node.source)
+            throw new ApiError(HTTP_FAILED_DEPENDENCY)
+        const destNode = await urlToNode(pathEncode(newName), ctx, node.parent)
+        if (destNode && statusCodeForMissingPerm(destNode, 'can_delete', ctx)) // if destination exists, you need delete permission
+            throw new ApiError(ctx.status)
+        try {
+            const destSource = join(dirname(node.source), newName)
+            await rename(node.source, destSource)
+            await moveStoredFileAttrs(node.source, destSource)
+            getCommentFor(node.source).then(c => {
+                if (!c) return
+                void setCommentFor(node.source!, '')
+                void setCommentFor(destSource, c)
+            })
+            return {}
         }
-        return
-    }
-    catch (e: any) {
-        throw new ApiError(HTTP_SERVER_ERROR, e)
+        catch (e: any) {
+            throw new ApiError(HTTP_SERVER_ERROR, e)
+        }
     }
 }
