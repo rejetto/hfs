@@ -41,8 +41,8 @@ export const Paging = memo(({ nPages, current, pageSize, list, changePage, chang
     const from = _.floor(current, -1)
     const to = from + 10
     const snap = useSnapState()
-    const showAlphabet = snap.sort_by === 'name' && !snap.invert_order
-    const alphabetGroups = useMemo(() => showAlphabet ? getAlphabetGroups(list) : [], [list, showAlphabet])
+    const alphabetGroups = useMemo(() => snap.sort_by === 'name' ? getAlphabetGroups(list, snap.invert_order) : [],
+        [list, snap.sort_by, snap.invert_order])
     useEffect(() => {
         if (!alphabetGroups.length)
             setAlphabetOpen(false)
@@ -118,28 +118,25 @@ function AlphabetPaging({ groups, open, toggleOpen, close, changePage }: Alphabe
     )
 }
 
-function getAlphabetGroups(list: DirEntry[]) {
+function getAlphabetGroups(list: DirEntry[], invertOrder: boolean) {
     const groups: AlphabetGroup[] = []
     const seen = new Set<string>()
     list.forEach((entry, index) => {
-        const label = getAlphabetGroup(entry.name)
+        const first = Array.from(entry.name.trim())[0] || ''
+        if (!first) return
+        const latin = first.normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase()
+        const upper = first.toLocaleUpperCase()
+        const label = /^[A-Z]$/.test(latin) ? latin
+            : /\p{Letter}/u.test(upper) ? upper
+            : ''
         if (!label) return
         if (seen.has(label)) return
         seen.add(label)
         groups.push({ label, index })
     })
     // the list order can include non-letter entries and custom filename collation; the index stays tied to the first real entry
-    return groups.length > 1 ? groups.sort((a, b) => getHFS().textSortCompare(a.label, b.label)) : []
-}
-
-function getAlphabetGroup(name: string) {
-    const first = Array.from(name.trim())[0] || ''
-    if (!first) return ''
-    const latin = first.normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase()
-    if (/^[A-Z]$/.test(latin))
-        return latin
-    const upper = first.toLocaleUpperCase()
-    return /\p{Letter}/u.test(upper) ? upper : ''
+    const order = invertOrder ? -1 : 1
+    return groups.length > 1 ? groups.sort((a, b) => order * getHFS().textSortCompare(a.label, b.label)) : []
 }
 
 export function scrollIntoView(el: Element | undefined | null, block: ScrollLogicalPosition) {
