@@ -251,7 +251,6 @@ function FilesList() {
             atBottom,
             pageSize,
             list: theList as DirEntry[],
-            showAlphabet: snap.sort_by === 'name' && !snap.invert_order,
             changePage,
             changePageToIndex,
         })

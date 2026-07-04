@@ -2,7 +2,7 @@
 
 import { createElement as h, memo, useEffect, useMemo, useRef, useState } from 'react'
 import _ from 'lodash'
-import { DirEntry } from './state'
+import { DirEntry, useSnapState } from './state'
 import { domOn, getHFS, hIcon } from './misc'
 import i18n from './i18n'
 const { t } = i18n
@@ -15,7 +15,6 @@ interface PagingProps {
     atBottom: boolean
     pageSize: number
     list: DirEntry[]
-    showAlphabet: boolean
     changePage: (newPage:number, goBottom?:boolean) => void
     changePageToIndex: (entryIndex: number) => void
 }
@@ -25,7 +24,7 @@ interface AlphabetGroup {
     index: number
 }
 
-export const Paging = memo(({ nPages, current, pageSize, list, showAlphabet, changePage, changePageToIndex, atBottom }: PagingProps) => {
+export const Paging = memo(({ nPages, current, pageSize, list, changePage, changePageToIndex, atBottom }: PagingProps) => {
     const [alphabetOpen, setAlphabetOpen] = useState(false)
     useEffect(() => {
         document.body.style.overflowY = 'scroll'
@@ -41,6 +40,8 @@ export const Paging = memo(({ nPages, current, pageSize, list, showAlphabet, cha
     const shrink = nPages > 20
     const from = _.floor(current, -1)
     const to = from + 10
+    const snap = useSnapState()
+    const showAlphabet = snap.sort_by === 'name' && !snap.invert_order
     const alphabetGroups = useMemo(() => showAlphabet ? getAlphabetGroups(list) : [], [list, showAlphabet])
     useEffect(() => {
         if (!alphabetGroups.length)
@@ -69,7 +70,7 @@ export const Paging = memo(({ nPages, current, pageSize, list, showAlphabet, cha
             className: atBottom ? 'toggled' : undefined,
             onClick(){ changePage(nPages-1, true) }
         }, hIcon('to_end')),
-        Boolean(alphabetGroups.length) && h(AlphabetPaging, {
+        alphabetGroups.length > 0 && h(AlphabetPaging, {
             groups: alphabetGroups,
             open: alphabetOpen,
             toggleOpen: () => setAlphabetOpen(x => !x),
