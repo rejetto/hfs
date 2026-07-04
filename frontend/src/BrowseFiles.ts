@@ -89,16 +89,21 @@ function usePagedFilesList() {
     const pageSize = Math.max(1, Math.floor(snap.page_size ?? 100))
     const [offset, setOffset] = useState(0)
     const [extraPages, setExtraPages] = useState(0)
+    const [scrollTarget, setScrollTarget] = useState<{ index: number }>()
     const [scrolledPages, setScrolledPages] = useState(0)
     const [atBottom, setAtBottom] = useState(false)
     const theList = snap.filteredList || snap.list
     const total = theList.length
     const nPages = Math.ceil(total / pageSize)
     const page = Math.floor(offset / pageSize)
-    const pageEnd = offset + pageSize * (1+extraPages) - 1
+    // alphabet jumps need content after the target, or the browser clamps it to the bottom of the viewport
+    const pageEnd = Math.max(offset + pageSize * (1+extraPages) - 1, scrollTarget ? scrollTarget.index + pageSize - 1 : -1)
     const thisPage = theList.slice(offset, pageEnd + 1)
 
-    useEffect(() => setOffset(0), [theList[0]]) // reset page if the list changes
+    useEffect(() => {
+        setOffset(0)
+        setScrollTarget(undefined)
+    }, [theList[0]]) // reset page if the list changes
     // reset scrolling if the page changes
     useEffect(() => {
         document.scrollingElement?.scrollTo(0, 0)
@@ -228,6 +233,7 @@ function usePagedFilesList() {
     }, [goBottom])
     const changePage = useCallback((i: number, pleaseGoBottom?: boolean) => {
         setFocus('')
+        setScrollTarget(undefined)
         if (pleaseGoBottom)
             setGoBottom(true)
         if (i < page || i > page + extraPages)
@@ -239,9 +245,14 @@ function usePagedFilesList() {
     }, [page, extraPages, pageSize])
     const changePageToIndex = useCallback((i: number) => {
         setFocus('')
-        // alphabetical paging is entry-anchored, so the chosen group starts at the top instead of at the numeric page boundary
-        setOffset(i)
+        setOffset(0)
+        setScrollTarget({ index: i })
     }, [])
+    useEffect(() => {
+        if (!scrollTarget) return
+        // the target is rendered after state settles, otherwise alphabet would truncate the list before the jump point
+        scrollIntoView(ref.current?.querySelector(`[data-index="${scrollTarget.index}"]`), 'start')
+    }, [scrollTarget])
 
     const {t} = useI18N()
 
@@ -259,6 +270,7 @@ function usePagedFilesList() {
                     h(Entry, {
                         key: entry.key || entry.n,
                         midnight,
+                        index: offset + idx,
                         separator: idx > 0 && !(idx % pageSize) ? String(offset + idx) : undefined,
                         entry,
                     })),
@@ -294,8 +306,8 @@ export function useMidnight() {
     }
 }
 
-interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
-const Entry = ({ entry, midnight, separator }: EntryProps) => {
+interface EntryProps { entry: DirEntry, midnight: Date, index: number, separator?: string }
+const Entry = ({ entry, midnight, index, separator }: EntryProps) => {
     const { uri, isFolder, name, n } = entry
     const { showFilter, selected, file_menu_on_link } = useSnapState()
     const isLink = Boolean(entry.url)
@@ -321,7 +333,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
     return h(CustomCode, {
         name: 'entry',
         entry,
-        render: x => x ? h('li', { className, label: separator }, x) : _.remove(state.list, { n }) && null // custom-code wants us to skip this entry
+        render: x => x ? h('li', { className, label: separator, 'data-index': index }, x) : _.remove(state.list, { n }) && null // custom-code wants us to skip this entry
     },
         showFilter && h(Checkbox, {
             disabled: !entry.canSelect(),
