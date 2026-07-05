@@ -1,10 +1,13 @@
-import { DataGrid, DataGridProps, enUS, getGridStringOperators, GridColDef, GridFooter, GridFooterContainer,
-    GridValidRowModel, useGridApiRef, GridRenderCellParams } from '@mui/x-data-grid'
-import { Alert, Box, BoxProps, Breakpoint, LinearProgress, useTheme } from '@mui/material'
-import { createElement as h, Fragment, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { DataGrid, DataGridProps, getGridStringOperators, GridColDef, GridFooter, GridFooterContainer,
+    GridValidRowModel, useGridApiRef, GridRenderCellParams, QuickFilter, QuickFilterControl } from '@mui/x-data-grid'
+import { enUS } from '@mui/x-data-grid/locales'
+import { Alert, Box, BoxProps, LinearProgress, useTheme } from '@mui/material'
+import type { Breakpoint } from '@mui/material/styles'
+import { createElement as h, type ElementType, Fragment, ReactNode, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { callable, Callback, Falsy, newDialog, onlyTruthy, useGetSize } from '@hfs/shared'
 import _ from 'lodash'
-import { Center, Flex } from './mui'
+import { Center, Flex, IconBtn, mergeSx } from './mui'
+import { Search } from '@mui/icons-material'
 import { SxProps } from '@mui/system'
 import { state, updateStateObject } from './state'
 import { useDebounce } from 'usehooks-ts'
@@ -22,6 +25,8 @@ export type DataTableColumn<R extends GridValidRowModel=any> = GridColDef<R> & {
 export interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridProps<R>, 'columns'> {
     columns: Array<DataTableColumn<R> | Falsy>
     actions?: ({ row, id }: any) => ReactNode[]
+    actionsHeader?: ReactNode | Callback<any, ReactNode>
+    quickFilter?: boolean
     actionsProps?: Partial<GridColDef<R>> & { hideUnder?: Breakpoint | number }
     initializing?: boolean
     noRows?: ReactNode
@@ -32,10 +37,14 @@ export interface DataTableProps<R extends GridValidRowModel=any> extends Omit<Da
     persist?: string
     details?: boolean
 }
-export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, footerSide, fillFlex, persist, details, ...rest }: DataTableProps) {
+export function DataTable({
+    columns, initialState={}, actions, actionsHeader, actionsProps, initializing, noRows, error, compact, footerSide, fillFlex,
+    persist, details, quickFilter, slots, slotProps, ...rest
+}: DataTableProps) {
     const theme = useTheme()
     const apiRef = useGridApiRef()
     const [actionsLength, setActionsLength] = useState(0)
+    const [quickFilterOpen, setQuickFilterOpen] = useState(false)
     const [merged, setMerged] = useState(0)
     const manipulatedColumns = useMemo(() => {
         const { localeText } = enUS.components.MuiDataGrid.defaultProps as any
@@ -52,10 +61,6 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                             const res = op.getApplyFilterFn(item, col)
                             return res && _.negate(res)
                         },
-                        ...op.getApplyFilterFnV7 && { getApplyFilterFnV7(item, col) {
-                            const res = op.getApplyFilterFnV7?.(item, col)
-                            return res ? _.negate(res) : null
-                        } },
                         label: "(not) " + (localeText['filterOperator' + _.upperFirst(op.value)] || op.value)
                     } satisfies typeof op
                 ])
@@ -66,13 +71,15 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                 originalRenderCell: col.renderCell || true,
                 renderCell(params: GridRenderCellParams) {
                     const { columns } = params.api.store.getSnapshot()
-                    return h(Box, { maxHeight: '100%', ...col.cellInnerProps, sx: { textWrap: 'wrap', ...callable(sx as any, params) } }, // wrap if necessary, but stay within the row
+                    return h(Box, { ...col.cellInnerProps, sx: { maxHeight: '100%', textWrap: 'wrap', lineHeight: '1.2em', ...callable(sx as any, params) } }, // wrap if necessary, but stay within the row
                         col.renderCell ? col.renderCell(params) : params.formattedValue,
                         col.mergeRender && h(Flex, { fontSize: 'smaller', flexWrap: 'wrap', mt: '1px', rowGap: 0, ...col.mergeRenderSx }, // wrap, normally causing overflow/hiding, if it doesn't fit
                             ...onlyTruthy(_.map(col.mergeRender, (props, other) => {
                                 if (!props || columns.columnVisibilityModel[other] !== false) return null
                                 const rendered = renderCell({ ...columns.lookup[other], ...props.override }, params.row)
-                                return rendered && h(Box, { ...props, ...{ override: undefined }, ...compact && { lineHeight: '1em' } }, rendered)
+                                // keep mergeRender permissive for editor autocomplete, then narrow only at the render boundary
+                                const { override, sx, ...boxProps } = props
+                                return rendered && h(Box as any, { ...boxProps, sx: mergeSx(sx, compact && { lineHeight: '1em' }) }, rendered)
                             }))
                         )
                     )
@@ -86,29 +93,33 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                 headerName: '',
                 align: 'center',
                 headerAlign: 'center',
+                sortable: false,
                 hideSortIcons: true,
                 disableColumnMenu: true,
                 renderCell(params: any) {
                     const ret = actions({ ...params.row, ...params })
                     setTimeout(() => setActionsLength(ret.length)) // cannot update state during rendering
-                    return h(Box, { whiteSpace: 'nowrap' }, ...ret)
+                    return h(Box, { sx: { whiteSpace: 'nowrap' } }, ...ret)
                 },
-                ...actionsProps
+                ...actionsProps,
+                renderHeader: quickFilter || actionsHeader ? renderActionsHeader : actionsProps?.renderHeader,
             })
         return ret
-    }, [columns, actions, actionsLength])
+    }, [columns, actions, actionsHeader, actionsLength, actionsProps, quickFilter])
     const sizeGrid = useGetSize()
-    const width = useDebounce(sizeGrid.w || 0, 500) // stabilize width
+    const width = useDebounce(sizeGrid.w || 0, 100) // stabilize width
     const hideCols = useMemo(() => {
         const fields = onlyTruthy(manipulatedColumns.map(({ field, hideUnder }) =>
             (hideUnder === true || hideUnder && width < (typeof hideUnder === 'number' ? hideUnder : theme.breakpoints.values[hideUnder]))
             && field))
         const o = Object.fromEntries(fields.map(x => [x, false]))
         _.merge(initialState, { columns: { columnVisibilityModel: o } })
+        if (quickFilter)
+            _.merge(initialState, { filter: { filterModel: { quickFilterExcludeHiddenColumns: false } } })
         // count the hidden columns that are merged into visible columns
         setMerged(_.sumBy(fields, k => _.find(columns, col => col && !fields.includes(col.field) && col.mergeRender?.[k]) ? 1 : 0))
         return fields
-    }, [manipulatedColumns, width])
+    }, [manipulatedColumns, width, quickFilter])
     const [vis, setVis] = useState(persist && state.dataTablePersistence[persist]?.columnVisibility || {})
 
     const displayingDetails = useRef<any>({})
@@ -131,7 +142,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
 
     return h(Fragment, {},
         error && h(Alert, { severity: 'error' }, error),
-        initializing && h(Box, { position: 'relative' },
+        initializing && h(Box, { sx: { position: 'relative' } },
             h(LinearProgress, { // differently from "loading", this is not blocking user interaction
                 sx: { position: 'absolute', width: 'calc(100% - 2px)', borderRadius: 1, m: '1px 1px' }
             }) ),
@@ -144,30 +155,36 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             disableRowSelectionOnClick: true,
             ref: sizeGrid.refToPass,
             ...rest,
-            sx: {
+            ...quickFilter && { showToolbar: quickFilterOpen || rest.showToolbar },
+            sx: mergeSx({
                 ...fillFlex && { height: 0, flex: 'auto' }, // limit table to available screen space, if parent is flex. Consider using fillFlexParentSx
                 '& .MuiDataGrid-virtualScroller': { minHeight: '3em' }, // without this, no-entries gets just 1px
                 '& .MuiTablePagination-root': { scrollbarWidth: 'none'},
-                ...rest.sx,
-            },
+            }, rest.sx),
             slots: {
-                noRowsOverlay: () => initializing ? null : h(Center, {}, noRows || "No entries"),
                 footer: CustomFooter,
-            },
+                noRowsOverlay: NoRowsOverlay,
+                ...slots,
+                ...quickFilterOpen && { toolbar: DataTableQuickFilterToolbar as any }
+            } as any,
             slotProps: {
-                footer: { add: wrappedFooterSide } as any, // 'add' is introduced by CustomFooter
+                ...slotProps,
+                ...quickFilterOpen && { toolbar: { ...(slotProps as any)?.toolbar, onExpandedChange: setQuickFilterOpen } },
+                footer: { ...(slotProps as any)?.footer, add: wrappedFooterSide },
+                noRowsOverlay: { ...(slotProps as any)?.noRowsOverlay, initializing, noRows },
                 pagination: {
                     labelRowsPerPage: "Rows",
                     ...!causingScrolling && {
                         showFirstButton: true,
                         showLastButton: true,
-                    }
+                    },
+                    ...(slotProps as any)?.pagination,
                 },
             },
             onCellClick({ field, row }) {
                 if (field === ACTIONS || details === false) return
                 if (window.getSelection()?.type === 'Range') return // not a click but a drag
-                const visibleInList = merged + apiRef.current.getVisibleColumns().length
+                const visibleInList = merged + (apiRef.current?.getVisibleColumns().length || 0)
                 const showInDialog = manipulatedColumns.filter(x =>
                     !x.dialogHidden && (x.renderCell || x.valueGetter || x.field === ACTIONS || row[x.field] !== undefined))
                 if (showInDialog.length <= visibleInList) return // no need for dialog
@@ -184,13 +201,17 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                         const rowToShow = keepRow.current
                         displayingDetails.current = { id: rowToShow.id, setCurRow }
                         return h(Box, {
-                            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(8em,1fr))', gap: '1em',
-                            gridAutoFlow: 'dense',
-                            minWidth: 'max(16em, 40vw)',
-                            sx: { opacity: curRow ? undefined : .5 },
+                            sx: {
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(8em,1fr))',
+                                gap: '1em',
+                                gridAutoFlow: 'dense',
+                                minWidth: 'max(16em, 40vw)',
+                                opacity: curRow ? undefined : .5,
+                            },
                         }, showInDialog.map(col =>
-                            h(Box, { key: col.field, gridColumn: col.flex! >= 1 ? '1/-1' : undefined },
-                                h(Box, { bgcolor: '#0003', p: 1 }, col.headerName || col.field),
+                            h(Box, { key: col.field, sx: { gridColumn: col.flex! >= 1 ? '1/-1' : undefined } },
+                                h(Box, { sx: { bgcolor: '#0003', p: 1 } }, col.headerName || col.field),
                                 h(Flex, { minHeight: '2.5em', px: 1, wordBreak: 'break-word', flexWrap: 'wrap' },
                                     renderCell(col, rowToShow) )
                             ) ))
@@ -214,20 +235,60 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         })
     )
 
+    function renderActionsHeader(params: any) {
+        return h(Box, { sx: { display: 'flex', width: '100%', justifyContent: 'center' }, onClick: stopPropagation, onKeyDown: stopPropagation },
+            actionsHeader !== undefined ? callable(actionsHeader, params) : actionsProps?.renderHeader?.(params),
+            quickFilter && h(IconBtn, { icon: Search, title: "Search", size: 'small', onClick: () => setQuickFilterOpen(true) }))
+
+        function stopPropagation(ev: SyntheticEvent) {
+            // prevent header controls from triggering grid sorting or column interactions
+            ev.stopPropagation()
+        }
+    }
+
     function renderCell(col: GridColDef, row: any) {
         const api = apiRef.current
         let value = row[col.field]
-        if (col.valueGetter)
-            value = col.valueGetter({ value, api, row, field: col.field, id: row.id } as any)
+        if (col.valueGetter) // @ts-ignore
+            value = col.valueGetter(value, row, col, api)
         const render = (col as any).originalRenderCell || col.renderCell
         return render && render !== true ? render({ value, row, api, ...row })
-            : col.valueFormatter ? col.valueFormatter({ value, ...row })
+            // @ts-ignore
+            : col.valueFormatter ? col.valueFormatter(value, row, col, api)
                 : value
     }
 }
 
-function CustomFooter({ add, ...props }: { add: ReactNode }) {
-    return h(GridFooterContainer, props, h(Box, { ml: { sm: 1 } }, add), h(GridFooter, { sx: { border: 'none' } }))
+function DataTableQuickFilterToolbar({ onExpandedChange }: {
+    onExpandedChange?: (expanded: boolean) => void
+}) {
+    const inputRef = useRef<HTMLInputElement>(null)
+    useEffect(() => {
+        // focus after mount because the toolbar is created only after the header search button is pressed
+        requestAnimationFrame(() => inputRef.current?.focus())
+    }, [])
+    return h(Box, {
+        sx: {
+            p: '4px 8px',
+            '.MuiFormControl-root': { width: '100%' },
+            '.MuiInputBase-root': { height: 36 },
+            '.MuiInputAdornment-positionStart': {
+                // MUI filled inputs reserve label space for adornments, but this toolbar field has no label
+                mt: '3px !important',
+            },
+            '.MuiInputBase-input': { pt: '7px', pb: '6px' },
+        }
+    },
+        h(QuickFilter, { expanded: true, debounceMs: 300, onExpandedChange },
+            h(QuickFilterControl as ElementType, { fullWidth: true, inputRef, size: 'small', placeholder: "Search" })))
+}
+
+function CustomFooter({ add, ...props }: { add?: ReactNode }) {
+    return h(GridFooterContainer, props, h(Box, { sx: { ml: { sm: 1 } } }, add), h(GridFooter, { sx: { border: 'none' } }))
+}
+
+function NoRowsOverlay({ initializing, noRows }: { initializing?: boolean, noRows?: ReactNode }) {
+    return initializing ? null : h(Center, {}, noRows || "No entries")
 }
 
 // required in case of fillFlex:true

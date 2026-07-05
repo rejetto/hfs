@@ -43,7 +43,7 @@ export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRec
         let n = 0
         let last: DirStreamEntry | undefined
 
-        const res = (await events.emitAsync('listDiskFolder', { path: base, ctx }))?.[0] // consider only first result
+        const res = (await events.emitAsync('listDiskFolder', { path: base, ctx, hidden }))?.[0] // consider only first result
         const pluginReceiver = _.isFunction(res) && res || null
         const pluginIterator = _.isFunction(res?.[Symbol.asyncIterator] || res?.[Symbol.iterator]) && res as Dir
 
@@ -62,7 +62,13 @@ export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRec
                 work(Object.assign(Object.create(direntMethods), {
                     isDir: f.IS_DIRECTORY,
                     name: f.LONG_NAME,
-                    stats: { size: f.SIZE, birthtime: f.CREATION_TIME, mtime: f.LAST_WRITE_TIME } as Stats
+                    stats: {
+                        size: f.SIZE,
+                        birthtime: f.CREATION_TIME, birthtimeMs: f.CREATION_TIME.getTime(),
+                        mtime: f.LAST_WRITE_TIME, mtimeMs: f.LAST_WRITE_TIME.getTime(),
+                        isFile: () => !f.IS_DIRECTORY,
+                        isDirectory: () => f.IS_DIRECTORY,
+                    } as Stats
                 }))
             }, true))
         }

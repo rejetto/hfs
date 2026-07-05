@@ -1,17 +1,16 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { access, mkdir, readFile, stat } from 'fs/promises'
+import { access, chmod, mkdir, readFile, stat } from 'fs/promises'
 import { Promisable, try_, wait, isWindowsDrive, haveTimeout } from './cross'
 import { defineConfig } from './config'
-import { createWriteStream, mkdirSync, watch, ftruncate } from 'fs'
+import { createWriteStream, mkdirSync, watch, ftruncate, Stats } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
 import { finished } from 'stream/promises'
 import { Readable } from 'stream'
 import { getStatWorker } from './stat'
-// @ts-ignore
-import unzipper from 'unzip-stream'
+import unzipper from 'unzipper'
 
 const fileTimeout = defineConfig('file_timeout', 3, x => x * 1000)
 // a smart (and a bit arbitrary) way to decide if we need the stat-workers functionality. Without it, we may be a bit faster. We'll see with experience if we need a dedicated configuration.
@@ -92,22 +91,34 @@ export function escapeGlobPath(path: string) {
 }
 
 export async function unzip(stream: Readable, cb: (path: string) => Promisable<false | string>) {
+    const extracted = new Map<string, string>()
     let chain: Promise<any> = Promise.resolve()
     return new Promise((resolve, reject) =>
         stream.pipe(unzipper.Parse())
-            .on('end', () => chain.then(resolve))
+            .on('close', () => chain.then(resolve, reject))
             .on('error', reject)
             .on('entry', (entry: any) =>
-                chain = chain.then(async () => { // don't overlap writings
+                chain = chain.then(async () => {
                     const { path, type } = entry
+                    if (hasDirTraversal(path))
+                        return entry.autodrain().promise()
                     const dest = await try_(() => cb(path), e => console.warn(String(e)))
                     if (!dest || type !== 'File')
-                        return entry.autodrain()
+                        return entry.autodrain().promise()
+                    extracted.set(path, dest)
                     console.debug('Unzip', dest)
+                    // keep writes serialized so archive entries can't race while callers map paths asynchronously
                     const thisFile = entry.pipe(await createSafeWriteStream(dest))
                     await finished(thisFile)
-                }) )
-    )
+                }))
+            // unix modes live in the central directory, so we reapply them after the file stream has been written
+            .on('entryInCentral', (entry: any) =>
+                chain = chain.then(async () => {
+                    if (entry.type !== 'File') return
+                    const dest = extracted.get(entry.path)
+                    if (dest && entry.unixAttrs)
+                        await chmod(dest, entry.unixAttrs).catch(() => {})
+                })) )
 }
 
 export async function ensureParentFolder(path: string, dirnameIt=true) {
@@ -156,8 +167,15 @@ export async function createSafeWriteStream(path: string, options?: Parameters<t
 }
 
 export function isValidFileName(name: string, acceptUnreadable=false) {
-    return name && name !== '.' && !(IS_WINDOWS ? /[/:"*?<>|\\]/ : /\//).test(name) && !hasDirTraversal(name)
+    return name && name !== '.' && !(IS_WINDOWS ? !isValidWindowsFileName(name) : /\//.test(name)) && !hasDirTraversal(name)
         && (acceptUnreadable || !/[\u0000-\u001F\u007F]/.test(name))
+}
+
+export function isValidWindowsFileName(name: string) {
+    return !/[/:"*?<>|\\]/.test(name)
+        && !/[. ]$/.test(name)
+        // windows treats these legacy DOS device names as device paths even when an extension is present
+        && !/^(?:con|prn|aux|nul|conin\$|conout\$|com[1-9\u00b9\u00b2\u00b3]|lpt[1-9\u00b9\u00b2\u00b3])(?:\..*)?$/i.test(name)
 }
 
 export function exists(path: string) {
@@ -165,21 +183,27 @@ export function exists(path: string) {
 }
 
 // parse a file, caching unless timestamp has changed
-export const parseFileCache = new Map<string, { ts: Date, parsed: unknown }>()
-export async function loadFileCached<T>(path: string, loader: (path: string) => T) {
+export interface CachedFile<T> { stats: Stats, content: T }
+export const parseFileCache = new Map<string, { stats: Stats, lastCheck: number, content: Promise<unknown> }>()
+export async function loadFileCached<T>(path: string, loader: (path: string) => T, minInterval=0) {
     const cached = parseFileCache.get(path)
-    const ts = await statWithTimeout(path).then(x => x.mtime, e => {
-        if (e?.message !== 'timeout')
-            throw e
-        return cached?.ts || new Date(0) // on timeout (e.g. thread pool saturated), serve cache if any, or attempt the loader
+    const now = Date.now()
+    if (cached && now - cached.lastCheck < minInterval)
+        return { stats: cached.stats, content: await cached.content } as CachedFile<Awaited<T>>
+    const stats = await statWithTimeout(path).catch(e => {
+        if (e?.message === 'timeout' && cached)
+            return cached.stats // on timeout (e.g. thread pool saturated), serve cache if any
+        throw e
     })
-    if (cached && Number(ts) === Number(cached.ts))
-        return cached.parsed as T
-    const parsed = loader(path)
-    parseFileCache.set(path, { ts, parsed })
-    return parsed
+    if (cached)
+        cached.lastCheck = now
+    if (cached && Number(stats.mtime) === Number(cached.stats.mtime))
+        return { stats, content: await cached.content } as CachedFile<Awaited<T>>
+    const content = Promise.resolve(loader(path))
+    parseFileCache.set(path, { stats, content, lastCheck: now })
+    return { stats, content: await content } as CachedFile<Awaited<T>>
 }
 
-export async function parseFile<T>(path: string, parse: (raw: Buffer) => T) {
-    return loadFileCached(path, () => readFile(path).then(parse))
+export async function parseFile<T>(path: string, parse: (raw: Buffer) => T, skipStatIfFresherThan=0) {
+    return loadFileCached(path, () => readFile(path).then(parse), skipStatIfFresherThan)
 }

@@ -7,7 +7,7 @@ import {
     SvgIconComponent
 } from '@mui/icons-material'
 import _ from 'lodash'
-import { NavLink } from 'react-router-dom'
+import { Link, useLocation } from 'wouter'
 import MonitorPage from './MonitorPage'
 import OptionsPage from './OptionsPage';
 import VfsPage from './VfsPage';
@@ -25,34 +25,36 @@ import { hTooltip } from './mui'
 import { PageProps } from './App'
 import { confirmDialog } from './dialog'
 
-interface MenuEntry {
-    path: string
+export interface MenuEntry {
+    path: `/${string}`
     icon: SvgIconComponent
     label?: string
     title?: string
     comp: FC<PageProps>
     noPaddingOnMobile?: true
+    subRoutes?: true
 }
 
 export const mainMenu: MenuEntry[] = [
-    { path: '', icon: Home, label: "Home", comp: HomePage },
-    { path: 'fs', icon: AccountTree, label: "Shared files", comp: VfsPage },
-    { path: 'accounts', icon: ManageAccounts, comp: AccountsPage },
-    { path: 'options', icon: Settings, comp: OptionsPage },
-    { path: 'internet', icon: Public, comp: InternetPage },
-    { path: 'monitoring', icon: Monitor, comp: MonitorPage, noPaddingOnMobile: true },
-    { path: 'logs', icon: History, comp: LogsPage, noPaddingOnMobile: true },
-    { path: 'language', icon: Translate, comp: LangPage },
-    { path: 'plugins', icon: Extension, comp: PluginsPage, noPaddingOnMobile: true },
-    { path: 'html', icon: Code, label: "Custom HTML", comp: CustomHtmlPage },
-    { path: 'logout', icon: Logout, comp: LogoutPage }
+    { path: '/', icon: Home, label: "Home", comp: HomePage },
+    { path: '/fs', icon: AccountTree, label: "Shared files", comp: VfsPage },
+    { path: '/accounts', icon: ManageAccounts, comp: AccountsPage },
+    { path: '/options', icon: Settings, comp: OptionsPage },
+    { path: '/internet', icon: Public, comp: InternetPage },
+    { path: '/monitoring', icon: Monitor, comp: MonitorPage, noPaddingOnMobile: true },
+    { path: '/logs', icon: History, comp: LogsPage, noPaddingOnMobile: true, subRoutes: true },
+    { path: '/language', icon: Translate, comp: LangPage },
+    { path: '/plugins', icon: Extension, comp: PluginsPage, noPaddingOnMobile: true, subRoutes: true },
+    { path: '/html', icon: Code, label: "Custom HTML", comp: CustomHtmlPage },
+    { path: '/logout', icon: Logout, comp: LogoutPage }
 ]
 
 export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, itemTitle: (idx: number) => string }) {
     const { VERSION } = getHFS()
     const logo = 'hfs-logo.svg'
     const short = useWindowSize().height < 700
-    return h(Box, { display: 'flex', flexDirection: 'column', bgcolor: 'primary.main', minHeight: '100%', },
+    const currentPath = useLocation()[0]
+    return h(Box, { sx: { display: 'flex', flexDirection: 'column', bgcolor: 'primary.main', minHeight: '100%' } },
         h(List, {
             sx:{
                 pr: 1, py: 0, color: 'primary.contrastText',
@@ -62,26 +64,25 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
                 display: 'flex', flexDirection: 'column', '&>a': { flex: '0' },
             }
         },
-            h(Box, { id: 'hfs-name', display: 'flex', px: 2, py: .5, gap: 2, alignItems: 'center' },
+            h(Box, { id: 'hfs-name', sx: { display: 'flex', px: 2, py: .5, gap: 2, alignItems: 'center' } },
                 h(Box, {
-                    color: 'primary.contrastText',
-                    fontSize: 'min(3rem, max(5vw, 4vh))',
-                    sx: { cursor: 'pointer' },
+                    sx: { color: 'primary.contrastText', fontSize: 'min(3rem, max(5vw, 4vh))', cursor: 'pointer' },
                     async onClick() {
                         if (await confirmDialog("Open HFS website?"))
                             window.open(WEBSITE)
                     }
                 }, 'HFS'),
-                h(Box, { fontSize: 'small', className: HIDE_IN_TESTS }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
+                h(Box, { sx: { fontSize: 'small' }, className: HIDE_IN_TESTS }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
                 short && h('img', { src: logo, style: { height: '2.5em' } }),
             ),
             mainMenu.map((it, idx) => hTooltip( itemTitle(idx), getMenuLabel(it) + ' ' + itemTitle(idx),
                 h(ListItemButton, {
-                    to: it.path,
-                    component: NavLink,
+                    // @ts-expect-error mui createElement overload does not infer custom Link props
+                    component: Link,
+                    href: it.path,
                     onClick: onSelect,
-                    // @ts-ignore
-                    style: ({ isActive }) => isActive ? { textDecoration: 'underline' } : {},
+                    selected: matchesMenuPath(it, currentPath),
+                    sx: { '&.Mui-selected': { '&,&:hover': { bgcolor: 'primary.dark', textDecoration: 'underline' } } },
                     children: undefined, // shut up ts
                 },
                     it.icon && h(ListItemIcon, { sx: { color: 'primary.contrastText', minWidth: 48 } }, h(it.icon)),
@@ -95,5 +96,9 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
 }
 
 export function getMenuLabel(it: MenuEntry) {
-    return it && (it.label ?? _.capitalize(it.path))
+    return it && (it.label ?? _.capitalize(it.path.slice(1)))
+}
+
+export function matchesMenuPath(it: MenuEntry, path: string) {
+    return path === it.path || path.startsWith(it.path + '/')
 }

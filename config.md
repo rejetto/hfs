@@ -43,6 +43,14 @@ Configuration can be done in several ways
 `NAME` stands for the property name that you want to change. See the complete list below.
 
 ### Configuration properties
+
+Some properties use a `Who` descriptor, with one of these values:
+- `true`: anyone can, even people who didn't log in.
+- `false`: no one can.
+- `"*"`: any account can, i.e. anyone who logged in.
+- `"admin"`: any account with admin-panel access.
+- `[ frank, peter ]`: the list of accounts who can.
+
 - `port` where to accept http connections. Default is 80.
 - `vfs` the files and folders you want to expose. For details see the dedicated following section.
 - `log` path of the log file. Default is `access.log`.
@@ -83,7 +91,7 @@ Configuration can be done in several ways
 - `force_lang` force translation for frontend. Default is none, meaning *let browser decide*.
 - `admin_net` net-mask specifying what addresses are allowed to access Admin-panel. Default is any.
 - `title` text displayed in the tab of your browser. Default is "File server".
-- `file_menu_on_link` if to display file-menu when clicking on link, or have a dedicated button instead. Default is true.
+- `file_menu_on_link` if to display file-menu when clicking on a link, or have a dedicated button instead. Default is true.
 - `min_available_mb` refuse to accept uploads if available disk space is below this threshold. Default is 100.
 - `dont_overwrite_uploading` uploading a file with name already present in the folder will have a number appended in the name if this is enabled.
   Default is true. Affects the frontend only, but you can get the same effect using the `?existing=rename` in the url. 
@@ -101,13 +109,14 @@ Configuration can be done in several ways
   - You can set `attr` to use only file's attributes, or `attr+ion` to store in file's attributes but fall-back to `descript.ion` as read-only.` 
 - `descript_ion_encoding` text encoding to be used for file `descript.ion`. [List of supported values](https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings). Default is `utf8`.
 - `server_code` javascript code that works similarly to [a plugin](dev-plugins.md). 
-- `tiles_size` starting value for frontend's tiles size. Default is 0.
+- `tiles_size` starting value for frontend's tile size. Default is 0.
 - `auto_play_seconds` starting value for frontend's auto_play_seconds (used in Show). Default is 5.
 - `theme` starting value for theme. Default is "auto".
 - `sort_by` starting value for sort-by. Values can be: name, extension, size, time. Default is "name".
 - `sort_numerics` starting value for sort-numeric-names. Default is false.
 - `folders_first` starting value for sort-folders-first. Default is true.
 - `invert_order` starting value for invert-order. Default is false.
+- `show_uploader` who can see who uploaded files. Value is a `Who` descriptor. Default is `"admin"`.
 - `update_to_beta` includes beta versions searching for updates. Default is false.
 - `roots` maps hosts (or mask of hosts) to a root different from the home folder. Default is none. E.g.
   ```
@@ -117,13 +126,13 @@ Configuration can be done in several ways
   ``` 
 - `max_downloads` limit the number of concurrent downloads on the whole server. Default is unlimited.
 - `max_downloads_per_ip` limit the number of concurrent downloads for the same IP address. Default is unlimited.
-- `max_downloads_per_account` limit the number of concurrent downloads for each account. This is enforced only for connections that are logged in, and will override other similar settings. Default is unlimited.
-- `geo_enable` when enabled, country is determined for each request/connection. Necessary database will be downloaded every month (2MB).
-- `geo_allow` set true if `geo_list` should be treated as white-list, set false for black-list. Default will ignore the list.
-- `geo_list` list of country codes to be used as white-list or black-list. Default is none.
+- `max_downloads_per_account` limit the number of concurrent downloads for each account. This is enforced only for connections that are logged in and will override other similar settings. Default is unlimited.
+- `geo_enable` when enabled, country is determined for each request/connection. The necessary database will be downloaded every month (2MB).
+- `geo_allow` set true if `geo_list` should be treated as whitelist, set false for blacklist. Default will ignore the list.
+- `geo_list` list of country codes to be used as whitelist or blacklist. Default is none.
 - `geo_allow_unknown` set false to disconnect connections for which country cannot be determined. Works only if `geo_allow` is set. Default is true. 
 - `dynamic_dns_url` URL to be requested to keep a domain updated with your latest IP address.
-  Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used.
+  Optionally, you can append “>” followed by a regular expression to determine a successful answer; otherwise status code will be used.
   Multiple URLs are supported, and you can specify one for each line.
 - `outbound_proxy` if you need outgoing http(s) requests to pass through an HTTP proxy. E.g.: `http://user:password@localhost:8888`. Default is none.
   Setting one will trigger a test request to google.com. You can skip this with env HFS_SKIP_PROXY_TEST=1 . 
@@ -171,26 +180,24 @@ Valid keys in a node are:
 - `accept`: valid only on upload folders; not enforced, just hinting the browser. E.g. `.zip,.rar`
 - `default`: use this with a folder where you want to serve a file, instead of the standard page with the list of files.
   The value must be the name of the file to serve. E.g.: `index.html`. 
-  The value must be an absolute or relative path in the VFS, not a path on disk. It works also with other type of files.
+  The value must be an absolute or relative path in the VFS, not a path on the disk. It works also with other types of files.
   Using this will make `mime` default to "auto".
-- `can_read`: specify who can download this entry. Value is a `WhoCan` descriptor, which is one of these values
-    - `true`: anyone can, even people who didn't log in. This is normally the default value.
-    - `false`: no one can.
-    - `"*"`: any account can, i.e. anyone who logged in.
-    - `[ frank, peter ]`: the list of accounts who can.
-    - `can_SOMETHING`: copy the permission from another permission. This is convenient to have same value for different permissions. E.g. `can_see` 
-    - `{ this?: WhoCan, children?: WhoCan }`: this form is useful only for folders. By using it, you can have
-      different permission for the folder itself and its children. For example, having only the `this` property
-      will make the permission limited to the folder and not be inherited by children. Otherwise, having only
-      the `children` will make the permission have no effect on the folder, but only on its content.  
-        - `this` specifies permission for this folder
-        - `children` specifies permission for the content.
-- `can_see`: specify who can see this element. Even if a user can download you can still make the file not appear in the list.
-  Value is a `WhoCan` descriptor, refer above. Default is `can_read`.
-- `can_upload`: specify who can upload. Applies to folders with a source. Default is none.
+- `can_read`: specify who can download this entry. Value is a `Who` descriptor, or a VFS-specific extension. Default is `true`.
+
+  VFS permissions also accept these extra forms:
+  - `can_SOMETHING`: copy the permission from another permission. This is convenient to have the same value for different permissions. E.g. `can_see`
+  - `{ this?: ..., children?: ... }`: this form is useful only for folders. Each value uses the same permission descriptor. By using it, you can have
+    different permissions for the folder itself and its children. For example, having only the `this` property
+    will make the permission limited to the folder and not be inherited by children. Otherwise, having only
+    the `children` will make the permission have no effect on the folder but only on its content.
+      - `this` specifies permission for this folder
+      - `children` specifies permission for the content.
+- `can_see`: specify who can see this element. Even if a user can download, you can still make the file not appear in the list.
+  Value uses the same permission descriptor described above. Default is `can_read`.
+- `can_upload`: specify who can upload. Applies to folders with a source. Default is `"admin"`.
 - `can_list`: specify who can see the content of a folder. Default is `can_read`.
 - `can_archive`: specify who can get the zip a folder or a set of files. Default is `can_read`.
-- `can_delete`: specify who can delete. Applies to folders with a source. Default is none.
+- `can_delete`: specify who can delete. Applies to folders with a source. Default is `"admin"`.
 - `masks`: maps a file mask to a set of properties as the one documented in this section. E.g.
   ```
   myfile.txt:
@@ -206,8 +213,8 @@ Valid keys in a node are:
   If the mask ends with `|files|`, then it will match only files and not folders.
   You can get the opposite effect with suffix `|folders|`. 
 
-Permissions set on an inner element will override inherited permissions. This means that you can restrict access to folder1,
-and yet decide to give free access to folder1/subfolder2.
+Permissions set on an inner element will override inherited permissions.
+This means that you can restrict access to folder1 and yet decide to give free access to folder1/subfolder2.
 
 #### Accounts
 
@@ -226,12 +233,12 @@ accounts:
     group1:
 ```
 
-As soon as the config is read HFS will encrypt passwords (if necessary) in a non-reversible way. It means that `password` property is replaced with an encrypted property: `srp`.
+As soon as the config is read, HFS will encrypt passwords (if necessary) in a non-reversible way. It means that `password` property is replaced with an encrypted property: `srp`.
 
 As you can see in the example, `group1` has no password. This implies that you cannot log in as `group1`, but still `group1` exists and its purpose is to
 gather multiple accounts and refer to them collectively as `group1`, so you can quickly share powers among several accounts.
 
-For each account entries, this is the list of properties you can have:
+For each account entry, this is the list of properties you can have:
 
 - `ignore_limits` to ignore speed limits. Default is `false`.
 - `redirect` provide a URL if you want the user to be redirected upon login. Default is none.

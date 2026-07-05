@@ -1,7 +1,7 @@
 import { apiCall } from '@hfs/shared/api'
 import { createElement as h, Fragment, useMemo } from 'react'
 import { Box, Link, Paper } from '@mui/material'
-import { callable, formatDate, formatTime, newObj } from '../../src/cross'
+import { callable, formatDate, formatTime, newObj } from './misc'
 import { Btn, Flex, iconTooltip, NetmaskField } from './mui'
 import { MilitaryTech, Clear } from '@mui/icons-material'
 import { Html, md, replaceStringToReact, useAutoScroll } from '@hfs/shared'
@@ -21,13 +21,15 @@ import { Account, account2icon } from './AccountsPage'
 export async function showPluginOptions(row: any, maxWidth: string) {
     const {id} = row
     const { config: lastSaved } = await apiCall('get_plugin', { id })
+    // array fields contain a DataGrid whose intrinsic width settles in steps, so give the form a stable preferred width
+    const workaround = _.some(callable(row.config, lastSaved), { type: 'array' }) ? `min(100%, ${maxWidth})` : undefined
     const apiRef = { current: undefined as FormApi | undefined }
     // support css values without having to wrap in sx, as in DialogProps it only supports breakpoints
     const showOptions = Boolean(row.config)
     const values = await formDialog({
         title: showOptions ? `Options for ${id}` : `Log for ${id}`,
         form: values => ({
-            before: row.description && h(Box, { mx: 2, mb: 2 }, row.description),
+            before: row.description && h(Box, { sx: { mx: 2, mb: 2 } }, row.description),
             fields: makeFields(callable(row.config, values) || {}, values),
             save: showOptions ? { children: "Save and close" } : false,
             barSx: { gap: 1 },
@@ -50,20 +52,23 @@ export async function showPluginOptions(row: any, maxWidth: string) {
             const { list, setList } = useApiList('get_plugin_log', { id }, {
                 map(x) { x.ts = new Date(x.ts) }
             })
-            const autoScroll = useAutoScroll(list)
             let lastDate: any
             return h(Flex, { alignItems: 'stretch', justifyContent: 'center', flexWrap: 'wrap', flexDirection: showOptions ? undefined : 'column' },
-                h(Box, { maxWidth, minWidth: 'min-content' /*in case content requires more space (eg: reverse-proxy's table)*/ }, children),
+                h(Box, { sx: {
+                    maxWidth,
+                    width: workaround,
+                    minWidth: 'min-content', // in case content requires more space (eg: reverse-proxy's table)
+                } }, children),
                 h(Paper, { elevation: 1, sx: { position: 'relative', fontFamily: 'monospace', flex: 1, minWidth: 'min(40em, 90vw)', minHeight: '20em', px: .5 } },
-                    h(Box, { my: .5, pb: .5, borderBottom: '1px solid', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+                    h(Box, { sx: { my: .5, pb: .5, borderBottom: '1px solid', display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
                         "Output",
                         h(Btn, { size: 'small', sx: { p: 0 }, onClick() { setList([]) } }, "Clear")
                     ),
                     h(Box, {
-                            position: 'absolute', bottom: 0, top: '31px', left: 0, right: 0, sx: { overflowY: 'auto' },
-                            ref: autoScroll,
-                        },
-                        !list.length && h(Box, { p: 1 }, "Log is empty"),
+                        ref: useAutoScroll(list),
+                        sx: { position: 'absolute', bottom: 0, top: '31px', left: 0, right: 0, overflowY: 'auto' }
+                    },
+                        !list.length && h(Box, { sx: { p: 1 } }, "Log is empty"),
                         h(Box, {
                             sx: {
                                 textIndent: '-1em', pl: '1em',
@@ -75,7 +80,7 @@ export async function showPluginOptions(row: any, maxWidth: string) {
                             return h(Fragment, { key: x.id },
                                 thisDate !== lastDate && (lastDate = thisDate),
                                 h(Box, {},
-                                    h(Box, { title: thisDate, display: 'inline', color: 'text.secondary', mr: 1 }, formatTime(x.ts)),
+                                    h(Box, { title: thisDate, sx: { display: 'inline', color: 'text.secondary', mr: 1 } }, formatTime(x.ts)),
                                     replaceStringToReact(x.msg, /https?:\/\/\S+/, m => h(Link, {
                                         href: m[0],
                                         target: '_blank'
@@ -131,7 +136,7 @@ function makeFields(config: any, values: any) {
 
 // centralize usage of eval get a single warning at build time
 export function evalWrapper(s: string) {
-    return eval(s)
+    return (0, eval)(s)
 }
 
 const type2comp = {

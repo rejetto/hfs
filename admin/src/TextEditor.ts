@@ -45,8 +45,11 @@ export function TextEditorField({ onChange, value, onBlur, setApi, lang, ...prop
         multiline: true,
         fullWidth: true,
         value: state,
-        InputProps: { inputComponent: TextEditorAsInput },
-        inputProps: { lang },
+        slotProps: {
+            ...props.slotProps,
+            input: { ...props.slotProps?.input, inputComponent: TextEditorAsInput },
+            htmlInput: { ...props.slotProps?.htmlInput, lang },
+        },
         onChange(event) { setState(event.target.value) },
         onBlur(event) {
             onBlur?.(event)

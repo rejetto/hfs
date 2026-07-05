@@ -10,8 +10,9 @@ import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from 
 import { authApis } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname, sep } from 'path'
+import { readdir } from 'fs/promises'
 import {
-    CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, objSameKeys, onlyTruthy, parseFile,
+    CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, onlyTruthy, parseFile,
     enforceStarting, statWithTimeout, shortenAgent
 } from './misc'
 import { favicon, title } from './adminApis'
@@ -30,6 +31,9 @@ _.each(FRONTEND_OPTIONS, (v,k) => defineConfig(k, v)) // define default values
 
 function serveStatic(uri: string): Koa.Middleware {
     const folder = (DEV ? 'dist/' : '') + uri.slice(2,-1)
+    const root = join(__dirname, '..', folder)
+    prewarmGuiAssets(root)  // keep pkg snapshot files in memory before the reported runtime access loss can happen
+        .catch(e => console.error(`GUI asset prewarm failed: ${e?.code || e}`))
     return async ctx => {
         if (!logGui.get())
             ctx.state.dontLog = true
@@ -41,21 +45,40 @@ function serveStatic(uri: string): Koa.Middleware {
         if (ctx.method !== 'GET')
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
         const serveApp = shouldServeApp(ctx)
-        const fullPath = join(__dirname, '..', folder, serveApp ? '/index.html': ctx.path)
-        const content = await parseFile(fullPath,
-            raw => serveApp || !raw.length ? raw : adjustBundlerLinks(ctx, uri, raw) )
+        const fullPath = join(root, serveApp ? '/index.html': ctx.path)
+        const cached = await parseGuiFile(fullPath)
             .catch(e => {
-                if (e?.code !== 'ENOENT') // not supposed to happen, and yet a user reported a strange behavior
+                if (!/^(?:ENOENT|EISDIR)$/.test(e?.code)) // not supposed to happen, and yet a user reported a strange behavior
                     console.error(`serveStatic/parseFile: ${String(e)}`)
                 return null
             })
-        if (content === null)
+        if (cached === null)
             return ctx.status = HTTP_NOT_FOUND
-        if (!serveApp)
-            return serveFile(ctx, fullPath, MIME_AUTO, content)
+        if (!serveApp) {
+            const c = cached.content
+            return serveFile(ctx, fullPath, MIME_AUTO, { ...cached, content: !c.length ? c : adjustBundlerLinks(ctx, uri, c) })
+        }
         // we don't cache the index as it's small and may prevent plugins change to apply
-        ctx.body = await treatIndex(ctx, uri, String(content))
+        ctx.body = await treatIndex(ctx, uri, String(cached.content))
     }
+
+    async function prewarmGuiAssets(dir: string) {
+        for (const entry of await readdir(dir, { withFileTypes: true })) {
+            const fullPath = join(dir, entry.name)
+            if (entry.isDirectory()) {
+                await prewarmGuiAssets(fullPath)
+                continue
+            }
+            if (!entry.isFile())
+                continue
+            await parseGuiFile(fullPath)
+        }
+    }
+
+    function parseGuiFile(fullPath: string) {
+        return parseFile(fullPath, x => x, DEV ? 1000 : Infinity) // cache raw bytes so reverse-proxy URL rewriting can still use the current request context
+    }
+
 }
 
 function shouldServeApp(ctx: Koa.Context) {
@@ -64,8 +87,10 @@ function shouldServeApp(ctx: Koa.Context) {
 
 function adjustBundlerLinks(ctx: Koa.Context, uri: string, data: string | Buffer) {
     const ext = extname(ctx.path)
+    const filesUri = ctx.state.revProxyPath + uri
     return ext && !ext.match(/\.(css|html|js|ts|scss)/) ? data
-        : String(data).replace(/((?:import[ (]| from )['"])\//g, `$1${ctx.state.revProxyPath}${uri}`)
+        : String(data).replace(/((?:import[ (]| from )['"])\//g, `$1${filesUri}`)
+            .replace(/(=function\(([\w$]+)\)\{return)[`'"]\/[`'"]\+\2\}/g, `$1${JSON.stringify(filesUri)}+$2}`) // vite's preload helper uses the configured absolute base for dynamic dependency hints
 }
 
 const getFaviconTimestamp = debounceAsync(async () => {
@@ -131,7 +156,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                     ${getSection('htmlHead')}`}
                 `
             function iconsToObj(icons: CustomizedIcons, pre='') {
-                return icons && objSameKeys(icons, (v, k) => ctx.state.revProxyPath + ICONS_URI + pre + k)
+                return icons && _.mapValues(icons, (v, k) => ctx.state.revProxyPath + ICONS_URI + pre + k)
             }
 
             if (isBody && isOpen)
@@ -172,7 +197,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                 v = ctx.state.revProxyPath + v
         }
         else if (type === 'array' && Array.isArray(v))
-            v = v.map(x => objSameKeys(x, (xv, xk) => adjustValueByConfig(xv, cfg.fields[xk])))
+            v = v.map(x => _.mapValues(x, (xv, xk) => adjustValueByConfig(xv, cfg.fields[xk])))
         return v
     }
 
@@ -190,14 +215,15 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
     let proxy: Koa.Middleware
     import('koa-better-http-proxy').then(lib => // dynamic import to avoid having this in final distribution
         proxy = lib.default('127.0.0.1:'+port, {
+            parseReqBody: false, // the dev GUI proxy serves app/assets, so avoid koa-better-http-proxy trying to reread ctx.req
             proxyReqPathResolver: (ctx) =>
                 shouldServeApp(ctx) ? '/' : ctx.path,
-            userResDecorator(res, data, ctx) {
+            userResDecorator(_res, data, ctx) {
                 return shouldServeApp(ctx) ? treatIndex(ctx, uri, String(data))
                     : adjustBundlerLinks(ctx, uri, data)
             }
         }) )
-    return function (ctx, next) {
+    return function (ctx, _next) {
         if (!logGui.get())
             ctx.state.dontLog = true
         return proxy(ctx, async () => {})

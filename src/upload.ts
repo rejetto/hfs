@@ -201,7 +201,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, filename: string, c
                     if (mtime) // so we use it to touch the file
                         await utimes(dest, Date.now() / 1000, mtime / 1000)
                     cancelDeletion(tempName) // not necessary, as deletion's failure is silent, but still
-                    ctx.state.uploadDestinationPath = dest
+                    obj.fullPath = ctx.state.uploadDestinationPath = dest
                     void setUploadMeta(dest, ctx)
                     if (ctx.query.comment)
                         void setCommentFor(dest, String(ctx.query.comment))

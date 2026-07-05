@@ -4,8 +4,8 @@ import { createElement as h, Fragment, useEffect, useMemo, useState } from 'reac
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
-import { Dict, HTTP_MESSAGES, isCtrlKey, prefix, md, isNumeric, CFG } from './misc'
-import { hTooltip, IconBtn, reloadBtn, wikiLink } from './mui'
+import { Dict, HTTP_MESSAGES, prefix, md, isNumeric, CFG } from './misc'
+import { hTooltip, IconBtn, reloadBtn, useCtrlShortcutButton, wikiLink } from './mui'
 import { Save } from '@mui/icons-material'
 import _ from 'lodash'
 import { useDebounce } from 'usehooks-ts'
@@ -51,7 +51,7 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
         h(Alert, { severity: 'info' }, md("To customize icons "), wikiLink('customization#icons', "read documentation") ),
     ), []))
     return h(Fragment, {},
-        h(Box, { display: 'flex', alignItems: 'center', gap: 1, mb: 1 },
+        h(Box, { sx: { display: 'flex', alignItems: 'center', gap: 1, mb: 1 } },
             h(SelectField as Field<string>, {
                 label: "Section",
                 value: section,
@@ -60,9 +60,11 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
             }),
             reloadBtn(reload),
             h(IconBtn, {
+                ref: useCtrlShortcutButton(['s', 'Enter']).ref,
                 icon: Save,
-                title: "Save\n(ctrl+enter)",
+                title: "Save\n(ctrl+s)",
                 modified: anyChange,
+                doneAnimation: true,
                 onClick: save,
             }),
             hTooltip("Enable all sections", undefined, switchBtn(enabled, async v => {
@@ -76,12 +78,6 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
             style: { background: '#8881' },
             onValueChange(v: string) {
                 setAll(all => ({ ...all, [section]: v }))
-            },
-            onKeyDown(ev) {
-                if (['s','S','Enter'].includes(isCtrlKey(ev) as any)) {
-                    void save()
-                    ev.preventDefault()
-                }
             },
         }),
     )

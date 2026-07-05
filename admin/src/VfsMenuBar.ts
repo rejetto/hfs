@@ -7,10 +7,10 @@ import addFiles, { addLink, addVirtual } from './addFiles'
 import MenuButton from './MenuButton'
 import { osIcon } from './LogsPage'
 import { reloadVfs } from './VfsPage'
-import { prefix, VFS_STORED_KEYS } from './misc'
+import { Dict, prefix, VFS_STORED_KEYS } from './misc'
 import { state, undoVfs, useSnapState } from './state'
 import _ from 'lodash'
-import { Btn, Flex, reloadBtn, useBreakpoint } from './mui'
+import { Btn, Flex, reloadBtn, useBreakpoint, useCtrlShortcutButton } from './mui'
 import { apiCall, ApiObject, useApi } from './api'
 import VfsPathField from './VfsPathField'
 import { alertDialog, promptDialog } from './dialog'
@@ -29,12 +29,13 @@ export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusA
     },
         h(AddVfsBtn),
         h(Btn, {
+            ref: useCtrlShortcutButton(['s']).ref,
             icon: Save,
-            title: "Save",
+            title: "Save\n(ctrl+s)",
             disabled: !vfsModified && "No changes to save",
             modified: vfsModified,
             doneAnimation: true,
-            onClick: saveVfs
+            onClick: () => saveVfs().finally(statusApi.reload)
         }),
         h(Btn, {
             icon: Undo,
@@ -88,7 +89,7 @@ function SystemIntegrationButton({ platform }: { platform: string | undefined })
         ...(!integrated?.is ? {
             children: "System integration",
             async onClick() {
-                const msg = h(Box, { width: { xs: '100%', sm: '34em' } },
+                const msg = h(Box, { sx: { width: { xs: '100%', sm: '34em' } } },
                     h('img', { src: 'win-shell.png', style: { display: 'block', width: '100%' }  }),
                     h(Alert, { severity: 'info' }, "We are going to add a command in the right-click of Windows File Manager.",
                         h(Box, {}, "It will also automatically copy the URL, ready to paste!")),
@@ -109,13 +110,24 @@ function SystemIntegrationButton({ platform }: { platform: string | undefined })
 }
 
 async function saveVfs() {
+    const uriRemaps: Dict<string> = {}
+    recurVfs(n => n.originalId !== n.id && (uriRemaps[n.originalId] = n.id))
     await apiCall('set_vfs', {
         uri: '/',
+        uriRemaps,
         props: (function recur(n=state.vfs) {
             const ret = _.pick(n, VFS_STORED_KEYS)
             ret.children = n?.children?.map(recur) as any
             return ret
         })()
     })
+    recurVfs(n => n.originalId = n.id) // reset
     state.vfsModified = false
+}
+
+function recurVfs(cb: (n: NonNullable<typeof state.vfs>) => any, node=state.vfs) {
+    if (!node) return
+    cb(node)
+    node?.children?.forEach(child => recurVfs(cb, child))
+    return node
 }

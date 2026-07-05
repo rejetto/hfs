@@ -19,7 +19,7 @@ import { adminApis } from './adminApis'
 import { defineConfig, Version } from './config'
 import { ok } from 'assert'
 import _ from 'lodash'
-import { randomId } from './misc'
+import { httpStream, randomId } from './misc'
 import { selfCheckMiddleware } from './selfCheck'
 import { acmeMiddleware } from './acme'
 import './geo'
@@ -37,13 +37,13 @@ if (new Version(process.versions.node).olderThan('18.15.0')) {
 }
 
 process.title = 'HFS ' + VERSION
+httpStream.defaultUA = 'HFS'
 const keys = process.env.COOKIE_SIGN_KEYS?.split(',')
     || [randomId(30)] // randomness at start gives some extra security, btu also invalidates existing sessions
 export const app = new Koa({ keys })
 app.use(sessionMiddleware)
     .use(selfCheckMiddleware)
     .use(acmeMiddleware)
-    .use(someSecurity)
     .use(prepareState)
     .use(geoFilter)
     .use(trackIpsMw)
@@ -52,6 +52,7 @@ app.use(sessionMiddleware)
     .use(headRequests)
     .use(rootsMiddleware)
     .use(logMw)
+    .use(someSecurity)
     .use(throttler)
     .use(pluginsMiddleware)
     .use(mount(API_URI, apiMiddleware({ ...frontEndApis, ...adminApis })))
@@ -67,6 +68,7 @@ function errorHandler(err: Error & { code?: string, path?: string }) {
     if (code === 'ECANCELED' || code === 'ECONNRESET' || code === 'ECONNABORTED'  || code === 'EPIPE'
         || code === 'ERR_STREAM_WRITE_AFTER_END' // happens disconnecting uploads, don't care
         || code === 'ERR_STREAM_PREMATURE_CLOSE' // happens when many files are sent (not locally), but I checked that the files are written completely. Introduced after node18.5.0 and is thrown by pipeline() used by PUT method handler.
+        || code === 'ERR_SSL_SSL/TLS_ALERT_BAD_RECORD_MAC' // tls peers/proxies can abort encrypted streams after headers are already sent
         || code?.startsWith('HPE')) return // malformed client/probe HTTP parser errors, not internal failures
     console.error('Server error', err)
 }

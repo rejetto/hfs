@@ -10,7 +10,7 @@ import {
 import * as Const from './const'
 import Koa from 'koa'
 import {
-    escapeGlobPath, callable, Callback, CFG, debounceAsync, Dict, objSameKeys, onlyTruthy, prefix,
+    escapeGlobPath, callable, Callback, CFG, debounceAsync, Dict, onlyTruthy, prefix,
     PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir, objFromKeys, patchKey
 } from './misc'
 import * as misc from './misc'
@@ -123,14 +123,37 @@ export function getPluginConfigFields(id: string) {
     return plugins.get(id)?.getData().config
 }
 
-async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>) {
+async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict) {
     const undoEvents: any[] = []
     const timeouts: NodeJS.Timeout[] = []
     const controlledEvents = Object.create(events, objFromKeys(['on', 'once', 'multi'], k => ({
         value() {
+            if (k === 'multi')
+                arguments[0] = _.mapValues(arguments[0], trap)
+            else
+                arguments[1] = trap(arguments[1])
             const ret = (events[k] as any)(...arguments)
             undoEvents.push(ret)
             return ret
+
+            function trap(cb: unknown) {
+                return (...args: any[]) => {
+                    try {
+                        if (!_.isFunction(cb)) return
+                        const ret = cb(...args)
+                        return ret instanceof Promise ? ret.catch(printError) : ret
+                    }
+                    catch(e) {
+                        printError(e)
+                    }
+
+                    function printError(e: any) {
+                        const {event} = args.at(-1)
+                        console.error(`plugin ${morePassedToInit?.id || '?'} on event ${event}:`, e)
+                    }
+                }
+            }
+
         }
     })))
     const res = await pl.init?.({
@@ -145,8 +168,16 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>
             timeouts.push(ret) // intervals can be canceled by clearTimeout (source: MDN)
             return ret
         },
-        setTimeout() { // @ts-ignore
-            const ret = setTimeout(...arguments)
+        setTimeout(cb: (...args: any[]) => any, delay=0, ...args: any[]) { // @ts-ignore
+            let ret: NodeJS.Timeout
+            if (_.isFunction(cb)) {
+                const original = cb
+                cb = function(this: NodeJS.Timeout) { // remove fired one-shot timers so plugin unload only tracks pending work
+                    _.pull(timeouts, ret)
+                    return original.apply(this, args)
+                }
+            }
+            ret = setTimeout(cb, delay, ...args) as any // 'any' to allow build of frontend and admin
             timeouts.push(ret)
             return ret
         },
@@ -251,7 +282,7 @@ events.once('app', () => Object.assign(app.context, {
 
 // return false to ask to exclude this entry from results
 interface OnDirEntryParams { entry:DirEntry, ctx:Koa.Context, node:VfsNode }
-type OnDirEntry = (params:OnDirEntryParams) => void | false
+type OnDirEntry = (params:OnDirEntryParams) => Promisable<unknown | false>
 
 export class Plugin implements CommonPluginInterface {
     started: Date | null = new Date()
@@ -424,16 +455,16 @@ export async function rescan() {
     const patterns = [PATH + '/*']
     if (APP_PATH !== process.cwd())
         patterns.unshift(escapeGlobPath(APP_PATH) + '/' + patterns[0]) // first search bundled plugins, because otherwise they won't be loaded because of the folders with same name in .hfs/plugins (used for storage)
-    const existing = []
+    const existing = new Set<string>()
     for (const { path, dirent } of await glob(patterns, { onlyFiles: false, suppressErrors: true, objectMode: true })) {
         if (!dirent.isDirectory() || path.endsWith(DISABLING_SUFFIX)) continue
         const id = path.split('/').slice(-1)[0]!
-        existing.push(id)
+        existing.add(id)
         if (!pluginWatchers.has(id))
             pluginWatchers.set(id, watchPlugin(id, join(path, PLUGIN_MAIN_FILE)))
     }
     for (const [id, cancelWatcher] of pluginWatchers.entries())
-        if (!existing.includes(id)) {
+        if (!existing.has(id)) {
             enablePlugin(id, false)
             cancelWatcher()
             pluginWatchers.delete(id)
@@ -536,7 +567,7 @@ function watchPlugin(id: string, path: string) {
                     return db
                 },
                 log(...args: any[]) {
-                    console.log('Plugin', id+':', ...args)
+                    console.log(`Plugin "${id}":`, ...args)
                     pluginReady.then(() => { // log() maybe invoked during init(), while plugin is undefined
                         if (!plugin) return
                         const msg = { ts: new Date, msg: args.map(x => x && typeof x === 'object' ? JSON.stringify(x) : String(x)).join(' ') }
@@ -550,7 +581,7 @@ function watchPlugin(id: string, path: string) {
                 getConfig(cfgKey?: string) {
                     const cur = pluginsConfig.get()?.[id]
                     return cfgKey ? cur?.[cfgKey] ?? pluginData.config?.[cfgKey]?.defaultValue
-                        : _.defaults(cur, objSameKeys(pluginData.config, x => x.defaultValue))
+                        : _.defaults(cur, _.mapValues(pluginData.config, x => x.defaultValue))
                 },
                 setConfig: (cfgKey: string, value: any) =>
                     setPluginConfig(id, { [cfgKey]: value }),

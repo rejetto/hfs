@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, ReactNode, useEffect, useRef, useState } from 'react'
+import { createElement as h, Fragment, ReactNode, useEffect, useRef, useState } from 'react'
 import { FieldProps } from '.'
 import { Autocomplete, InputAdornment, TextField } from '@mui/material'
 import { StandardTextFieldProps } from '@mui/material/TextField/TextField'
@@ -15,7 +15,10 @@ export interface StringFieldProps extends FieldProps<string>, Partial<Omit<Stand
     end?: ReactNode
     wrap?: boolean
 }
-export function StringField({ value, onChange, min, max, required, setApi, typing, start, end, onTyping, suggestions, wrap, fieldRef, ...props }: StringFieldProps) {
+export function StringField({
+    value, onChange, min, max, required, setApi, typing, start, end, onTyping, suggestions, wrap, fieldRef,
+    InputProps, InputLabelProps, inputProps, slotProps, ...props
+}: StringFieldProps) {
     const normalized = value ?? ''
     setApi?.({
         getError() {
@@ -34,48 +37,68 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
     }, [normalized])
     const valueFocusing = useRef<string | undefined>()
     const autoFillDetected = useRef(false)
-    const render = (params: any) => h(TextField, {
-        fullWidth: true,
-        InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
-        ...props,
-        ...params,
-        ref: fieldRef,
-        sx: props.label ? props.sx : Object.assign({ '& .MuiInputBase-input': { pt: 1.5 } }, props.sx),
-        value: state,
-        onChange(ev) {
-            let val = ev.target.value
-            if (wrap && val.includes('\n')) return // prevent newlines, we are a wrapped yet single line
-            if (onTyping) {
-                const res = onTyping(val)
-                if (res === false) return
-                val = res
-            }
-            setState(val)
-            if (typing || autoFillDetected.current || valueFocusing.current === undefined)
-                go(ev, val)
-        },
-        onKeyDown(ev) {
-            props.onKeyDown?.(ev)
-            autoFillDetected.current = ev.code === undefined
-            if (ev.key === 'Enter' && (ev.target as HTMLElement).ariaExpanded !== 'true') // don't act if suggestion list is expanded
-                go(ev)
-        },
-        onFocus(ev) {
-            valueFocusing.current = ev.target.value
-        },
-        onBlur(ev) {
-            props.onBlur?.(ev)
-            if (valueFocusing.current !== ev.target.value)
-                go(ev)
-        },
-        InputProps: {
-            ...wrap && { multiline: true },
-            startAdornment: start && h(InputAdornment, { position: 'start' }, start),
-            endAdornment: end && h(InputAdornment, { position: 'end' }, end),
-            ...props.InputProps,
-            ...params?.InputProps,
-        },
-    })
+    const render = (params: any) => {
+        // callers still use both legacy adornments and StringField's shortcuts, so keep them equivalent under slotProps
+        const inputSlotProps = {
+            ...slotProps?.input,
+            ...InputProps,
+            ...params?.slotProps?.input,
+        }
+        return h(TextField, {
+            fullWidth: true,
+            ...params,
+            ...props,
+            ref: fieldRef,
+            sx: props.label ? props.sx : Object.assign({ '& .MuiInputBase-input': { pt: 1.5 } }, props.sx),
+            value: state,
+            // v9 routes TextField customization through slotProps; keep the old callers working by folding the legacy props in here
+            slotProps: {
+                ...slotProps,
+                input: {
+                    ...inputSlotProps,
+                    startAdornment: addShortcutAdornment('start', start, inputSlotProps.startAdornment),
+                    endAdornment: addShortcutAdornment('end', end, inputSlotProps.endAdornment),
+                },
+                inputLabel: state || props.placeholder || InputLabelProps || slotProps?.inputLabel ? {
+                    shrink: true,
+                    ...params?.slotProps?.inputLabel,
+                    ...InputLabelProps,
+                    ...slotProps?.inputLabel,
+                } : undefined,
+                htmlInput: {
+                    ...slotProps?.htmlInput,
+                    ...inputProps,
+                    ...params?.slotProps?.htmlInput,
+                },
+            },
+            onChange(ev) {
+                let val = ev.target.value
+                if (wrap && val.includes('\n')) return // prevent newlines, we are a wrapped yet single line
+                if (onTyping) {
+                    const res = onTyping(val)
+                    if (res === false) return
+                    val = res
+                }
+                setState(val)
+                if (typing || autoFillDetected.current || valueFocusing.current === undefined)
+                    go(ev, val)
+            },
+            onKeyDown(ev) {
+                props.onKeyDown?.(ev)
+                autoFillDetected.current = ev.code === undefined
+                if (ev.key === 'Enter' && (ev.target as HTMLElement).ariaExpanded !== 'true') // don't act if suggestion list is expanded
+                    go(ev)
+            },
+            onFocus(ev) {
+                valueFocusing.current = ev.target.value
+            },
+            onBlur(ev) {
+                props.onBlur?.(ev)
+                if (valueFocusing.current !== ev.target.value)
+                    go(ev)
+            },
+        })
+    }
     return !suggestions ? render(null)
         : h(Autocomplete, {
             freeSolo: true,
@@ -85,6 +108,15 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
                 go(ev, v as string)
             }
         })
+
+    function addShortcutAdornment(position: 'start' | 'end', shortcut: ReactNode, existing: ReactNode) {
+        if (!shortcut)
+            return existing
+        const shortcutAdornment = h(InputAdornment, { position }, shortcut)
+        return position === 'start'
+            ? h(Fragment, {}, shortcutAdornment, existing)
+            : h(Fragment, {}, existing, shortcutAdornment)
+    }
 
     function go(event: any, newVal: string=state) {
         newVal = newVal?.trim()
@@ -99,4 +131,3 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
         })
     }
 }
-

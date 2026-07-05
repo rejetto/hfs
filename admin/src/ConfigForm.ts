@@ -4,7 +4,7 @@ import { createElement as h, useEffect, useState, Dispatch } from 'react'
 import _ from 'lodash'
 import { IconBtn, propsForModifiedValues } from './mui'
 import { RestartAlt } from '@mui/icons-material'
-import { Callback, onlyTruthy } from '../../src/cross'
+import { Callback, onlyTruthy } from './misc'
 
 type FormRest<T> = Omit<FormProps<T>, 'values' | 'set' | 'save'> & Partial<Pick<FormProps<T>, 'save'>>
 export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }: Partial<FormRest<T>> & {

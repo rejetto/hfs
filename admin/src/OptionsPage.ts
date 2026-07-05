@@ -4,7 +4,7 @@ import { Box, Button, Divider, FormHelperText } from '@mui/material';
 import { createElement as h, useEffect, useId, useRef, useState } from 'react'
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
-import { Link as RouterLink } from 'react-router-dom'
+import { Link as RouterLink } from 'wouter'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { adminApis } from '../../src/adminApis'
 import {
@@ -23,6 +23,7 @@ import { proxyWarning } from './HomePage'
 import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
 import { TextEditorField } from './TextEditor'
+import { WhoField } from './FileForm';
 
 let loaded: Dict | undefined
 let exposedReloadStatus: undefined | (() => void)
@@ -44,7 +45,7 @@ export default function OptionsPage() {
     const status = statusApi.data
     const reloadStatus = exposedReloadStatus = statusApi.reload
     useEffect(() => void reloadStatus(), [data]) //eslint-disable-line
-    useEffect(() => () => exposedReloadStatus = undefined, []) // clear on unmount
+    useEffect(() => () => exposedReloadStatus = undefined, []) // clear this on unmount
     const sm = useBreakpoint('sm')
     const saveBtnRef = useRef<HTMLButtonElement>(null)
 
@@ -54,7 +55,7 @@ export default function OptionsPage() {
     const isLH = hn === 'localhost'
     const isV6 = hn.includes(':')
     const listenInterfaceOptions = [
-        { label: "any", value: '' },
+        { label: "any", value: '', disabled: false },
         { label: "any IPv4", value: '0.0.0.0', disabled: !isLH && isV6 },
         { label: "any IPv6", value: '::', disabled: !isLH && !isV6 },
         ...['127.0.0.1', '::1'].map(x => ({ label: x, value: x, disabled: !isLH && hn !== x })),
@@ -104,7 +105,7 @@ export default function OptionsPage() {
             }, "Reload"),
             h(Button, { // @ts-ignore
                 component: RouterLink,
-                to: "/config",
+                href: "/config",
                 startIcon: h(EditNote),
             }, sm ? "Config file" : "File"),
         ],
@@ -113,14 +114,17 @@ export default function OptionsPage() {
         },
         fields: [
             h(Section, { title: "Networking" }),
-            { k: 'port', comp: PortField, xs: 12, sm: 6, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
-            { k: 'https_port', comp: PortField, xs: 12, sm: 6, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
+            { k: 'port', comp: PortField, xs: 12, sm: 4, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
+            { k: 'https_port', comp: PortField, xs: 12, sm: 4, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
                 onChange(v: number) {
                     if (v >= 0 && !httpsEnabled && !values.cert)
                         void suggestMakingCert()
                     return v
                 }
             },
+            { k: CFG.upnp_enabled, comp: BoolField, xs: 12, sm: 4, label: "UPnP/SSDP",
+                helperText: "Port forwarding and double-NAT detection" },
+
             httpsEnabled && { k: 'cert', comp: FileField, sm: 4, label: "HTTPS certificate file",
                 helperText: wikiLink('HTTPS#certificate', "What is this?"),
                 error: with_(status?.https.error, e => isCertError(e) && (
@@ -130,7 +134,6 @@ export default function OptionsPage() {
             httpsEnabled && { k: 'private_key', comp: FileField, sm: 4, label: "HTTPS private key file",
                 ...with_(status?.https.error, e => isKeyError(e) ? { error: true, helperText: e } : null)
             },
-
             httpsEnabled && { k: 'force_https', comp: BoolField, label: "Force HTTPS", sm: 4, disabled: !httpsEnabled || values.port < 0,
                 helperText: "Not applied to localhost. Doesn't work with proxies."
             },
@@ -140,7 +143,7 @@ export default function OptionsPage() {
                 comp: SelectField,
                 sm: 4,
                 afterList: listenInterfaceOptions.some(x => x.disabled)
-                    && h(Box, { p: '8px 16px 0', borderTop: '1px solid', fontSize: 'small' }, "Disabled addresses depend on the address you used to connect"),
+                    && h(Box, { sx: { p: '8px 16px 0', borderTop: '1px solid', fontSize: 'small' } }, "Disabled addresses depend on the address you used to connect"),
                 options: listenInterfaceOptions,
             },
             { k: 'max_kbps',        ...maxSpeedDefaults, sm: 4, label: "Limit output", helperText: "Doesn't apply to localhost" },
@@ -150,12 +153,12 @@ export default function OptionsPage() {
             { k : CFG.max_downloads_per_ip, ...maxDownloadsDefaults, label: "Max downloads per-IP" },
             { k : CFG.max_downloads_per_account, ...maxDownloadsDefaults, label: "Max downloads per-account", helperText: "Overrides other limits" },
 
-            { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
-                helperText: "IP address of browser machine"
+            { k: 'admin_net', comp: NetmaskField, xs: 12, sm: 6, label: "Admin-panel accessible from", placeholder: "any address",
+                helperText: "IP address of browser machine – localhost is an exception"
             },
-            { k: 'localhost_admin', comp: BoolField, xs: 12, sm: 6, label: "Unprotected Admin-panel on localhost",
+            { k: 'localhost_admin', comp: BoolField, xs: 12, sm: 6, label: "Consider localhost access as Admin",
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
-                helperText: "Access without entering credentials"
+                helperText: "Access admin-panel without entering credentials"
             },
 
             { k: 'proxies', comp: NumberField, xs: 12, sm: 4, md: 4, max: 9, label: "Number of incoming HTTP proxies", placeholder: "none",
@@ -168,7 +171,7 @@ export default function OptionsPage() {
                 helperText: "In case another website is linking your files" },
 
             { k: 'block', label: false, comp: ArrayField, xs: 12, prepend: true, sm: true, autoRowHeight: true,
-                form: { maxWidth: '30em' },
+                form: { sx: { maxWidth: '40em' } },
                 fields: [
                     { k: 'ip', label: "Blocked IP", sm: 12, required: true, wrap: true, $width: 2, comp: NetmaskField,
                         $column: { mergeRender: { comment: {}, expire: {} } },
@@ -207,8 +210,9 @@ export default function OptionsPage() {
             { k: 'folders_first', comp: BoolField, xs: 6, md: 3 },
             { k: 'sort_numerics', comp: BoolField, xs: 6, md: 3, label: "Sort numeric names" },
             { k: 'title_with_path', comp: BoolField, xs: 6, md: 3 },
-            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, xs: 12, sm: 9,
+            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, xs: 12, sm: 6,
                 helperText: "The icon associated to your website" },
+            { k: CFG.show_uploader, label: "Show uploader to", comp: WhoField, xs: true },
             { k: 'page_size', comp: NumberField, xs: true, min: 1, required: true, helperText: "Entries per page" },
 
             h(Section, { title: "Uploads" }),
@@ -222,18 +226,18 @@ export default function OptionsPage() {
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
 
             h(Section, { title: "Others" }),
+            { k: 'show_hidden_files', comp: BoolField, sm: 3 },
+            { k: 'descript_ion_encoding', sm: 3, label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
+                options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
+            { k: CFG.comments_storage, comp: SelectField, xs: 12, sm: 6, options: {
+                    "in file DESCRIPT.ION": '',
+                    "in file attributes": 'attr',
+                    "in file attributes + load DESCRIPT.ION": 'attr+ion',
+                } },
+
             { k: 'keep_session_alive', comp: BoolField, sm: 6, md: 6, helperText: "Keeps you logged in while the page is left open and the computer is on" },
             { k: 'session_duration', comp: NumberField, sm: 3, md: 3, min: 5, unit: "seconds", required: true },
             { k: CFG.size_1024, label: "KB size", comp: SelectField, sm: 3, options: { 1000: false, 1024: true } },
-
-            { k: 'show_hidden_files', comp: BoolField, sm: 3 },
-            { k: CFG.comments_storage, comp: SelectField, xs: 12, sm: 6, md: 5, options: {
-                "in file DESCRIPT.ION": '',
-                "in file attributes": 'attr',
-                "in file attributes + load DESCRIPT.ION": 'attr+ion',
-            } },
-            { k: 'descript_ion_encoding', xs: 8, sm: 3, md: 4, label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
-                options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
 
             { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start", xs: 12, sm: 6, md: 3,
                 helperText: "Browser is automatically launched with HFS"
@@ -258,7 +262,7 @@ export default function OptionsPage() {
 
             { k: CFG.force_webdav_login, comp: WebdavAgentAuthField, sm: true, label: "WebDAV force login",
                 fallbackRE: 'Microsoft-WebDAV', // ms-webdav won't send credentials even with the initial_auth – it must be forced, so we offer it as preset regex if you don't like the *always* value
-                helperText: "Force login for clients that mishandle mixed anonymous/protected access",
+                helperText: ["Force login for clients that mishandle mixed anonymous/protected access. ", wikiLink('webdav', "Why?") ],
             },
             values[CFG.force_webdav_login] !== true && { k: CFG.webdav_initial_auth, comp: WebdavAgentAuthField, sm: 6, label: "WebDAV initial auth",
                 helperText: "Force login only once. Used only when previous option does not match",
@@ -321,7 +325,7 @@ export default function OptionsPage() {
 
 function Section({ title, subtitle }: { title: string, subtitle?: string }) {
     return h(Divider, { role: 'heading', sx: { fontSize: 'larger', fontWeight: 'bold' } }, title,
-        h(Box, { fontSize: 'small', fontWeight: 'normal' }, subtitle))
+        h(Box, { sx: { fontSize: 'small', fontWeight: 'normal' } }, subtitle))
 }
 
 function recalculateChanges() {
@@ -353,7 +357,7 @@ function PortField({ label, value, onChange, setApi, status, suggestedPort=1, er
         else
             error = true
     return h(Box, {},
-        h(Box, { display: 'flex' },
+        h(Box, { sx: { display: 'flex' } },
             h(SelectField as Field<number>, {
                 sx: { flexGrow: 1 },
                 label,
@@ -388,7 +392,7 @@ function PortField({ label, value, onChange, setApi, status, suggestedPort=1, er
 function AllowedReferer({ label, value, onChange, error }: FieldProps<string>) {
     const yesNo = !value || value==='-'
     const example = 'example.com'
-    return h(Box, { display: 'flex' },
+    return h(Box, { sx: { display: 'flex' } },
         h(SelectField as Field<string>, {
             label,
             value: yesNo ? value : example,
@@ -414,7 +418,7 @@ function WebdavAgentAuthField({ label, value, onChange, error, helperText, fallb
     useEffect(() => setLastRegex(isRE ? value : fallbackRE), [value])
     const helperId = useId()
     return h(Box, {},
-        h(Box, { display: 'flex' },
+        h(Box, { sx: { display: 'flex' } },
             h(SelectField as Field<boolean | string>, {
                 label, value, onChange, error,
                 'aria-describedby': helperId,
@@ -433,9 +437,9 @@ export async function suggestMakingCert() {
             icon: CardMembership,
             title: "Get a certificate",
             onClose: resolve,
-            Content: () => h(Box, { p: 1, lineHeight: 1.5, },
+            Content: () => h(Box, { sx: { p: 1, lineHeight: 1.5 } },
                 h(Box, {}, "HTTPS needs a certificate to work."),
-                h(Box, {}, "We suggest you to ", h(InLink, { to: 'internet' }, "get a free but proper certificate"), '.'),
+                h(Box, {}, "We suggest you to ", h(InLink, { to: '/internet' }, "get a free but proper certificate"), '.'),
                 h(Box, {}, "If you don't have a domain ", h(LinkBtn, { onClick: makeCertAndSave }, "make a self-signed certificate"),
                     " but that ", wikiLink('HTTPS#certificate', " won't be perfect"), '.' ),
             )

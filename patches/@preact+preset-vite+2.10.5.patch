@@ -1,0 +1,13 @@
+diff --git a/node_modules/@preact/preset-vite/dist/cjs/transform-hook-names.js b/node_modules/@preact/preset-vite/dist/cjs/transform-hook-names.js
+index 50244fd..eb0ecbf 100644
+--- a/node_modules/@preact/preset-vite/dist/cjs/transform-hook-names.js
++++ b/node_modules/@preact/preset-vite/dist/cjs/transform-hook-names.js
+@@ -60,7 +60,7 @@ function transformHookNamesPlugin({ devtoolsInProd, devToolsEnabled, shouldTrans
+                 return;
+             const s = new magic_string_1.default(code);
+             let hasHelper = false;
+-            const { walk } = await Promise.resolve().then(() => __importStar(require("zimmerframe"))); // fix for cjs until sveltejs/zimmerframe#34 is accepted
++            const { walk } = await import("zimmerframe");
+             walk(ast, null, {
+                 CallExpression(node, { path, next }) {
+                     const callee = node.callee;

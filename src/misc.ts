@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { basename } from 'path'
+import { basename, dirname, join } from 'path'
 import Koa from 'koa'
 import { Connection } from './connections'
 export * from './util-http'
@@ -13,7 +13,7 @@ import { Readable, Transform } from 'stream'
 import { SocketAddress, BlockList } from 'node:net'
 import { ApiError } from './apiMiddleware'
 import { HTTP_BAD_REQUEST } from './const'
-import { isIpLocalHost, makeMatcher, try_ } from './cross'
+import { Callback, isIpLocalHost, makeMatcher, try_ } from './cross'
 import { isIPv6 } from 'net'
 import _ from 'lodash'
 
@@ -129,3 +129,16 @@ export function createStreamLimiter(limit: number) {
         }
     })
 }
+
+export function retrySync(cb: Callback, attempts=20, sleep=500) {
+    const sleepSyncBuffer = new Int32Array(new SharedArrayBuffer(4))
+    for (let retry = 0; ; retry++) {
+        try { return cb() }
+        catch (e: any) {
+            if (e?.code !== 'EBUSY' || retry >= attempts)
+                throw e
+            Atomics.wait(sleepSyncBuffer, 0, 0, sleep)
+        }
+    }
+}
+

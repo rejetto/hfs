@@ -1,5 +1,7 @@
 import { createElement as h, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link, Typography } from '@mui/material'
+import {
+    Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link, Typography, Skeleton,
+} from '@mui/material'
 import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Send, Storage,
     Error as ErrorIcon, SvgIconComponent, Search } from '@mui/icons-material'
 import { apiCall, useApiEvents, useApiEx } from './api'
@@ -51,13 +53,14 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     setTitleSide(useMemo(() =>
         h(Alert, { severity: 'info', sx: { display: { xs: 'none', sm: 'inherit' }  } }, "This page makes sure your site is working correctly on the Internet"),
         []))
-    return h(Flex, { vert: true, gap: '2em', maxWidth: '40em' },
-        networkBox(),
-        baseUrlBox(),
-        httpsBox(),
-        geoBox(),
-        ddnsBox(),
-    )
+    return h(Flex, { vert: true, gap: '2em' },
+        h(Box, { sx: { maxWidth: '40em' } }, networkBox()),
+        h(Flex, { gap: '2em', flexWrap: 'wrap', maxWidth: '84em', '&>*': { maxWidth: '40em', width: { md: '40em' } }, alignItems: 'flex-start', justifyContent: 'space-between' },
+            baseUrlBox(),
+            httpsBox(),
+            geoBox(),
+            ddnsBox(),
+    ))
 
     function stripTags(html: string) {
         return html.replace(/.+<body>(.+)<\/body>.+/is, (all,x) => x || all) // extract body, if any
@@ -96,8 +99,8 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                                     onClick: () => formDialog({
                                         title: label + " wizard",
                                         form: {
-                                            maxWidth: '20em',
-                                            before: h(Box, { mb: 1 }, "The following information is stored unencrypted"),
+                                            sx: { maxWidth: '20em' },
+                                            before: h(Box, { sx: { mb: 1 } }, "The following information is stored unencrypted"),
                                             fields: fields.map(k => _.isString(k) ? { k } : k)
                                         }
                                     }).then(symbols => symbols && setValues({ [CFG.dynamic_dns_url]: replace(url, symbols as any, '$') }))
@@ -153,7 +156,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                     ]
                 ] }),
                 addToBar: [
-                    h(Box, { flex: 1 }),
+                    h(Box, { sx: { flex: 1 } }),
                     h(Btn, { icon: Search, onClick: lookup }, "Lookup IP")
                 ],
             })
@@ -191,7 +194,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
             )),
             h(Divider),
             h(Form, {
-                gap: 1,
+                sx: { gap: 1 },
                 gridProps: {rowSpacing:1},
                 values,
                 set(v, k) {
@@ -311,28 +314,30 @@ export default function InternetPage({ setTitleSide }: PageProps) {
 
     function networkBox() {
         if (nat.error) return nat.element
-        if (!data || !publicIps) return h(CircularProgress)
-        const direct = publicIps.includes(data?.localIp!)
+        const direct = publicIps?.includes(data?.localIp!)
         return h(Flex, { justifyContent: 'space-around' },
             h(Device, { name: "Server", icon: direct ? Storage : HomeWorkTwoTone, color: localColor, ip: data?.localIp,
-                below: port && h(Box, { fontSize: 'smaller', className: 'port ' + HIDE_IN_TESTS }, "port ", port),
+                below: port && h(Box, { className: 'port ' + HIDE_IN_TESTS }, "port ", port),
             }),
             !direct && h(DataLine),
             !direct && h(Device, {
                 name: "Router", icon: RouterTwoTone, ip: data?.gatewayIp,
-                color: data?.mapped && (wrongMap ? 'warning' : 'success'),
+                color: checkResult ? 'success' : data?.mapped && (wrongMap ? 'warning' : 'success'),
                 below: mapping ? h(LinearProgress, { sx: { height: '1em' } })
-                    : h(LinkBtn, { fontSize: 'smaller', display: 'block', onClick: configure },
-                        "port ", wrongMap ? 'is wrong' : data?.externalPort || "unknown"),
+                    : data && (
+                        checkResult && !data.mapped ? `port ${data.externalPort || data.internalPort}`
+                            : h(LinkBtn, { sx: { display: 'block' }, onClick: configure },
+                                "port ", wrongMap ? "is wrong" : data?.externalPort || (checkResult ? "verified" : "unknown"))
+                    ),
             }),
             h(DataLine),
             h(Device, { name: "Internet", icon: PublicTwoTone, ip: publicIps,
                 color: checkResult ? 'success' : checkResult === false ? 'error' : doubleNat ? 'warning' : undefined,
-                below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : h(Box, { fontSize: 'smaller', className: HIDE_IN_TESTS },
-                    doubleNat && h(LinkBtn, { display: 'block', onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
+                below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : publicIps && h(Box, { className: HIDE_IN_TESTS },
+                    doubleNat && h(LinkBtn, { sx: { display: 'block' }, onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
                     checkResult ? "Working!" : checkResult === false ? "Failed!" : '',
                     ' ',
-                    (baseUrl > '' || publicIps.length > 0) && data.internalPort && h(LinkBtn, { onClick: () => verify() }, "Verify")
+                    (baseUrl > '' || publicIps?.length > 0) && data?.internalPort && h(LinkBtn, { onClick: () => verify() }, "Verify")
                         || ' ' // steadier layout, mainly for testing
                 )
             }),
@@ -419,8 +424,11 @@ export default function InternetPage({ setTitleSide }: PageProps) {
             return await confirmDialog(`There is a port-forwarding but it is pointing to the wrong port (${wrongMap})`, { trueText: "Fix it" })
                 && fixPort()
         if (!data.upnp)
-            return alertDialog(h(Box, { lineHeight: 1.5 }, md(`We cannot help you configuring your router because UPnP is not available.\nFind more help [on this website](${PORT_FORWARD_URL}).`)), 'info')
-        const res = await promptDialog(md(`This will ask the router to map your port, so that it can be reached from the Internet.\nYou can set the same number of the local network (${port}), or a different one.`), {
+            return alertDialog(h(Box, { sx: { lineHeight: 1.5 } }, md(`We cannot help you configuring your router because UPnP is not available.\nFind more help [on this website](${PORT_FORWARD_URL}).`)), 'info')
+        const msg = `For HFS to work over the Internet, you need a port on your modem/router forwarded to this computer's port ${port}.\n\n`
+            + (data?.mapped ? '' : `You may want to check if that's already the case before trying the following.\n\n`)
+            + `This will ask the router to forward a port.\nYou can use the same number as the local network port (${port}), or a different one.`
+        const res = await promptDialog(md(msg), {
             value: data.externalPort || port,
             field: { label: "Port seen from the Internet", comp: NumberField },
             addToBar: data.mapped && [h(Button, { color: 'warning', onClick: remove }, "Remove")],
@@ -463,22 +471,22 @@ export default function InternetPage({ setTitleSide }: PageProps) {
 }
 
 function DataLine() {
-    return h(Box, { flex: 1, className: 'animated-dashed-line' })
+    return h(Box, { sx: { flex: 1 }, className: 'animated-dashed-line' })
 }
 
 function Device({ name, icon, color, ip, below }: any) {
     const fontSize = 'min(20vw, 10vh)'
-    return h(Box, { display: 'inline-block', textAlign: 'center' },
+    return h(Box, { sx: { display: 'inline-block', textAlign: 'center' } },
         h(icon, { color, sx: { fontSize, mb: '-0.1em' } }),
-        h(Box, { fontSize: 'larger' }, name),
-        h(Box, { fontSize: 'smaller', whiteSpace: 'pre-wrap', className: 'ip ' + HIDE_IN_TESTS }, wantArray(ip).join('\n') || "unknown"),
-        below,
+        h(Box, { sx: { fontSize: 'larger' } }, name),
+        ip === undefined ? h(Skeleton) : h(Box, { sx: { fontSize: 'smaller', whiteSpace: 'pre-wrap' }, className: 'ip ' + HIDE_IN_TESTS }, wantArray(ip).join('\n') || "unknown"),
+        below ? h(Box, { sx: { fontSize: 'smaller' } }, below) : h(Skeleton),
     )
 }
 
 function TitleCard({ title, icon, color, children }: { title: ReactNode, icon?: SvgIconComponent, color?: SvgIconProps['color'], children?: ReactNode }) {
     return h(Card, {}, h(CardContent, {}, h(Flex, { vert: true },
-        h(Typography, { variant: 'h3', fontSize: 'x-large' }, icon && h(icon, { color, sx: { mr: 1, mb: '2px' } }), title),
+        h(Typography, { variant: 'h3', sx: { fontSize: 'x-large' } }, icon && h(icon, { color, sx: { mr: 1, mb: '2px' } }), title),
         children
     )))
 }

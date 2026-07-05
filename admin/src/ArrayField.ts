@@ -1,12 +1,12 @@
 import { createElement as h, Fragment, isValidElement, useMemo, useState } from 'react'
-import { callable, Dict, Functionable, isOrderedEqual, setHidden, swap } from './misc'
+import { callable, Dict, formatTimestamp, Functionable, isOrderedEqual, setHidden, swap } from './misc'
 import { Add, Edit, Delete, ArrowUpward, ArrowDownward, Undo, Check } from '@mui/icons-material'
 import { DialogOptions, FormDialog, formDialog } from './dialog'
 import { GridActionsCellItem, GridAlignment, GridColDef } from '@mui/x-data-grid'
 import { BoolField, FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-grid-form'
 import { Box, FormHelperText, FormLabel } from '@mui/material'
 import _ from 'lodash'
-import { Center, Flex, IconBtn, useBreakpoint } from './mui'
+import { Center, Flex, IconBtn, mergeSx, useBreakpoint } from './mui'
 import { DataTable, DataTableColumn } from './DataTable'
 import { DateTimeField } from './DateTimeField'
 
@@ -32,7 +32,7 @@ type ArrayFieldProps<T> = FieldProps<T[] | Dict<T>> & {
 }
 export function ArrayField<T extends object>({
     label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, valuesForAdd, autoRowHeight,
-    dialog, form, details, objectK, saveOn, ...rest
+    dialog, form, details, objectK, saveOn, height, error, sx, ...rest
 }: ArrayFieldProps<T>) {
     const valueA = Array.isArray(value) ? value
         : !objectK || !value ? [] // avoid crash if non-array values are passed, especially developing plugins
@@ -40,6 +40,7 @@ export function ArrayField<T extends object>({
     const rows = useMemo(() => valueA!.map((x,$idx) =>
             setHidden({ ...x } as any, x.hasOwnProperty('id') ? { $idx } : { id: $idx })),
         [JSON.stringify(valueA)]) //eslint-disable-line
+    const fieldError = Boolean(error) || undefined
     const getFormProp = (more: any) => (values: any) => ({
         fields: callable(fields, values).map(({ $width, $column, $type, $hideUnder, showIf, $render, $mergeRender, ...rest }) =>
             (!showIf || showIf(values)) && _.defaults(rest, byType[$type]?.field)),
@@ -50,10 +51,11 @@ export function ArrayField<T extends object>({
     const [undo, setUndo] = useState<typeof valueA>()
     return h(Fragment, {},
         h(Flex, { rowGap: 0, flexWrap: 'wrap', ml: '2px' },
-            label && h(FormLabel, { sx: { color: 'text.primary' } }, label),
-            helperText && h(FormHelperText, {}, helperText),
+            label && h(FormLabel, { error: fieldError, sx: { color: fieldError ? undefined : 'text.primary' } }, label),
+            helperText && h(FormHelperText, { error: fieldError }, helperText),
         ),
-        h(Box, { ...rest },
+        // field-level error is rendered through helperText, not forwarded to the DOM wrapper
+        h(Box, { ...rest, sx: mergeSx({ height }, sx) },
             h(DataTable, {
                 rows,
                 details,
@@ -82,9 +84,7 @@ export function ArrayField<T extends object>({
                             field: f.k,
                             headerName: f.headerName ?? (typeof f.label === 'string' ? f.label : labelFromKey(f.k)),
                             disableColumnMenu: true,
-                            valueGetter({ value }: any) {
-                                return (f.toField || _.identity)(value)
-                            },
+                            valueGetter: (v: any) => (f.toField || _.identity)(v),
                             ...f.$width ? { [f.$width >= 8 ? 'width' : 'flex']: f.$width } : (!def?.width && !def?.flex && { flex: 1 }),
                             renderCell: f.$render,
                             mergeRender: f.$mergeRender,
@@ -131,6 +131,7 @@ export function ArrayField<T extends object>({
                             const title = "Modify"
                             return [
                                 h(GridActionsCellItem as any, {
+                                    key: 'edit',
                                     icon: h(Edit),
                                     label: title,
                                     title,
@@ -152,28 +153,31 @@ export function ArrayField<T extends object>({
                                     }
                                 }),
                                 h(GridActionsCellItem as any, {
+                                    key: 'delete',
                                     icon: h(Delete),
                                     label: "Delete",
                                     showInMenu: reorder,
-                                    onClick: ev => {
+                                    onClick(ev: any) {
                                         ev.stopPropagation()
                                         set(valueA.filter((_rec, i) => i !== $idx), ev)
                                     },
                                 }),
                                 reorder && $idx && h(GridActionsCellItem as any, {
+                                    key: 'up',
                                     icon: h(ArrowUpward),
                                     label: "Move up",
                                     showInMenu: true,
-                                    onClick: ev => {
+                                    onClick(ev: any) {
                                         ev.stopPropagation()
                                         set(swap(valueA.slice(), $idx, $idx - 1), ev)
                                     },
                                 }),
                                 reorder && $idx < rows.length - 1 && h(GridActionsCellItem as any, {
+                                    key: 'down',
                                     icon: h(ArrowDownward),
                                     label: "Move down",
                                     showInMenu: true,
-                                    onClick: ev => {
+                                    onClick(ev: any) {
                                         ev.stopPropagation()
                                         set(swap(valueA.slice(), $idx, $idx + 1), ev)
                                     },
@@ -208,7 +212,7 @@ const byType: Dict<{ field?: Partial<FieldDescriptor>, column?: Partial<GridColD
         field: { comp: DateTimeField },
         column: {
             minWidth: 96, flex: 0.5,
-            renderCell: ({ value }) => value && new Date(value).toLocaleString(),
+            renderCell: ({ value }) => formatTimestamp(value),
         }
     }
 }

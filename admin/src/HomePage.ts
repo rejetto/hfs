@@ -4,7 +4,7 @@ import { createElement as h, ReactNode, useState } from 'react'
 import { Box, Card, CardContent, Link } from '@mui/material'
 import { apiCall, useApiEx, useApiList } from './api'
 import {
-    dontBotherWithKeys, objSameKeys, onlyTruthy, prefix, REPO_URL, md,
+    dontBotherWithKeys, onlyTruthy, prefix, REPO_URL, md,
     replaceStringToReact, wait, with_, DAY, HOUR, PREVIOUS_TAG
 } from './misc'
 import { Btn, Flex, InLink, LinkBtn, wikiLink, } from './mui'
@@ -40,7 +40,7 @@ export default function HomePage() {
     const goSecure = !http?.listening && https?.listening ? 's' : ''
     const srv = goSecure ? https : (http?.listening && http)
     const href = srv && `http${goSecure}://`+window.location.hostname + (srv.port === (goSecure ? 443 : 80) ? '' : ':'+srv.port)
-    const serverErrors = objSameKeys({ http, https }, v =>
+    const serverErrors = _.mapValues({ http, https }, v =>
         v.busy ? [`port ${v.configuredPort} already used by ${v.busy}${SOLUTION_SEP}choose a `, cfgLink('different port'), ` or stop ${v.busy}`]
             : v.error )
     const errors = serverErrors && onlyTruthy(Object.entries(serverErrors).map(([k,v]) =>
@@ -65,14 +65,14 @@ export default function HomePage() {
     const vfs = cfg.data?.vfs
     return h(Box, {},
         h(RandomPlugin),
-        h(Box, { display:'flex', gap: 2, flexDirection:'column', alignItems: 'flex-start', height: '100%' },
+        h(Box, { sx: { display:'flex', gap: 2, flexDirection:'column', alignItems: 'flex-start', height: '100%' } },
             dontBotherWithKeys(status.alerts?.map(x => entry('warning', md(x, { html: false }))) || []),
             errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
                 : entry('success', "Server is working"),
             vfs && !vfs.children?.length && !vfs.source ? entry('warning', "You have no shared files", SOLUTION_SEP, fsLink("add some")) : null,
             account?.adminActualAccess ? entry('', "Welcome, "+username)
                 : entry('', md("You're accessing the Admin-panel without an account because you are on localhost"),
-                    ...status.anyAccountCanLoginAdmin ? [] : [SOLUTION_SEP, "to access from another computer, you must ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission"))] ),
+                    ...status.anyAccountCanLoginAdmin ? [] : [SOLUTION_SEP, "to access from another computer, you must ", h(InLink, { to:'/accounts' }, md("create an account with *admin* permission"))] ),
             !href && entry('warning', "Frontend unreachable: ",
                 _.map(serverErrors, (v,k) => k + " " + (v ? "is in error" : "is off")).join(', '),
                 !errors.length && [ SOLUTION_SEP, cfgLink("switch http or https on") ]
@@ -81,7 +81,7 @@ export default function HomePage() {
             with_(status.blacklistedInstalledPlugins, x => x?.length > 0
                 && entry('warning', "Found blacklisted plugin(s): ", x.join(', ')) ),
             with_(plugins?.filter(x => x.error || x.badApi).length, x => x > 0
-                && entry('warning', `${x} plugin(s) failing`, SOLUTION_SEP, h(InLink, { to:'plugins' }, "check now"))),
+                && entry('warning', `${x} plugin(s) failing`, SOLUTION_SEP, h(InLink, { to:'/plugins' }, "check now"))),
             !cfg.data?.split_uploads && (Date.now() - Number(status.cloudflareDetected || 0)) < DAY
                 && entry('', wikiLink('Reverse-proxy#cloudflare', "Cloudflare detected, read our guide")),
             with_(proxyWarning(cfg.data, status), x => x && entry('warning', x,
@@ -108,7 +108,8 @@ export default function HomePage() {
                 x?.isNewer && h(Update, { info: x, fromAuto: true, bodyCollapsed: true, title: "An update has been found" }) ),
             pluginUpdates.length > 0 && entry('success', "Updates available for plugin(s): " + pluginUpdates.map(p => p.id).join(', ')),
             h(ConfigForm, {
-                gridProps: { sx: { mt: 1, display: 'flex', columnGap: 1, alignitems: 'center', '&>div.MuiGrid2-root': { width: 'auto', px: .5, py: 0 }, '.MuiCheckbox-root': { pl: '2px' } } },
+                // MUI 7 folded Grid2 into Grid, so the generated class name changed with the import path.
+                gridProps: { sx: { mt: 1, display: 'flex', columnGap: 1, alignitems: 'center', '&>div.MuiGrid-root': { width: 'auto', px: .5, py: 0 }, '.MuiCheckbox-root': { pl: '2px' } } },
                 saveOnChange: true,
                 form: {
                     fields: [
@@ -165,7 +166,7 @@ function Update({ info, title, bodyCollapsed, fromAuto }: { title?: ReactNode, i
     return h(Flex, { alignItems: 'flex-start', flexWrap: 'wrap' },
         h(Card, { className: 'release' }, h(CardContent, {},
             h(Flex, {},
-                title && h(Box, { fontSize: 'larger', mb: 1 }, title),
+                title && h(Box, { sx: { fontSize: 'larger', mb: 1 } }, title),
                 h(Btn, {
                     icon: UpdateIcon,
                     ...!info.isNewer && info.prerelease && { color: 'warning', variant: 'outlined' },
@@ -174,14 +175,13 @@ function Update({ info, title, bodyCollapsed, fromAuto }: { title?: ReactNode, i
                 h(Link, { href: REPO_URL + 'releases/tag/' + info.tag_name, target: 'repo' }, h(OpenInNew)),
             ),
             collapsed ? h(LinkBtn, { sx: { display: 'block', mt: 1 }, onClick(){ setCollapsed(false) } }, "See details")
-                : h(Box, { mt: 1 }, renderChangelog(info.body))
+                : h(Box, { sx: { mt: 1 } }, renderChangelog(info.body))
         )),
     )
 }
 
 function renderChangelog(s: string) {
     return md(s, {
-        html: false,
         onText: s => replaceStringToReact(s, /(?<=^|\W)#(\d+)\b|(https:.*\S+)/g, m =>  // link issues and urls
             m[1] ? h(Link, { href: REPO_URL + 'issues/' + m[1], target: '_blank' }, h(OpenInNew, { fontSize: 'small' }) )
                 : h(Link, { href: m[2], target: '_blank' }, m[2] )
@@ -215,8 +215,7 @@ type Color = '' | 'success' | 'warning' | 'error'
 
 function entry(color: Color, ...content: ReactNode[]) {
     return h(Box, {
-            fontSize: 'x-large',
-            color: th => color && th.palette[color]?.main,
+            sx: { fontSize: 'x-large', color: th => color && th.palette[color]?.main },
         },
         h(({ success: CheckCircle, info: Info, '': Info, warning: Warning, error: Error })[color], {
             sx: { mr: 1, color: color ? undefined : 'primary.main' }
@@ -227,11 +226,11 @@ function entry(color: Color, ...content: ReactNode[]) {
 }
 
 function fsLink(text=`File System page`) {
-    return h(InLink, { to:'fs' }, text)
+    return h(InLink, { to:'/fs' }, text)
 }
 
 function cfgLink(text=`Options page`) {
-    return h(InLink, { to: 'options' }, text)
+    return h(InLink, { to: '/options' }, text)
 }
 
 export function proxyWarning(cfg: any, status: any) {

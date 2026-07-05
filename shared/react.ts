@@ -44,27 +44,33 @@ export function useRequestRender() {
     return Object.assign(useCallback(() =>  setState(x => x + 1), [setState]), { state })
 }
 
-/* the idea is that you need a job done by a worker, but the worker will execute only after it collected jobs for some time
-    by other "users" of the same worker, like other instances of the same component, but potentially also different components.
-    User of this hook will just be returned with the single result of its own job.
-    As an additional feature, results are cached, but you can refresh()
-*/
+/* This is very useful when you need to make many requests for the content of a long list,
+   especially if you want to limit such requests to the rendered part, for paginated lists.
+   The requests will be automatically batched while you make calls the simple way.
+   It collects jobs requested by every hook using the same worker, calls the worker once after a delay,
+   and returns each caller only the result matching its own job.
+   Results are cached per worker/job/depend until refresh() schedules that job again, or expireAfter clears it */
 export function useBatch<Job=unknown,Result=unknown>(
     worker: Falsy | ((jobs: Job[]) => Promise<Result[]>),
     job: undefined | Job,
-    { delay=0, expireAfter=0 }={}
+    { delay=0, expireAfter=0, depend=0 }={}
 ) {
     interface Env {
         batch: Set<Job>
         cache: Map<Job, Result | null>
+        depend: unknown
         waiter?: Promise<void>
     }
     const worker2env = (useBatch as any).worker2env ||= worker && new Map<typeof worker, Env>()
-    const env = worker2env && (worker2env.get(worker) || (() => {
-        const ret = { batch: new Set<Job>(), cache: new Map<Job, Result>() } as Env
+    let env = worker2env && worker2env.get(worker)
+    if (env && !_.isEqual(env.depend, depend))
+        env = undefined
+    env ||= worker2env && (() => {
+        // depend scopes the worker cache, so stale results from a previous context won't be reused
+        const ret = { batch: new Set<Job>(), cache: new Map<Job, Result>(), depend } as Env
         worker2env.set(worker, ret)
         return ret
-    })())
+    })()
     const requestRender = useRequestRender()
     useEffect(() => {
         worker && (env.waiter ||= new Promise<void>(resolve => {
@@ -96,7 +102,7 @@ export function useBatch<Job=unknown,Result=unknown>(
             requestRender()
             env.batch.add(job)
         }
-    }, [job, cached])
+    }, [env, job, cached])
     return {
         data: cached,
         refresh() {
@@ -209,6 +215,7 @@ export function isCtrlKey(ev: KeyboardEvent) {
     return (ev.ctrlKey || isMac && ev.metaKey) && ev.key
 }
 
+// returns a callback to be passed as ref of the element
 export function useAutoScroll(dependency: any) {
     const ref = useRef<HTMLElement | null>(null)
     const lastScrollListenerRef = useRef<any>()

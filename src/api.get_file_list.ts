@@ -1,12 +1,12 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    applyParentToChild, getNodeName, hasDefaultFile, hasPermission, masksCouldGivePermission, nodeIsFolder,
+    applyParentToChild, getNodeName, getDefaultFile, hasPermission, masksCouldGivePermission, nodeIsFolder, nodeStats,
     statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
 } from './vfs'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { mapPlugins } from './plugins'
-import { apiAssertTypes, asyncGeneratorToArray, pattern2filter, statWithTimeout, WHO_NO_ONE } from './misc'
+import { apiAssertTypes, asyncGeneratorToArray, pattern2filter, WHO_NO_ONE } from './misc'
 import { HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
 import { getCommentFor, areCommentsEnabled } from './comments'
@@ -37,7 +37,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     if (!node)
         return fail(HTTP_NOT_FOUND)
     admin &&= ctxAdminAccess(ctx) // validate 'admin' flag
-    if (await hasDefaultFile(node, ctx) || !nodeIsFolder(node)) // for files without permission, the frontend is sent, and the location is the file itself
+    if (await getDefaultFile(node, ctx) || !nodeIsFolder(node)) // for files without permission, the frontend is sent, and the location is the file itself
         // so, we first check if you have a permission problem, to tell frontend to show login, otherwise we fall back to method_not_allowed, as it's proper for files.
         return fail(!admin && statusCodeForMissingPerm(node, 'can_read', ctx) ? undefined : HTTP_METHOD_NOT_ALLOWED)
     if (!admin && statusCodeForMissingPerm(node, 'can_list', ctx))
@@ -46,7 +46,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     limit = Number(limit)
     const { filterName, filterComment, fileMask, depth } = paramsToFilter(rest)
     const walker = walkNode(node, { ctx: admin ? undefined : ctx, onlyFolders, onlyFiles, depth })
-    const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
+    const onDirEntryHandlers = mapPlugins((plug, id) => plug.onDirEntry && { id, cb: plug.onDirEntry })
     const can_upload = admin || hasPermission(node, 'can_upload', ctx)
     const can_delete = admin || hasPermission(node, 'can_delete', ctx)
     const fakeChild = await applyParentToChild({ source: 'dummy-file', original: undefined }, node) // used to check permission; simple but can produce false results; 'original' to simulate a non-vfs node
@@ -78,7 +78,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     async function* produceEntries() {
         for await (const sub of walker) {
             let name = getNodeName(sub)
-            name = basename(name) || name // on windows, basename('C:') === ''
+            name = basename(name) || name // on Windows, basename('C:') === ''
             if (filterName && !filterName(name) || fileMask && !nodeIsFolder(sub) && !fileMask(name)
             || filterComment && !filterComment(await getCommentFor(sub.source) || ''))
                 continue
@@ -87,15 +87,16 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
                 continue
             const cbParams = { entry, ctx, listUri: uri, node: sub }
             try {
-                const res = await Promise.all(onDirEntryHandlers.map(cb => cb(cbParams)))
+                const res = await Promise.all(onDirEntryHandlers.map(({ id, cb }) =>
+                    Promise.resolve().then(() => cb(cbParams)).catch(error => { throw { id, error } })))
                 if (res.some(x => x === false))
                     continue
-                if ((await events.emitAsync('dirEntry', cbParams))?.isDefaultPrevented())
-                    continue
             }
-            catch(e) {
-                console.warn("A plugin is causing problems on dirEntry:", e)
+            catch(e: any) {
+                console.warn(`Plugin ${e?.id || '?'} is causing problems on onDirEntry:`, e?.error ?? e)
             }
+            if ((await events.emitAsync('dirEntry', cbParams))?.isDefaultPrevented())
+                continue
             if (offset) {
                 --offset
                 continue
@@ -117,10 +118,14 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
         const name = getNodeName(node)
         const isFolder = nodeIsFolder(node)
         try {
-            const st = source ? await (node.stats || statWithTimeout(source).catch(e => {
-                if (!isFolder || !node.children?.length) // folders with virtual children, keep them
-                    throw e
-            })) : undefined
+            const [web, comment, st] = await Promise.all([
+                getDefaultFile(node, ctx).then(x => x ? true : undefined),
+                node.comment ?? getCommentFor(source),
+                nodeStats(node).catch(e => {
+                    if (!isFolder || !node.children?.length) // folders with virtual children, keep them
+                        throw e
+                })
+            ])
             // permissions of entries are sent as a difference with permissions of parent
             const pl = node.can_list === WHO_NO_ONE ? 'l'
                 : !hasPermission(node, 'can_list', ctx) ? 'L'
@@ -142,9 +147,9 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
                 url,
                 target: node.target,
                 order: node.order,
-                comment: node.comment ?? await getCommentFor(source),
+                comment,
                 icon: getNodeIcon(node),
-                web: await hasDefaultFile(node, ctx) ? true : undefined,
+                web,
             }
         }
         catch {

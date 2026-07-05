@@ -9,6 +9,7 @@ import { totalGot, totalInSpeedKb, totalOutSpeedKb, totalSent } from './throttle
 import { getCurrentUsername } from './auth'
 import { SendListReadable } from './SendList'
 import { storedMap } from './persistence'
+import { countUniqueBy } from './cross'
 
 export default {
 
@@ -29,25 +30,22 @@ export default {
     get_connections({}, ctx) {
         const list = new SendListReadable({
             diff: true,
-            addAtStart: getConnections().map(c =>
-                !ignore(c) && serializeConnection(c)).filter(Boolean),
+            addAtStart: getConnections().map(serializeConnection),
         })
         type Change = Partial<Omit<Connection,'ip'>>
         list.props({ you: ctx.ip })
         return list.events(ctx, {
             connection(conn: Connection) {
-                if (ignore(conn)) return
                 list.add(serializeConnection(conn))
             },
             connectionClosed(conn: Connection) {
-                if (ignore(conn)) return
                 list.remove(getConnAddress(conn))
             },
             connectionNewIp(conn: Connection, oldIp: string, newIp: string) {
                 list.update(getConnAddress(conn, oldIp), { ip: newIp })
             },
             connectionUpdated(conn: Connection, change: Change) {
-                if (conn.socket.closed || ignore(conn) || ignore(change as any) || _.isEmpty(change)) return
+                if (conn.socket.closed || _.isEmpty(change)) return
                 if (change.ctx) {
                     Object.assign(change, fromCtx(change.ctx))
                     change.ctx = undefined
@@ -55,50 +53,17 @@ export default {
                 list.update(getConnAddress(conn), change)
             },
         })
-
-        function serializeConnection(conn: Connection) {
-            const { socket, started, secure } = conn
-            return {
-                ...getConnAddress(conn),
-                v: (socket.remoteFamily?.endsWith('6') ? 6 : 4),
-                got: socket.bytesRead,
-                sent: socket.bytesWritten,
-                country: conn.country,
-                started,
-                secure: (secure || undefined) as boolean|undefined, // undefined will save some space once json-ed
-                ...fromCtx(conn.ctx),
-            }
-        }
-
-        function fromCtx(ctx?: Koa.Context) {
-            if (!ctx) return
-            const s = ctx.state // short alias
-            return {
-                user: getCurrentUsername(ctx),
-                agent: shortenAgent(ctx.get('user-agent')),
-                archive: s.archive,
-                ...s.browsing ? { op: 'browsing', path: safeDecodeURIComponent(s.browsing) }
-                    : s.uploadPath ? { op: 'upload', path: safeDecodeURIComponent(s.uploadPath) }
-                        : {
-                            op: !s.considerAsGui && (ctx.state.archive || ctx.state.vfsNode) ? 'download' : undefined,
-                            path: safeDecodeURIComponent(ctx.originalUrl),
-                        },
-                opProgress: _.isNumber(s.opProgress) ? _.round(s.opProgress, 3) : undefined,
-                opTotal: s.opTotal,
-                opOffset: s.opOffset,
-            }
-        }
     },
 
     async *get_connection_stats() {
         while (1) {
-            const filtered = getConnections().filter(x => !ignore(x))
+            const connections = getConnections()
             yield {
                 outSpeedKb: totalOutSpeedKb,
                 inSpeedKb: totalInSpeedKb,
                 sent_got: [totalSent.get(), totalGot.get(), totalGotSentResetTime.get()] as const,
-                connections: filtered.length,
-                ips: _.uniqBy(filtered, x => x.ip).length,
+                connections: connections.length,
+                ips: countUniqueBy(connections, conn => conn.ip),
             }
             await wait(1000)
         }
@@ -113,8 +78,46 @@ export default {
 
 } satisfies ApiHandlers
 
-function ignore(conn: Connection) {
-    return false //conn.socket && isLocalHost(conn)
+export function serializeConnection(conn: Connection) {
+    const { socket, started, secure } = conn
+    return {
+        ...getConnAddress(conn),
+        v: (socket.remoteFamily?.endsWith('6') ? 6 : 4),
+        // connection fields are request-scoped once transfer tracking starts; socket counters cover earlier snapshots
+        got: conn.got || socket.bytesRead,
+        sent: conn.sent || socket.bytesWritten,
+        outSpeedKb: conn.outSpeedKb,
+        inSpeedKb: conn.inSpeedKb,
+        country: conn.country,
+        started,
+        secure: (secure || undefined) as boolean|undefined, // undefined will save some space once json-ed
+        ...fromCtx(conn.ctx),
+    }
+}
+
+function fromCtx(ctx?: Koa.Context) {
+    if (!ctx) return
+    return {
+        user: getCurrentUsername(ctx),
+        agent: shortenAgent(ctx.get('user-agent')),
+        ...inferOperation(ctx)
+    }
+}
+
+export function inferOperation(ctx: Koa.Context) {
+    const s = ctx.state // short alias
+    return {
+        archive: s.archive,
+        ...s.browsing ? { op: 'browsing', path: safeDecodeURIComponent(s.browsing) }
+            : s.uploadPath ? { op: 'upload', path: safeDecodeURIComponent(s.uploadPath) }
+                : {
+                    op: !s.considerAsGui && (ctx.state.archive || ctx.state.vfsNode) ? 'download' : undefined,
+                    path: safeDecodeURIComponent(ctx.originalUrl),
+                },
+        opProgress: _.isNumber(s.opProgress) ? _.round(s.opProgress, 3) : undefined,
+        opTotal: s.opTotal,
+        opOffset: s.opOffset,
+    }
 }
 
 function getConnAddress(conn: Connection, overrideIp?: string) {

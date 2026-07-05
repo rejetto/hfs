@@ -2,8 +2,11 @@ import { test, expect, Page } from '@playwright/test'
 import fs from 'fs'
 import { wait } from '../src/cross'
 import {
-    clickAdminMenu, clickIconBtn, forwardConsole, loginAdmin, password, resetTimestamp, FRONTEND_URL, username
+    clickAdminMenu, clickIconBtn, forwardConsole, loginAdmin, password, resetTimestamp, FRONTEND_URL, username, TEST_PORT
 } from './common'
+
+const screenshotStyle = fs.readFileSync('e2e/screenshot.css', 'utf8')
+const screenshotCounters = new WeakMap<object, number>()
 
 // a generic test touch several parts
 test('around1', async ({ page }) => {
@@ -262,7 +265,7 @@ test('admin1', async ({ page }) => {
     await dataTableLoading()
     await screenshot(page)
     await clickIconBtn('Options', page)
-    await page.locator('div').filter({ hasText: 'ServedRequests are logged here. Empty to disable it.Not servedWrite errors in a different file. Empty to use same file.' }).nth(3).click()
+    await page.getByRole('textbox', { name: 'Served', exact: true }).click()
     await clickIconBtn('Close', page)
     await clickAdminMenu(page, 'Language')
     await dataTableLoading()
@@ -271,6 +274,17 @@ test('admin1', async ({ page }) => {
     await screenshot(page, '.MuiDataGrid-root')
     await clickAdminMenu(page, 'Plugins')
     await expect(page.getByText('antibrute')).toBeVisible() // wait for data
+    // ensure Test plugin is running
+    const stopTest = page.getByRole('button', { name: 'Stop test' })
+    if (!await stopTest.isVisible()) {
+        await page.getByRole('button', { name: 'Start test' }).click()
+        await expect(stopTest).toBeVisible()
+    }
+    // reload the list from the server so the plugin screenshot doesn't depend on SSE timing
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Plugins', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Stop test' })).toBeVisible()
+
     await screenshot(page)
     await page.getByRole('tab', { name: 'Get more' }).click()
     await page.getByRole('tab', { name: 'updates' }).click()
@@ -279,7 +293,7 @@ test('admin1', async ({ page }) => {
     await screenshot(page)
     await page.getByRole('main').click()
     await clickAdminMenu(page, 'Internet')
-    await expect(page.getByText('Server')).toBeVisible({ timeout: 15000 }) // wait for data (get_nat can be very slow)
+    await expect(page.getByText(`port ${TEST_PORT}`)).toBeVisible({ timeout: 15000 }) // wait for data (get_nat can be very slow)
     await page.mouse.click(1, 1) // avoid focus inconsistencies
     await screenshot(page)
     await clickAdminMenu(page, 'Logout')
@@ -287,10 +301,35 @@ test('admin1', async ({ page }) => {
 })
 
 async function screenshot(page: Page, selectorForMask = '') {
+    if (process.env.NO_SS) return
+    const testInfo = test.info()
+    const snapshotName = nextScreenshotName(testInfo)
+    const snapshotPath = testInfo.snapshotPath(snapshotName, { kind: 'screenshot' })
     if (selectorForMask)
         selectorForMask = ',' + selectorForMask
-    await wait(1000) // this accounts especially for our DataTable component which takes time to set the layout
-    return expect(page).toHaveScreenshot({ fullPage: true, mask: [page.locator(`.maskInTests${selectorForMask}`)] })
+    await wait(200) // this accounts especially for our DataTable component which takes time to set the layout
+    const mask = [page.locator(`.maskInTests${selectorForMask}`)]
+    // write the missing baseline ourselves so Playwright does not turn the first run into a failure
+    if (!fs.existsSync(snapshotPath)) {
+        await page.screenshot({
+            path: snapshotPath,
+            fullPage: true,
+            mask,
+            animations: 'disabled',
+            caret: 'hide',
+            scale: 'css',
+            style: screenshotStyle,
+        })
+        return
+    }
+    return expect(page).toHaveScreenshot(snapshotName, { fullPage: true, mask })
+}
+
+function nextScreenshotName(testInfo: ReturnType<typeof test.info>) {
+    const nextIndex = (screenshotCounters.get(testInfo) ?? 0) + 1
+    screenshotCounters.set(testInfo, nextIndex)
+    const testName = testInfo.titlePath.slice(1).join(' ')
+    return `${testName}-${nextIndex}.png`
 }
 
 test('anew', async ({ page, browserName }) => {
@@ -308,7 +347,7 @@ test('anew', async ({ page, browserName }) => {
     await page.getByRole('button', { name: 'Admin-panel' }).click()
     const adminPage = await page1Promise
     await adminPage.getByRole('link', { name: 'add some' }).click()
-    const addBtn = adminPage.getByRole('button').nth(1)
+    const addBtn = adminPage.getByRole('button', { name: 'Add item to virtual file system' })
     await addBtn.click()
     await adminPage.getByRole('menuitem', { name: 'from disk' }).click()
     await expect(adminPage.getByText('data.kv')).toBeVisible()

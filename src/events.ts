@@ -8,8 +8,7 @@ export interface OnOptions { warnAfter?: number, callNow?: boolean }
 
 export class BetterEventEmitter {
     protected listeners = new Map<string, Listeners>()
-    preventDefault = Symbol()
-    stop = this.preventDefault // legacy pre-0.54 (introduced in 0.53)
+    stop = Symbol()
     on(event: string | string[], listener: Listener, { warnAfter=10, callNow=false }: OnOptions={}) {
         if (typeof event === 'string')
             event = [event]
@@ -65,6 +64,7 @@ export class BetterEventEmitter {
         const output: any[] = []
         let prevented = false
         const extra = {
+            event,
             output,
             preventDefault() { prevented = true }
         }
@@ -85,7 +85,7 @@ export class BetterEventEmitter {
         const asyncRet: typeof syncRet = await Promise.all(syncRet)
         return Object.assign(asyncRet, {
             isDefaultPrevented: () => syncRet.isDefaultPrevented()
-                || asyncRet.some((r: any) => r === this.preventDefault)
+                || asyncRet.some((r: any) => r === this.stop)
         })
     }
 }

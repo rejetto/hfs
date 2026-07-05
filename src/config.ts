@@ -10,11 +10,8 @@ import { statSync } from 'fs'
 import { basename, join, resolve } from 'path'
 import events from './events'
 import { copyFile } from 'fs/promises'
-import { produce, setAutoFreeze } from 'immer'
 import { argv } from './argv'
 import { statWithTimeout } from './util-files'
-
-setAutoFreeze(false) // we still want to mess with objects later (eg: account.belongs)
 
 // keep definition of config properties
 const configProps: Record<string, { defaultValue?: unknown }> = {}
@@ -69,6 +66,10 @@ export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler
         get(): T {
             return getConfig(k)
         },
+        async getWhenReady() {
+            await configReady
+            return this.get()
+        },
         sub(cb: Subscriber<T>) {
             if (started) // initial event already passed, we'll make the first call
                 cb(getConfig(k), { k, was: defaultValue, defaultValue, version: configVersion.compiled(), object })
@@ -80,8 +81,10 @@ export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler
             }, { warnAfter: 1000 }) // e.g. each plugin watch enable_plugins
         },
         set(v: T | Updater) {
-            if (typeof v === 'function')
-                this.set(produce(this.get(), v as Updater))
+            if (typeof v === 'function') {
+                const draft = structuredClone(this.get())
+                this.set((v as Updater)(draft) ?? draft) // use return value if provided
+            }
             else
                 setConfig1(k, v)
         },
@@ -225,7 +228,7 @@ export function subMultipleConfigs(cb: () => any, configs: Array<ReturnType<type
 }
 
 export const showHelp = argv.help
-export const configReady = events.once('configReady') // the boolean value means startedWithoutConfig
+export const configReady = events.once('configReady').then(x => x[0] as Boolean) // the value is startedWithoutConfig. The .then also avoids exposing the cancel-subscription function.
 configReady.then(() => {
     if (!showHelp) return
     console.log(`HELP

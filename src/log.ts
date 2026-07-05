@@ -10,7 +10,10 @@ import _ from 'lodash'
 import { createFileWithPath, ensureParentFolder, statWithTimeout } from './util-files'
 import { getCurrentUsername } from './auth'
 import { DAY, makeNetMatcher, tryJson, Dict, Falsy, CFG, strinsert, repeat, formatTimestamp, HTTP_NOT_FOUND } from './misc'
-import { extname } from 'path'
+import { basename, extname } from 'path'
+import yazl from 'yazl'
+import { pipeline } from 'stream/promises'
+import { rm, unlink, utimes } from 'fs/promises'
 import events from './events'
 import { getConnection } from './connections'
 import { app } from './index'
@@ -111,6 +114,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
                 const newPath = strinsert(path, path.length - extname(path).length, suffix)
                 try { // other logging requests shouldn't happen while we are renaming. Since this is very infrequent we can tolerate solving this by making it sync.
                     renameSync(path, newPath)
+                    void zipLogFile(newPath, last).catch(console.error)
                 }
                 catch(e: any) {  // ok, rename failed, but this doesn't mean we ain't gonna log
                     console.error(e.message || String(e))
@@ -154,7 +158,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
             length?.toString() ?? '-',
             _.isEmpty(extra) ? '' : JSON.stringify(JSON.stringify(extra)), // jsonize twice, as we need a field enclosed by double-quotes
         ))
-    })
+    }).catch(e => console.error('log completion:', e.message || String(e)))
 }
 
 declare module "koa" {
@@ -176,6 +180,24 @@ events.once('app', () => { // wait for app to be set
     }
 })
 
+export async function zipLogFile(path: string, touch: Date) {
+    const zipPath = path + '.zip'
+    try {
+        const zip = new yazl.ZipFile()
+        const output = createWriteStream(zipPath)
+        zip.addFile(path, basename(path))
+        zip.end()
+        await pipeline(zip.outputStream, output)
+    }
+    catch (e) {
+        await rm(zipPath, { force: true }).catch(() => {})
+        throw e
+    }
+    await utimes(zipPath, touch, touch).catch(console.error)
+    await events.emitAsync('logRotated', { path, zipPath })
+    await unlink(path).catch(console.error)
+}
+
 function doubleDigit(n: number) {
     return n > 9 ? n : '0'+n
 }
@@ -183,7 +205,11 @@ function doubleDigit(n: number) {
 export async function getRotatedFiles() {
     return Object.fromEntries(await Promise.all(loggers.map(async x => {
         const mask = strinsert(x.path, x.path.length - extname(x.path).length, '-2*') // including 2, initial digit of the year, will only take rotated files and not "-error"
-        return [x.name, (await glob(mask, { stats: true })).map(x => ({ path: x.path, size: x.stats?.size }))]
+        const list = await Promise.all(['', '.zip'].map(async postfix => // before 3.2 rotated logs were not zipped, and even today there's a very small (negligible) chance that the zipping fails
+            (await glob(mask + postfix, { stats: true }))
+                .map(x => ({ path: x.path, size: x.stats?.size }))
+        ))
+        return [x.name, list.flat()]
     })))
 }
 

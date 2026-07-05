@@ -11,13 +11,12 @@ import { markVfsModified, prepareVfsUndo, state, useSnapState } from './state'
 import VfsTree, { vfsNodeIcon } from './VfsTree'
 import {
     CFG, matches, newDialog, normalizeHost, onlyTruthy, pathEncode, prefix, VfsNodeAdminSend, HIDE_IN_TESTS, wait,
-    isWhoObject, PERM_KEYS, VfsPerms, Who,
+    isWhoObject, PERM_KEYS, VfsPerms, WhoVfs,
 } from './misc'
 import { Flex, useBreakpoint } from './mui'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
-import apiAccounts from '../../src/api.accounts'
-import FileForm from './FileForm'
+import FileForm, { useAccountsApi } from './FileForm'
 import { Add, Delete } from '@mui/icons-material'
 import { toast } from './dialog'
 import { PageProps } from './App'
@@ -51,8 +50,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
             ret.unshift(b)
         return ret
     }, [status, config])
-    const accountsApi = useApiEx<typeof apiAccounts.get_accounts>('get_accounts') // load accounts once and for all, or !isSideBreakpoint will cause a call for each selection
-    const accounts = useMemo(() => _.sortBy(accountsApi?.data?.list, 'username'), [accountsApi.data])
+    const accountsApi = useAccountsApi() // load accounts once and for all, or !isSideBreakpoint will cause a call for each selection
     const diskContent = useApiList<LsEntry>(vfsShowDiskContentFor && 'get_ls', { path: vfsShowDiskContentFor })
 
     // this will take care of closing the dialog, for the user's convenience, after "cut" button is pressed
@@ -81,9 +79,9 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     ), [hintElement]))
 
     const single = selectedFiles?.length < 2 && selectedFiles[0] as VfsNodeAdmin
-    const sideContent = useMemo(() => accountsApi.element || !vfs ? null
+    const sideContent = useMemo(() => !vfs ? null
         : diskContent.enabled ? diskContent.element || h(Box, {},
-            h(Box, { fontSize: 'xx-large', sx: { wordBreak: 'break-all' } }, "From ", vfsShowDiskContentFor),
+            h(Box, { sx: { fontSize: 'xx-large', wordBreak: 'break-all' } }, "From ", vfsShowDiskContentFor),
             h(List, { dense: true },
                 diskContent.list.map(it =>
                     h(ListItem, { key: it.n, sx: { borderTop: '1px solid #8888' } }, h(ListLsItem, { it })))
@@ -92,10 +90,10 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         : single ? h(FileForm, {
             key: single.id,
             isSideBreakpoint,
-            addToBar: isSideBreakpoint && h(Box, { flex: 1, textAlign: 'right', mr: 1, color: '#8883' }, vfsNodeIcon(single)),
+            addToBar: isSideBreakpoint && h(Box, { sx: { flex: 1, textAlign: 'right', mr: 1, color: '#8883' } }, vfsNodeIcon(single)),
             statusApi,
             saved: () => closeDialogRef.current(),
-            accounts: accounts ?? [],
+            accountsApi,
             file: single
         })
         : !selectedFiles.length ? null
@@ -128,7 +126,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
                     vfsNodeIcon(selectedFiles[0] as VfsNodeAdmin),
                     h(Flex, { flexWrap: 'wrap', gap: '0 0.5em' },
                         selectedFiles[0].name || "Home",
-                        h(Box, { component: 'span', color: 'text.secondary' }, ancestors.join(' /'))
+                        h(Box, { component: 'span', sx: { color: 'text.secondary' } } as any, ancestors.join(' /'))
                     )
                 ),
             dialogProps: { sx: { justifyContent: 'flex-end' } },
@@ -167,10 +165,15 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         return element
     }
     const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
-    return h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
-        h(Grid, { item: true, xs: 12, [sideBreakpoint]: 5, lg: 6, xl: 5, ...scrollProps  },
+    return h(Grid, {
+            container: true,
+            rowSpacing: 1,
+            columnSpacing: 2,
+            sx: { top: 0, flex: '1 1 auto', height: 0 },
+        },
+        h(Grid, { size: { xs: 12, [sideBreakpoint]: 5, lg: 6, xl: 5 } as any, sx: scrollProps  },
             h(VfsTree, { statusApi }) ),
-        isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth: '100%', ...scrollProps },
+        isSideBreakpoint && sideContent && h(Grid, { size: 'grow', sx: { ...scrollProps, maxWidth: '100%' } },
             h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
                 h(CardContent, {}, sideContent)) )
     )
@@ -204,6 +207,7 @@ export function reindexVfs({
         if (oldId && oldId !== newId)
             id2vfsNode.delete(oldId)
         node.id = newId
+        node.originalId ||= newId // set only first value (all are truthy)
         id2vfsNode.set(newId, node)
         if (!node.children) return
         if (sortChildren)
@@ -225,7 +229,7 @@ export function getInheritedPerms(child: VfsNodeAdmin | undefined) {
     }
     return _.isEmpty(ret) ? undefined : ret
 
-    function getInheritedPerm(cursor: VfsNodeAdmin | undefined, perm: keyof VfsPerms): Who | undefined {
+    function getInheritedPerm(cursor: VfsNodeAdmin | undefined, perm: keyof VfsPerms): WhoVfs | undefined {
         while (cursor) {
             let inheritedPerm = cursor[perm]
             if (inheritedPerm != null) {
@@ -281,4 +285,5 @@ export interface VfsNodeAdmin extends Omit<VfsNodeAdminSend, 'birthtime' | 'mtim
     children?: VfsNodeAdmin[]
     parent?: VfsNodeAdmin
     isRoot?: true
+    originalId: string
 }

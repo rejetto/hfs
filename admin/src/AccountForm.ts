@@ -13,8 +13,13 @@ import { state, useSnapState } from './state'
 import VfsPathField from './VfsPathField'
 import { DateTimeField } from './DateTimeField'
 
-interface FormProps { account: Account, groups: string[], done: (username: string)=>void, reload: ()=>void, addToBar: ReactNode }
-export default function AccountForm({ account, done, groups, addToBar, reload }: FormProps) {
+export default function AccountForm({ account, done, groups, addToBar, reload }: {
+    account: Account,
+    groups: string[],
+    done: (username: string, saveBtn?: HTMLButtonElement) => void,
+    reload: () => void,
+    addToBar: ReactNode
+}) {
     const { username } = useSnapState()
     const [values, setValues] = useState<Account & { password?: string, password2?: string }>(account)
     const [belongsOptions, setBelongOptions] = useState<string[]>([])
@@ -69,7 +74,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
 
             { k: 'disabled', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Enabled", xs: 12, sm: 6, lg: 4,
                 helperText:  values.disabled || values.canLogin !== false ? "Login is prevented if account is disabled, or all its groups are disabled"
-                    : h(Box, { color: 'warning.main', component: 'span' },
+                    : h(Box, { sx: { color: 'warning.main' }, component: 'span' } as any, // Box.component has ts problems with h()
                         new Date(account.expire!) < new Date() ? "Login is prevented because account is expired" // use account instead of values, so to use the value currently applied
                             : "Login is prevented because all of its groups are disabled")
             },
@@ -79,9 +84,9 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                 helperText: "To access THIS interface you are using right now",
                 ...!account.admin && account.adminActualAccess && { value: true, disabled: true, helperText: "This permission is inherited. To disable it, act on the groups." },
             },
-            !isGroup && { k: 'require_password_change', comp: BoolField, xs: 12, sm: 6, lg: 6, helperText: "At next login" },
 
-            { k: 'disable_password_change', label: "Password change", comp: SelectField, xs: 12, sm: 6, lg: isGroup ? 4 : 6,
+            !isGroup && { k: 'require_password_change', comp: BoolField, xs: 12, sm: 6, lg: 4, helperText: "At next login" },
+            { k: 'disable_password_change', label: "Password change", comp: SelectField, xs: 12, sm: 6, lg: isGroup ? 4 : 4,
                 defaultValue: null,
                 options: { [`Default (${values.canChangePassword ? 'Allowed' : 'Disabled'})`]: null, "Allowed": false, "Disabled": true },
             },
@@ -98,25 +103,29 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                         }),
                 ),
             isGroup && h(Alert, { severity: 'info' }, `To add users to this group, select the user and then click "Inherit"`),
-            { k: 'belongs', comp: MultiSelectField, label: "Inherit from groups", options: belongsOptions, sm: 6,
+            { k: 'belongs', comp: MultiSelectField, label: "Inherit from groups", options: belongsOptions, sm: 6, lg: 4,
                 helperText: "Specify groups to inherit permissions from"
                     + (!isGroup ? '' : ". A group can inherit from another group")
                     + (belongsOptions.length ? '' : ". Now disabled because there are no groups to select, create one first.")
             },
-            { k: 'allow_net', comp: NetmaskField, label: "Allowed network address", sm: 6, placeholder: "Allow from any address" },
-            { k: 'expire', label: "Expiration", xs: values.expire ? 12 : 6, comp: DateTimeField, toField: x => x && new Date(x),
-                helperText: "When expired, login won't be allowed" },
-            !values.expire && { k: 'days_to_live', xs: 12, sm: 6, comp: NumberField, step: 'any', min: 1/1000, // 10 minutes
-                helperText: "Used to set expiration on first login" },
-            { k: 'redirect', comp: VfsPathField, placeholder: "no", sm: 6,
+
+            { k: 'allow_net', comp: NetmaskField, label: "Allowed network address", sm: 6, lg: 4, placeholder: "any address" },
+            !isGroup && { k: 'auto_login_net', comp: NetmaskField, label: "Auto-login by IP address", sm: 6, lg: 4, placeholder: "none" },
+            { k: 'redirect', comp: VfsPathField, placeholder: "no", sm: 6, lg: 4,
                 helperText: "If you want this account to be redirected to a specific folder/address (or even file) at login time" },
-            { k: 'notes', multiline: true, sm: 6 },
+
+            { k: 'expire', label: "Expiration", sm: 6, lg: 4, comp: DateTimeField, toField: x => x && new Date(x),
+                helperText: "When expired, login won't be allowed" },
+            { k: 'days_to_live', sm: 6, lg: 4, comp: NumberField, step: 'any', min: 1/1000, // 10 minutes
+                ...values.expire && { xs: 12, disabled: true, sx: { opacity: .2 } }, helperText: "Used to set expiration on first login" },
+            { k: 'notes', multiline: true, sm: 6, lg: 4 },
         ],
         onError: alertDialog,
         save: {
             ...propsForModifiedValues(isModifiedConfig(values, account)),
             async onClick() {
                 const { password='', password2, adminActualAccess, hasPassword, invalidated, canLogin, members, ...withoutPassword } = values
+                const saveBtn = ref.current?.querySelector<HTMLButtonElement>('button.saveBtn') || undefined
                 if (add) {
                     const got = await apiCall('add_account', withoutPassword)
                     if (password)
@@ -125,7 +134,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                             void apiCall('del_account', { username: values.username }) // best effort, don't wait
                             throw e
                         }
-                    done(got?.username)
+                    done(got?.username, saveBtn)
                     return
                 }
                 const got = await apiCall('set_account', {
@@ -136,7 +145,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                     await apiNewPassword(values.username, password)
                 if (account.username === username)
                     state.username = values.username
-                done(got?.username) // username may have been changed, so we pass it back
+                done(got?.username, saveBtn) // username may have been changed, so we pass it back
             }
         }
     })

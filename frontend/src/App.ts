@@ -1,31 +1,34 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { BrowserRouter, Route, Routes, useNavigate } from './router'
-import { createElement as h, Fragment } from 'react'
+import { useLocation } from 'wouter'
+import { createElement as h } from 'react'
 import { BrowseFiles } from "./BrowseFiles"
 import { alertDialog, Dialogs } from './dialog'
 import useTheme from "./useTheme"
 import { state, useSnapState } from './state'
 import { acceptDropFiles } from './upload'
 import { enqueueUpload, getFilePath, uploadState } from './uploadQueue'
-import i18n from './i18n'
-const { t } = i18n
 import { proxy, ref, useSnapshot } from "valtio"
 import { Spinner } from "./components"
 import { enforceStarting, getHFS, getPrefixUrl, loadScript } from '@hfs/shared'
 import { Toasts } from './toasts'
+import i18n from './i18n'
+const { t } = i18n
 
 const { i18nWrapperProps } = i18n
 
-function App() {
+export default function App() {
     useTheme()
+    const go = useLocation()[1] // expose navigate function for programmatic usage
+    getHFS().navigate = (uri: string) => go(getPrefixUrl() + enforceStarting('/', uri))
+
     const { ready } = useSnapshot(pageState) // wait for all plugins to be loaded
     const { messageOnly } = useSnapState()
     if (messageOnly)
         return h('h1', { style: { textAlign: 'center'} }, messageOnly)
     if (!ready)
         return h(Spinner, { style: { margin: 'auto' } })
-    installScript() // do this only after react has started working
+    installScript() // do this only after React has started working
     return h('div', {
         ...i18nWrapperProps(),
         ...acceptDropFiles((files, to) => {
@@ -36,16 +39,10 @@ function App() {
                     : alertDialog(t("Upload not available"), 'warning')
         })
     },
-        h(BrowserRouter, {},
-            h(NavigationExtractor, {},
-                h(Toasts),
-                h(Dialogs, {},
-                    h(Routes, {},
-                        h(Route, { path: '*', element: h(BrowseFiles) })
-                    ),
-                ),
-            ),
-        )
+        h(Toasts),
+        h(Dialogs, {},
+            h(BrowseFiles)
+        ),
     )
 }
 
@@ -58,17 +55,13 @@ function installScript() {
     const el = document.createElement('script')
     el.type = 'text/javascript'
     el.text = s
-    el.id = 'customHtmlScript'
+    el.setAttribute('plugin', el.id = '?customHtmlScript')
     document.head.appendChild(el)
 }
 
-function NavigationExtractor(props: any) {
-    const go = useNavigate() // expose navigate function for programmatic usage
-    getHFS().navigate = (uri: string) => go(getPrefixUrl() + enforceStarting('/', uri))
-    return h(Fragment, props)
+export function navigate(uri: string) {
+    return getHFS().navigate(uri)
 }
-
-export default App;
 
 const pageState = proxy({ ready: document.readyState === 'complete' })
 document.addEventListener('readystatechange', () => {

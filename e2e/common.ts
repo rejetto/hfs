@@ -8,7 +8,7 @@ import { ADMIN_URI } from '../src/cross-const'
 export const username = 'rejetto'
 export const password = 'password'
 // keep e2e URL aligned with the same config file used by tests/test.ts and server-for-test
-const TEST_PORT = Number(yaml.parse(readFileSync(resolve(process.cwd(), 'tests/config.yaml'), 'utf8')).port)
+export const TEST_PORT = Number(yaml.parse(readFileSync(resolve(process.cwd(), 'tests/config.yaml'), 'utf8')).port)
 export const FRONTEND_URL = `http://[::1]:${TEST_PORT}/`
 export const ADMIN_URL = new URL(ADMIN_URI, FRONTEND_URL).href
 export const uploadName = 'uploaded'

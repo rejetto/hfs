@@ -3,7 +3,7 @@
 import _ from 'lodash'
 import { proxy, useSnapshot } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
-import { Dict, FRONTEND_OPTIONS, getHFS, hfsEvent, hIcon, objSameKeys, pathEncode, typedKeys } from './misc'
+import { FRONTEND_OPTIONS, getHFS, hfsEvent, hIcon, pathEncode, typedKeys } from './misc'
 import { DirEntry as ServerDirEntry } from '../../src/api.get_file_list'
 
 export const state = proxy<typeof FRONTEND_OPTIONS & {
@@ -22,6 +22,7 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
     showFilter: boolean,
     selected: { [uri:string]: true }, // by using an object instead of an array, Entry components are not rendered when others get selected
     remoteSearch: { search?: string, searchComment?: string, wild?: string } | undefined,
+    isAdmin?: boolean,
     adminUrl?: string,
     loginRequired?: boolean, // force user to login before proceeding
     messageOnly?: string, // no gui, just show this message
@@ -44,7 +45,7 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
     uri: '',
     canChangePassword: false,
     props: {},
-    ...objSameKeys(FRONTEND_OPTIONS, (v,k) => getHFS()[k] ?? v),
+    ..._.mapValues(FRONTEND_OPTIONS, (v,k) => getHFS()[k] ?? v),
     iconsReady: false,
     username: '',
     list: [],

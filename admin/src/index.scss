@@ -1,4 +1,4 @@
-@import '../../shared/main';
+@use '../../shared/main';
 
 :root {
   height: 100dvh;
@@ -36,14 +36,20 @@ form { max-width: 100%; } // make fields with unbreakable text (LinkField) to no
 .MuiSvgIcon-root {
   vertical-align: bottom;
 }
-div.MuiTreeItem-content { padding: 0; } // remove wasting horizontal padding
+div.MuiTreeItem-content {
+  padding-top: 1px; // denser
+  padding-bottom: 0;
+}
 .MuiDataGrid-columnHeaders {
   background-color: #8882;
 }
+.MuiDataGrid-virtualScrollerRenderZone .MuiDataGrid-row // make it heavier
 .MuiDataGrid-cell {
   line-height: 1.2em;
+  display: flex;
+  align-items: center;
 }
-.MuiDataGrid-filterForm { flex-wrap: wrap; justify-content: space-evenly; row-gap: 1em; } // fit on mobile
+.MuiDataGrid-filterForm { flex-wrap: wrap; row-gap: 1em; justify-content: flex-end; } // fit on mobile
 
 .wrap[role=cell] { white-space: normal !important }
 
@@ -99,4 +105,4 @@ h2.MuiDialogTitle-root { /* less padding */
 // adjust prism black theme
 .token.operator { background: unset !important; }
 
-.fflag { width: 26px; height: 17px; vertical-align: text-bottom; border: none; }
+.fflag { width: 1.7em; height: 1.1em; vertical-align: bottom; border: none; }

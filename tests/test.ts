@@ -144,6 +144,11 @@ describe('basics', () => {
     test('traversal.mixed-dots', req('/f1/page/.%2e/%2e./README.md', 404))
     test('traversal.overlong-utf8', req('/f1/page/%c0%ae%c0%ae/%c0%ae%c0%ae/README.md', 404))
     test('bad url encoding', req('/f1/%E0%A4%A', 404))
+    test('not-found.default page', req('/missing-default-404', /found<\/h1>/))
+    test('not-found.custom page overrides default', () =>
+        withCustomHtml({ 404: '<strong>custom 404 $MESSAGE</strong>' }, () =>
+            req('/missing-custom-404', /^<strong>custom 404 Not found<\/strong>$/)()) )
+    test('not-found.default page reverse proxy root', req('/missing-proxy-404', /href="\/prefix/, { headers: { 'x-forwarded-prefix': '/prefix' } }))
     test('custom mime from above', req('/tests/page/index.html', { status: 200, mime:'text/plain' }))
     test('name encoding', req(FUNNY_NAME_ENCODED, 200))
     test('name encoding list', reqList('/', { inList: [FUNNY_NAME] }))
@@ -176,10 +181,10 @@ describe('basics', () => {
         headers: { 'x-hfs-anti-csrf': '1', 'content-type': 'application/json' },
         body: '{'
     }))
-    test('file_details.missing', reqApi('get_file_details', { uris: ['/missing'] }, res => res?.details?.[0] === false))
-    test('file_details.hidden', reqApi('get_file_details', { uris: ['/tests/config.yaml'] }, res => res?.details?.[0] === false))
-    test('file_details.for-admins', reqApi('get_file_details', { uris: ['/for-admins/alfa.txt'] }, res => res?.details?.[0] === false))
-    test('file_details.traversal', reqApi('get_file_details', { uris: ['/f1/%2e%2e/for-admins/alfa.txt'] }, res => res?.details?.[0] === false))
+    test('file_details.missing', reqApi('get_file_details', { uris: ['/missing'] }, noVisibleDetails))
+    test('file_details.hidden', reqApi('get_file_details', { uris: ['/tests/config.yaml'] }, noVisibleDetails))
+    test('file_details.for-admins', reqApi('get_file_details', { uris: ['/for-admins/alfa.txt'] }, noVisibleDetails))
+    test('file_details.traversal', reqApi('get_file_details', { uris: ['/f1/%2e%2e/for-admins/alfa.txt'] }, noVisibleDetails))
     test('file_list.traversal', reqApi('get_file_list', { uri: '/f1/%2e%2e/for-admins' }, 404))
     test('file_list.bad encoding', reqApi('get_file_list', { uri: '/f1/%E0%A4%A' }, 404))
     test('forbidden list', req('/cantListPage/page/', 403))
@@ -249,6 +254,7 @@ describe('basics', () => {
     test('zip.partial', req('/f1/?get=zip', { re:/^page$/, length: zipLength }, { headers: { Range: `bytes=${zipOfs}-${zipOfs+zipLength-1}` } }) )
     test('zip.partial.resume', req('/f1/?get=zip', { re:/^page/, length:zipSize-zipOfs }, { headers: { Range: `bytes=${zipOfs}-` } }) )
     test('zip.partial.end', req('/f1/f2/?get=zip', { re:/^6/, length:10 }, { headers: { Range: 'bytes=-10' } }) )
+    test('zip.list.compacted folders', req('/f1/?get=zip&list=page%2Fgpl.png%2F%2F%00index.html', /page\/gpl.png.+page\/index.html/))
     test('zip.list.selected folder decodes prefix', req('/tests/?get=zip&list=C%253A', data =>
         String(data).includes('C:/gpl.png') && !String(data).includes('C%3A/gpl.png')))
     test('zip.list.bad encoding', req('/f1/?get=zip&list=%E0%A4%A//%00', { status: 200, length: 22 })) // basically empty
@@ -646,6 +652,27 @@ describe('webdav', () => {
             }
         }
     })
+    test('webdav.move rename cannot traverse out of root', async () => {
+        const name = `wd-move-trav-${randomId(6)}.txt`
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        const escapedName = `wd-escaped-${randomId(6)}.txt`
+        const traversal = `../../${escapedName}` // climbs above the upload node's source
+        // encode as a single path segment so dirname(dest) still matches dirname(path) and we hit the rename branch
+        const destination = `${BASE_URL}${UPLOAD_ROOT}${UPLOAD_DIR}/${encodeURIComponent(traversal)}`
+        const escapedDiskPath = resolve(ROOT, UPLOAD_DIR, traversal)
+        let destPath = ''
+        try {
+            destPath = await webdavUpload(uri, x => x?.uri === uri, 'test')()
+            await req(uri, 400, { method: 'MOVE', auth, jar, headers: { destination, overwrite: 'F', 'user-agent': WEBDAV_UA } })()
+            if (await access(escapedDiskPath).then(() => true, () => false))
+                throw "file escaped the VFS root"
+            await req(uri, 200, { auth })() // source must still be there, untouched
+        }
+        finally {
+            await rmAny(escapedDiskPath)
+            await rmAny(destPath)
+        }
+    })
     test('webdav.proppatch accepts dead properties as no-op', async () => {
         const name = `wd-proppatch-${randomId(6)}.txt`
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
@@ -821,6 +848,18 @@ describe('sessions', () => {
             await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
         }
     })
+    test('auto_login_net.canLogin', async () => {
+        const user = `auto-login-${randomId(6)}`.toLowerCase()
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: user, overwrite: true, auto_login_net: '::1' }, res => res?.username === user, adminReq)()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar: {} })()
+            await reqApi('refresh_session', {}, res => !res?.username, { baseUrl: BASE_URL_127, jar: {} })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
     test('change_srp enforces self/admin permissions', async () => {
         const selfUser = `change-srp-self-${randomId(6)}`.toLowerCase()
         const otherUser = `change-srp-other-${randomId(6)}`.toLowerCase()
@@ -914,7 +953,7 @@ describe('after-login', () => {
         const u = res?.details?.[0]?.upload
         throwIf(!u?.ip ? 'ip' : u?.username !== username ? 'username' : '')
     }))
-    test('file_details.non-admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, res => res?.details?.[0] === false, { jar: {} }))
+    test('file_details.non-admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, noVisibleDetails, { jar: {} }))
     test('percent name apis.details', async () => {
         const percentName = `x%25-${randomId(4)}`
         const percentUri = `${UPLOAD_ROOT}${pathEncode(percentName)}`
@@ -1149,12 +1188,15 @@ describe('admin', () => {
         await reqApi('del_vfs', { uris: ['/' + name] }, data => [0, 404].includes(data?.errors?.[0]), { auth })().catch(() => {})
     })
     test('set_vfs.rename and props', async () => {
-        const name = `set-vfs-${randomId(6)}`
+        const name = `set vfs ${randomId(6)}`
         const renamed = `${name}-renamed`
         const uri = '/' + name
         const renamedUri = '/' + renamed
+        const rootsHost = `set-vfs-${randomId(6)}.example.com`
+        const oldRoots = await reqApi('get_config', { only: ['roots'] }, 200, { auth })().then(res => res.roots)
         try {
             await reqApi('add_vfs', { source: '.', name }, 200, { auth })()
+            await reqApi('set_config', { values: { roots: { ...oldRoots, [rootsHost]: uri } } }, 200, { auth })()
             await reqApi('set_vfs', { uri, props: { name: renamed, comment: 'test note', can_list: false } }, 200, { auth })()
             await reqApi('get_vfs', {}, res => {
                 const children = res?.root?.children || []
@@ -1165,8 +1207,11 @@ describe('admin', () => {
                         : renamedNode.comment !== 'test note' ? 'comment not updated'
                             : renamedNode.can_list !== false ? 'can_list not updated' : '')
             }, { auth })()
+            await reqApi('get_config', { only: ['roots'] }, res =>
+                throwIf(res?.roots?.[rootsHost] === renamedUri + '/' ? '' : 'root not updated'), { auth })()
         }
         finally {
+            await reqApi('set_config', { values: { roots: oldRoots } }, 200, { auth })().catch(() => {})
             await reqApi('del_vfs', { uris: [renamedUri] }, data =>
                 [0, 404].includes(data?.errors?.[0]), { auth })().catch(() => {})
             await reqApi('del_vfs', { uris: [uri] }, data =>
@@ -1190,6 +1235,25 @@ describe('admin', () => {
                 throw `unexpected status ${res.status}`
         }
         finally { await rmAny(resolve(__dirname, rawName)) }
+    })
+    test('monitor.connections upload path decodes colon folder', async () => {
+        const body = makeReadableThatTakes(700)
+        const size = body.length
+        const folderName = `colon:${randomId(4)}`
+        const fileName = 'slow-upload.txt'
+        const uploadPromise = reqUpload(`${UPLOAD_ROOT}${pathEncode(folderName)}/${fileName}`, () => true, body, size, 0, { auth })()
+        try {
+            await wait(200)
+            const res = await readEventStreamOnce(`${API}get_connections`, { auth })
+            await uploadPromise
+            const expectedPath = `${UPLOAD_ROOT}${folderName}/${fileName}`
+            const encodedPath = `${UPLOAD_ROOT}${pathEncode(folderName)}/${fileName}`
+            if (!res.data.includes(expectedPath))
+                throw Error('missing decoded upload path: ' + res.data)
+            if (res.data.includes(encodedPath))
+                throw Error('upload path still encoded: ' + res.data)
+        }
+        finally { await rmAny(resolve(__dirname, folderName)) }
     })
     test('plugins.start_stop', async () => {
         const id = 'download-counter'
@@ -1250,6 +1314,114 @@ describe('admin', () => {
         return req(`/~/plugins/${id}/../../../tests/config.yaml`, 404)()
             .finally(() => reqApi('stop_plugin', { id }, 200, { auth })())
     })
+    const antibruteCfg = {
+        increment: 1,           max: 60,
+        blockAfter: 9999,       maxQueuePerIp: 128,
+        maxQueuePerAccount: 128, maxQueueGlobal: 512,
+    }
+    test('antibrute.valid basic auth has no progressive delay', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            const first = await reqBasicAuth('/for-admins/', auth)
+            const second = await reqBasicAuth('/for-admins/', auth)
+            if (first.status !== 200) throw "first request failed"
+            if (second.status !== 200) throw "second request failed"
+            if (first.delay !== 0) throw "first request delayed"
+            if (second.delay !== 0) throw "second request delayed"
+        })
+    })
+    test('antibrute.valid burst has no anti-brute delay', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            const burst = await Promise.all(_.times(20, () => reqBasicAuth('/for-admins/', auth)))
+            if (burst.some(x => x.status !== 200)) throw `unexpected statuses in valid burst: ${burst.map(x => x.status)}`
+            if (burst.some(x => x.delay !== 0)) throw `unexpected delay in valid burst: ${burst.map(x => x.delay)}`
+        })
+    })
+    test('antibrute.valid burst x100 has no anti-brute delay', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            const burst = await Promise.all(_.times(100, () => reqBasicAuth('/for-admins/', auth)))
+            if (burst.some(x => x.status !== 200)) throw `unexpected statuses in x100 valid burst: ${burst.map(x => x.status)}`
+            if (burst.some(x => x.delay !== 0)) throw `unexpected delay in x100 valid burst: ${burst.map(x => x.delay)}`
+        })
+    })
+    test('antibrute.failed basic auth escalates delay', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            const first = await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
+            const second = await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
+            if (first.status !== 401) throw "first wrong login was not rejected"
+            if (second.status !== 401) throw "second wrong login was not rejected"
+            if (second.delay < 500) throw `missing delay escalation: ${second.delay}`
+        })
+    })
+    test('antibrute.successful login resets penalty', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
+            const penalized = await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
+            const success = await reqBasicAuth('/for-admins/', auth)
+            const afterReset = await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
+            if (penalized.status !== 401) throw "penalized wrong login status mismatch"
+            if (penalized.delay < 500) throw `missing pre-reset delay: ${penalized.delay}`
+            if (success.status !== 200) throw "successful login failed"
+            if (afterReset.status !== 401) throw "post-reset wrong login status mismatch"
+            if (afterReset.delay !== 0) throw `delay not reset after successful login: ${afterReset.delay}`
+        })
+    })
+    test('antibrute.burst serializes wrong logins with delays', async () => {
+        await withPluginConfig('antibrute', {
+            ...antibruteCfg,
+            increment: 1,
+            max: 1,
+            maxQueuePerIp: 3,
+            maxQueuePerAccount: 3,
+            maxQueueGlobal: 3,
+        }, async () => {
+            // seed penalty so the first burst request keeps queue slots busy
+            await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
+            const started = Date.now()
+            const burst = await Promise.all(_.times(3, () => reqBasicAuth('/for-admins/', `${username}:wrong-password`)))
+            const elapsed = Date.now() - started
+            const delays = burst.map(x => x.delay)
+            if (burst.some(x => x.status !== 401)) throw `unexpected statuses in burst: ${burst.map(x => x.status)}`
+            if (delays.some(x => x <= 0)) throw `missing delay in burst: ${delays.join(',')}`
+            // the wall clock check proves requests waited in series instead of sharing one penalty window
+            if (elapsed < 2500) throw `burst was not serialized: ${elapsed}`
+        })
+    })
+    test('antibrute.queue limit rejects overflowing logins before credentials are checked', async () => {
+        await withPluginConfig('antibrute', {
+            ...antibruteCfg,
+            increment: 1,
+            max: 1,
+            maxQueuePerIp: 1,
+            maxQueuePerAccount: 1,
+            maxQueueGlobal: 1,
+        }, async () => {
+            // seed penalty so the queue slot remains occupied long enough to overflow
+            await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
+            const burst = await Promise.all(_.times(3, () => reqBasicAuth('/for-admins/', auth)))
+            const counts = _.countBy(burst, 'status')
+            if (counts[200] !== 1 || counts[429] !== 2)
+                throw `unexpected queue limit statuses: ${burst.map(x => x.status)}`
+        })
+    })
+})
+
+describe('logging', () => {
+    test('security-filtered traversal reaches the error log', async () => {
+        const logPath = resolve(__dirname, 'work/logs/access-error.log')
+        const uri = `/f1/page/.%2e/.%2e/README.md?log-test=${randomId(8)}`
+        const adminJar = {}
+        await reqApi('set_config', { values: { dont_log_net: '' } }, 200, { auth, jar: adminJar })()
+        try {
+            await req(uri, 404, { jar: {} })()
+            const found = await waitFor(() =>
+                existsSync(logPath) && readFileSync(logPath, 'utf8').includes(uri))
+            if (!found)
+                throw Error('traversal request was not written to the error log')
+        }
+        finally {
+            await reqApi('set_config', { values: { dont_log_net: '127.0.0.1|::1' } }, 200, { auth, jar: adminJar })()
+        }
+    })
 })
 
 function login(usr: string, pwd=password) {
@@ -1257,7 +1429,7 @@ function login(usr: string, pwd=password) {
         reqApi(cmd, params, (x,res)=> res.statusCode < 400)())
 }
 
-function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?: number, resume=0) {
+function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?: number, resume=0, options?: ReqOptions) {
     if (resume)
         dest += (dest.includes('?') ? '&' : '?') + 'resume=' + resume
     size ??= (body as any)?.length ?? statSync(SAMPLE_FILE_PATH).size  // it's ok that Readable.length is undefined
@@ -1278,7 +1450,8 @@ function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?
     return req(dest, tester, {
         method: 'PUT',
         headers: { connection: 'close', 'content-length': size === undefined ? size : size - resume },
-        body: body ?? createReadStream(SAMPLE_FILE_PATH)
+        body: body ?? createReadStream(SAMPLE_FILE_PATH),
+        ...options,
     })
 }
 
@@ -1426,6 +1599,10 @@ function isInList(res:any, name:string) {
     return Array.isArray(res?.list) && (res.list as any[]).some(x => x.n===name)
 }
 
+function noVisibleDetails(res: any) {
+    return Array.isArray(res?.details) && res.details.length === 0
+}
+
 function rmAny(path: string) {
     return path && rm(path, { recursive: true, force: true }).catch(() => {})
 }
@@ -1461,4 +1638,49 @@ async function curlWithStatus(cmd: string) {
     if (idx < 0)
         throw "missing status in curl output"
     return { status: Number(out.slice(idx + 8)), body: out.slice(0, idx) }
+}
+
+async function withPluginConfig(id: string, config: object, cb: () => Promise<void>) {
+    const prev = await reqApi('get_plugin', { id }, res => res?.config && 'enabled' in res, { auth })()
+    // force a deterministic plugin lifecycle to avoid races where set_plugin returns before plugin init is completed
+    await reqApi('stop_plugin', { id }, 200, { auth })()
+    await reqApi('set_plugin', { id, enabled: false, config }, 200, { auth })()
+    await reqApi('start_plugin', { id }, 200, { auth })()
+    try {
+        await cb()
+    }
+    finally {
+        await reqApi('stop_plugin', { id }, 200, { auth })()
+        await reqApi('set_plugin', { id, enabled: false, config: prev.config }, 200, { auth })()
+        if (prev.enabled)
+            await reqApi('start_plugin', { id }, 200, { auth })()
+    }
+}
+
+async function withCustomHtml(sections: Record<string, string>, cb: () => Promise<void>) {
+    const prev = await reqApi('get_custom_html', {}, res => res?.sections, { auth, jar: {} })()
+    await reqApi('set_custom_html', { sections: { ...prev.sections, ...sections } }, 200, { auth, jar: {} })()
+    try {
+        await cb()
+    }
+    finally {
+        await reqApi('set_custom_html', { sections: prev.sections }, 200, { auth, jar: {} })()
+    }
+}
+
+async function reqBasicAuth(url: string, credentials: string) {
+    const authorization = 'Basic ' + Buffer.from(credentials).toString('base64')
+    const response = await httpStream(defaultBaseUrl + url, {
+        path: url,
+        httpThrow: false,
+        jar: {},
+        headers: { authorization },
+    })
+    await stream2string(response).catch(() => '')
+    const rawDelay = response.headers?.['x-anti-brute-force']
+    const delayValue = Array.isArray(rawDelay) ? rawDelay[0] : rawDelay
+    return {
+        status: response.statusCode,
+        delay: Number(delayValue) || 0,
+    }
 }

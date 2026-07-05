@@ -151,7 +151,8 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                 }
             },
                 h('div', { className: 'bar' },
-                    h('div', { className: 'filename' }, h('small', {}, folder), cur.n.slice(folder.length)),
+                    h('div', { className: 'filename' }, h('span', { className: 'folder' }, folder), cur.n.slice(folder.length)),
+                    cur.comment && h('div', { className: 'entry-comment' }, cur.comment),
                     h('div', { className: 'controls' }, // keep on same row
                         h(EntryDetails, { entry: cur, midnight: useMidnight() }),
                         useWindowSize().width > 800 && iconBtn('?', showHelp),

@@ -36,13 +36,13 @@ export default function MonitorPage({ setTitleSide }: PageProps) {
 function MoreInfo() {
     const { data: status, element, reload } = useApiEx<typeof adminApis.get_status>('get_status')
     useInterval(reload, 10_000) // status hardly change, but it can
-    const { data: connections } = useApiEvents('get_connection_stats')
+    const { data: stats } = useApiEvents('get_connection_stats')
     const [allInfo, setAllInfo] = useState(false)
     const md = useBreakpoint('md')
     const sm = useBreakpoint('sm')
     const xl = useBreakpoint('xl')
     const formatDuration = createDurationFormatter({ maxTokens: 2, skipZeroes: true })
-    return element || h(Box, { display: 'flex', flexWrap: 'wrap', gap: { xs: .5, md: 1 }, mb: { xs: 1, sm: 2 } },
+    return element || h(Box, { sx: { display: 'flex', flexWrap: 'wrap', gap: { xs: .5, md: 1 }, mb: { xs: 1, sm: 2 } } },
         (allInfo || md) && pair('started', {
             label: "Uptime",
             render: x => formatDuration(Date.now() - +new Date(x)),
@@ -57,7 +57,7 @@ function MoreInfo() {
         }),
         pair('outSpeedKb', { label: "Output", render: formatSpeedK, minWidth: '8.5em' }),
         pair('inSpeedKb', { label: "Input", render: formatSpeedK, minWidth: '8.5em' }),
-        (allInfo || sm) && pair('ips', { label: "IPs", title: () => "Currently connected" }),
+        (allInfo || sm) && pair('ips', { label: "IPs", title: () => stats && `${stats.connections.toLocaleString()} connections` }),
         (md || allInfo && md || status?.http?.error) && pair('http', { label: "HTTP", render: port }),
         (md || allInfo && md || status?.https?.error) && pair('https', { label: "HTTPS", render: port }),
         (xl || allInfo) && pair('ram', { label: "RAM", render: formatBytes }),
@@ -81,7 +81,7 @@ function MoreInfo() {
     }
 
     function pair(k: string, { label, minWidth, render, title, onDelete }: PairOptions = {}) {
-        let v = _.get(connections, k) ?? _.get(status, k)
+        let v = _.get(stats, k) ?? _.get(status, k)
         if (v === undefined)
             return null
         let color: Color = undefined
@@ -118,7 +118,7 @@ function Connections() {
     const { monitorOnlyFiles } = useSnapState()
     const { pause, pauseButton } = usePauseButton()
     const rows = useMemo(() =>
-            list?.filter((x: any) => !monitorOnlyFiles || x.op).map((x: any, id: number) => ({ id, ...x })),
+        (!monitorOnlyFiles ? list : list?.filter((x: any) => x.op)) ?? [],
         [!pause && list, monitorOnlyFiles]) //eslint-disable-line
     const logAble = useBreakpoint('md')
     const [wantLog, wantLogButton] = useToggleButton("Show log", "Hide log", v => ({
@@ -141,16 +141,17 @@ function Connections() {
                 wantLog ? "Live log" : h(Box),
                 wantLogButton),
         ),
-        h(Grid, { container: true, flex: 1, columnSpacing: 1 },
-            h(Grid, { item: true, xs: 12 - logSize, sx: fillFlexParentSx },
+        h(Grid, { container: true, sx: { flex: 1 }, columnSpacing: 1 },
+            h(Grid, { size: 12 - logSize, sx: fillFlexParentSx },
                 h(DataTable, {
                     persist: 'connections',
                     error,
                     rows,
+                    getRowId: (row: any) => row.ip + ':' + row.port,
                     fillFlex: true,
                     noRows: monitorOnlyFiles && "No downloads/uploads at the moment",
+                    actionsHeader: pauseButton,
                     footerSide: () => h(Flex, {},
-                        pauseButton,
                         h(Btn, {
                             size: 'small',
                             icon: DisconnectIcon,
@@ -167,7 +168,7 @@ function Connections() {
                             maxWidth: 400,
                             renderCell: ({ row, value }) => ipForUrl(value) + ' :' + row.port,
                             mergeRender: {
-                                user: { display: 'flex', justifyContent: 'space-between', gap: '.5em', },
+                                user: { sx: { display: 'flex', justifyContent: 'space-between', gap: '.5em' } },
                                 agent: {},
                                 country: {},
                             },
@@ -189,7 +190,7 @@ function Connections() {
                             type: 'dateTime',
                             width: 96,
                             hideUnder: 'lg',
-                            valueFormatter: ({ value }) => new Date(value as string).toLocaleTimeString()
+                            valueFormatter: (value) => new Date(value as string).toLocaleTimeString()
                         },
                         {
                             field: 'path',
@@ -197,26 +198,26 @@ function Connections() {
                             flex: 1.5,
                             renderCell({ value, row }) {
                                 if (!value || !row.op) return
+                                const rowContentSx = { display: 'flex', alignItems: 'center', height: '100%', minWidth: 0, gap: 1 } as const
                                 if (row.op === 'browsing')
-                                    return h(Box, {}, value, h(Box, { fontSize: 'x-small' }, "browsing"))
-                                return h(Fragment, {},
+                                    return h(Box, { sx: rowContentSx }, h(Box, {}, value, h(Box, { sx: { fontSize: 'x-small' } }, "browsing")))
+                                // keep icon and filename on the same row: datagrid v7 wraps cell content differently than before
+                                return h(Box, { sx: rowContentSx },
                                     h(IconProgress, {
                                         icon: row.archive ? FolderZip : row.op === 'upload' ? Upload : Download,
                                         progress: row.opProgress ?? row.opOffset,
                                         offset: row.opOffset,
                                         title: md(formatPerc(row.opProgress) + (row.opTotal ? "\nTotal: " + formatBytes(row.opTotal) : '')),
-                                        sx: { mr: 1 }
                                     }),
-                                    row.archive ? h(Box, {}, value, h(Box, {
-                                            fontSize: 'x-small',
-                                            color: 'text.secondary'
+                                    // clamp line-height locally so this cell doesn't inherit tall line metrics from datagrid wrappers
+                                    h(Box, { sx: { lineHeight: '1.2em', minWidth: 0 } }, row.archive ? h(Box, {}, value, h(Box, {
+                                            sx: { fontSize: 'x-small', color: 'text.secondary' }
                                         }, row.archive))
                                         : with_(value?.lastIndexOf('/'), i => h(Box, {}, value.slice(i + 1),
                                             i > 0 && h(Box, {
-                                                fontSize: 'x-small',
-                                                color: 'text.secondary'
+                                                sx: { fontSize: 'x-small', color: 'text.secondary' }
                                             }, value.slice(0, i))
-                                        )),
+                                        ))),
                                 )
                             }
                         },
@@ -227,7 +228,7 @@ function Connections() {
                             hideUnder: 'sm',
                             type: 'number',
                             renderCell: ({ value, row }) => formatSpeedK(Math.max(value || 0, row.inSpeedKb || 0) || undefined),
-                            mergeRender: { sent: { fontSize: 'small', textAlign: 'right' } }
+                            mergeRender: { sent: { sx: { fontSize: 'small', textAlign: 'right' } } }
                         },
                         {
                             field: 'sent',
@@ -265,7 +266,7 @@ function Connections() {
                     ]
                 }),
             ),
-            logAble && wantLog && h(Grid, { item: true, xs: logSize, ...fillFlexParentSx },
+            logAble && wantLog && h(Grid, { size: logSize, sx: fillFlexParentSx },
                 h(LogFile, {
                     file: `${CFG.log}|${CFG.error_log}`,
                     filter: monitorOnlyFiles ? (row => !row.uri.startsWith(SPECIAL_URI)) : undefined,

@@ -2,14 +2,14 @@
 
 import { markVfsModified, prepareVfsUndo, state, useSnapState } from './state'
 import { createElement as h, ReactElement, useCallback, useEffect, useRef, MouseEvent } from 'react'
-import { TreeItem, TreeView } from '@mui/x-tree-view'
+import { TreeItem, SimpleTreeView } from '@mui/x-tree-view'
 import {
     ChevronRight, ExpandMore, TheaterComedy, Folder, Home, Link, InsertDriveFileOutlined, Lock,
     RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff, UnfoldMore, UnfoldLess
 } from '@mui/icons-material'
 import { Box, Typography } from '@mui/material'
 import { deleteVfs, id2vfsNode, isDescendantUri, reindexVfs, VfsNodeAdmin } from './VfsPage'
-import { getOrSet, onlyTruthy, pathDecode, pathEncode, prefix, toMutable, wantArray, Who, with_ } from './misc'
+import { onlyTruthy, pathDecode, pathEncode, prefix, toMutable, wantArray, WhoVfs, with_ } from './misc'
 import { Flex, iconTooltip, useToggleButton } from './mui'
 import VfsMenuBar from './VfsMenuBar'
 import { ApiObject } from './api'
@@ -36,9 +36,6 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
         const rootFor = _.findKey(statusApi.data?.roots, v => v === rootValue)
         return h(TreeItem, {
             ref(el) {
-                if (el)
-                    getOrSet(el.dataset, 'hfsFocus', () => // workaround to permit drag&drop with mui5's tree
-                        void el.addEventListener('focusin', (e: any) => e.stopImmediatePropagation()))
                 ref.current = el
             },
             onKeyUp(ev) {
@@ -48,32 +45,31 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
                 }
             },
             onDoubleClick: toggle,
-            label:
-                h(Box, {
-                    draggable: !isRoot,
-                    onDragStart() {
-                        dragging.current = id
-                    },
-                    onDragOver(ev) {
-                        if (!isFolder) return
-                        const src = dragging.current
-                        if (src?.startsWith(id) && !src.slice(id.length + 1, -1).includes('/')) return // dragging node (src) must not be direct child of destination (id)
-                        ev.preventDefault()
-                    },
-                    async onDrop() {
-                        const from = dragging.current
-                        if (!from) return
-                        const fromName = id2vfsNode.get(from)?.name // won't work after moving
+            label: h(Box, {
+                draggable: !isRoot,
+                onDragStart() {
+                    dragging.current = id
+                },
+                onDragOver(ev) {
+                    if (!isFolder) return
+                    const src = dragging.current
+                    if (src?.startsWith(id) && !src.slice(id.length + 1, -1).includes('/')) return // dragging node (src) must not be direct child of destination (id)
+                    ev.preventDefault()
+                },
+                async onDrop() {
+                    const from = dragging.current
+                    if (!from) return
+                    const fromName = id2vfsNode.get(from)?.name // won't work after moving
                         if (moveVfs(from, id))
                             toast(`Moved "${fromName}" under "${id2vfsNode.get(id)?.name}"`, 'success')
-                    },
-                    sx: {
-                        display: 'flex',
-                        gap: '.5em',
-                        minHeight: '1.8em', pt: '.2em', // comfy, make single-line ones taller
-                    }
                 },
-                h(Box, { display: 'flex', flex: 0, },
+                sx: {
+                    display: 'flex',
+                    gap: '.5em',
+                    minHeight: '1.8em', pt: '.2em', // comfy, make single-line ones taller
+                }
+            },
+                h(Box, { sx: { display: 'flex', flex: 0 } },
                     vfsNodeIcon(node),
                     // attributes, as icons
                     h(Box, {
@@ -95,15 +91,13 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
                 ),
                 isRoot ? "Home folder" : name
             ),
-            collapseIcon: h(ExpandMore, { onClick: toggle }),
-            expandIcon: h(ChevronRight, { onClick: toggle }),
-            nodeId: id
+            itemId: id
         }, with_(node.source && isFolder ? "files from " + node.source : !node.children?.length && isRoot && "nothing here", x =>
-                x && h(TreeItem, { nodeId: SPECIAL_TREE_ITEM + id, label: h('i', {}, x) })),
+                x && h(TreeItem, { itemId: SPECIAL_TREE_ITEM + id, label: h('i', {}, x) })),
             ...node.children?.map(x => h(Branch, { key: x.id, node: x })) || []
         )
 
-        function isRestricted(who: Who | undefined) {
+        function isRestricted(who: WhoVfs | undefined) {
             return who != null && who !== true
         }
 
@@ -138,14 +132,19 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
         document.getElementById(`${treeId}-${first?.id}`)?.scrollIntoView({ block: 'nearest', behavior: 'instant' })
     }, [first])
     return h(Flex, { flexDirection: 'column', alignItems: 'stretch', flex: 1 },
-        h(Flex, { mb: 1, flexWrap: 'wrap', gap: [1, 2] },
+        h(Flex, { mb: 1, flexWrap: 'wrap', gap: [1, 2], mt: '2px' /*account for the save button's outline*/ },
             h(Typography, { variant: 'h6' }, "Virtual File System"),
             h(VfsMenuBar, { statusApi, add: toggleBtn }),
         ),
-        vfs && h(TreeView, {
+        vfs && h(SimpleTreeView, {
             ref,
-            expanded: toMutable(expanded),
-            selected: selectedFiles.map(x => x.id),
+            expandedItems: toMutable(expanded),
+            expansionTrigger: 'iconContainer',
+            onExpandedItemsChange(_ev, ids) {
+                // keep placeholder helper rows out of expansion state to avoid persisting fake ids
+                state.expanded = wantArray(ids).filter((x): x is string => typeof x === 'string' && !x.startsWith(SPECIAL_TREE_ITEM))
+            },
+            selectedItems: selectedFiles.map(x => x.id),
             multiSelect: true,
             id: treeId,
             sx: {
@@ -154,10 +153,17 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
                 maxWidth: ref.current && `calc(100vw - ${16 + ref.current.offsetLeft}px)`, // limit possible horizontal scrolling to this element
                 '& ul': { borderLeft: '1px dashed #444', marginLeft: '15px', paddingLeft: '15px' },
             },
-            onNodeSelect(_ev, ids) {
-                state.selectedFiles = onlyTruthy(wantArray(ids).map(id => id2vfsNode.get(id)))
+            slots: {
+                collapseIcon: ExpandMore,
+                expandIcon: ChevronRight,
+            },
+            onSelectedItemsChange(_ev, ids) {
+                const selectedIds = wantArray(ids) as string[]
+                state.selectedFiles = onlyTruthy(selectedIds.map(id => id2vfsNode.get(id)))
                 // this is the only point where we have special node ids that don't fit selectedFiles
-                state.vfsShowDiskContentFor = ids.length === 1 && ids[0]?.[0] === SPECIAL_TREE_ITEM && id2vfsNode.get(ids[0].slice(1))?.source || ''
+                state.vfsShowDiskContentFor = selectedIds.length === 1
+                    && selectedIds[0][0] === SPECIAL_TREE_ITEM
+                    && id2vfsNode.get(selectedIds[0].slice(1))?.source || ''
             }
         }, h(Branch, { node: vfs as Readonly<VfsNodeAdmin> }))
     )

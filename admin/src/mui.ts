@@ -7,16 +7,17 @@ import {
     createElement as h, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useEffect, useRef,
     ForwardedRef, useState, useMemo, isValidElement, ElementType
 } from 'react'
-import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
-    Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
+import { Box, BoxProps, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
+    Tooltip, TooltipProps, useMediaQuery, Button } from '@mui/material'
+import type { Breakpoint } from '@mui/material/styles'
 import {
-    anyDialogOpen, closeDialog, formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL, with_, Functionable, callable
+    anyDialogOpen, closeDialog, formatPerc, callable, isIpLan, isIpLocalHost, prefix, WIKI_URL, with_, Functionable,
+    domOn, isMac,
 } from './misc'
 import { dontBotherWithKeys, restartAnimation, useBatch, useStateMounted } from '@hfs/shared'
-import { Promisable, StringField } from '@hfs/mui-grid-form'
+import { mergeSx, Promisable, StringField } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
-import { LoadingButton } from '@mui/lab'
-import { Link as RouterLink, LinkProps as RouterLinkProps, useNavigate } from 'react-router-dom'
+import { Link as RouterLink, useLocation } from 'wouter'
 import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
 import _ from 'lodash'
 import { ALL as COUNTRIES } from './countries'
@@ -68,15 +69,17 @@ export function IconProgress({ icon, progress, offset, title, sx }: IconProgress
                 value: (offset || 1e-7) * 100,
                 variant: 'determinate',
                 size: 32,
-                sx: { display: 'flex', ...sx }, // workaround: without this the element has 0 width when the space is crammy (monitor/file)
+                sx: mergeSx({ display: 'flex' }, sx), // workaround: without this the element has 0 width when the space is crammy (monitor/file)
             }),
         )
     )
 }
 
-type FlexProps = SxProps & { vert?: boolean, center?: boolean, children?: ReactNode, props?: BoxProps, component?: ElementType }
+export { mergeSx }
+
+type FlexProps = { vert?: boolean, center?: boolean, children?: ReactNode, props?: Omit<BoxProps, 'sx'>, component?: ElementType } & Record<string, any>
 export function Flex({ vert=false, center=false, children=null, props={}, component, ...rest }: FlexProps) {
-    return h(Box, {
+    return h(Box as any, {
         sx: {
             display: 'flex',
             gap: '.8em',
@@ -84,7 +87,7 @@ export function Flex({ vert=false, center=false, children=null, props={}, compon
             alignItems: vert ? undefined : 'center',
             ...center && { justifyContent: 'center' },
             ...rest,
-        },
+        } as any,
         component,
         ...props
     }, children)
@@ -103,6 +106,20 @@ export function WildcardsSupported() {
 
 export function reloadBtn(onClick: any, props?: any) {
     return h(IconBtn, { icon: Refresh, title: "Reload", onClick, ...props })
+}
+
+export function useCtrlShortcutButton(keys: readonly string[]) {
+    const ref = useRef<HTMLButtonElement>(null)
+    useEffect(() =>
+        domOn('keydown', ev => {
+            const key = (ev.ctrlKey || isMac && ev.metaKey) && ev.key.toLowerCase()
+            const btn = ref.current
+            if (!key || !btn || !keys.some(x => x.toLowerCase() === key)) return
+            ev.preventDefault() // capture at window level because focused widgets or body can bypass the page subtree
+            btn.click() // click the button so shortcuts reuse button loading, errors, and success animation
+        }, { capture: true })
+    , [keys.join('\n')])
+    return { ref }
 }
 
 // modify look to convey that a form has been modified
@@ -140,7 +157,7 @@ export interface BtnProps extends Omit<ButtonProps & IconButtonProps,'disabled'|
     doneAnimation?: boolean
     tooltipProps?: Partial<TooltipProps>
     modified?: boolean
-    loading?: boolean
+    loading?: boolean | null
     onClick?: (...args: Parameters<NonNullable<ButtonProps['onClick']>>) => Promisable<any>
 }
 
@@ -176,7 +193,8 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
         },
     } as const, rest)
     const iconElement = isValidElement(icon) ? icon : (icon && h(icon))
-    let ret: ReactElement = children && showLabel ? h(LoadingButton, _.merge({
+    let ret: ReactElement = children && showLabel ? h(Button as any, _.merge({
+            // mui v6 moved LoadingButton behavior into Button, but current typings here still miss loading props
             variant: 'contained',
             startIcon: iconElement,
             loading: Boolean(loading || loadingState || progress),
@@ -184,7 +202,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
             loadingIndicator: typeof progress !== 'number' ? undefined
                 : h(CircularProgress, { size: '1rem', value: progress*100, variant: 'determinate' }),
             children: showLabel && children,
-        } as const, common, (!showLabel || !children) && { sx: { minWidth: 'auto', px: 1, py: '7px', '& span': { mx:0 }, } }))
+        } as const, common, (!showLabel || !children) && { sx: { minWidth: 'auto', px: 1, py: '7px', '& span': { mx:0 }, } }) as any)
         : h(IconButton, _.merge(common, {
             sx: { height: 'fit-content' }, TouchRippleProps: { 'aria-hidden': true },
             // we need a direct accessible name on the actual clickable element for testing
@@ -221,27 +239,31 @@ export function iconTooltip(icon: SvgIconComponent, tooltip: ReactNode, sx?: SxP
 }
 
 // link for internal navigation
-export function InLink({ ...props }: LinkProps & RouterLinkProps) {
+export function InLink({ to, ...props }: LinkProps & { to: `/${string}` }) {
     // make links inside dialogs work correctly
-    const nav = useNavigate()
+    const navigate = useLocation()[1]
     props.onClickCapture = async ev => {
         ev.preventDefault()
         while (anyDialogOpen())
             await closeDialog()?.closed
-        nav(props.to)
+        navigate(to)
     }
-    return h(Link, { component: RouterLink, ...props })
+    return h(Link, { component: RouterLink, href: to, ...props })
 }
 
-export const Center = forwardRef((props: BoxProps, ref) =>
-    h(Box, { ref, display:'flex', height:'100%', width:'100%', justifyContent:'center', alignItems:'center',  flexDirection: 'column', ...props }))
+export const Center = forwardRef(({ sx, ...props }: BoxProps, ref) =>
+    h(Box, {
+        ref,
+        sx: mergeSx({ display:'flex', height:'100%', width:'100%', justifyContent:'center', alignItems:'center', flexDirection: 'column' }, sx),
+        ...props
+    }))
 
 // looks like a link, but it's a button
 export function LinkBtn({ ...rest }: LinkProps) {
     return h(Link, {
         ...rest,
         href: '',
-        sx: { cursor: 'pointer', ...rest.sx },
+        sx: mergeSx({ cursor: 'pointer' }, rest.sx),
         role: 'button',
         onClick(ev) {
             ev.preventDefault()
@@ -270,7 +292,7 @@ export function useToggleButton(onTitle: string, offTitle: undefined | string, i
     }) : init)
 
     const toggle = useCallback(() => setState(x => !x), [])
-    const props = iconBtn(state)
+    const props = iconBtn(state) // returned props should vary only with state
     const el = useMemo(() => h(IconBtn, {
         size: 'small',
         color: state ? 'primary' : undefined,
@@ -278,7 +300,7 @@ export function useToggleButton(onTitle: string, offTitle: undefined | string, i
         'aria-label': onTitle, // aria should be steady, and rely on aria-pressed
         'aria-pressed': state,
         ...props,
-        sx: { transition: 'all .5s', ...props.sx },
+        sx: mergeSx({ transition: 'all .5s' }, props.sx),
         onClick(ev) {
             props.onClick?.(ev)
             toggle()
@@ -314,10 +336,10 @@ export function Country({ code, ip, def, long, short }: { code: string, ip?: str
     const country = code && _.find(COUNTRIES, { code })
     return !country ? h(Fragment, {}, def)
         : hTooltip(long ? undefined : country.name, undefined, h('span', {},
-            h(Box, {
+            h(Box as any, {
                 className: `fflag fflag-${code.toUpperCase()}`,
                 component: 'span',
-                mr: 1,
+                sx: { mr: '.5em', verticalAlign: 'text-bottom' },
             }),
             long ? country.name + prefix(' (', short && code, ')') : code
         ) )
@@ -331,8 +353,8 @@ async function ip2countryBatch(ips: string[]) {
 // force you to think of aria when adding a tooltip
 export function hTooltip(title: ReactNode, ariaLabel: string | undefined, children: ReactElement, props?: Omit<TooltipProps, 'title' | 'children'> & { key?: any }) {
     return h(Tooltip, { title, children,
-        ...ariaLabel === '' ? { 'aria-hidden': true } : { 'aria-label': ariaLabel || _.isString(title) && title || undefined },
-        componentsProps: { popper: { sx: { whiteSpace: 'pre-wrap', ...props?.sx } } },
+        ...(ariaLabel === '' ? { 'aria-hidden': true } : { 'aria-label': ariaLabel || _.isString(title) && title || undefined }),
+        slotProps: { popper: { sx: mergeSx({ whiteSpace: 'pre-wrap' }, props?.sx) } } as any,
         ...props
     })
 }

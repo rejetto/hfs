@@ -9,7 +9,7 @@ import { formatTimestamp } from './cross'
 import { argv } from './argv'
 export * from './cross-const'
 
-export const API_VERSION = 13
+export const API_VERSION = 13.1
 export const COMPATIBLE_API_VERSION = 1 // the day we break with the past, we'll update this
 
 // you can add arguments with this file, currently used for the update process on mac/linux.
@@ -40,6 +40,11 @@ export const IS_BINARY = !/node|bun/.test(basename(process.execPath)) // this wo
 export const APP_PATH = dirname(IS_BINARY ? process.execPath : __dirname) // __dirname's parent can be compared with cwd
 export const MIME_AUTO = 'auto'
 export const CONFIG_FILE = 'config.yaml'
+
+if (argv.version) {
+    process.stdout.write(VERSION+ '\n')
+    process.exit(0)
+}
 
 // we want this to be the first stuff to be printed, then we print it in this module, that is executed at the beginning
 if (DEV) {

@@ -1,6 +1,6 @@
 import Koa from 'koa'
 import { basename, dirname, join } from 'path'
-import { getNodeName, nodeIsFolder, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, walkNode } from './vfs'
+import { getDefaultFile, getNodeName, nodeIsFolder, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, walkNode } from './vfs'
 import { sendErrorPage } from './errorPages'
 import events from './events'
 import {
@@ -20,8 +20,8 @@ import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
 import {
-    asyncGeneratorToReadable, filterMapGenerator, isValidFileName, loadFileCached, pathEncode, safeDecodeURIComponent,
-    try_, pathDecodeSegments,
+    asyncGeneratorToReadable, deleteStoredFileAttrs, filterMapGenerator, isValidFileName, loadFileCached, pathEncode,
+    pathDecodeSegments, safeDecodeURIComponent, try_,
 } from './misc'
 import { roots } from './roots'
 import XXH from 'xxhashjs'
@@ -80,7 +80,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
             return !folder.source || !isValidFileName(fn) ? sendErrorPage(ctx, HTTP_NOT_FOUND)
                 : statusCodeForMissingPerm(folder, 'can_upload', ctx) ? null
                 : loadFileCached(getUploadTempFor(join(folder.source, fn)), calcHash) // negligible memory leak
-                    .then(hash => ctx.body = hash, e => ctx.status = e?.code === 'ENOENT' ? HTTP_NOT_FOUND : HTTP_SERVER_ERROR)
+                    .then(x => ctx.body = x.content, e => ctx.status = e?.code === 'ENOENT' ? HTTP_NOT_FOUND : HTTP_SERVER_ERROR)
         const dest = uploadWriter(folder, folderUri, fn, ctx)
         if (dest) {
             ctx.req.pipe(dest).on('error', err => {
@@ -113,6 +113,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
             if ((await events.emitAsync('deleting', { node, ctx }))?.isDefaultPrevented())
                 return ctx.status = HTTP_FAILED_DEPENDENCY
             await rm(source, { recursive: true })
+            await deleteStoredFileAttrs(source)
             void setCommentFor(source, '') // necessary only to clean a possible descript.ion or kvstorage
             return ctx.status = HTTP_OK
         } catch (e: any) {
@@ -120,11 +121,10 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
             return ctx.status = HTTP_SERVER_ERROR
         }
     }
-    if (node.default && path.endsWith('/') && !get) { // final/ needed on browser to make resource urls correctly with html pages
-        const found = await urlToNode(node.default, ctx, node)
-        if (found && /\.html?/i.test(node.default))
+    if (path.endsWith('/') && !get) { // final slash needed on browsers to make resource urls working with html pages
+        const found = await getDefaultFile(node, ctx)
+        if (found && /\.html?/i.test(getNodeName(node = found)))
             ctx.state.considerAsGui = true
-        node = found ?? node
     }
     if (get === 'icon')
         return serveFile(ctx, node.icon || '|') // pipe to cause not-found

@@ -2,7 +2,7 @@ import { createElement as h, Fragment } from 'react'
 import { DirList, state, useSnapState } from './state'
 import { Btn } from './components'
 import { alertDialog, toast } from './dialog'
-import { useNavigate } from './router'
+import { navigate } from './App'
 import { apiCall } from '@hfs/shared/api'
 import { reloadList, usePath } from './useFetchList'
 import _ from 'lodash'
@@ -13,8 +13,7 @@ const { t, useI18N } = i18n
 export function ClipBar() {
     const { clip, props } = useSnapState()
     const { t } = useI18N()
-    const go = useNavigate()
-    const here =  usePath()
+    const here = usePath()
     if (!clip.length)
         return null
     const there = dirname(clip[0].uri) + '/'
@@ -33,7 +32,7 @@ export function ClipBar() {
     }
 
     function goBack() {
-        go(there)
+        navigate(there)
     }
 
     function show() {

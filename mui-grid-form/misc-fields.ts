@@ -72,7 +72,7 @@ export function BoolField({ label='', value, onChange, setApi, helperText, error
             onChange((event.target as any).checked, { event, was: value })
         }
     })
-    return h(Box, { ml: 1, sx: error ? { color: 'error.main', outlineOffset: 6, outline: '1px solid' } : undefined },
+    return h(Box, { sx: { ml: 1, ...error && { color: 'error.main', outlineOffset: 6, outline: '1px solid' } } },
         h(FormControlLabel, { label, control, labelPlacement: 'end', sx: { mr: 0, ...props.size==='small' && { '& .MuiFormControlLabel-label': { fontSize: '.9rem' } } } }),
         helperText && h(FormHelperText, { sx: { mt: 0 }, error }, helperText)
     )

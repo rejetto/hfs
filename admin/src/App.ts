@@ -1,8 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, ReactNode, useCallback, useEffect, useState } from 'react'
-import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
-import MainMenu, { getMenuLabel, mainMenu } from './MainMenu'
+import { Route, Router, Switch, useLocation } from 'wouter'
+import { useHashLocation } from 'wouter/use-hash-location'
+import MainMenu, { getMenuLabel, mainMenu, matchesMenuPath } from './MainMenu'
 import { AppBar, Box, BoxProps, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
 import { anyDialogOpen, Dialogs } from './dialog'
 import { useMyTheme } from './theme'
@@ -15,7 +16,7 @@ import ConfigFilePage from './ConfigFilePage'
 import { useSnapState } from './state'
 import { useEventListener } from 'usehooks-ts'
 import { AriaOnly, isMac, useFixSticky, xlate } from './misc'
-import { getLocale } from './locale'
+import { loadLocale } from './locale'
 import { fillFlexParentSx } from './DataTable'
 
 // always use useMemo with setTitleSide
@@ -24,16 +25,31 @@ export interface PageProps { setTitleSide: (content: ReactNode, fullWidth?: bool
 function App() {
     return h(ThemeProvider, { theme: useMyTheme() },
         h(ApplyTheme, {},
-            h(LocalizationProvider, { dateAdapter: AdapterDayjs, adapterLocale: getLocale() },
+            h(Localization, {},
                 h(LoginRequired, {},
-                    h(HashRouter, {},
-                        h(Dialogs, {
+                    h(Router, {
+                        hook: useHashLocation,
+                        children: h(Dialogs, {
                             style: {
                                 display: 'flex', flexDirection: 'column',
                                 minHeight: '100%', flex: 1,
                                 maxWidth: '100%',
                             }
-                        }, h(Routed) ))) )))
+                        }, h(Routed))
+                    }) ))))
+}
+
+function Localization(props: any) {
+    const [locale, setLocale] = useState('')
+    useEffect(() => {
+        let cancelled = false
+        loadLocale().then(locale => {
+            if (!cancelled)
+                setLocale(locale || '')
+        })
+        return () => { cancelled = true }
+    }, [])
+    return h(LocalizationProvider, { dateAdapter: AdapterDayjs, adapterLocale: locale, ...props })
 }
 
 function ApplyTheme(props:any) {
@@ -49,14 +65,13 @@ function ApplyTheme(props:any) {
 let titleSideSet: any
 
 function Routed() {
-    const loc = useLocation().pathname.slice(1)
-    const current = mainMenu.find(x => x.path === loc)
+    const [location, navigate] = useLocation()
+    const current = mainMenu.find(x => matchesMenuPath(x, location))
     let { title } = useSnapState()
     title = current && (current.title || getMenuLabel(current)) || title
     const [open, setOpen] = useState(false)
     const sideMenu = useBreakpoint('lg')
     const xs = current?.noPaddingOnMobile ? 0 : 1
-    const navigate = useNavigate()
     useEventListener('keydown', ({ key, ctrlKey, altKey }) => {
         if (anyDialogOpen()) return
         if (!(isMac ? ctrlKey : altKey)) return // alt doesn't work on Mac, but it is the only suitable key on Windows
@@ -64,7 +79,7 @@ function Routed() {
         if (!idx) return
         const path = mainMenu[idx - 1]?.path
         if (path === undefined) return
-        navigate(path || '/')
+        navigate(path)
     })
     const [titleSide, setTitleSide] = useState()
     const [titleSideFullWidth, setTitleSideFullWidth] = useState(false)
@@ -93,9 +108,9 @@ function Routed() {
                 onSelect: () => setOpen(false),
                 itemTitle,
             })),
-        h(Box, { display: 'flex', flex: 1, }, // horizontal layout for menu-content
+        h(Box, { sx: { display: 'flex', flex: 1 } }, // horizontal layout for menu-content
             sideMenu && h(MainMenu, { itemTitle, onSelect(){} }),
-            h(Box, {
+            h(Box as any, {
                 component: 'main',
                 sx: {
                     background: 'url(cup.svg) no-repeat right fixed',
@@ -110,16 +125,20 @@ function Routed() {
                 }
             },
                 title && sideMenu && h(Flex, { gap: 4, '& .MuiAlert-root': { p: 0, backgroundColor: 'unset' } },
-                    h(Typography, { variant:'h2', mb:2, whiteSpace: 'nowrap' }, title),
+                    h(Typography, { variant:'h2', sx: { mb: 2, whiteSpace: 'nowrap' } }, title),
                     // @ts-ignore
                     h(Flex, { ...titleSideFullWidth as any && { width: '100%' } }, titleSide),
                 ),
-                h(Routes, {},
-                    mainMenu.map((it,idx) =>
-                        // @ts-ignore
-                        h(Route, { key: idx, path: it.path, element: h(it.comp, { setTitleSide: set }) })),
-                    h(Route, { path: 'config', element: h(ConfigFilePage) })
-                )
+                h(Switch, {
+                    children: [
+                        ...mainMenu.flatMap((it,idx) => [
+                            h(Route, { key: idx, path: it.path }, h(it.comp, { setTitleSide: set }) ),
+                            // tab pages encode their selected tab after the parent menu path
+                            it.subRoutes && h(Route, { key: it.path + '/:tab', path: `${it.path}/:tab` }, h(it.comp, { setTitleSide: set }) )
+                        ]),
+                        h(Route, { path: '/config' }, h(ConfigFilePage))
+                    ]
+                })
             ),
         )
     )
@@ -150,7 +169,7 @@ function StickyBar({ title, titleSide, openMenu, props }: { props?: BoxProps, ti
                     '& .MuiAlert-message': { py: '1px' }
                 }
             },
-                h(Box, { component: 'h2', m: 0, whiteSpace: 'nowrap' }, title),
+                h(Box as any, { component: 'h2', sx: { m: 0, whiteSpace: 'nowrap' } }, title),
                 titleSide
             ),
         )

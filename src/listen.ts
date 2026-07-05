@@ -10,7 +10,7 @@ import { getConnections, newConnection } from './connections'
 import { TLSSocket } from 'node:tls'
 import open from 'open'
 import {
-    CFG, debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, prefix, runAt, wait, xlate
+    CFG, debounceAsync, ipForUrl, makeNetMatcher, MINUTE, onlyTruthy, prefix, runAt, wait, xlate
 } from './misc'
 import { PORT_DISABLED, ADMIN_URI, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
@@ -24,6 +24,7 @@ import { storedMap } from './persistence'
 import { argv } from './argv'
 import { consoleHint } from './consoleLog'
 import { onProcessExit, quitting } from './first'
+import { fileAttrDb } from './fileAttr'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
@@ -52,7 +53,7 @@ const commonServerOptions: http.ServerOptions = {
 // these are properties that can be assigned to the server object
 const commonServerAssign = { headersTimeout: 30_000, timeout: MINUTE } // 'headersTimeout' is not recognized by type lib, and 'timeout' is not effective when passed in parameters
 
-const readyToListen = Promise.all([ storedMap.isOpening(), events.once('app') ])
+const readyToListen = Promise.all([ storedMap.isOpening(), fileAttrDb.isOpening(), events.once('app') ])
 
 const considerHttp = debounceAsync(async () => {
     await readyToListen
@@ -104,7 +105,7 @@ export function getCertObject() {
     if (!c) return
     const all = new X509Certificate(c)
     const some = _.pick(all, ['subject', 'issuer', 'validFrom', 'validTo'])
-    const ret = objSameKeys(some, v => v?.includes('=') ? Object.fromEntries(v.split('\n').map(x => x.split('='))) : v)
+    const ret = _.mapValues(some, v => v?.includes('=') ? Object.fromEntries(v.split('\n').map(x => x.split('='))) : v)
     return Object.assign(ret, { altNames: all.subjectAltName?.replace(/DNS:/g, '').split(/, */) })
 }
 

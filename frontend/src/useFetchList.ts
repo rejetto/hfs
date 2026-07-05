@@ -11,14 +11,16 @@ import {
     hfsEvent, LIST, urlParams, xlate, objFromKeys, getHFS,
     HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED,
 } from './misc'
-import { useLocation, useNavigate } from './router'
+import { useLocation } from 'wouter'
+import { navigate } from './App'
 import { closeLoginDialog } from './login'
 import { fileShow, getShowComponent } from './show'
 import i18n from './i18n'
 const { t } = i18n
 
 export function usePath() {
-    return useLocation().pathname
+    useLocation() // used just to cause render
+    return location.pathname // this is encoded, while useLocation returned decoded
 }
 
 // allow links with ?search
@@ -38,7 +40,6 @@ export default function useFetchList() {
     const lastParams = useRef<any>()
     const lastReloader = useRef(snap.listReloader)
     const isMounted = useIsMounted()
-    const navigate = useNavigate()
     const { loginRequired=false } = snap // undefined=false
     useEffect(()=>{
         const previous = lastUri.current
@@ -89,7 +90,6 @@ export default function useFetchList() {
                 case 'connected':
                     if (autoPlayOnce === '') play = true
                     if (autoPlayOnce === 'shuffle') playShuffle = true
-                    autoPlayOnce = undefined
                     firstListRequest = undefined
                     return
                 case 'error':
@@ -140,6 +140,7 @@ export default function useFetchList() {
                         if (uri && !uri.endsWith('/'))  // now we know it was a folder for sure
                             return navigate(uri + '/')
                         if (op === LIST.props) {
+                            autoPlayOnce = undefined
                             state.props = par
                             continue
                         }

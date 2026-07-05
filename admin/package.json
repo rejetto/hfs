@@ -9,34 +9,34 @@
   },
   "dependencies": {
     "@emotion/react": "^11.11.3",
+    "@emotion/styled": "^11.11.5",
+    "@gregoranders/csv": "^0.0.13",
     "@hfs/mui-grid-form": "*",
     "@hfs/shared": "*",
-    "@emotion/styled": "^11.11.5",
-    "@mui/icons-material": "^5.18.0",
-    "@mui/lab": "^5.0.0-alpha.177",
-    "@mui/material": "^5.18.0",
-    "@mui/x-data-grid": "^6.20.4",
-    "@mui/x-date-pickers": "^6.20.2",
-    "@mui/x-tree-view": "^6.17.0",
-    "@gregoranders/csv": "^0.0.13",
+    "@mui/icons-material": "^9.0.0",
+    "@mui/lab": "^9.0.0-beta.2",
+    "@mui/material": "^9.0.0",
+    "@mui/x-data-grid": "^9.0.4",
+    "@mui/x-date-pickers": "^9.0.4",
+    "@mui/x-tree-view": "^9.0.4",
     "dayjs": "^1.11.10",
+    "immer": "*",
     "prismjs": "^1.29.0",
     "qr-creator": "^1.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.23.1",
     "react-simple-code-editor": "^0.13.1",
     "react-window": "^1.8.10",
     "valtio": "^1.13.0",
-    "immer": "*",
-    "usehooks-ts": "^2.9.5"
+    "usehooks-ts": "^2.9.5",
+    "wouter": "^3.4.1"
   },
   "devDependencies": {
     "@types/prismjs": "^1.26.5",
     "@types/react": "^18.3.14",
     "@types/react-dom": "^18.3.2",
     "@types/react-window": "^1.8.8",
-    "vite": "^6.4.1"
+    "vite": "^8.0.16"
   },
   "eslintConfig": {
     "extends": [

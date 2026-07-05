@@ -24,6 +24,7 @@ import { defineConfig } from './config'
 import { expiringCache } from './expiringCache'
 import { XMLParser } from 'fast-xml-parser'
 import _ from 'lodash'
+import { deleteStoredFileAttrs } from './fileAttr'
 
 const forceWebdavLogin = defineConfig<boolean|string, null|RegExp>(CFG.force_webdav_login, true, compileWebdavAgentRegex)
 const webdavInitialAuth = defineConfig<boolean|string, null|RegExp>(CFG.webdav_initial_auth, 'WebDAVFS', compileWebdavAgentRegex)
@@ -160,7 +161,9 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
             canOverwrite.delete(overwriteGraceKey)
             const node = await urlToNode(path, ctx)
             if (node?.source)
-                await rm(node.source).catch(() => {})
+                await rm(node.source)
+                    .then(() => deleteStoredFileAttrs(node.source!))
+                    .catch(() => {})
         }
         if (x && ctx.length === undefined) // missing length can make PUT fail
             ctx.req.headers['content-length'] = x
@@ -214,10 +217,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         if (dirname(path) === dirname(dest)) // rename case. `path` is is encoded, so we test before decoding `dest`
             try {
                 // decode the single path segment so reserved chars like %2C become their real name on rename
-                const newName = safeDecodeURIComponent(basename(dest), '')
-                if (!newName)
-                    return ctx.status = HTTP_BAD_REQUEST
-                await requestedRename(node, newName, ctx)
+                await requestedRename(node, safeDecodeURIComponent(basename(dest), ''), ctx)
                 releaseWebdavLock(path) // RFC 4918 says MOVE must not carry locks to destination, so clear source lock on success
                 return ctx.status = HTTP_CREATED
             }

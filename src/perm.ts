@@ -1,11 +1,10 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from 'lodash'
-import { HTTP_BAD_REQUEST, objRenameKey, objSameKeys, setHidden, typedEntries, wantArray } from './misc'
+import { objRenameKey, setHidden, typedEntries, wantArray } from './misc'
 import { defineConfig, saveConfigAsap } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
-import { ApiError } from './apiMiddleware'
 import { getCurrentUsername } from './auth'
 import Koa from 'koa'
 
@@ -23,6 +22,7 @@ export interface Account {
     expire?: Date
     days_to_live?: number // this is not inherited, but it will affect sub-accounts via 'expire'
     allow_net?: string
+    auto_login_net?: string
     require_password_change?: boolean // not inherited
     notes?: string
     plugin?: { id?: string, auth?: boolean, [rest: string]: unknown }
@@ -88,7 +88,7 @@ export async function updateAccount(account: Account, change: Partial<Account> |
         const u = normalizeUsername(change.username || '')
         if (u && u !== usernameWas && getAccount(u))
             throw "username already exists"
-        Object.assign(account, objSameKeys(change, x => x || undefined))
+        Object.assign(account, _.mapValues(change, x => x || undefined))
     }
     for (const [k,v] of typedEntries(account))
         if (!v) delete account[k] // we consider all account fields, when falsy, as equivalent to be missing (so, default value applies)
@@ -222,8 +222,12 @@ export function accountHasPassword(account: Account) {
     return Boolean(account.password || account.srp)
 }
 
+export function accountHasLoginMethod(account: Account) {
+    return Boolean(accountHasPassword(account) || account.plugin?.auth || account.auto_login_net)
+}
+
 export function accountCanLogin(account: Account) {
-    return (accountHasPassword(account) || account.plugin?.auth) && !accountIsDisabled(account)
+    return accountHasLoginMethod(account) && !accountIsDisabled(account)
 }
 
 export function accountIsDisabled(account: Account): boolean {

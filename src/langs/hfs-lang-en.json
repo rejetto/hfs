@@ -33,6 +33,8 @@
         "stopped_before": "Stopped before finding anything",
         "empty_list": "Nothing here",
         "filter_none": "No match for this filter",
+        "alpha_idx": "Alphabetical index",
+        "alpha_idx_button": "AZ",
 
         "Admin-panel": "Admin-panel",
         "Login": "Login",
@@ -59,7 +61,8 @@
         "Create folder": "Create folder",
         "Pick files": "Pick files",
         "Pick folder": "Pick folder",
-        "send_files": "Send {n,plural,one{# file} other{# files}}, {size}",
+        "ready_to_upload": "{n,plural,one{# file} other{# files}}, {size}, ready to upload",
+        "Send": "Send",
         "Clear": "Clear",
         "failed_upload": "Couldn't upload {name}",
         "file too large": "file too large",

@@ -33,7 +33,7 @@ export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_u
     'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua', 'log_spam', 'track_ips',
     'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'force_address', 'split_uploads',
     'force_lang', 'suspend_plugins', 'base_url', 'size_1024', 'disable_custom_html', 'comments_storage',
-    'force_webdav_login', 'webdav_initial_auth', 'outbound_proxy'])
+    'force_webdav_login', 'webdav_initial_auth', 'outbound_proxy', 'mapped_port', 'upnp_enabled', 'show_uploader'])
 export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
@@ -44,24 +44,22 @@ export type Promisable<T> = T | Promise<T>
 export type Functionable<T, Args extends any[] = any[]> = T | ((...args: Args) => T)
 export type Timeout = ReturnType<typeof setTimeout>
 export interface VfsPerms {
-    can_see?: Who
-    can_read?: Who
-    can_list?: Who
-    can_upload?: Who
-    can_delete?: Who
-    can_archive?: Who
+    can_see?: WhoVfs
+    can_read?: WhoVfs
+    can_list?: WhoVfs
+    can_upload?: WhoVfs
+    can_delete?: WhoVfs
+    can_archive?: WhoVfs
 }
 export const WHO_ANYONE = true
 export const WHO_NO_ONE = false
 export const WHO_ANY_ACCOUNT = '*'
+export const WHO_ADMIN = 'admin'
 type AccountList = string[]
-export type Who = typeof WHO_ANYONE
-    | typeof WHO_NO_ONE
-    | typeof WHO_ANY_ACCOUNT
-    | keyof VfsPerms
-    | WhoObject
+export type Who = typeof WHO_ANYONE | typeof WHO_NO_ONE | typeof WHO_ANY_ACCOUNT | typeof WHO_ADMIN
     | AccountList // use false instead of empty array to keep the type boolean-able
-export interface WhoObject { this?: Who, children?: Who }
+export type WhoVfs = Who | keyof VfsPerms | WhoObject
+export interface WhoObject { this?: WhoVfs, children?: WhoVfs }
 export type Jsonify<T> = T extends string | number | boolean | null | undefined ? T : // undefined is necessary to preserve union types, like number|undefined
     T extends Date ? string :
     T extends (infer U)[] ? Jsonify<U>[] :
@@ -69,12 +67,12 @@ export type Jsonify<T> = T extends string | number | boolean | null | undefined 
     never
 
 export const defaultPerms: Required<VfsPerms> = {
-    can_see: 'can_read',
     can_read: WHO_ANYONE,
+    can_see: 'can_read',
     can_list: 'can_read',
-    can_upload: WHO_NO_ONE,
-    can_delete: WHO_NO_ONE,
-    can_archive: 'can_read'
+    can_archive: 'can_read',
+    can_upload: WHO_ADMIN,
+    can_delete: WHO_ADMIN,
 }
 
 export type VfsNodeAdminSend = {
@@ -98,7 +96,7 @@ function constMap<T extends string>(a: T[]): { [K in T]: K } {
     return Object.fromEntries(a.map(x => [x, x])) as { [K in T]: K };
 }
 
-export function isWhoObject(v: undefined | Who): v is WhoObject {
+export function isWhoObject(v: undefined | WhoVfs): v is WhoObject {
     return v !== null && typeof v === 'object' && !Array.isArray(v)
 }
 
@@ -145,10 +143,6 @@ export function haveTimeout<T>(ms: number, job: Promise<T>, error?: any) {
     ])
 }
 
-export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Truthy<S[keyof S]>, key:keyof S)=>VR) {
-    return Object.fromEntries(Object.entries(src).map(([k,v]) => [k, newValue(v,k as keyof S)])) as { [K in keyof S]:VR }
-}
-
 export function objFromKeys<K extends string, VR=unknown>(src: K[], getValue: (value: K)=> VR) {
     return Object.fromEntries(src.map(k => [k, getValue(k)]))
 }
@@ -185,12 +179,33 @@ export function stringAfter(sub: string, all: string) {
     return i < 0 ? '' : all.slice(i + sub.length)
 }
 
+export function stringBefore(sub: string, all: string, returnEmptyWhenSubIsMissing=true) {
+    const i = all.indexOf(sub)
+    return i >= 0 ? all.slice(0, i) : returnEmptyWhenSubIsMissing ? '' : all
+}
+
 export function truthy<T>(value: T): value is Truthy<T> {
     return Boolean(value)
 }
 
 export function onlyTruthy<T>(arr: T[]) {
     return arr.filter(truthy)
+}
+
+export function countUniqueBy<T, K>(items: Iterable<T>, keyFn: (item: T) => K, predicate?: (item: T) => boolean) {
+    // use a Set so unique counting stays linear even on very large live lists
+    const seen = new Set<K>()
+    let count = 0
+    for (const item of items) {
+        if (predicate && !predicate(item))
+            continue
+        const key = keyFn(item)
+        if (seen.has(key))
+            continue
+        seen.add(key)
+        count++
+    }
+    return count
 }
 
 export function setHidden<T, ADD>(dest: T, src: ADD) {
@@ -433,6 +448,7 @@ export function xlate(input: any, table: Record<string, any>) {
     return table[input] ?? input
 }
 
+// remove brackets and port (if any)
 export function normalizeHost(host: string) {
     return host[0] === '[' ? host.slice(1, host.indexOf(']')) : host?.split(':')[0]
 }
@@ -446,7 +462,10 @@ export function isIpLan(ip: string) {
 }
 
 export function ipForUrl(ip: string) {
-    return ip.includes(':') ? '[' + ip + ']' : ip
+    if (ip.startsWith('['))
+        return ip
+    const i = ip.indexOf(':')
+    return i >= 0 && ip.indexOf(':', i + 1) >= 0 ? `[${ip}]` : ip
 }
 
 export function escapeHTML(text: string) {

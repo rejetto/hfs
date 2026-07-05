@@ -1,4 +1,4 @@
-@import '../../shared/main';
+@use '../../shared/main';
 
 :root {
     height: 100dvh; // workarounded chrome109-mobile's problem with sticky-bottom bar moving when scrolling
@@ -457,7 +457,7 @@ button .icon + .label {
     position: sticky;
     bottom: 0;
     display: flex;
-    gap: .1em;
+    gap: .3em;
     background-color: var(--bg);
     padding: 0 0.2em 0.2em;
     &>button { z-index: 1; }
@@ -468,6 +468,7 @@ button .icon + .label {
         display: flex;
         gap: .5em;
         flex: 1;
+        min-width: 0;
         overflow-x: auto;
     }
     #paging-middle>button {
@@ -480,6 +481,34 @@ button .icon + .label {
         text-align: center;
         white-space: nowrap;
         padding: .5em; /* fit more buttons on screen */
+    }
+    #alphabet-paging {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        margin-left: .2em;
+        &.open #alphabet-paging-toggle {
+            min-width: 2.4em;
+        }
+    }
+    #alphabet-paging-toggle {
+        min-width: 2.8em;
+    }
+    #alphabet-paging-bar {
+        position: absolute;
+        right: 100%;
+        bottom: 0;
+        display: flex;
+        gap: .2em;
+        max-width: calc(100vw - 5.5em);
+        overflow-x: auto;
+        padding: .2em .2em .2em .5em;
+        background: var(--bg);
+        box-shadow: -.2em 0 .3em .2em var(--bg);
+        button {
+            min-width: 2.2em;
+            padding: .5em .6em;
+        }
     }
 }
 
@@ -508,6 +537,17 @@ button .icon + .label {
     td:nth-child(1) { width: 0; }
     td:nth-child(2) { text-align: right; width: 0; white-space: nowrap; padding-left: 0.5em; }
     td:nth-child(3) { padding: .2em .5em; word-break: break-word; }
+}
+.upload-list-menu-button {
+    display: none;
+}
+.upload-action-menu {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+.upload-action-properties {
+    margin-bottom: 1em;
 }
 .nowrap { white-space: nowrap }
 
@@ -752,6 +792,7 @@ form label+input { margin-top: .2em; }
         }
     }
 
+    .folder, .entry-comment { font-size: small; margin-bottom: 0; }
     .showing-container {
         width: 100%;
         height: 100%;
@@ -812,6 +853,7 @@ form label+input { margin-top: .2em; }
         position: absolute;
         width: .5em; // closer to the edge
         font-size: var(--nav-size);
+        height: 1em; line-height: 1em; // ensure same height on android
         cursor: pointer;
         opacity: .3;
         -webkit-text-stroke: 2px black;
@@ -863,6 +905,7 @@ form label+input { margin-top: .2em; }
         }
     }
     button { padding: .4em .8em; }
+    audio.showing { zoom: 1.5 }
 }
 @media (max-width: 42em) {
     :root { --ghost-contrast: #8883; } /* phones have different curve */
@@ -888,6 +931,18 @@ form label+input { margin-top: .2em; }
     }
 }
 
+@media (max-width: 30em) {
+    .upload-list-inline-actions {
+        display: none;
+    }
+    .upload-list-menu-button {
+        display: inline-block;
+    }
+    .upload-list-size {
+        display: none;
+    }
+}
+
 @media (max-height: 600px) and (orientation: landscape) {
     .file-dialog {
         .dialog-content {
@@ -907,6 +962,5 @@ form label+input { margin-top: .2em; }
 }
 
 @media (pointer: coarse) {
-    .file-show .nav { height: 1.6em; } // correct centering on android
     #root>.tiles-mode .file-menu-button { font-size: 1em; margin-top: 0.3em; } // easier to tap
 }

@@ -2,7 +2,8 @@
 
 import { apiCall, useApiList } from './api'
 import { createElement as h, Fragment, useEffect, useState } from 'react'
-import { Box, Breakpoint, Link, Table, TableCell, TableRow, useTheme } from '@mui/material'
+import { Box, Link, Table, TableBody, TableCell, TableRow, useTheme } from '@mui/material'
+import type { Breakpoint } from '@mui/material/styles'
 import { DataTable, DataTableColumn } from './DataTable'
 import {
     Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, ListAlt, PlayCircle, Settings, StopCircle, Upgrade
@@ -18,14 +19,14 @@ import { showPluginOptions, evalWrapper } from './pluginOptions'
 
 // updates=true will show the "check updates" version of the page
 export default function InstalledPlugins({ updates }: { updates?: true }) {
-    const { list, error, setList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins', {}, {
+    const { list, error, setList, initializing } = useApiList<any>(updates ? 'get_plugin_updates' : 'get_plugins', {}, {
         map(x: any) { x.config &&= tryJson(x.config, s => evalWrapper('()=>('+s+')')()) }
     })
     const [sortAgain, setSortAgain] = useState(0)
     useEffect(() => {
         setList(list =>
             _.sortBy(list, x => (x.error ? 0 : x.started ? 1 : x.badApi ? 2 : 3) + treatPluginName(x.repo?.split('/').reverse().join('/') || x.id).toLowerCase()))
-    }, [list.length, sortAgain]);
+    }, [list.length, sortAgain])
     const size = 'small'
     const { pause, pauseButton } = usePauseButton("plugins", () => getSingleConfig(CFG.suspend_plugins).then(x => !x), {
         async onClick() {
@@ -43,6 +44,8 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
         fillFlex: true,
         initializing,
         disableColumnSelector: true,
+        quickFilter: !updates,
+        actionsHeader: !updates && pauseButton,
         getRowHeight: updates && (({ model }) => model.changelog ? 'auto' as const : 50),
         noRows: updates && `No updates available. Only plugins available on "search online" are checked.`,
         columns: [
@@ -52,15 +55,15 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 flex: .3,
                 minWidth: 150,
                 renderCell: renderName,
-                valueGetter({ row }) { return row.repo || row.id },
-                mergeRender: { [updates ? 'changelog' : 'description']: { fontSize: 'x-small' } }
+                valueGetter(_value: any, row: any) { return row.repo || row.id },
+                mergeRender: { [updates ? 'changelog' : 'description']: { sx: { fontSize: 'x-small' } } }
             },
             {
                 field: 'version',
                 width: 70,
                 hideUnder: 'sm',
                 cellInnerProps: { className: HIDE_IN_TESTS },
-                mergeRender: { installedVersion: { fontSize: 'x-small' } }
+                mergeRender: { installedVersion: { sx: { fontSize: 'x-small' } } }
             },
             themeField,
             {
@@ -83,16 +86,17 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 renderCell({ value, row }) {
                     if (!Array.isArray(value)) return null
                     return h(Table, { sx: { td: { p: 0 } } },
-                        _.uniq(_.sortBy(value, 'version').filter(x => _.isString(x.message) && x.message && x.version > row.installedVersion))
-                            .map((x, i) => h(TableRow, { key: i },
-                                h(TableCell, { sx: { whiteSpace: 'pre', verticalAlign: 'top' } }, `• ${x.version}: `),
-                                h(TableCell, {}, md(x.message))
-                            ))
+                        h(TableBody, {},
+                            _.uniq(_.sortBy(value, 'version').filter(x => _.isString(x.message) && x.message && x.version > row.installedVersion))
+                                .map((x, i) => h(TableRow, { key: i },
+                                    h(TableCell, { sx: { whiteSpace: 'pre', verticalAlign: 'top' } }, `• ${x.version}: `),
+                                    h(TableCell, {}, md(x.message))
+                                ))
+                        )
                     )
                 }
             }
         ],
-        footerSide: () => !updates && pauseButton,
         actions: ({ row, id }) => updates ? [
             h(IconBtn, {
                 icon: Upgrade,

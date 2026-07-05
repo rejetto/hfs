@@ -4,9 +4,18 @@ import { createWriteStream } from 'fs'
 import { argv } from './argv'
 
 export const consoleLog: Array<{ ts: Date, k: string, msg: string }> = []
+const originalConsoleLog = console.log
 const f = argv.consoleFile ? createWriteStream(argv.consoleFile, { flags: 'a', encoding: 'utf8' }) : null
-for (const k of ['log','warn','error','debug']) {
-    const original = console[k as 'log']
+let terminalOutputBroken = false
+for (const stream of [process.stdout, process.stderr])
+    stream.on('error', err => {
+        if (!isBrokenTerminalOutput(err))
+            throw err
+        // after the terminal/pipe is gone, further console writes would just re-emit the same process-level error
+        terminalOutputBroken = true
+    })
+for (const k of ['log','warn','error','debug'] as const) {
+    const original = console[k]
     console[k as 'log'] = (...args: any[]) => {
         const ts = new Date()
         if (k === 'debug')
@@ -22,7 +31,26 @@ for (const k of ['log','warn','error','debug']) {
             if (k !== 'log')
                 args.unshift('!')
         }
-        return original(formatTime(ts), ...args) // bundled nodejs doesn't have locales (and apparently uses en-US)
+        if (!terminalOutputBroken) {
+            try { return original(formatTime(ts), ...args) } // bundled nodejs doesn't have locales (and apparently uses en-US)
+            catch (err) {
+                if (!isBrokenTerminalOutput(err))
+                    throw err
+                terminalOutputBroken = true
+            }
+        }
+    }
+    Object.assign(console[k], { original })
+}
+
+const over = console.log
+for (const k of ['table'] as const) {
+    const original = console[k]
+    console[k] = (...args: any[]) => {
+        console.log = originalConsoleLog
+        // @ts-ignore
+        try { return original(...args) }
+        finally { console.log = over }
     }
 }
 
@@ -41,6 +69,12 @@ function safeJoin(a: unknown[]): string {
             }
         }).join(' ')
     }
+}
+
+function isBrokenTerminalOutput(err: unknown) {
+    const code = (err as NodeJS.ErrnoException)?.code
+    return code === 'EPIPE' || code === 'EIO'
+        || code === 'ERR_STREAM_DESTROYED' || code === 'ERR_STREAM_WRITE_AFTER_END'
 }
 
 export function consoleHint(msg: string) {

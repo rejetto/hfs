@@ -3,7 +3,8 @@
 import { createElement as h, Fragment, FunctionComponent, isValidElement, ReactNode, useEffect, useRef,
     HTMLAttributes, useState } from 'react'
 import { proxy, ref, useSnapshot } from 'valtio'
-import { domOn, isPrimitive, objSameKeys, wait } from '.'
+import _ from 'lodash'
+import { domOn, isPrimitive, wait } from '.'
 
 export interface DialogOptions {
     Content: FunctionComponent<any>,
@@ -28,7 +29,8 @@ interface Dialog extends DialogOptions {
     $id?: number
     $opening?: NodeJS.Timeout
     ts?: number
-    close: (v?: any) => undefined | Promise<void>
+    close: (v?: any, skipHistory?: boolean) => undefined | Promise<void>
+    closed?: Promise<void | undefined>
     restoreFocus?: any
 }
 
@@ -74,24 +76,30 @@ export function isDescendant(child: Node | null | undefined, parentMatch: Node |
 }
 
 let waitClosing = Promise.resolve()
-let ignorePopState = false
-async function back() {
-    ignorePopState = true
+let waitQueuedCloses = Promise.resolve()
+let ignoredPopStates = 0
+async function doBack() {
     const was = history.state
-    return waitClosing = waitClosing.then(() => new Promise<void>(async res => {
+    return new Promise<void>(async res => {
         const timeout = Date.now() + 1500
         let lastBack = 0
         while (was === history.state) { // history.back seems to not always be effective, so we loop for it
             const now = Date.now()
             if (now > timeout) break // emergency brake
             if (now - lastBack > 1000) { // after this long time we try again
+                // a queued close may run after another close already reached the route's dialog base entry
+                if (history.state?.$dialog === undefined || history.state.$dialog === BASE_STATE) break
+                ignoredPopStates++ // rapid dialog closes can overlap programmatic backs, so each resulting popstate must be ignored independently
                 history.back()
                 lastBack = now
             }
             await wait(10) // we wait shorter and loop faster so to exit/resolve asap
         }
         res()
-    }))
+    })
+}
+async function back() {
+    return waitClosing = waitClosing.then(doBack)
 }
 
 const BASE_STATE = 1
@@ -101,13 +109,12 @@ const BASE_STATE = 1
         history.back()
         await wait(1) // history.state is not changed without this, on chrome123
     }
-    history.replaceState({ ...history.state, $dialog: BASE_STATE }, '')
 })()
 
 export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
     useEffect(() => domOn('popstate', () => {
-        if (ignorePopState)
-            return ignorePopState = false
+        if (ignoredPopStates)
+            return ignoredPopStates--
         const d = history.state?.$dialog
         if (d === undefined) return // not my state, not my business
         if (d !== BASE_STATE && !dialogs.find(x => x.$id === d)) // it happens if the user, after closing a dialog, goes forward in the history
@@ -203,30 +210,38 @@ export function componentOrNode(x: ReactNode | FunctionComponent) {
 export function newDialog(options: DialogOptions) {
     const $id = Math.random()
     const ts = performance.now()
-    const d: Dialog = Object.assign(objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options, { // encapsulate elements as React will try to write, but valtio makes them readonly
+    const d: Dialog = Object.assign(_.mapValues(options, x => isValidElement(x) ? ref(x) : x) as typeof options, { // encapsulate elements as React will try to write, but valtio makes them readonly
         close, ts, $id, // object identity is not working on dialog object because it's proxied (valtio). This is a possible workaround
         restoreFocus: options.restoreFocus ?? ref(document.activeElement || {}),
     })
     let cancelOpening = false
-    waitClosing.then(() => { // in case dialogs were just closed, account for window.history delay. You already didn't expect dialog to open immediately, but at state change
+    Promise.all([waitClosing, waitQueuedCloses]).then(() => { // queued closes must settle too, or a new dialog may wait behind a stale close request forever
         if (cancelOpening) return
+        if (!dialogs.length) {
+            history.replaceState({ ...history.state, $dialog: BASE_STATE }, '')
+        }
         dialogs.push(d)
-        if (dialogs.at(-1)!.closable !== false) // use proxy object, to stay in sync with its changes
+        if (dialogs.at(-1)!.closable !== false) { // use proxy object, to stay in sync with its changes
+            // browser-back closes dialogs by walking back to the entry that was current before the first dialog opened
+            if (history.state?.$dialog === undefined) {
+                history.replaceState({ ...history.state, $dialog: BASE_STATE }, '')
+            }
             history.pushState({ $dialog: $id, ts, idx: 1 + (history.state?.idx || 0) }, '')
+        }
     })
     return d
 
-    function close(v?:any) {
+    function close(v?:any, skipHistory=true) {
         cancelOpening = true
         const i = dialogs.findIndex(x => (x as any).$id === $id)
         if (i < 0) return
-        d.closed = history.state?.$dialog === $id ? back() : Promise.resolve()
+        d.closed = !skipHistory && history.state?.$dialog === $id ? back() : Promise.resolve()
         closeDialogAt(i, v)
         return options.closed
     }
 }
 
-export function closeDialog(v?:any, skipHistory=false) {
+export function closeDialog(v?:any, skipHistory=false): Dialog | undefined {
     let i = dialogs.length
     if (dialogs[i - 1]?.closable === false) return
     while (i--) {
@@ -234,7 +249,15 @@ export function closeDialog(v?:any, skipHistory=false) {
         if (d.reserveClosing)
             continue
         if (!skipHistory) {
-            if (history.state?.$dialog !== d.$id) return
+            if (history.state?.$dialog !== d.$id) {
+                // rapid ESC presses can target the next dialog before browser history has caught up with the previous close
+                const closed: Promise<void | undefined> = waitQueuedCloses = waitQueuedCloses
+                    .then(() => waitClosing)
+                    // after the previous back settles, preserve one history unwind per dialog whenever the entry now matches
+                    .then(() => closeDialog(v, history.state?.$dialog !== dialogs.at(-1)?.$id)?.closed)
+                // return a promise here so mobile callers wait instead of spinning on the still-open dialog stack
+                return { ...d, closed } as Dialog
+            }
             d.closed = back()
         }
         closeDialogAt(i, v)
@@ -242,13 +265,23 @@ export function closeDialog(v?:any, skipHistory=false) {
     }
 }
 
+let waitHistoryCleanup = Promise.resolve()
 function closeDialogAt(i: number, value?: any) {
     const [d] = dialogs.splice(i,1)
     d.restoreFocus?.focus?.() // if element is not HTMLElement, it doesn't have focus method
     d.closingValue = value && typeof value === 'object' ? ref(value) : value // since this is being assigned to a valtio proxy, ref is necessary to avoid crashing with unusual (and possibly accidental) objects like React's SynteticEvents
     d.closed ??= Promise.resolve()
-    d.closed.then(() =>
-        d?.onClose?.(value))
+    d.closed.then(async () => {
+        waitHistoryCleanup = waitHistoryCleanup.then(async () => {
+            // a matching queued close may already be unwinding the last dialog entry
+            await waitClosing
+            // queued ESC closes can empty the stack before the last synthetic history entry has been unwound
+            while (!dialogs.length && history.state?.$dialog !== undefined && history.state.$dialog !== BASE_STATE)
+                await back()
+        })
+        await waitHistoryCleanup
+        d?.onClose?.(value)
+    })
     return d
 }
 

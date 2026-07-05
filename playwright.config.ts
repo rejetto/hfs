@@ -33,8 +33,8 @@ export default defineConfig({
     /* Base URL to use in actions like `await page.goto('/')`. */
     // baseURL: 'http://127.0.0.1:3000',
 
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
+    /* Keep the failed attempt and the retry trace together so flake diffs are easier to compare. */
+    trace: 'retain-on-failure-and-retries',
     screenshot: 'only-on-failure',
     timezoneId: 'Europe/Rome',
   },
@@ -106,7 +106,9 @@ export default defineConfig({
   },
   /* Run your local dev server before starting the tests */
    webServer: [{
-     command: 'npm run server-for-test' + (process.env.TEST_WITH_UI ? '-dev' : ''), // use server-for-test-dev only for "test-with-ui"
+     command: `mkdir -p tests/work/plugins/test`
+     + ` && printf '%s\\n' "exports.apiRequired = 1" "exports.config = {" "    icons: { type: 'array', fields: { iconFile: { type: 'real_path' } } }," "}" > tests/work/plugins/test/plugin.js`
+     + ` && npm run server-for-test${process.env.TEST_WITH_UI ? '-dev' : ''}`, // use server-for-test-dev only for "test-with-ui"
      url: `http://127.0.0.1:${testPort}`,
      reuseExistingServer: !process.env.CI,
    }, { // launch a second server for tests with an empty/default config
@@ -122,9 +124,16 @@ function getSnapshotBranch() {
 }
 
 function getGitBranchName() {
-  try {
-    return execSync('git branch -a --contains HEAD', { encoding: 'utf8' }).trim().split('\n').at(-1)?.trim()
-        .replace(/^(\*\s*)?(remotes\/[^/]+\/)?/, '')
-  }
+  return (gitOutput('git branch --show-current')
+      || gitOutput('git for-each-ref --format="%(refname:short)" --contains HEAD refs/heads refs/remotes'))
+      ?.split('\n')
+      .map(x => x.trim())
+      .filter(x => x && !x.endsWith('/HEAD'))
+      .map(x => x.replace(/^[^/]+\//, ''))
+      .at(0)
+}
+
+function gitOutput(command: string) {
+  try { return execSync(command, { encoding: 'utf8' }).trim() }
   catch {}
 }

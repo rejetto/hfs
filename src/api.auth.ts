@@ -21,10 +21,12 @@ const keepSessionAlive = defineConfig('keep_session_alive', true)
 
 const refresh_session: ApiHandler = async ({}, ctx) => {
     const username = getCurrentUsername(ctx)
+    const isAdmin = ctxAdminAccess(ctx) || undefined
     return !ctx.session ? new ApiError(HTTP_SERVER_ERROR) : {
         username,
         expandedUsername: Array.from(expandUsername(username)),
-        adminUrl: ctxAdminAccess(ctx) ? ctx.state.revProxyPath + ADMIN_URI : undefined,
+        isAdmin,
+        adminUrl: isAdmin && ctx.state.revProxyPath + ADMIN_URI,
         canChangePassword: accountCanChangePassword(ctx.state.account),
         requireChangePassword: ctx.state.account?.require_password_change,
         exp: username && keepSessionAlive.get() ? new Date(Date.now() + sessionDuration.compiled()) : undefined,

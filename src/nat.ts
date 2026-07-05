@@ -1,7 +1,7 @@
 import { proxy } from 'valtio'
 import { Client } from '@rejetto/nat-upnp'
 import { debounceAsync } from './debounceAsync'
-import { haveTimeout, HOUR, inCommon, ipForUrl, MINUTE, promiseBestEffort, repeat, wantArray } from './cross'
+import { CFG, haveTimeout, HOUR, inCommon, ipForUrl, MINUTE, promiseBestEffort, repeat, wantArray } from './cross'
 import { getProjectInfo } from './github'
 import _ from 'lodash'
 import { httpStream, httpString } from './util-http'
@@ -10,6 +10,7 @@ import { isIP } from 'net'
 import { getIps, getServerStatus } from './listen'
 import { exec } from 'child_process'
 import { IS_MAC, IS_WINDOWS } from './const'
+import { configReady, defineConfig } from './config'
 
 export const defaultBaseUrl = proxy({
     proto: 'http',
@@ -26,20 +27,24 @@ export const defaultBaseUrl = proxy({
     }
 })
 
-export const upnpClient = new Client({ timeout: 4_000 })
-const originalMethod = upnpClient.getGateway
-// other client methods call getGateway too, so this will ensure they reuse this same result
-upnpClient.getGateway = debounceAsync(() => originalMethod.apply(upnpClient), { retain: HOUR, retainFailure: 30_000 })
-upnpClient.getGateway().then(res => {
-    console.log("UPnP found", res.gateway.description)
-}, e => console.debug('UPnP failed:', e.message || String(e)))
+export const mappedPort = defineConfig('mapped_port', 0)
+export const upnpEnabled = defineConfig(CFG.upnp_enabled, true)
 
-// poll external ip – asking the modem is cheap, so it can be done often
-repeat(MINUTE, () => upnpClient.getPublicIp().then(v => {
-    if (v === defaultBaseUrl.externalIp) return
+let upnpClient: Client | undefined
+
+// poll external ip – when UPnP is enabled, asking the modem is inexpensive, so it can be done often
+repeat(MINUTE, async () => {
+    if (!await upnpEnabled.getWhenReady()) return
+    const v = await getUpnpClient().getPublicIp().catch(() => '')
+    if (!v || v === defaultBaseUrl.externalIp) return
     getPublicIps.clearRetain()
-    return defaultBaseUrl.externalIp = v
-}, () => {}))
+    defaultBaseUrl.externalIp = v
+})
+
+export function upnpMappingParam(privatePort: number, publicPort: number, description='hfs', ttl=0) {
+    // nat-upnp-rejetto requires the object form of `public` to preserve the host field correctly
+    return { private: privatePort, public: { host: '', port: publicPort }, description, ttl }
+}
 
 export const getPublicIps = debounceAsync(async () => {
     const res = await getProjectInfo()
@@ -66,26 +71,38 @@ export const getPublicIps = debounceAsync(async () => {
             if (!validIps.length) throw "no good"
             return validIps
         }) )))
-    return defaultBaseUrl.publicIps = _.uniq(ips.flat())
+    const ret = defaultBaseUrl.publicIps = _.uniq(ips.flat())
+    if (!ret.length) // don't keep empty results for long
+        setTimeout(() => getPublicIps.clearRetain(), 5_000)
+    return ret
 }, { retain: 10 * MINUTE })
 
 export const getNatInfo = debounceAsync(async () => {
+    const upnp = await upnpEnabled.getWhenReady() ? getUpnpClient() : null
     const gatewayIpPromise = findGateway().catch(() => undefined)
-    const res = await haveTimeout(10_000, upnpClient.getGateway()).catch(() => null)
+    const gw = upnp && await haveTimeout(10_000, upnp.getGateway()).catch(() => null)
     const status = await getServerStatus()
-    const mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
-    console.debug("Mappings found:", mappings?.map(x => x.description).join(', ') || "none")
+    let mappings = gw && await haveTimeout(5_000, upnp.getMappings())?.catch(() => null)
+    console.debug(gw ? "Mappings found:" : "Mappings not queried:",
+        mappings?.map(x => x.description).join(', ') || (gw ? "none" : upnp ? "gateway not found" : "UPnP disabled") )
     const localIps = await getIps(false)
     const gatewayIp = await gatewayIpPromise
-    const localIp = res?.address || (gatewayIp ? _.maxBy(localIps, x => inCommon(x, gatewayIp)) : localIps[0])
+    const localIp = gw?.address || (gatewayIp ? _.maxBy(localIps, x => inCommon(x, gatewayIp)) : localIps[0])
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port || undefined
-    const mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
+    let mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
+    if (upnp && mappings && localIp && internalPort && !mapped && mappedPort.get())
+        // restore the HFS-created mapping after routers that forget UPnP state across reboots
+        await haveTimeout(5_000, upnp!.createMapping(upnpMappingParam(internalPort, mappedPort.get()))).then(async () => {
+            // confirm router state after restore instead of trusting the AddPortMapping result
+            mappings = await haveTimeout(5_000, upnp.getMappings())
+            mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
+        }).catch(e => console.warn('UPnP mapping restore failed:', e?.message || String(e)))
     const externalPort = mapped?.public.port
     if (localIp)
         defaultBaseUrl.localIp = localIp
     defaultBaseUrl.port = externalPort || internalPort || 0
     return {
-        upnp: Boolean(res),
+        upnp: Boolean(gw),
         localIp,
         gatewayIp,
         externalIp: defaultBaseUrl.externalIp,
@@ -96,7 +113,34 @@ export const getNatInfo = debounceAsync(async () => {
         proto: status?.https?.listening ? 'https' : status?.http?.listening ? 'http' : '',
     }
 }, { reuseRunning: true })
-getNatInfo()
+
+upnpEnabled.sub(v => {
+    getNatInfo.clearRetain()
+    if (v) {
+        getUpnpClient().getGateway().then(res => console.log("UPnP found", res.gateway.description),
+            e => console.debug('UPnP failed:', e.message || String(e)))
+        return
+    }
+    // closing the client guarantees the disabled setting also stops any existing SSDP socket
+    upnpClient?.close()
+    upnpClient = undefined
+    defaultBaseUrl.externalIp = ''
+    getPublicIps.clearRetain()
+})
+
+configReady.then(getNatInfo).catch(() => {})
+
+export function getUpnpClient() {
+    if (!upnpEnabled.get()) // keep this guard upstream so disabled UPnP cannot leak SSDP traffic through callers
+        throw Error("UPnP disabled")
+    if (!upnpClient) {
+        upnpClient = new Client({ timeout: 4_000 })
+        const originalMethod = upnpClient.getGateway
+        // other client methods call getGateway too, so this will ensure they reuse this same result
+        upnpClient.getGateway = debounceAsync(() => originalMethod.apply(upnpClient), { retain: HOUR, retainFailure: 30_000 })
+    }
+    return upnpClient
+}
 
 function findGateway(): Promise<string | undefined> {
     return new Promise((resolve, reject) =>

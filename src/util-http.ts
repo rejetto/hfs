@@ -32,13 +32,18 @@ export interface XRequestOptions extends https.RequestOptions {
     httpThrow?: boolean
 }
 
-export declare namespace httpStream { let defaultProxy: string | undefined }
+export declare namespace httpStream {
+    let defaultProxy: string | undefined
+    let defaultUA: string | undefined
+}
 export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThrow=true, ...options }: XRequestOptions ={}, redirected: string[]=[]) {
     const controller = new AbortController()
     options.signal ??= controller.signal
     return Object.assign(new Promise<IncomingMessage>(async (resolve, reject) => {
         proxy ??= httpStream.defaultProxy
         options.headers ??= {}
+        if (httpStream.defaultUA && !Object.keys(options.headers).find(k => k.toLowerCase() === 'user-agent'))
+            options.headers['user-agent'] = httpStream.defaultUA
         if (body) {
             options.method ||= 'POST'
             if (_.isPlainObject(body)) {
@@ -105,6 +110,8 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
             e.cause ??= req // enrich the error
             reject(e)
         })
+        if (options.timeout) // node only emits the timeout event, so destroy the request to unblock callers waiting for the body
+            req.setTimeout(options.timeout, () => req.destroy(Object.assign(Error('timeout'), { code: 'ETIMEDOUT' })))
         if (body && body instanceof Readable)
             body.pipe(req).on('end', () => req.end())
         else

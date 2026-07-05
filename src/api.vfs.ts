@@ -9,7 +9,7 @@ import { mkdir } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
 import {
-    enforceFinal, enforceStarting, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, PERM_KEYS,
+    enforceFinal, enforceStarting, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, pathDecode, pathEncode, PERM_KEYS,
     VFS_STORED_KEYS, statWithTimeout, VfsNodeAdminSend
 } from './misc'
 import {
@@ -20,6 +20,7 @@ import { getDiskSpace, getDiskSpaces, getDrives, reg } from './util-os'
 import { getBaseUrlOrDefault, getServerStatus } from './listen'
 import { SendListReadable } from './SendList'
 import { walkDir } from './walkDir'
+import { roots } from './roots'
 
 // to manipulate the tree we need the original node
 async function urlToNodeOriginal(uri: string) {
@@ -63,7 +64,7 @@ export default {
         }
     },
 
-    async set_vfs({ uri, props }) {
+    async set_vfs({ uri, props, uriRemaps={} }) {
         const n = uri && await urlToNodeOriginal(uri)
         if (!n)
             return new ApiError(HTTP_NOT_FOUND, 'path not found')
@@ -79,7 +80,14 @@ export default {
         simplifyName(n)
         n.isFolder = undefined // reset field, it will be set by saveVfs
         await saveVfs()
+        if (!isRoot(n)) // not actually used by admin-panel but still
+            uriRemaps[uri] = uriForNode(uri, n) // just in case the current node was modified
+        await updateRootsForVfsUriRemaps(uriRemaps)
         return n
+
+        function uriForNode(uri: string, n: VfsNode) {
+            return enforceFinal('/', dirname(uri).replace(/\\/g, '/')) + pathEncode(getNodeName(n)) + (nodeIsFolder(n) ? '/' : '')
+        }
     },
 
     // legacy – not currently used by the UI
@@ -106,6 +114,9 @@ export default {
         }
         ;(parentNode.children ||= []).push(fromNode)
         await saveVfs()
+        await updateRootsForVfsUriRemaps({
+            [from]: enforceFinal('/', parent) + pathEncode(name) + (nodeIsFolder(fromNode) ? '/' : '')
+        })
         return {}
     },
 
@@ -242,7 +253,7 @@ export default {
         for (const k of ['*', 'Directory']) {
             await reg('add', WINDOWS_REG_KEY.replace('*', k), '/ve', '/f', '/d', 'Add to HFS (new)')
             await reg('add', WINDOWS_REG_KEY.replace('*', k), '/v', 'icon', '/f', '/d', IS_BINARY ? process.execPath : APP_PATH + '\\hfs.ico')
-            await reg('add', WINDOWS_REG_KEY.replace('*', k) + '\\command', '/ve', '/f', '/d', `powershell -WindowStyle Hidden -Command "
+            await reg('add', WINDOWS_REG_KEY.replace('*', k) + '\\command', '/ve', '/f', '/d', `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -Command "
             [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12;
             $wsh = New-Object -ComObject Wscript.Shell;
             $j = @{parent=@'\n${parent}\n'@; source=@'\n%1\n'@} | ConvertTo-Json -Compress
@@ -292,6 +303,43 @@ function sanitizeVfsProps(props: any) {
         ret.children = !props.children.length ? undefined
             : props.children.map(sanitizeVfsProps)
     return ret
+}
+
+function updateRootsForVfsUriRemaps(uriRemaps={}) {
+    const remaps = Object.entries(uriRemaps)
+        .map(([from, to]) => [normalizeVfsId(from), normalizeVfsId(to)] as const)
+        .filter(x => x[0] !== x[1])
+        .sort(([a], [b]) => b.length - a.length) // longest first because, in case of both parent and child, it's more specific
+    let changed = false
+    const updatedRoots = _.mapValues(roots.get(), root => {
+        if (typeof root !== 'string' || !root) return root
+        const normalizedRoot = normalize(root)
+        for (const [from, to] of remaps) {
+            // roots are stored outside the VFS tree, so rename/move edits need an explicit path remap
+            const remappedRoot = replaceUriPrefix(normalizedRoot, from, to)
+            if (!remappedRoot) continue
+            if (remappedRoot !== root)
+                changed = true
+            return remappedRoot
+        }
+        return root
+    })
+    if (changed)
+        roots.set(updatedRoots)
+
+    function normalize(uri: unknown) {
+        return String(uri).replace(/^\/+|^(?!\/)|\/{2,}|\/+$|(?<!\/)$/g, '/')
+    }
+
+    function normalizeVfsId(uri: unknown) {
+        return normalize(pathDecode(String(uri))) // admin remaps come from tree ids, while roots are stored as readable VFS paths
+    }
+
+    function replaceUriPrefix(uri: string, oldPrefix: string, newPrefix: string) {
+        return uri === oldPrefix ? newPrefix
+            : uri.startsWith(oldPrefix) ? newPrefix + uri.slice(oldPrefix.length)
+                : ''
+    }
 }
 
 export function simplifyName(node: VfsNode) {

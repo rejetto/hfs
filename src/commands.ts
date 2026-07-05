@@ -12,8 +12,9 @@ import { quitting } from './first'
 import { getInactivePlugins, mapPlugins, startPlugin, stopPlugin } from './plugins'
 import { purgeFileAttr } from './fileAttr'
 import { downloadPlugin } from './github'
-import { Dict, formatBytes, formatSpeed, formatTimestamp, makeMatcher } from './cross'
-import apiMonitor from './api.monitor'
+import { Dict, formatBytes, formatPerc, formatSpeed, formatTimestamp, makeMatcher, with_ } from './cross'
+import apiMonitor, { inferOperation, serializeConnection } from './api.monitor'
+import { getConnections } from './connections'
 import { argv } from './argv'
 import { getServerStatus } from './listen'
 
@@ -190,6 +191,23 @@ const commands = {
         params: '',
         cb: purgeFileAttr,
     },
+    transfers: {
+        params: '',
+        cb() {
+            const transfers = getConnections().map(serializeConnection).filter(x => x.op === 'upload' || x.op === 'download')
+            if (!transfers.length)
+                return console.log("No ongoing uploads/downloads")
+            console.table(transfers.map(x => ({
+                type: x.op,
+                progress: with_(x.opProgress ?? x.opOffset, v => v == null ? '' : formatPerc(v)),
+                transferred: formatBytes(Math.max(x.sent || 0, x.got || 0)),
+                total: x.opTotal == null ? '' : formatBytes(x.opTotal),
+                speed: formatSpeed(Math.max(x.outSpeedKb || 0, x.inSpeedKb || 0) * 1000),
+                user: x.user,
+                path: x.path,
+            })))
+        }
+    },
     status: {
         params: '',
         async cb() {
@@ -197,6 +215,8 @@ const commands = {
             console.log(_.map(ports, (x, k) =>
                 `${k.toUpperCase()} ${x.configuredPort < 0 ? "disabled" : x.listening ? `on port ${x.port}` : (x.error || "not working")}`
             ).join(" – "))
+            const operations = _.countBy(getConnections(), x => x.ctx && inferOperation(x.ctx).op)
+            console.log(`Active downloads ↑ ${operations.download || 0} – uploads ↓ ${operations.upload || 0}`)
             const conn = (await apiMonitor.get_connection_stats().next()).value
             if (conn) {
                 const {sent_got: sg} = conn
