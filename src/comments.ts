@@ -12,11 +12,11 @@ export const DESCRIPT_ION = 'descript.ion'
 export const DESCRIPT_ION_ALT = 'DESCRIPT.ION'
 const commentsStorage = defineConfig<'' | 'attr' | 'attr+ion'>(CFG.comments_storage, '',
         v => ['', 'attr+ion'].includes(v)) // compiled tell us if we are using descript.ion
-defineConfig('descript_ion', true, (v, more) => { // legacy: convert previous setting
+defineConfig(CFG.descript_ion, true, (v, more) => { // legacy: convert previous setting
     if (!v && more.version?.olderThan('0.57.0-alpha1'))
         commentsStorage.set('attr')
 })
-const descriptIonEncoding = defineConfig('descript_ion_encoding', 'utf8')
+const descriptIonEncoding = defineConfig(CFG.descript_ion_encoding, 'utf8')
 
 function readFromDescriptIon(path: string) {
     return usingDescriptIon() && readDescriptIon(dirname(path)).then(x => x.get(basename(path)), () => undefined)

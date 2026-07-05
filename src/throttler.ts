@@ -4,7 +4,7 @@ import { Readable } from 'stream'
 import Koa from 'koa'
 import { ThrottledStream, ThrottleGroup } from './ThrottledStream'
 import { defineConfig } from './config'
-import { isLocalHost } from './misc'
+import { CFG, isLocalHost } from './misc'
 import { Connection, getConnection, updateConnection } from './connections'
 import _ from 'lodash'
 import events from './events'
@@ -12,7 +12,7 @@ import { storedMap } from './persistence'
 
 const mainThrottleGroup = new ThrottleGroup(Infinity)
 
-defineConfig('max_kbps', Infinity).sub(v =>
+defineConfig(CFG.max_kbps, Infinity).sub(v =>
     mainThrottleGroup.updateLimit(v))
 
 const ip2group: Record<string, {
@@ -23,7 +23,7 @@ const ip2group: Record<string, {
 const SymThrStr = Symbol('stream')
 const SymTimeout = Symbol('timeout')
 
-const maxKbpsPerIp = defineConfig('max_kbps_per_ip', Infinity)
+const maxKbpsPerIp = defineConfig(CFG.max_kbps_per_ip, Infinity)
 maxKbpsPerIp.sub(v => {
     for (const [ip, {group}] of Object.entries(ip2group))
         if (ip) // empty-string = unlimited group

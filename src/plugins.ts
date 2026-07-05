@@ -449,12 +449,12 @@ if (!existsSync(PATH))
     catch {}
 export const pluginsWatcher = watchDir(PATH, rescanAsap)
 
-export const enablePlugins = defineConfig('enable_plugins', ['antibrute'])
+export const enablePlugins = defineConfig(CFG.enable_plugins, ['antibrute'])
 enablePlugins.sub(rescanAsap)
 
 export const suspendPlugins = defineConfig(CFG.suspend_plugins, false)
 
-export const pluginsConfig = defineConfig('plugins_config', {} as Record<string,any>)
+export const pluginsConfig = defineConfig(CFG.plugins_config, {} as Record<string,any>)
 export const PLUGIN_MAIN_FILE = 'plugin.js'
 
 const pluginWatchers = new Map<string, ReturnType<typeof watchPlugin>>()

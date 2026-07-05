@@ -19,7 +19,7 @@ import { adminApis } from './adminApis'
 import { defineConfig, Version } from './config'
 import { ok } from 'assert'
 import _ from 'lodash'
-import { httpStream } from './misc'
+import { CFG, httpStream } from './misc'
 import { randomBytes } from 'node:crypto'
 import { selfCheckMiddleware } from './selfCheck'
 import { acmeMiddleware } from './acme'
@@ -83,7 +83,7 @@ process.on('uncaughtException', (err: any) => {
 const original = process.emitWarning
 process.emitWarning = warn => String(warn).startsWith('An error event has already been emitted') || original.call(process, warn)
 
-defineConfig('proxies', 0).sub(n => {
+defineConfig(CFG.proxies, 0).sub(n => {
     app.proxy = n > 0
     app.maxIpsCount = n
 })

@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { ORIGINAL_CWD, VERSION, CONFIG_FILE, IS_BINARY } from './const'
+import { CFG } from './cross-const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
@@ -54,7 +55,7 @@ export class Version extends String {
 
 const CONFIG_CHANGE_EVENT_PREFIX = 'config.'
 export const currentVersion = new Version(VERSION)
-const configVersion = defineConfig('version', VERSION, v => new Version(v))
+const configVersion = defineConfig(CFG.version, VERSION, v => new Version(v))
 
 type Subscriber<T,R=void> = (v:T, more: { was?: T, version?: Version, defaultValue: T, k: string, object: object, onlyCompileChanged?: true }) => R
 export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler?: Subscriber<T,CT>) {

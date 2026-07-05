@@ -15,12 +15,12 @@ import { failAllowNet, sessionDuration } from './middlewares'
 import { clearTextLogin, getCurrentUsername, setLoggedIn, srpServerStep1 } from './auth'
 import { defineConfig } from './config'
 import events from './events'
-import { apiAssertTypes } from './misc'
+import { apiAssertTypes, CFG } from './misc'
 import { getSessionId } from './uploadOwners'
 import { createHmac, randomBytes, randomUUID } from 'node:crypto'
 
 const ongoingLogins:Record<string,SRPServerSessionStep1> = {} // store data that doesn't fit session object
-const keepSessionAlive = defineConfig('keep_session_alive', true)
+const keepSessionAlive = defineConfig(CFG.keep_session_alive, true)
 const fakeSrpSecret = randomBytes(32)
 
 const refresh_session: ApiHandler = async ({}, ctx) => {

@@ -81,7 +81,7 @@ export default function OptionsPage() {
         toField: (x: any) => x || '',
         sm: 4,
     }
-    const httpsEnabled = values.https_port >= 0
+    const httpsEnabled = values[CFG.https_port] >= 0
     return h(Form, {
         sx: { maxWidth: '60em' },
         values,
@@ -115,10 +115,10 @@ export default function OptionsPage() {
         },
         fields: [
             h(Section, { title: "Networking" }),
-            { k: 'port', comp: PortField, xs: 12, sm: 4, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
-            { k: 'https_port', comp: PortField, xs: 12, sm: 4, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
+            { k: CFG.port, comp: PortField, xs: 12, sm: 4, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
+            { k: CFG.https_port, comp: PortField, xs: 12, sm: 4, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
                 onChange(v: number) {
-                    if (v >= 0 && !httpsEnabled && !values.cert)
+                    if (v >= 0 && !httpsEnabled && !values[CFG.cert])
                         void suggestMakingCert()
                     return v
                 }
@@ -126,52 +126,52 @@ export default function OptionsPage() {
             { k: CFG.upnp_enabled, comp: BoolField, xs: 12, sm: 4, label: "UPnP/SSDP",
                 helperText: "Port forwarding and double-NAT detection" },
 
-            httpsEnabled && { k: 'cert', comp: FileField, sm: 4, label: "HTTPS certificate file",
+            httpsEnabled && { k: CFG.cert, comp: FileField, sm: 4, label: "HTTPS certificate file",
                 helperText: wikiLink('HTTPS#certificate', "What is this?"),
                 error: with_(status?.https.error, e => isCertError(e) && (
                     status!.https.listening ? e
                         : [e, ' - ', h(LinkBtn, { key: 'fix', onClick: suggestMakingCert }, "make one")] )),
             },
-            httpsEnabled && { k: 'private_key', comp: FileField, sm: 4, label: "HTTPS private key file",
+            httpsEnabled && { k: CFG.private_key, comp: FileField, sm: 4, label: "HTTPS private key file",
                 ...with_(status?.https.error, e => isKeyError(e) ? { error: true, helperText: e } : null)
             },
-            httpsEnabled && { k: 'force_https', comp: BoolField, label: "Force HTTPS", sm: 4, disabled: !httpsEnabled || values.port < 0,
+            httpsEnabled && { k: CFG.force_https, comp: BoolField, label: "Force HTTPS", sm: 4, disabled: !httpsEnabled || values[CFG.port] < 0,
                 helperText: "Not applied to localhost. Doesn't work with proxies."
             },
 
             {
-                k: 'listen_interface',
+                k: CFG.listen_interface,
                 comp: SelectField,
                 sm: 4,
                 afterList: listenInterfaceOptions.some(x => x.disabled)
                     && h(Box, { sx: { p: '8px 16px 0', borderTop: '1px solid', fontSize: 'small' } }, "Disabled addresses depend on the address you used to connect"),
                 options: listenInterfaceOptions,
             },
-            { k: 'max_kbps',        ...maxSpeedDefaults, sm: 4, label: "Limit output", helperText: "Doesn't apply to localhost" },
-            { k: 'max_kbps_per_ip', ...maxSpeedDefaults, sm: 4, label: "Limit output per-IP" },
+            { k: CFG.max_kbps,        ...maxSpeedDefaults, sm: 4, label: "Limit output", helperText: "Doesn't apply to localhost" },
+            { k: CFG.max_kbps_per_ip, ...maxSpeedDefaults, sm: 4, label: "Limit output per-IP" },
 
             { k : CFG.max_downloads, ...maxDownloadsDefaults, helperText: "Number of simultaneous downloads" },
             { k : CFG.max_downloads_per_ip, ...maxDownloadsDefaults, label: "Max downloads per-IP" },
             { k : CFG.max_downloads_per_account, ...maxDownloadsDefaults, label: "Max downloads per-account", helperText: "Overrides other limits" },
 
-            { k: 'admin_net', comp: NetmaskField, xs: 12, sm: 6, label: "Admin-panel accessible from", placeholder: "any address",
+            { k: CFG.admin_net, comp: NetmaskField, xs: 12, sm: 6, label: "Admin-panel accessible from", placeholder: "any address",
                 helperText: "IP address of browser machine – localhost is an exception"
             },
-            { k: 'localhost_admin', comp: BoolField, xs: 12, sm: 6, label: "Consider localhost access as Admin",
+            { k: CFG.localhost_admin, comp: BoolField, xs: 12, sm: 6, label: "Consider localhost access as Admin",
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
                 helperText: "Access admin-panel without entering credentials"
             },
 
-            { k: 'proxies', comp: NumberField, xs: 12, sm: 4, md: 4, max: 9, label: "Number of incoming HTTP proxies", placeholder: "none",
+            { k: CFG.proxies, comp: NumberField, xs: 12, sm: 4, md: 4, max: 9, label: "Number of incoming HTTP proxies", placeholder: "none",
                 error: proxyWarning(values, status),
                 helperText: "Wrong number will prevent detection of users' IP"
             },
             { k: CFG.outbound_proxy, xs: 12, sm: 5, md: 4, placeholder: "none", helperText: "URL form",
                 getError: x => try_(() => x && new URL(x) && '', () => "Invalid URL") },
-            { k: 'allowed_referer', comp: AllowedReferer, sm: 3, md: 4, placeholder: "any", label: "Links from other websites",
+            { k: CFG.allowed_referer, comp: AllowedReferer, sm: 3, md: 4, placeholder: "any", label: "Links from other websites",
                 helperText: "In case another website is linking your files" },
 
-            { k: 'block', label: false, comp: ArrayField, xs: 12, prepend: true, sm: true, autoRowHeight: true,
+            { k: CFG.block, label: false, comp: ArrayField, xs: 12, prepend: true, sm: true, autoRowHeight: true,
                 form: { sx: { maxWidth: '40em' } },
                 fields: [
                     { k: 'ip', label: "Blocked IP", sm: 12, required: true, wrap: true, $width: 2, comp: NetmaskField,
@@ -195,43 +195,43 @@ export default function OptionsPage() {
             },
 
             h(Section, { title: "Front-end", subtitle: "Following options affect only the front-end" }),
-            { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", md: 3,
+            { k: CFG.file_menu_on_link, comp: SelectField, label: "Access file menu", md: 3,
                 options: { "by clicking on file name": true, "by dedicated button": false  }
             },
-            { k: 'menu_at_top', comp: SelectField, md: 3, label: "Menu panel", options: { "at top": true, "at bottom": false } },
-            { k: 'title', md: 6, helperText: "You can see this in the tab of your browser" },
+            { k: CFG.menu_at_top, comp: SelectField, md: 3, label: "Menu panel", options: { "at top": true, "at bottom": false } },
+            { k: CFG.title, md: 6, helperText: "You can see this in the tab of your browser" },
 
-            { k: 'auto_play_seconds', comp: NumberField, xs: 6, sm: 3, min: 1, max: 10000, required: true,
+            { k: CFG.auto_play_seconds, comp: NumberField, xs: 6, sm: 3, min: 1, max: 10000, required: true,
                 label: "Auto-play seconds delay", helperText: md(`Default value for the [Show interface](${REPO_URL}discussions/270)`) },
-            { k: 'tile_size', comp: NumberField, xs: 6, sm: 3, max: MAX_TILE_SIZE, required: true,
+            { k: CFG.tile_size, comp: NumberField, xs: 6, sm: 3, max: MAX_TILE_SIZE, required: true,
                 label: "Default tiles size", helperText: wikiLink('Tiles', "To enable tiles-mode") },
-            { k: 'theme', comp: SelectField, xs: 6, sm: 3, options: THEME_OPTIONS },
-            { k: 'sort_by', comp: SelectField, xs: 6, sm: 3, options: SORT_BY_OPTIONS },
+            { k: CFG.theme, comp: SelectField, xs: 6, sm: 3, options: THEME_OPTIONS },
+            { k: CFG.sort_by, comp: SelectField, xs: 6, sm: 3, options: SORT_BY_OPTIONS },
 
-            { k: 'invert_order', comp: BoolField, xs: 6, md: 3 },
-            { k: 'folders_first', comp: BoolField, xs: 6, md: 3 },
-            { k: 'sort_numerics', comp: BoolField, xs: 6, md: 3, label: "Sort numeric names" },
-            { k: 'title_with_path', comp: BoolField, xs: 6, md: 3 },
-            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, xs: 12, sm: 6,
+            { k: CFG.invert_order, comp: BoolField, xs: 6, md: 3 },
+            { k: CFG.folders_first, comp: BoolField, xs: 6, md: 3 },
+            { k: CFG.sort_numerics, comp: BoolField, xs: 6, md: 3, label: "Sort numeric names" },
+            { k: CFG.title_with_path, comp: BoolField, xs: 6, md: 3 },
+            { k: CFG.favicon, comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, xs: 12, sm: 6,
                 helperText: "The icon associated to your website" },
             { k: CFG.show_uploader, label: "Show uploader to", comp: WhoField, xs: true },
-            { k: 'page_size', comp: NumberField, xs: true, min: 1, required: true, helperText: "Entries per page" },
+            { k: CFG.page_size, comp: NumberField, xs: true, min: 1, required: true, helperText: "Entries per page" },
 
             h(Section, { title: "Uploads" }),
-            { k: 'dont_overwrite_uploading', comp: BoolField, md: 4, label: "Uploads don't overwrite",
+            { k: CFG.dont_overwrite_uploading, comp: BoolField, md: 4, label: "Uploads don't overwrite",
                 helperText: "Files are automatically numbered (frontend only)" },
             { k : CFG.split_uploads, comp: NumberField, unit: 'MB', md: 2, step: .1, min: .1,
                 fromField: x => x * 1E6, toField: x => x ? x / 1E6 : null,
                 placeholder: "disabled", label: "Split uploads in chunks", helperText: "Overcome proxy limits (frontend only)" },
-            { k: 'delete_unfinished_uploads_after', comp: NumberField, md: 3, min : 0, unit: "seconds", required: true },
-            { k: 'min_available_mb', comp: NumberField, md: 3, min : 0, unit: "MBytes", placeholder: "None",
+            { k: CFG.delete_unfinished_uploads_after, comp: NumberField, md: 3, min : 0, unit: "seconds", required: true },
+            { k: CFG.min_available_mb, comp: NumberField, md: 3, min : 0, unit: "MBytes", placeholder: "None",
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
             { k: CFG.own_upload_delete_hours, comp: NumberField, md: 3, min: 0, unit: "hours",
                 label: "Uploader delete window", placeholder: "disabled" },
 
             h(Section, { title: "Others" }),
-            { k: 'show_hidden_files', comp: BoolField, sm: 3 },
-            { k: 'descript_ion_encoding', sm: 3, label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
+            { k: CFG.show_hidden_files, comp: BoolField, sm: 3 },
+            { k: CFG.descript_ion_encoding, sm: 3, label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values[CFG.descript_ion],
                 options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
             { k: CFG.comments_storage, comp: SelectField, xs: 12, sm: 6, options: {
                     "in file DESCRIPT.ION": '',
@@ -239,22 +239,22 @@ export default function OptionsPage() {
                     "in file attributes + load DESCRIPT.ION": 'attr+ion',
                 } },
 
-            { k: 'keep_session_alive', comp: BoolField, sm: 6, md: 6, helperText: "Keeps you logged in while the page is left open and the computer is on" },
-            { k: 'session_duration', comp: NumberField, sm: 3, md: 3, min: 5, unit: "seconds", required: true },
+            { k: CFG.keep_session_alive, comp: BoolField, sm: 6, md: 6, helperText: "Keeps you logged in while the page is left open and the computer is on" },
+            { k: CFG.session_duration, comp: NumberField, sm: 3, md: 3, min: 5, unit: "seconds", required: true },
             { k: CFG.size_1024, label: "KB size", comp: SelectField, sm: 3, options: { 1000: false, 1024: true } },
 
-            { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start", xs: 12, sm: 6, md: 3,
+            { k: CFG.open_browser_at_start, comp: BoolField, label: "Open Admin-panel at start", xs: 12, sm: 6, md: 3,
                 helperText: "Browser is automatically launched with HFS"
             },
-            { k: 'zip_calculate_size_for_seconds', comp: NumberField, xs: 12, sm: 6, md: 3, unit: "seconds", required: true,
+            { k: CFG.zip_calculate_size_for_seconds, comp: NumberField, xs: 12, sm: 6, md: 3, unit: "seconds", required: true,
                 label: "Calculate ZIP size for", helperText: "If time is not enough, the browser will not show download percentage" },
-            { k: 'mime', comp: ArrayField, label: "Custom MIME types", reorder: true, prepend: true, xs: 12, sm: 12, md: 6,
+            { k: CFG.mime, comp: ArrayField, label: "Custom MIME types", reorder: true, prepend: true, xs: 12, sm: 12, md: 6,
                 fields: [
                     { k: 'v', label: "Mime type", placeholder: "auto", $width: 2, helperText: "Leave empty to get automatic value" },
                     { k: 'k', label: "File mask", helperText: h(WildcardsSupported), $width: 1, $column: {
                             renderCell: ({ value, id }: any) => h('code', {},
                                 value,
-                                value === '*' && id < _.size(values.mime) - 1
+                                value === '*' && id < _.size(values[CFG.mime]) - 1
                                 && iconTooltip(Warning, md("Mime with `*` should be the last, because first matching row applies"), {
                                     color: 'warning.main', ml: 1
                                 }))
@@ -301,7 +301,7 @@ export default function OptionsPage() {
         if (_.isEmpty(toSave))
             return toast("Nothing to save")
         const loc = window.location
-        const keys = ['port','https_port']
+        const keys = [CFG.port, CFG.https_port]
         if (keys.every(k => toSave[k] !== undefined))
             return alertDialog("You cannot change both http and https port at once. Please, do one, save, and then do the other.", 'warning')
         const working = [status?.http?.listening, status?.https?.listening]
@@ -321,23 +321,23 @@ export default function OptionsPage() {
         const goingNewPort = newPort > 0 && newPort != loc.port // == loc.port can happen when listening on a temporary port, and the user just set the same port as new config
         if (goingNewPort && !await confirmDialog("You are changing the port and you may be disconnected"))
             return
-        const certChange = 'cert' in toSave || 'private_key' in toSave
+        const certChange = CFG.cert in toSave || CFG.private_key in toSave
         if (onHttps && certChange && !await confirmDialog("You may disrupt https service, kicking you out"))
             return
         await apiCall('set_config', { values: toSave })
-        if ('split_uploads' in toSave)
+        if (CFG.split_uploads in toSave)
             await alertDialog("Users need to reload for the \"split uploads\" option to take effect", 'warning')
         const ip = ipForUrl(loc.hostname)
         const path = loc.pathname + loc.hash
         const redirect = newPort <= 0 ? `${onHttps ? 'http:' : 'https:'}//${ip}:${otherPort}${path}` // jump protocol also in case of random port, because people must know their port while using GUI
             : goingNewPort ? `${loc.protocol}//${ip}:${newPort || values[keys[0]]}${path}`
                 : await with_(`https://${ip}:${loc.port}${path}`, httpsUrl => // could we be kicked out because of force_https?
-                    !onHttps && (toSave.force_https ?? data.force_https) && fetch(httpsUrl).then(() => httpsUrl, () => 0)) // only happens if https is working
+                    !onHttps && (toSave[CFG.force_https] ?? data[CFG.force_https]) && fetch(httpsUrl).then(() => httpsUrl, () => 0)) // only happens if https is working
         if (redirect) {
             await alertDialog("You are being redirected but in some cases this may fail. Hold on tight!", 'warning')
             return window.location.href = redirect
         }
-        const portChange = 'port' in toSave || 'https_port' in toSave
+        const portChange = CFG.port in toSave || CFG.https_port in toSave
         setTimeout(reloadStatus, portChange || certChange ? 1000 : 0) // give some time to apply news
         Object.assign(loaded!, toSave) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
         recalculateChanges()

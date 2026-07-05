@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from 'lodash'
-import { objRenameKey, setHidden, typedEntries, wantArray } from './misc'
+import { CFG, objRenameKey, setHidden, typedEntries, wantArray } from './misc'
 import { defineConfig, saveConfigAsap } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
@@ -63,7 +63,7 @@ export function saveSrpInfo(account:Account, salt:string | bigint, verifier: str
     account.srp = String(salt) + '|' + String(verifier)
 }
 
-const createAdminConfig = defineConfig('create-admin', '')
+const createAdminConfig = defineConfig(CFG['create-admin'], '')
 createAdminConfig.sub(v => {
     if (!v) return
     createAdminConfig.set('')
@@ -118,7 +118,7 @@ export async function updateAccount(account: Account, change: Partial<Account> |
 
 const saveAccountsAsap = saveConfigAsap
 
-export const accounts = defineConfig('accounts', {} as Accounts)
+export const accounts = defineConfig(CFG.accounts, {} as Accounts)
 accounts.sub(_.debounce(obj => {
     // consider some validation here, in case of manual edit of the config
     _.each(obj, (rec,k) => {

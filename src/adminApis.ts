@@ -16,7 +16,7 @@ import netApis from './api.net'
 import logApis from './api.log'
 import certApis from './api.cert'
 import { getConnections } from './connections'
-import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, try_, typedEntries, waitFor } from './misc'
+import { apiAssertTypes, CFG, debounceAsync, isLocalHost, makeNetMatcher, try_, typedEntries, waitFor } from './misc'
 import { accountCanLoginAdmin, accounts } from './perm'
 import Koa from 'koa'
 import { cloudflareDetected, getProxyDetected } from './middlewares'
@@ -205,10 +205,10 @@ for (const [k, was] of typedEntries(adminApis))
             : new ApiError(HTTP_UNAUTHORIZED, props)
     }) satisfies ApiHandler
 
-export const localhostAdmin = defineConfig('localhost_admin', true)
-export const adminNet = defineConfig('admin_net', '', v => makeNetMatcher(v, true) )
-export const favicon = defineConfig('favicon', '')
-export const title = defineConfig('title', "File server")
+export const localhostAdmin = defineConfig(CFG.localhost_admin, true)
+export const adminNet = defineConfig(CFG.admin_net, '', v => makeNetMatcher(v, true) )
+export const favicon = defineConfig(CFG.favicon, '')
+export const title = defineConfig(CFG.title, "File server")
 
 export function ctxAdminAccess(ctx: Koa.Context) {
     if (preventAdminAccess(ctx))
