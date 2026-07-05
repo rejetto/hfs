@@ -2,13 +2,13 @@
 
 import { defineConfig } from './config'
 import { disconnect, getConnections, normalizeIp } from './connections'
-import { makeNetMatcher, MINUTE, netMatches, onlyTruthy } from './misc'
+import { CFG, makeNetMatcher, MINUTE, onlyTruthy } from './misc'
 import { isIP, Socket } from 'net'
 import _ from 'lodash'
 
 export interface BlockingRule { ip: string, comment?: string, expire?: Date, disabled?: boolean }
 
-export const block = defineConfig('block', [] as BlockingRule[], rules => {
+export const block = defineConfig(CFG.block, [] as BlockingRule[], rules => {
     const now = new Date()
     const ret = !Array.isArray(rules) ? []
         : onlyTruthy(rules.map(rule => {

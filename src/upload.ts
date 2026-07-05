@@ -8,7 +8,7 @@ import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
 import {
     isValidFileName, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter, pathEncode,
-    enforceFinal, Timeout, waitFor,
+    CFG, enforceFinal, Timeout, waitFor,
 } from './misc'
 import { defineConfig } from './config'
 import { getDiskSpaceSync } from './util-os'
@@ -23,9 +23,9 @@ import { expiringCache } from './expiringCache'
 import { onProcessExit } from './first'
 import { deleteUploadOwner, setUploadOwner } from './uploadOwners'
 
-export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
-export const minAvailableMb = defineConfig('min_available_mb', 100)
-export const dontOverwriteUploading = defineConfig('dont_overwrite_uploading', true)
+export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>(CFG.delete_unfinished_uploads_after, 86_400)
+export const minAvailableMb = defineConfig(CFG.min_available_mb, 100)
+export const dontOverwriteUploading = defineConfig(CFG.dont_overwrite_uploading, true)
 
 const waitingToBeDeleted: Record<string, {
     timeout: Timeout, // pending action

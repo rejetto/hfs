@@ -5,7 +5,7 @@ import { ARGS_FILE, HFS_REPO, IS_BINARY, IS_WINDOWS, IS_MAC, PREVIOUS_TAG, RUNNI
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
 import {
-    DAY, exists, unzip, prefix, xlate, HOUR, httpStream, statWithTimeout, repeat, debounceAsync, formatPerc, retrySync
+    CFG, DAY, exists, unzip, prefix, xlate, HOUR, httpStream, statWithTimeout, repeat, debounceAsync, formatPerc, retrySync
 } from './misc'
 import { createReadStream, createWriteStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { pluginsWatcher } from './plugins'
@@ -19,8 +19,8 @@ import _ from 'lodash'
 import { argv } from './argv'
 import { pipeline } from 'stream/promises'
 
-const updateToBeta = defineConfig('update_to_beta', false)
-const autoCheckUpdate = defineConfig('auto_check_update', true)
+const updateToBeta = defineConfig(CFG.update_to_beta, false)
+const autoCheckUpdate = defineConfig(CFG.auto_check_update, true)
 const lastCheckUpdate = storedMap.singleSync<number>('lastCheckUpdate', 0)
 const AUTO_CHECK_EVERY = DAY
 

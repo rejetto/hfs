@@ -3,7 +3,7 @@
 import _ from 'lodash'
 import { VfsNodeStored } from './vfs'
 import picomatch from 'picomatch/lib/picomatch'
-import { HFS_REPO } from './cross-const' // point directly to the browser-compatible source
+import { CFG, HFS_REPO } from './cross-const' // point directly to the browser-compatible source
 export * from './cross-const'
 
 export const WEBSITE = 'https://rejetto.com/hfs/'
@@ -14,28 +14,21 @@ export const HOUR = 60 * MINUTE
 export const DAY = 24 * HOUR
 export const MAX_TILE_SIZE = 10
 export const FRONTEND_OPTIONS = {
-    file_menu_on_link: true,
-    menu_at_top: false,
-    tile_size: 0,
-    page_size: 100,
-    sort_by: 'name',
-    invert_order: false,
-    folders_first: true,
-    sort_numerics: false,
-    title_with_path: true,
-    theme: '',
-    auto_play_seconds: 5,
-    disableTranslation: false,
+    [CFG.file_menu_on_link]: true,
+    [CFG.menu_at_top]: false,
+    [CFG.tile_size]: 0,
+    [CFG.page_size]: 100,
+    [CFG.sort_by]: 'name',
+    [CFG.invert_order]: false,
+    [CFG.folders_first]: true,
+    [CFG.sort_numerics]: false,
+    [CFG.title_with_path]: true,
+    [CFG.theme]: '',
+    [CFG.auto_play_seconds]: 5,
+    [CFG.disableTranslation]: false,
 }
 export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time', 'creation']
 export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
-// had found an interesting way to infer a type from all the calls to defineConfig (by the literals passed), but would not be usable also by admin-panel
-export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown', 'dynamic_dns_url', 'debug',
-    'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua', 'log_spam', 'log_host',
-    'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'force_address', 'split_uploads',
-    'force_lang', 'suspend_plugins', 'base_url', 'size_1024', 'disable_custom_html', 'comments_storage', 'server_code',
-    'force_webdav_login', 'webdav_initial_auth', 'outbound_proxy', 'mapped_port', 'upnp_enabled', 'show_uploader',
-    'own_upload_delete_hours', 'track_ips'])
 export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
@@ -93,10 +86,6 @@ export const PERM_KEYS = typedKeys(defaultPerms)
 
 export const VFS_STORED_KEYS: (keyof VfsNodeStored)[] = ['name', 'source', 'masks', 'default', 'accept', 'rename',
     'mime', 'url', 'target', 'comment', 'icon', 'order', 'children', ...PERM_KEYS]
-
-function constMap<T extends string>(a: T[]): { [K in T]: K } {
-    return Object.fromEntries(a.map(x => [x, x])) as { [K in T]: K };
-}
 
 export function isWhoObject(v: undefined | WhoVfs): v is WhoObject {
     return v !== null && typeof v === 'object' && !Array.isArray(v)

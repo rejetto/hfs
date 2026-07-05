@@ -3,7 +3,7 @@
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
-    makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, WhoVfs, debounceAsync,
+    CFG, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, WhoVfs, debounceAsync,
     isWhoObject, WHO_ANY_ACCOUNT, WHO_ADMIN, defaultPerms, PERM_KEYS, HTTP_SERVER_ERROR, try_, matches, Promisable,
     statWithTimeout, safeDecodeURIComponent, getUncHost, Who, enforceFinal, pathEncode,
 } from './misc'
@@ -21,7 +21,7 @@ import { walkDir } from './walkDir'
 import { Readable } from 'node:stream'
 import { ctxAdminAccess } from './adminApis'
 
-const showHiddenFiles = defineConfig('show_hidden_files', false)
+const showHiddenFiles = defineConfig(CFG.show_hidden_files, false)
 
 type Masks = Record<string, VfsNode>
 
@@ -194,7 +194,7 @@ export async function getNodeByName(name: string, parent: VfsNodeWithPath, assum
     }
 }
 
-const smartUncFolderDetection = defineConfig('smart_unc_folder_detection', false)
+const smartUncFolderDetection = defineConfig(CFG.smart_unc_folder_detection, false)
 
 async function setIsFolder(node: VfsNode) {
     if (!node.source) return
@@ -205,7 +205,7 @@ async function setIsFolder(node: VfsNode) {
     return isFolder
 }
 
-export const vfs = defineConfig('vfs', {} as VfsNodeWithPath)
+export const vfs = defineConfig(CFG.vfs, {} as VfsNodeWithPath)
 vfs.sub(async x => {
     vfs.set(setVfsPath(x && typeof x === 'object' ? x : {}, '')) // ensure the type is right
     await reviewVfs()

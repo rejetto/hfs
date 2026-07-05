@@ -27,7 +27,7 @@ export const defaultBaseUrl = proxy({
     }
 })
 
-export const mappedPort = defineConfig('mapped_port', 0)
+export const mappedPort = defineConfig(CFG.mapped_port, 0)
 export const upnpEnabled = defineConfig(CFG.upnp_enabled, true)
 
 let upnpClient: Client | undefined

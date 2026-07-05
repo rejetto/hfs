@@ -2,7 +2,7 @@
 
 import { getNodeName, hasPermission, nodeIsFolder, nodeIsLink, urlToNode, VfsNode, VfsNodeWithPath, walkNode, statusCodeForMissingPerm } from './vfs'
 import Koa from 'koa'
-import { filterMapGenerator, isWindowsDrive, pathDecodeSegments, safeDecodeURIComponent, statWithTimeout, wantArray } from './misc'
+import { CFG, filterMapGenerator, isWindowsDrive, pathDecodeSegments, safeDecodeURIComponent, statWithTimeout, wantArray } from './misc'
 import { QuickZipStream } from './QuickZipStream'
 import { createReadStream } from 'fs'
 import { defineConfig } from './config'
@@ -88,7 +88,7 @@ export async function zipStreamFromFolder(node: VfsNodeWithPath, ctx: Koa.Contex
     monitorAsDownload(ctx, size, range?.start)
 }
 
-const zipSeconds = defineConfig('zip_calculate_size_for_seconds', 5)
+const zipSeconds = defineConfig(CFG.zip_calculate_size_for_seconds, 5)
 
 declare module "koa" {
     interface DefaultState {

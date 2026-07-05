@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { access, chmod, mkdir, readFile, stat } from 'fs/promises'
-import { Promisable, try_, wait, isWindowsDrive, haveTimeout } from './cross'
+import { CFG, Promisable, try_, wait, isWindowsDrive, haveTimeout } from './cross'
 import { defineConfig } from './config'
 import { createWriteStream, mkdirSync, watch, ftruncate, Stats } from 'fs'
 import { basename, dirname } from 'path'
@@ -12,7 +12,7 @@ import { Readable } from 'stream'
 import { getStatWorker } from './stat'
 import unzipper from 'unzipper'
 
-const fileTimeout = defineConfig('file_timeout', 3, x => x * 1000)
+const fileTimeout = defineConfig(CFG.file_timeout, 3, x => x * 1000)
 // a smart (and a bit arbitrary) way to decide if we need the stat-workers functionality. Without it, we may be a bit faster. We'll see with experience if we need a dedicated configuration.
 const disableStatWorkers = Number(process.env.UV_THREADPOOL_SIZE) >= 10
 
