@@ -34,7 +34,7 @@ let httpsSrv: undefined | http.Server & ServerExtra
 // the update relaunch can keep a bridge process alive, so we proactively close listeners here to release ports before the next binary binds; do it before (5) the storage file is closed, because sockets write there
 onProcessExit(() => Promise.all([stopServer(httpSrv), stopServer(httpsSrv)]), 5)
 
-const openBrowserAtStart = defineConfig('open_browser_at_start', true)
+const openBrowserAtStart = defineConfig(CFG.open_browser_at_start, true)
 
 export const baseUrl = defineConfig(CFG.base_url, '',
     x => /(?<=\/\/)[^\/]+/.exec(x)?.[0]) // compiled is host only
@@ -77,8 +77,8 @@ const considerHttp = debounceAsync(async () => {
 })
 let openOnce = true
 
-export const portCfg = defineConfig('port', 80)
-const listenInterface = defineConfig('listen_interface', '')
+export const portCfg = defineConfig(CFG.port, 80)
+const listenInterface = defineConfig(CFG.listen_interface, '')
 subMultipleConfigs(considerHttp, [portCfg, listenInterface])
 
 export function openAdmin() {
@@ -178,8 +178,8 @@ const considerHttps = debounceAsync(async () => {
     defaultBaseUrl.port = getCurrentPort(httpsSrv) ?? 0
 }, { wait: 200 }) // give time to have key and cert ready
 
-export const cert = defineConfig('cert', '' as string, load)
-export const privateKey = defineConfig('private_key', '' as string, load)
+export const cert = defineConfig(CFG.cert, '' as string, load)
+export const privateKey = defineConfig(CFG.private_key, '' as string, load)
 const httpsNeeds = [cert, privateKey]
 
 function load(v: string, { object }: any) {
@@ -191,7 +191,7 @@ function load(v: string, { object }: any) {
     return ''
 }
 
-export const httpsPortCfg = defineConfig('https_port', PORT_DISABLED)
+export const httpsPortCfg = defineConfig(CFG.https_port, PORT_DISABLED)
 subMultipleConfigs(considerHttps, [httpsPortCfg, listenInterface, ...httpsNeeds])
 
 const genericInterfaceNames = {

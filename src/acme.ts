@@ -1,5 +1,5 @@
 import {
-    DAY, Dict, haveTimeout, HOUR, HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, MINUTE, repeat, formatDate
+    CFG, DAY, Dict, haveTimeout, HOUR, HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, MINUTE, repeat, formatDate
 } from './misc'
 import { createServer, IncomingMessage, ServerResponse } from 'http'
 import { Middleware } from 'koa'
@@ -117,8 +117,8 @@ export const makeCert = debounceAsync(async (domain: string, email?: string, alt
 })
 
 export let acmeRenewError = ''
-const acmeDomain = defineConfig('acme_domain', '')
-const acmeRenew = defineConfig('acme_renew', false) // handle config changes
+const acmeDomain = defineConfig(CFG.acme_domain, '')
+const acmeRenew = defineConfig(CFG.acme_renew, false) // handle config changes
 events.once('httpsReady', () => repeat(HOUR, renewCert))
 
 // checks if the cert is near expiration date, and if so renews it

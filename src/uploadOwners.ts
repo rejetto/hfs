@@ -1,6 +1,6 @@
 import { KvStorage } from '@rejetto/kvstorage'
 import Koa from 'koa'
-import { randomId, HOUR, MINUTE } from './misc'
+import { CFG, randomId, HOUR, MINUTE } from './misc'
 import { onProcessExit } from './first'
 import { defineConfig } from './config'
 import { getCurrentUsername } from './auth'
@@ -14,7 +14,7 @@ export interface UploadOwner {
     created: Date
 }
 
-export const ownUploadDeleteHours = defineConfig('own_upload_delete_hours', 24)
+export const ownUploadDeleteHours = defineConfig(CFG.own_upload_delete_hours, 24)
 export const uploadOwners = new KvStorage<UploadOwner>({
     rewriteLater: true,
 })
