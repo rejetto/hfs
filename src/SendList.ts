@@ -11,21 +11,23 @@ export class SendListReadable<T> extends Readable {
     protected buffer: any[] = []
     protected processBuffer: _.DebouncedFunc<any>
     protected sent: undefined | T[]
-    constructor({ addAtStart, doAtStart, bufferTime, onEnd, diff }:
+    constructor({ addAtStart, doAtStart, bufferTime=200, onEnd, diff }:
                     { bufferTime?: number, addAtStart?: T[], doAtStart?: SendListFunc<T>, onEnd?: SendListFunc<T>, diff?: boolean }={}) {
         super({ objectMode: true, read(){} })
-        if (!bufferTime)
-            bufferTime = 200
         if (diff)
             this.sent = []
         this.processBuffer = _.debounce(() => {
             const {sent} = this
             if (sent)
                 this.buffer = this.buffer.filter(([cmd, a, b]) => {
-                    if (cmd === LIST.add)
-                        return sent.push(...wantArray(a))
-                    if (cmd === LIST.remove)
-                        return _.remove(sent, a)
+                    if (cmd === LIST.add) {
+                        sent.push(...wantArray(a))
+                        return true
+                    }
+                    if (cmd === LIST.remove) {
+                        _.remove(sent, a)
+                        return true
+                    }
                     if (cmd !== LIST.update)
                         return true
                     const found = _.find(sent, a) as any
@@ -35,7 +37,7 @@ export class SendListReadable<T> extends Readable {
                             delete b[k]
                         else {
                             found[k] = b[k]
-                            b[k] ??= null // go and delete it, remotely
+                            b[k] ??= null // undefined is omitted by JSON, so replace it with null; null tells the client to delete the property
                         }
                     return !_.isEmpty(b)
                 })
@@ -54,7 +56,7 @@ export class SendListReadable<T> extends Readable {
             this.ready()
         }
     }
-    protected _push(rec: any) {
+    protected queue(rec: any) {
         this.buffer.push(rec)
         if (this.buffer.length > 10_000) // hard limit
             this.processBuffer.flush()
@@ -62,7 +64,7 @@ export class SendListReadable<T> extends Readable {
             this.processBuffer()
     }
     add(rec: T) {
-        this._push([LIST.add, rec])
+        this.queue([LIST.add, rec])
     }
     remove(search: Partial<T>) {
         const match = _.matches(search)
@@ -74,7 +76,7 @@ export class SendListReadable<T> extends Readable {
             this.buffer.splice(idx, 1)
             if (op === LIST.add) return // assuming this never reached the client
         }
-        this._push([LIST.remove, search])
+        this.queue([LIST.remove, search])
     }
     update(search: Partial<T>, change: Partial<T>) {
         if (_.isEmpty(change)) return
@@ -84,24 +86,24 @@ export class SendListReadable<T> extends Readable {
         if (op === LIST.remove) return
         if (op === LIST.add || op === LIST.update)
             return Object.assign(found[op === LIST.add ? 1 : 2], change)
-        this._push([LIST.update, search, change])
+        this.queue([LIST.update, search, change])
     }
     ready() { // useful to indicate the end of an initial phase, but we leave open for updates
-        this._push([LIST.ready])
+        this.queue([LIST.ready])
     }
     custom(name: string, data: any) {
-        this._push(data === undefined ? [name] : [name, data])
+        this.queue(data === undefined ? [name] : [name, data])
     }
     props(props: object) {
-        this._push([LIST.props, props])
+        this.queue([LIST.props, props])
     }
     error(msg: NonNullable<typeof this.lastError>, close=false, props?: object) {
-        this._push([LIST.error, msg, props])
+        this.queue([LIST.error, msg, props])
         this.lastError = msg
         if (close)
             this.close()
     }
-    getLastError() {
+    getLastError() { // for plugins https://github.com/rejetto/hfs/issues/54
         return this.lastError
     }
     close() {

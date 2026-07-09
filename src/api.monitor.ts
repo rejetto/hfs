@@ -46,7 +46,7 @@ export default {
             },
             connectionUpdated(conn: Connection, change: Change) {
                 if (conn.socket.closed || _.isEmpty(change)) return
-                if (change.ctx) {
+                if (change.ctx) { // serialize ctx once so all monitor subscribers reuse the resulting change
                     Object.assign(change, fromCtx(change.ctx))
                     change.ctx = undefined
                 }

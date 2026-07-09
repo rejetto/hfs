@@ -33,7 +33,7 @@ export class QuickZipStream extends Readable {
     private readonly entries: QuickZipEntry[] = []
     private dataWritten = 0
     private consumedCalculating: ZipSource[] = []
-    private skip: number = 0
+    private skip = 0
     private limit?: number
     private now = new Date()
 
@@ -300,7 +300,7 @@ function buffer(pairs: number[]) {
     return ret
 }
 
-function ts2buf(ts:Date) {
+function ts2buf(ts: Date) {
     const date = ((ts.getFullYear() - 1980) & 0x7F) << 9 | (ts.getMonth() + 1) << 5 | ts.getDate()
     const time = ts.getHours() << 11 | ts.getMinutes() << 5 | (ts.getSeconds() / 2) & 0x0F
     return [

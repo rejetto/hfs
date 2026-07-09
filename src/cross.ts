@@ -574,14 +574,21 @@ export function patchKey(o: any, k: string, replacer: (was: unknown) => unknown)
     return o
 }
 
-// consider the callback successful if it returns a truthy value
+// retry rejected operations because filesystem resources may be released late
 export async function retry(cb: () => Promise<any>, delay=1000) {
-    let retry = 3
-    while (true) {
-        if (await cb()) break
-        if (! retry--) break
-        await wait(delay)
-    }
+    let retries = 3
+    while (true)
+        try { return await cb() }
+        catch (e) {
+            if (!retries--)
+                throw e
+            await wait(delay)
+        }
+}
+
+// normalize callback results and synchronous throws into a promise
+export function callAsPromise<R>(callback: () => R) {
+    return Promise.resolve().then(callback)
 }
 
 export type Mutable<T> = { -readonly [K in keyof T]: T[K] }

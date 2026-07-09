@@ -109,7 +109,7 @@ export const adminApis = {
         })
         const res = await Promise.allSettled(ips.map(ip2country))
         return {
-            codes: res.map(x => x.status === 'rejected' || x.value === '-' ? '' : x.value)
+            codes: res.map(x => x.status === 'rejected' ? '' : x.value)
         }
     },
     is_ip_blocked({ ips }) {
@@ -172,7 +172,7 @@ export const adminApis = {
         }
     },
 
-    async add_block({ merge, ip, expire, comment }: BlockingRule & { merge?: Partial<BlockingRule> }) {
+    add_block({ merge, ip, expire, comment }: BlockingRule & { merge?: Partial<BlockingRule> }) {
         apiAssertTypes({
             string: { ip },
             string_undefined: { comment, expire },
@@ -195,6 +195,7 @@ export const adminApis = {
 
 } satisfies ApiHandlers
 
+// wrap every admin API so individual handlers cannot skip access control
 for (const [k, was] of typedEntries(adminApis))
     (adminApis[k] as any) = ((params, ctx) => {
         if (ctxAdminAccess(ctx))

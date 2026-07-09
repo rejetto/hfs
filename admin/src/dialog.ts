@@ -78,6 +78,7 @@ const type2ico = {
     info: Info,
     success: Check,
 }
+// if msg is a string, newline will be reflected in the formatting
 export function alertDialog(msg: ReactElement | string | Error, options?: AlertType | ({ type?:AlertType, icon?: ReactElement } & Partial<DialogOptions>)) {
     const opt = typeof options === 'string' ? { type: options } : (options ?? {})
     let { type='info', ...rest } = opt
