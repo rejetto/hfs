@@ -9,7 +9,7 @@ import {
     closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG, md,
     useRequestRender, replace, restartAnimation, prefix, isIpLan, HIDE_IN_TESTS
 } from './misc'
-import { Flex, LinkBtn, Btn, Country, wikiLink } from './mui'
+import { Flex, LinkBtn, Btn, Country, wikiLink, NetmaskField } from './mui'
 import { alertDialog, confirmDialog, formDialog, promptDialog, toast, waitDialog } from './dialog'
 import { BoolField, Form, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
 import { suggestMakingCert } from './OptionsPage'
@@ -124,8 +124,9 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                 [CFG.geo_allow]: null | boolean
                 [CFG.geo_list]: string[]
                 [CFG.geo_allow_unknown]: boolean
+                [CFG.geo_ignore_net]: string
             }>, {
-                keys: [ CFG.geo_enable, CFG.geo_allow, CFG.geo_list, CFG.geo_allow_unknown ],
+                keys: [ CFG.geo_enable, CFG.geo_allow, CFG.geo_list, CFG.geo_allow_unknown, CFG.geo_ignore_net ],
                 form: values => ({ fields: [
                     { k: CFG.geo_enable, comp: BoolField, label: "Enable", helperText: md("Necessary database will be downloaded every month (2MB). Service is made possible thanks to [IP2Location](https://www.ip2location.com).") },
                     ...!values?.[CFG.geo_enable] ? [] : [
@@ -152,6 +153,15 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                             label: "When country cannot be determined",
                             helperText: "Local IPs are ignored",
                             options: { Allow: true, Block: false },
+                            sm: 6,
+                        },
+                        {
+                            k: CFG.geo_ignore_net,
+                            comp: NetmaskField,
+                            label: "Ignore IP addresses",
+                            placeholder: "none",
+                            helperText: "Bypass geo-filtering",
+                            sm: 6,
                         },
                     ]
                 ] }),

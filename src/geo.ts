@@ -1,5 +1,5 @@
 import { defineConfig } from './config'
-import { CFG, DAY, httpStream, isIpLan, isLocalHost, statWithTimeout, unzip } from './misc'
+import { CFG, DAY, httpStream, isIpLan, isLocalHost, makeNetMatcher, statWithTimeout, unzip } from './misc'
 import { rename } from 'node:fs/promises'
 import { IP2Location } from 'ip2location-nodejs'
 import _ from 'lodash'
@@ -11,6 +11,7 @@ const enabled = defineConfig(CFG.geo_enable, false)
 const allow = defineConfig<boolean | null>(CFG.geo_allow, null)
 const list = defineConfig(CFG.geo_list, [] as string[])
 const allowUnknown = defineConfig(CFG.geo_allow_unknown, false)
+const ignoreNet = defineConfig(CFG.geo_ignore_net, '', v => makeNetMatcher(v))
 let filesCheck = Promise.resolve()
 enabled.sub(() => {
     filesCheck = checkFiles().catch((e: any) =>
@@ -22,7 +23,7 @@ setInterval(checkFiles, DAY) // keep updated at run-time
 export const ip2country = _.memoize((ip: string) => ip2location.getCountryShortAsync(ip).then(v => v === '-' ? '' : v, () => ''))
 
 export const geoFilter: Middleware = async (ctx, next) => {
-    if (enabled.get() && !isLocalHost(ctx) && !isIpLan(ctx.ip)) {
+    if (enabled.get() && !isLocalHost(ctx) && !isIpLan(ctx.ip) && !ignoreNet.compiled()(ctx.ip)) {
         if (!isOpen()) // keep startup independent of the geo db download, but don't classify external requests before the db had a chance to load
             await filesCheck
         const { connection }  = ctx.state
