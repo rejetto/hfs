@@ -124,17 +124,19 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
             if (wasRunning)
                 await stopPlugin(folder) // stop old
             // move data, and consider late release of the resource, up to a few seconds
-            await retry(() => rename(join(installPath, STORAGE_FOLDER), join(tempInstallPath, STORAGE_FOLDER))
-                .then(() => 1, e => e.code === 'ENOENT'))
+            await retry(() => rename(join(installPath, STORAGE_FOLDER), join(tempInstallPath, STORAGE_FOLDER)).catch(e => {
+                if (e.code !== 'ENOENT')
+                    throw e
+            }))
             // delete old folder (if any), but it may fail in the presence of .node files, so we rename it first as a precaution (clearing require.cache doesn't help). Especially on Windows, it may be impossible to delete dll files until our process is terminated (in which case, retrying is useless).
             const deleteMe = installPath + DELETE_ME_SUFFIX
-            await retry(() => rename(installPath, deleteMe).then(() => 1, (e: any) => {
-                if (e.code === 'ENOENT') return 1 // nothing to do
-                console.warn("Error renaming old plugin folder:", String(e))
+            await retry(() => rename(installPath, deleteMe).catch(e => {
+                if (e.code !== 'ENOENT')
+                    throw e
             }))
-            await retry(() => rm(deleteMe, { recursive: true, force: true /*ignore ENOENT*/ }).then(() => 1, e => {
-                console.warn("Error deleting old plugin folder:", String(e))
-            }))
+            // a disabled leftover cannot block replacement and will be cleaned at startup
+            await retry(() => rm(deleteMe, { recursive: true, force: true /*ignore ENOENT*/ }))
+                .catch(e => console.warn("Error deleting old plugin folder:", String(e)))
             // final replace
             await rename(tempInstallPath, installPath)
                 .catch(e => { throw e.code !== 'ENOENT' ? e : new ApiError(HTTP_NOT_ACCEPTABLE, "missing main file") })

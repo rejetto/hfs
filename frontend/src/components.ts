@@ -1,7 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    Callback, getHFS, hfsEvent, hIcon, Html, isPrimitive, onlyTruthy, prefix, noAriaTitle, formatBytes, useStateMounted
+    Callback, getHFS, hfsEvent, hIcon, Html, isPrimitive, onlyTruthy, prefix, noAriaTitle, formatBytes, useStateMounted,
+    callAsPromise,
 } from './misc'
 import {
     ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, forwardRef, Fragment,
@@ -149,7 +150,7 @@ export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, 
             if (!onClick) return
             if (onClickAnimation !== false)
                 setWorking(true)
-            Promise.resolve().then(onClick).finally(() => setWorking(false))
+            callAsPromise(onClick).finally(() => setWorking(false))
                 .then(() => {
                     if (!successFeedback) return
                     setSuccess(true)

@@ -66,7 +66,7 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         }
         if (res instanceof ApiError)
             return send(res.status, res.message)
-        if (res instanceof Error)  // generic error/exception
+        if (res instanceof Error)  // generic error/exception. expose unexpected errors to help diagnose bugs reported by users
             return send(HTTP_BAD_REQUEST, res.stack || res.message || String(res))
         ctx.body = res
 
