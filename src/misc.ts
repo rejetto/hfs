@@ -91,15 +91,15 @@ export function asyncGeneratorToReadable<T>(generator: AsyncIterable<T>) {
     const iterator = generator[Symbol.asyncIterator]()
     return new Readable({
         objectMode: true,
-        destroy() {
-            void iterator.return?.()
+        destroy(error, callback) {
+            Promise.resolve(iterator.return?.()).then(() => callback(error), callback)
         },
         read() {
             iterator.next().then(it => {
                 if (it.done)
                     this.emit('ending')
                 return this.push(it.done ? null : it.value)
-            })
+            }, e => this.destroy(e))
         }
     })
 }

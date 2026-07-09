@@ -167,8 +167,14 @@ export async function update(tagOrUrl: string='') {
     while (existsSync(join(binPath, newBinFile)))
     pluginsWatcher.pause()
     try {
-        await unzip(createReadStream(LOCAL_UPDATE), path =>
-            join(binPath, path === binFile ? newBinFile : path))
+        try {
+            await unzip(createReadStream(LOCAL_UPDATE), path =>
+                join(binPath, path === binFile ? newBinFile : path))
+        }
+        catch(e) {
+            await rename(LOCAL_UPDATE, 'hfs-update-bad.zip') // quarantine failed archives so they don't take precedence over future downloads
+            throw e
+        }
         const newBin = join(binPath, newBinFile)
         if (!existsSync(newBin)) {
             if (url) // the file was downloaded, and the UI would show the "update from local file" button until we remove it

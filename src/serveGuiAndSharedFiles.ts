@@ -10,7 +10,7 @@ import {
 } from './cross-const'
 import { getUploadTempFor, uploadWriter } from './upload'
 import { handleMultipartUpload } from './multipartUpload'
-import { once } from 'events'
+import { pipeline } from 'stream/promises'
 import { Transform } from 'stream'
 import { serveFile, serveFileNode } from './serveFile'
 import { BUILD_TIMESTAMP, DEV, MIME_AUTO, VERSION } from './const'
@@ -193,9 +193,8 @@ async function calcHash(fn: string, limit=Infinity) {
             done()
         }
     })
-    fs.createReadStream(fn, { end: limit - 1 }).pipe(stream)
     console.debug('Hashing', fn)
-    await once(stream, 'finish')
+    await pipeline(fs.createReadStream(fn, { end: limit - 1 }), stream)
     console.debug('Hashed', fn)
     return hash.digest().toString(16)
 }

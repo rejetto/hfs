@@ -79,6 +79,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
     })
 
     ctx.state.originalStream = body
+    body.on('error', e => ts.destroy(e)) // pipe doesn't forward source errors, so make Koa's response stream report them
     ctx.body = body.pipe(ts)
 
     if (downloadTotal !== undefined) // undefined will break SSE
