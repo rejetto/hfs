@@ -1,35 +1,29 @@
 import { Readable } from 'stream'
-import { isAsyncIterable } from './cross'
+import { isAsyncIterable, Promisable } from './cross'
 
 // produces as promises resolve, not sequentially
 export class AsapStream<T> extends Readable {
-    finished = false
-    constructor(private promises: Iterable<Promise<T> | T> | AsyncIterable<Promise<T> | T>) {
+    readingStarted = false
+    constructor(private promises: Iterable<Promisable<T>> | AsyncIterable<Promisable<T>>) {
         super({ objectMode: true })
     }
     _read() {
-        if (this.finished) return
-        this.finished = true
+        if (this.readingStarted) return
+        this.readingStarted = true
+        // local function below has its own this
+        const stream = this
         void (async () => {
             const pending: Promise<T>[] = []
             try {
-                if (isAsyncIterable(this.promises)) {
+                if (!isAsyncIterable(this.promises))
+                    for (const p of this.promises)
+                        track(p)
+                else {
                     const iterator = this.promises[Symbol.asyncIterator]()
                     while (true) {
                         const { value, done } = await iterator.next()
                         if (done) break
-                        const promise = Promise.resolve(value)
-                        pending.push(promise)
-                        promise.then(x => x !== undefined && this.push(x),
-                            e => this.emit('error', e) )
-                    }
-                }
-                else {
-                    for (const p of this.promises) {
-                        const promise = Promise.resolve(p)
-                        pending.push(promise)
-                        promise.then(x => x !== undefined && this.push(x),
-                        e => this.emit('error', e) )
+                        track(value)
                     }
                 }
                 await Promise.allSettled(pending)
@@ -38,6 +32,15 @@ export class AsapStream<T> extends Readable {
             catch (e) {
                 this.emit('error', e)
                 this.push(null)
+            }
+
+            function track(p: Promisable<T>) {
+                const promise = Promise.resolve(p)
+                pending.push(promise)
+                promise.then(x => {
+                    if (x !== undefined)
+                        stream.push(x)
+                }, e => stream.emit('error', e))
             }
         })()
     }

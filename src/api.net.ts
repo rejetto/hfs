@@ -58,7 +58,7 @@ export default {
         if (external)
             await getUpnpClient().createMapping(upnpMappingParam(internal || internalPort, external))
                 .catch(res => {
-                    throw new ApiError(res.errorCode || HTTP_SERVER_ERROR, res.errorCode === 718 ? "Port not available" : res.errorDescription || res.message || "unknown error")
+                    throw new ApiError(HTTP_SERVER_ERROR, res.errorCode === 718 ? "Port not available" : res.errorDescription || res.message || "unknown error")
                 })
         mappedPort.set(external || 0) // remember only successful HFS mappings
         return {}
@@ -84,6 +84,7 @@ export default {
 
     async make_cert({domain, email, altNames}) {
         apiAssertTypes({ string: { domain }, string_undefined: { email }, array_undefined: { altNames } })
+        if (!domain) return new ApiError(HTTP_BAD_REQUEST, 'bad params')
         if (altNames?.some((name: unknown) => typeof name !== 'string'))
             return new ApiError(HTTP_BAD_REQUEST, 'bad altNames')
         await makeCert(domain, email, altNames).catch(e => {

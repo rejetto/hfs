@@ -173,6 +173,8 @@ const apis: ApiHandlers = {
 
     async uninstall_plugin({ id, deleteConfig }) {
         assertPluginId(id)
+        if (!getPluginInfo(id))
+            return new ApiError(HTTP_NOT_FOUND)
         await stopPlugin(id)
         await rm(PLUGINS_PATH + '/' + id,  { recursive: true, force: true })
         if (deleteConfig)

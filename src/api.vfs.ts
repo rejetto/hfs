@@ -73,7 +73,7 @@ export default {
                 return new ApiError(HTTP_BAD_REQUEST, 'bad name')
             // check for siblings with the same name
             const parent = await urlToNodeOriginal(dirname(uri))
-            if (parent?.children?.find(x => getNodeName(x) === props.name))
+            if (parent?.children?.find(x => x !== n && isSameFilenameAs(props.name)(x)))
                 return new ApiError(HTTP_CONFLICT, 'name already present')
         }
         Object.assign(n, sanitizeVfsProps(props))
@@ -211,7 +211,7 @@ export default {
                     } catch (error) {
                         console.debug(error)
                     }
-                    return
+                    return list.close()
                 }
                 const sendPropsAsap = getDiskSpace(path).then(x => x && list.props(x))
                 try {

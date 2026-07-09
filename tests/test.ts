@@ -351,6 +351,13 @@ describe('basics', () => {
         if (status !== 400)
             throw "unexpected status " + status
     })
+    test('upload.post.truncated', async () => {
+        const boundary = '----hfs-boundary'
+        const body = `--${boundary}\\r\\nContent-Disposition: form-data; name="upload"\\r\\n`
+        const { status } = await curlWithStatus(`printf '%b' '${body}' | curl -s -u ${auth} -H "Content-Type: multipart/form-data; boundary=${boundary}" --data-binary @- ${BASE_URL}${UPLOAD_ROOT}`)
+        if (status !== 400)
+            throw "unexpected status " + status
+    })
     test('upload.post.absolute filename', async () => {
         const absPath = resolve(__dirname, `abs-${randomId(6)}.txt`)
         const absForBody = absPath.replace(/\\\\/g, '/')

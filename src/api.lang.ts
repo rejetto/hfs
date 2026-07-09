@@ -48,8 +48,9 @@ const apis: ApiHandlers = {
             code = file2code(code)
             validateCode(code)
             const fn = code2file(code)
-            const s = content = String(content)
-            if (!tryJson(s))
+            const s = String(content)
+            const o = tryJson(s)
+            if (!o?.translate)
                 return new ApiError(HTTP_NOT_ACCEPTABLE, "bad content for file " + fn)
             await writeFile(fn, s, 'utf8')
         }

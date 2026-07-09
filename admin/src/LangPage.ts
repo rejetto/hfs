@@ -68,17 +68,17 @@ export default function LangPage({ setTitleSide }: PageProps) {
     function add() {
         selectFiles(async list => {
             if (!list) return
-            const langs: any = {}
-            for (const f of list)
-                langs[f.name] = await readFile(f)
-            try {
-                await apiCall('add_langs', { langs })
-                reload()
+            const errors = await Promise.all(Array.from(list, f =>
+                readFile(f)
+                    .then(content => apiCall('add_langs', { langs: { [f.name]: content } }))
+                    .then(() => '', e => `${f.name}: ${e.data || e.message || e}`)
+            ))
+            reload()
+            const failed = errors.filter(Boolean)
+            if (failed.length)
+                await alertDialog(failed.join('.\n'), 'error')
+            else
                 toast("Loaded")
-            }
-            catch (e: any) {
-                await alertDialog(e)
-            }
         }, { accept: '.json' })
     }
 }

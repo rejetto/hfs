@@ -93,8 +93,10 @@ export function escapeGlobPath(path: string) {
 export async function unzip(stream: Readable, cb: (path: string) => Promisable<false | string>) {
     const extracted = new Map<string, string>()
     let chain: Promise<any> = Promise.resolve()
+    const parser = unzipper.Parse()
+    stream.once('error', e => parser.destroy(e)) // pipe doesn't forward source errors, so make the parser reject and release its resources
     return new Promise((resolve, reject) =>
-        stream.pipe(unzipper.Parse())
+        stream.pipe(parser)
             .on('close', () => chain.then(resolve, reject))
             .on('error', reject)
             .on('entry', (entry: any) =>

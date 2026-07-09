@@ -22,8 +22,7 @@ export class BetterEventEmitter {
             this.emit(e + LISTENERS_SUFFIX, cbs, listener)
         }
         if (callNow)
-            try { listener() }
-            catch {}
+            Promise.resolve().then(listener).catch(console.error)
         return () => {
             for (const e of event) {
                 const cbs = this.listeners.get(e)

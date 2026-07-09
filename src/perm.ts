@@ -86,7 +86,9 @@ export async function updateAccount(account: Account, change: Partial<Account> |
         await change?.(account)
     else {
         const u = normalizeUsername(change.username || '')
-        if (u && u !== usernameWas && getAccount(u))
+        if (!u)
+            delete change.username
+        else if (u !== usernameWas && getAccount(u))
             throw "username already exists"
         Object.assign(account, _.mapValues(change, x => x || undefined))
     }

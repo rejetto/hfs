@@ -1,5 +1,5 @@
 import {
-    CFG, DAY, Dict, haveTimeout, HOUR, HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, ipForUrl, MINUTE, repeat, formatDate,
+    CFG, DAY, Dict, haveTimeout, HOUR, HTTP_FAILED_DEPENDENCY, HTTP_OK, ipForUrl, MINUTE, repeat, formatDate,
 } from './misc'
 import { createServer, IncomingMessage, ServerResponse } from 'http'
 import { Middleware } from 'koa'
@@ -111,7 +111,6 @@ async function generateSSLCert(domain: string, email?: string, altNames: string[
 }
 
 export const makeCert = debounceAsync(async (domain: string, email?: string, altNames?: string[]) => {
-    if (!domain) return new ApiError(HTTP_BAD_REQUEST, 'bad params')
     const res = await generateSSLCert(domain, email, altNames).catch(e => {
         throw e.message?.includes('Timeout') ? Error("ensure your router is forwarding port 80 correctly")
             : e.message?.includes('not match this challenge') ? Error("a different server is responding on port 80 of your domain(s)")
