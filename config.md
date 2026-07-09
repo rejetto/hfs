@@ -128,6 +128,7 @@ Some properties use a `Who` descriptor, with one of these values:
 - `max_downloads_per_ip` limit the number of concurrent downloads for the same IP address. Default is unlimited.
 - `max_downloads_per_account` limit the number of concurrent downloads for each account. This is enforced only for connections that are logged in and will override other similar settings. Default is unlimited.
 - `geo_enable` when enabled, country is determined for each request/connection. The necessary database will be downloaded every month (2MB).
+- `geo_ignore_net` IP mask ignored by Geo IP filtering. Default is none.
 - `geo_allow` set true if `geo_list` should be treated as whitelist, set false for blacklist. Default will ignore the list.
 - `geo_list` list of country codes to be used as whitelist or blacklist. Default is none.
 - `geo_allow_unknown` set false to disconnect connections for which country cannot be determined. Works only if `geo_allow` is set. Default is true. 
