@@ -20,7 +20,7 @@ export default {
         cert.validity.notAfter = new Date()
         cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1)
 
-        const attrs = Object.entries(attributes || {}).map(x => ({ name: x[0], value: x[1] }))
+        const attrs = Object.entries(attributes ?? {}).map(x => ({ name: x[0], value: x[1] }))
         cert.setSubject(attrs)
         cert.setIssuer(attrs)
         cert.sign(keys.privateKey)

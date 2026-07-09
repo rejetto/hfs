@@ -11,25 +11,28 @@ import { getCurrentUsername, invalidateSessionBefore } from './auth'
 import { apiAssertTypes, objFromKeys, onlyTruthy, with_ } from './misc'
 import { pickProps } from './api.vfs'
 
-function prepareAccount(ac: Account | undefined) {
-    return ac && {
+function serializeAccount(ac: Account | undefined) {
+    if (!ac) return
+    const hasLogin = accountHasLoginMethod(ac)
+    return {
         ..._.omit(ac, ['password','hashed_password','srp']),
         username: ac.username, // omit won't copy it because it's a hidden prop
         hasPassword: accountHasPassword(ac),
-        isGroup: !accountHasLoginMethod(ac),
+        isGroup: !hasLogin,
         adminActualAccess: accountCanLoginAdmin(ac),
-        canLogin: accountHasLoginMethod(ac) ? accountCanLogin(ac) : undefined,
+        canLogin: hasLogin ? accountCanLogin(ac) : undefined,
         canChangePassword: accountCanChangePassword(ac),
         invalidated: invalidateSessionBefore.get(ac.username),
         directMembers: Object.values(accounts.get()).filter(a => a.belongs?.includes(ac.username)).map(x => x.username),
         members: with_(Object.values(accounts.get()), accounts => {
             const ret: string[] = []
+            // breadth-first traversal follows indirect memberships and excludes already collected accounts
             let news = [ac.username]
             while (news.length) {
                 news = accounts.filter(a => !ret.includes(a.username) && a.belongs?.some(x => news.includes(x))).map(x => x.username)
                 ret.push(...news)
             }
-            return _.uniq(ret).sort()
+            return ret.sort()
         })
     }
 }
@@ -45,12 +48,12 @@ export default  {
 
     get_account({ username }, ctx) {
         apiAssertTypes({ string_undefined: { username } })
-        return prepareAccount(getAccount(username || getCurrentUsername(ctx)))
+        return serializeAccount(getAccount(username || getCurrentUsername(ctx)))
             || new ApiError(HTTP_NOT_FOUND)
     },
 
     get_accounts() {
-        return { list: onlyTruthy(Object.values(accounts.get()).map(prepareAccount)) }
+        return { list: onlyTruthy(Object.values(accounts.get()).map(serializeAccount)) }
     },
 
     get_admins() {

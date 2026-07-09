@@ -67,10 +67,7 @@ export async function get_dynamic_dns_error() {
             if (last)
                 this.push(last) // start by sending current state
             unsub = events.on('dynamicDnsError', x => this.push(x)) // send updates, if any. This simplified way to manage the data stream is acceptable for this case of extremely low throughput
-        },
-        async destroy() {
-            unsub()
-            this.push(null)
+            this.once('close', unsub)
         }
     })
 }

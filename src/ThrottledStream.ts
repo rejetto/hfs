@@ -6,10 +6,10 @@ import { TokenBucket } from 'limiter'
 // throttled stream
 export class ThrottledStream extends Transform {
 
-    private sent: number = 0
-    private lastSpeed: number = 0
+    private sent = 0
+    private lastSpeed = 0
     private lastSpeedTime = Date.now()
-    private totalSent: number = 0 // total sent over connection, since connection can be re-used for multiple requests
+    private totalSent = 0 // total sent over connection, since connection can be re-used for multiple requests
 
     constructor(private group: ThrottleGroup, copyStats?: ThrottledStream) {
         super()
@@ -20,7 +20,7 @@ export class ThrottledStream extends Transform {
         this.lastSpeed = copyStats.lastSpeed
     }
 
-    async _transform(chunk: any, encoding: BufferEncoding, done: TransformCallback) {
+    async _transform(chunk: any, _encoding: BufferEncoding, done: TransformCallback) {
         let pos = 0
         while (1) {
             let n = this.group.suggestChunkSize()
@@ -85,11 +85,11 @@ export class ThrottleGroup {
 
     suggestChunkSize() {
         let b: TokenBucket | undefined = this.bucket
-        b.parentBucket = this.parent?.bucket
+        b.parentBucket = this.parent?.bucket // updateLimit replaces buckets, so reconnect this bucket to the latest parent
         let min = b.bucketSize
         while (b = b.parentBucket)
             min = Math.min(min, b.bucketSize)
-        return min / 10
+        return min / 10 // tenth-second chunks keep pacing responsive within the smallest bucket
     }
 
     consume(n: number) {

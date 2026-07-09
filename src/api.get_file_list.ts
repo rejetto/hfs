@@ -6,7 +6,7 @@ import {
 } from './vfs'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { mapPlugins } from './plugins'
-import { apiAssertTypes, asyncGeneratorToArray, pattern2filter, WHO_NO_ONE } from './misc'
+import { apiAssertTypes, asyncGeneratorToArray, callAsPromise, pattern2filter, WHO_NO_ONE } from './misc'
 import { HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
 import { getCommentFor, areCommentsEnabled } from './comments'
@@ -17,7 +17,19 @@ import { dontOverwriteUploading } from './upload'
 import { SendListReadable } from './SendList'
 import events from './events'
 
-export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string, target?: string, icon?: string | true, order?: number }
+export interface DirEntry { // common properties are single letter to reduce the payload size
+    n: string, // name/path
+    s?: number, // size
+    m?: Date, // last-modification-time
+    c?: Date, // creation-time
+    p?: string, // permissions
+    comment?: string,
+    web?: boolean,
+    url?: string,
+    target?: string,
+    icon?: string | true,
+    order?: number
+}
 
 export function paramsToFilter({ search, wild, searchComment, fileMask }: any) {
     search = String(search || '').toLocaleLowerCase()
@@ -60,7 +72,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     updateConnectionForCtx(ctx)
     if (!list)
         return { ...props, list: await asyncGeneratorToArray(produceEntries()) }
-    setTimeout(async () => {
+    setTimeout(async () => { // defer production until the stream has been returned and attached to the response
         list.props(props)
         for await (const entry of produceEntries())
             list.add(entry)
@@ -79,7 +91,8 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
         for await (const sub of walker) {
             let name = getNodeName(sub)
             name = basename(name) || name // on Windows, basename('C:') === ''
-            if (filterName && !filterName(name) || fileMask && !nodeIsFolder(sub) && !fileMask(name)
+            if (filterName && !filterName(name)
+            || fileMask && !nodeIsFolder(sub) && !fileMask(name)
             || filterComment && !filterComment(await getCommentFor(sub.source) || ''))
                 continue
             const entry = await nodeToDirEntry(ctx, sub)
@@ -88,7 +101,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
             const cbParams = { entry, ctx, listUri: uri, node: sub }
             try {
                 const res = await Promise.all(onDirEntryHandlers.map(({ id, cb }) =>
-                    Promise.resolve().then(() => cb(cbParams)).catch(error => { throw { id, error } })))
+                    callAsPromise(() => cb(cbParams)).catch(error => { throw { id, error } })))
                 if (res.some(x => x === false))
                     continue
             }
@@ -153,7 +166,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
             }
         }
         catch {
-            return null
+            return null // ignore files with problems
         }
 
         function filesInsideCould(n: VfsNode=node): boolean | undefined {
