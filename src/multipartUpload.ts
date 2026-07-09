@@ -1,6 +1,5 @@
 import Koa from 'koa'
 import Busboy from 'busboy'
-import { once } from 'events'
 import { hasPermission, urlToNode, VfsNodeWithPath } from './vfs'
 import { dirname } from 'path'
 import { uploadWriter } from './upload'
@@ -41,7 +40,7 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithP
         ctx.status = HTTP_BAD_REQUEST
     })
     ctx.req.pipe(bb)
-    await once(bb, 'finish')
+    await new Promise(res => onFirstEvent(bb, ['finish','error'], res)) // parser errors are handled above as 400 and must complete the request without rejecting
     await Promise.all(fileJobs)
     if (!ctx.state.uploads?.length) {
         if (!errors.length)

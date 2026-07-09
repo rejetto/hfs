@@ -38,12 +38,12 @@ export const trackIpsMw: Middleware = async (ctx, next) => {
         if (tracking) {
             // keep the counter update here so failures from downstream middlewares are counted with the final status
             const was = ips.getSync(ctx.ip)
-            ips.put(ctx.ip, {
+            void ips.put(ctx.ip, {
                 ts,
                 country,
                 served: (was?.served || 0) + (failed || ctx.status >= 400 ? 0 : 1),
                 failed: (was?.failed || 0) + (failed || ctx.status >= 400 ? 1 : 0),
-            })
+            }).catch(e => console.error("Couldn't track IP", ctx.ip, String(e)))
         }
     }
 }

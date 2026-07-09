@@ -113,7 +113,7 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
         if (options.timeout) // node only emits the timeout event, so destroy the request to unblock callers waiting for the body
             req.setTimeout(options.timeout, () => req.destroy(Object.assign(Error('timeout'), { code: 'ETIMEDOUT' })))
         if (body && body instanceof Readable)
-            body.pipe(req).on('end', () => req.end())
+            body.on('error', e => req.destroy(e)).pipe(req)
         else
             req.end(body)
 
