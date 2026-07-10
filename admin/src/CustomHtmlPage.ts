@@ -48,7 +48,7 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
             md("Add HTML code to some parts of the Front-end. It's saved to file `custom.html`, that you can edit directly with your editor of choice. "),
             wikiLink('customization', "More help")
         ),
-        h(Alert, { severity: 'info' }, md("To customize icons "), wikiLink('customization#icons', "read documentation") ),
+        h(Alert, { severity: 'info' }, "To customize icons ", wikiLink('customization#icons', "read documentation") ),
     ), []))
     return h(Fragment, {},
         h(Box, { sx: { display: 'flex', alignItems: 'center', gap: 1, mb: 1 } },

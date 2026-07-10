@@ -90,7 +90,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                             _.uniq(_.sortBy(value, 'version').filter(x => _.isString(x.message) && x.message && x.version > row.installedVersion))
                                 .map((x, i) => h(TableRow, { key: i },
                                     h(TableCell, { sx: { whiteSpace: 'pre', verticalAlign: 'top' } }, `• ${x.version}: `),
-                                    h(TableCell, {}, md(x.message))
+                                    h(TableCell, {}, md(x.message, { html: false }))
                                 ))
                         )
                     )
