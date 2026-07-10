@@ -330,7 +330,7 @@ export function getOrSet<T>(o: Record<string,T> | Map<string, T>, k:string, crea
         : (o[k] = creator())
 }
 
-// 10 chars is 51+bits, 8 is 41+bits
+// non-cryptographic; 10 chars is 51+bits, 8 is 41+bits
 export function randomId(len = 10): string {
     if (len > 10)
         return randomId(10) + randomId(len - 10)

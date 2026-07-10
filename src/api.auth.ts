@@ -15,6 +15,7 @@ import { clearTextLogin, getCurrentUsername, setLoggedIn, srpServerStep1 } from 
 import { defineConfig } from './config'
 import events from './events'
 import { apiAssertTypes } from './misc'
+import { randomUUID } from 'node:crypto'
 
 const ongoingLogins:Record<string,SRPServerSessionStep1> = {} // store data that doesn't fit session object
 const keepSessionAlive = defineConfig('keep_session_alive', true)
@@ -75,7 +76,8 @@ export const authApis = {
             return new ApiError(HTTP_UNAUTHORIZED)
         try {
             const { srpServer, ...rest } = await srpServerStep1(account)
-            const sid = Math.random()
+            // keep the public handshake identifier independent of predictable application PRNG state
+            const sid = randomUUID()
             ongoingLogins[sid] = srpServer
             setTimeout(()=> delete ongoingLogins[sid], 60_000)
             ctx.session.loggingIn = { username, sid } // temporarily store until process is complete
