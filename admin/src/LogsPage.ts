@@ -308,7 +308,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 width: 110,
                 hideUnder: 'sm',
                 cellClassName: 'wrap',
-                renderCell: ({ value }) => value && md(value),
+                renderCell: ({ value }) => value && h(Box, { sx: { whiteSpace: 'pre-wrap' } }, value),
             },
             {
                 field: 'uri',
