@@ -1386,9 +1386,12 @@ describe('admin', () => {
         await withPluginConfig('antibrute', antibruteCfg, async () => {
             const user = `missing-srp-${randomId(6)}`
             const first = await reqLoginSrp1(user)
+            if (first.status !== 200) throw "unknown srp login was rejected at step 1"
+            const repeated = await reqLoginSrp1(user)
+            if (first.salt !== repeated.salt) throw "unknown srp salt was not stable"
+            await login(user).then(() => { throw "unknown srp login succeeded" }, () => {})
             const second = await reqLoginSrp1(user)
-            if (first.status !== 401) throw "first unknown srp login was not rejected"
-            if (second.status !== 401) throw "second unknown srp login was not rejected"
+            if (second.status !== 200) throw "unknown srp login was rejected at step 1"
             if (second.delay < 500) throw `missing srp delay escalation: ${second.delay}`
         })
     })
@@ -1744,11 +1747,12 @@ async function reqLoginSrp1(username: string) {
         headers: { 'content-type': 'application/json', 'x-hfs-anti-csrf': '1' },
         body: JSON.stringify({ username }),
     })
-    await stream2string(response).catch(() => '')
+    const data = tryJson(await stream2string(response).catch(() => ''))
     const rawDelay = response.headers?.['x-anti-brute-force']
     const delayValue = Array.isArray(rawDelay) ? rawDelay[0] : rawDelay
     return {
         status: response.statusCode,
         delay: Number(delayValue) || 0,
+        salt: data?.salt,
     }
 }

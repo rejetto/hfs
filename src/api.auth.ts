@@ -1,7 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    accountCanLogin, accountIsDisabled, accountCanChangePassword, expandUsername, getAccount, updateAccount, saveSrpInfo
+    Account, accountCanLogin, accountIsDisabled, accountCanChangePassword, expandUsername, getAccount, normalizeUsername,
+    updateAccount, saveSrpInfo
 } from './perm'
 import { ApiError, ApiHandler, ApiHandlers } from './apiMiddleware'
 import { SRPServerSessionStep1 } from 'tssrp6a'
@@ -15,10 +16,11 @@ import { clearTextLogin, getCurrentUsername, setLoggedIn, srpServerStep1 } from 
 import { defineConfig } from './config'
 import events from './events'
 import { apiAssertTypes } from './misc'
-import { randomUUID } from 'node:crypto'
+import { createHmac, randomBytes, randomUUID } from 'node:crypto'
 
 const ongoingLogins:Record<string,SRPServerSessionStep1> = {} // store data that doesn't fit session object
 const keepSessionAlive = defineConfig('keep_session_alive', true)
+const fakeSrpSecret = randomBytes(32)
 
 const refresh_session: ApiHandler = async ({}, ctx) => {
     const username = getCurrentUsername(ctx)
@@ -67,15 +69,15 @@ export const authApis = {
         if (account?.plugin?.auth) // tell client to do clear-text login, before firing attemptingLogin, before triggering anti-brute
             return new ApiError(HTTP_METHOD_NOT_ALLOWED)
         if ((await events.emitAsync('attemptingLogin', { ctx, username }))?.isDefaultPrevented()) return
-        if (!account || !accountCanLogin(account)) { // TODO simulate fake account to prevent knowing valid usernames
+        if (account && !accountCanLogin(account)) {
             ctx.logExtra({ u: username })
             ctx.state.dontLog = false // log even if log_api is false
-            return unauthorized(account && accountIsDisabled(account) ? 'Account disabled' : undefined)
+            return unauthorized(accountIsDisabled(account) ? 'Account disabled' : undefined)
         }
-        if (failAllowNet(ctx, account))
+        if (account && failAllowNet(ctx, account))
             return unauthorized()
-        try {
-            const { srpServer, ...rest } = await srpServerStep1(account)
+        try { // unknown users complete step 1 so only a full failed login can reveal and penalize the attempt
+            const { srpServer, ...rest } = await srpServerStep1(account || fakeSrpAccount(username))
             // keep the public handshake identifier independent of predictable application PRNG state
             const sid = randomUUID()
             ongoingLogins[sid] = srpServer
@@ -90,6 +92,19 @@ export const authApis = {
         function unauthorized(message?: string) {
             events.emit('failedLogin', { ctx, username })
             return new ApiError(HTTP_UNAUTHORIZED, message)
+        }
+
+        function fakeSrpAccount(username: string): Account {
+            username = normalizeUsername(username)
+            return {
+                username,
+                // process-secret derivation keeps fake credentials stable per username without storing attacker-controlled names
+                srp: `${derive('salt')}|${derive('verifier')}`,
+            }
+
+            function derive(field: string) {
+                return BigInt('0x' + createHmac('sha256', fakeSrpSecret).update(field).update(username).digest('hex')).toString()
+            }
         }
     },
 
