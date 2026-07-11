@@ -48,6 +48,7 @@ div.MuiTreeItem-content {
   line-height: 1.2em;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
 }
 .MuiDataGrid-filterForm { flex-wrap: wrap; row-gap: 1em; justify-content: flex-end; } // fit on mobile
 
