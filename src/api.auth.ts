@@ -70,10 +70,10 @@ export const authApis = {
         if (!account || !accountCanLogin(account)) { // TODO simulate fake account to prevent knowing valid usernames
             ctx.logExtra({ u: username })
             ctx.state.dontLog = false // log even if log_api is false
-            return new ApiError(HTTP_UNAUTHORIZED, account && accountIsDisabled(account) ? 'Account disabled' : undefined)
+            return unauthorized(account && accountIsDisabled(account) ? 'Account disabled' : undefined)
         }
         if (failAllowNet(ctx, account))
-            return new ApiError(HTTP_UNAUTHORIZED)
+            return unauthorized()
         try {
             const { srpServer, ...rest } = await srpServerStep1(account)
             // keep the public handshake identifier independent of predictable application PRNG state
@@ -85,6 +85,11 @@ export const authApis = {
         }
         catch (code: any) {
             return new ApiError(code)
+        }
+
+        function unauthorized(message?: string) {
+            events.emit('failedLogin', { ctx, username })
+            return new ApiError(HTTP_UNAUTHORIZED, message)
         }
     },
 

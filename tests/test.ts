@@ -1382,6 +1382,26 @@ describe('admin', () => {
             if (second.delay < 500) throw `missing delay escalation: ${second.delay}`
         })
     })
+    test('antibrute.failed loginSrp1 escalates delay', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            const user = `missing-srp-${randomId(6)}`
+            const first = await reqLoginSrp1(user)
+            const second = await reqLoginSrp1(user)
+            if (first.status !== 401) throw "first unknown srp login was not rejected"
+            if (second.status !== 401) throw "second unknown srp login was not rejected"
+            if (second.delay < 500) throw `missing srp delay escalation: ${second.delay}`
+        })
+    })
+    test('antibrute.valid loginSrp1 does not count as failed login', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            const first = await reqLoginSrp1(username)
+            const second = await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
+            if (first.status !== 200) throw "valid srp step1 was rejected"
+            if (first.delay !== 0) throw `valid srp step1 was delayed: ${first.delay}`
+            if (second.status !== 401) throw "wrong login was not rejected"
+            if (second.delay !== 0) throw `valid srp step1 was counted as failed login: ${second.delay}`
+        })
+    })
     test('antibrute.successful login resets penalty', async () => {
         await withPluginConfig('antibrute', antibruteCfg, async () => {
             await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
@@ -1705,6 +1725,24 @@ async function reqBasicAuth(url: string, credentials: string) {
         httpThrow: false,
         jar: {},
         headers: { authorization },
+    })
+    await stream2string(response).catch(() => '')
+    const rawDelay = response.headers?.['x-anti-brute-force']
+    const delayValue = Array.isArray(rawDelay) ? rawDelay[0] : rawDelay
+    return {
+        status: response.statusCode,
+        delay: Number(delayValue) || 0,
+    }
+}
+
+async function reqLoginSrp1(username: string) {
+    const response = await httpStream(defaultBaseUrl + API + 'loginSrp1', {
+        path: API + 'loginSrp1',
+        method: 'POST',
+        httpThrow: false,
+        jar: {},
+        headers: { 'content-type': 'application/json', 'x-hfs-anti-csrf': '1' },
+        body: JSON.stringify({ username }),
     })
     await stream2string(response).catch(() => '')
     const rawDelay = response.headers?.['x-anti-brute-force']
