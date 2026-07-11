@@ -177,6 +177,10 @@ describe('basics', () => {
     test('missing perm', reqList('/for-admins/', 401))
     test('missing perm.file', req('/for-admins/alfa.txt', 401))
     test('missing anti-csrf', reqApi('rename', { uri: '/f1', dest: 'x' }, 418, { headers: {} })) // overriding anti-csrf
+    test('missing anti-csrf.get mutation', req(API + 'add_account?username=csrf&password=x&admin=true', 418, {
+        headers: { 'user-agent': 'Mozilla/5.0' },
+        jar: {},
+    }))
     test('malformed body', reqApi('rename', { uri: '/f1', dest: 'x' }, { status: 400 }, {
         headers: { 'x-hfs-anti-csrf': '1', 'content-type': 'application/json' },
         body: '{'
