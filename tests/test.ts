@@ -166,6 +166,19 @@ describe('basics', () => {
     test('name encoding', req(FUNNY_NAME_ENCODED, 200))
     test('name encoding list', reqList('/', { inList: [FUNNY_NAME] }))
     test('name encoding search', reqList('/', { inList: [FUNNY_NAME] }, { search: FUNNY_NAME }))
+    test('basic listing escapes', async () => {
+        const name = '<img src=x onerror=alert(1)>.png'
+        const path = resolve(__dirname, name)
+        await writeFile(path, '')
+        try {
+            await req('/tests/?get=basic', { status: 200, cb: data => !String(data).includes(name) }, {
+                headers: { 'user-agent': 'Mozilla/5.0' },
+            })()
+        }
+        finally {
+            await rm(path, { force: true })
+        }
+    })
     test('folder list preserves encoded colon in prepend', req('/tests/C%3A/?get=list&folders=*', data => {
         if (!String(data).includes('/tests/C%3A/gpl.png'))
             throw Error('missing correctly encoded path in list: ' + data)

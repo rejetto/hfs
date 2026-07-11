@@ -3,7 +3,7 @@ import { BASIC_AUTHENTICATE_HEADER, HTTP_UNAUTHORIZED } from './cross-const'
 import Koa from 'koa'
 import { defineConfig } from './config'
 import { getNodeName, getDefaultFile, nodeIsFolder, VfsNode, walkNode } from './vfs'
-import { asyncGeneratorToReadable, Dict, filterMapGenerator, pathEncode } from './misc'
+import { asyncGeneratorToReadable, Dict, escapeHTML, filterMapGenerator, pathEncode } from './misc'
 import _ from 'lodash'
 import { title } from './adminApis'
 import { getSection } from './customHtml'
@@ -53,7 +53,7 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
     return true
 
     function a(href: string, label: string) {
-        return `<a href='${href}'>${label}</a>`
+        return `<a href='${href}'>${escapeHTML(label)}</a>`
     }
 
 }
