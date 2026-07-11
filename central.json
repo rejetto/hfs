@@ -50,10 +50,7 @@
         }
     ],
     "byVersion": {
-        "0.56.0-rc8": {
-            "alert": "This version is buggy. Click check-for-updates and install rc7."
-        },
-        "^3\\.(0\\.[2-7]|1\\.0-(alpha\\d+|beta\\d+|rc7))$": {
+        "^(0\\..*|3\\.[01]\\..*|3\\.2\\.0.*)$": {
             "alert": "This version is dangerous – please update"
         }
     }
