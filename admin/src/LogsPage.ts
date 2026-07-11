@@ -368,7 +368,7 @@ const CLIENT_ICONS = {
     Chrome: UW + 'e/e1/Google_Chrome_icon_%28February_2022%29.svg',
     Chromium: UW + 'f/fe/Chromium_Material_Icon.svg',
     Firefox: UW + 'a/a0/Firefox_logo%2C_2019.svg',
-    Safari: UW + '5/52/Safari_browser_logo.svg',
+    Safari: UW + '../en/7/71/Safari_Liquid_Glass_icon.png',
     Edge: UW + '9/98/Microsoft_Edge_logo_%282019%29.svg',
     Opera: UW + '4/49/Opera_2015_icon.svg',
     Finder: UW + 'thumb/b/b9/Finder_Icon_macOS_Tahoe.png/250px-Finder_Icon_macOS_Tahoe.png',
