@@ -142,6 +142,19 @@ describe('basics', () => {
     test('traversal.backslash', req('/f1/page/..%5c..%5cREADME.md', 404))
     test('traversal.to-admin', req('/f1/page/%2e%2e/%2e%2e/for-admins/alfa.txt', 404))
     test('traversal.mixed-dots', req('/f1/page/.%2e/%2e./README.md', 404))
+    test('traversal.lang', async () => {
+        const pathNoExt = 'tmp-secret'
+        const fullPath = resolve(__dirname, pathNoExt + '.json')
+        await mkdir(dirname(fullPath), { recursive: true })
+        try {
+            const marker = 'TRAVERSAL_READ'
+            await writeFile(fullPath, JSON.stringify({ translate: { 'Not found': marker } })) // translating Not found exposes the read through the fallback 404 page when GUI assets are absent
+            await req('/?lang=x/../../' + pathNoExt, data => !String(data).includes(marker), {
+                headers: { 'user-agent': 'Mozilla/5.0' },
+            })()
+        }
+        finally { await rmAny(fullPath) }
+    })
     test('traversal.overlong-utf8', req('/f1/page/%c0%ae%c0%ae/%c0%ae%c0%ae/README.md', 404))
     test('bad url encoding', req('/f1/%E0%A4%A', 404))
     test('not-found.default page', req('/missing-default-404', /found<\/h1>/))

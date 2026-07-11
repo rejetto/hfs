@@ -6,7 +6,7 @@ import glob from 'fast-glob'
 import { readFile, rm, writeFile } from 'fs/promises'
 import { HTTP_BAD_REQUEST, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './const'
 import { apiAssertTypes, tryJson } from './misc'
-import { code2file, file2code } from './lang'
+import { code2file, file2code, normalizeLangCode } from './lang'
 import EMBEDDED_TRANSLATIONS from './langs/embedded'
 import { SendListReadable } from './SendList'
 
@@ -61,6 +61,6 @@ const apis: ApiHandlers = {
 export default apis
 
 function validateCode(code: string) {
-    if (!/^(\w\w)(-\w\w)*$/.test(code))
+    if (normalizeLangCode(code) !== code.toLowerCase())
         throw new ApiError(HTTP_BAD_REQUEST, 'bad code/filename')
 }

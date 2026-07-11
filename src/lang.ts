@@ -13,6 +13,11 @@ import _ from 'lodash'
 const PREFIX = 'hfs-lang-'
 const SUFFIX = '.json'
 
+export function normalizeLangCode(code: string) {
+    code = code.toLowerCase().split(';', 1)[0]!.trim()
+    return /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/.test(code) ? code : ''
+}
+
 export function code2file(code: string) {
     return PREFIX + code.toLowerCase() + SUFFIX
 }
@@ -32,7 +37,7 @@ export async function getLangData(ctxOrLangCsv: Koa.Context | string) {
     }
     const csv = ctxOrLangCsv.toLowerCase()
     return cache.try(csv, async () => {
-        const langs = csv.split(',')
+        const langs = csv.split(',').map(normalizeLangCode).filter(Boolean)
         const ret: Dict = {}
         let i = 0
         while (i < langs.length) {
@@ -77,4 +82,3 @@ defineConfig(CFG.force_lang, '', v => {
     })
     undo = res.unwatch
 })
-
