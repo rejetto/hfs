@@ -25,6 +25,7 @@ configReady.then(async (startedWithoutConfig) => {
     if (!IS_WINDOWS || !startedWithoutConfig) return
     // try to read Windows system setting for proxy
     const out = await reg('query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings')
+        .catch(() => '')
     if (!Number(/ProxyEnable\s+\w+\s+(.+)/.exec(out)?.[1])) return
     const read = /ProxyServer\s+\w+\s+(.+)/.exec(out)?.[1]
     if (!read) return
