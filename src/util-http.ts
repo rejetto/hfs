@@ -33,12 +33,14 @@ export interface XRequestOptions extends https.RequestOptions {
 }
 
 export declare namespace httpStream {
+    let defaultLocalAddress: string | undefined
     let defaultProxy: string | undefined
     let defaultUA: string | undefined
 }
 export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThrow=true, ...options }: XRequestOptions ={}, redirected: string[]=[]) {
     const controller = new AbortController()
     options.signal ??= controller.signal
+    options.localAddress ??= httpStream.defaultLocalAddress
     return Object.assign(new Promise<IncomingMessage>(async (resolve, reject) => {
         proxy ??= httpStream.defaultProxy
         options.headers ??= {}
@@ -123,6 +125,7 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
                 ;(proxyParsed.protocol === 'https:' ? https : http).request({
                     ...proxyParsed,
                     auth: undefined, // void proxyParsed.auth
+                    localAddress: options.localAddress, // the proxy socket is the actual outbound connection when tunneling HTTPS
                     method: 'CONNECT',
                     path,
                     headers: { Host: path, ...proxyAuth }

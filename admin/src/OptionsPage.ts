@@ -162,13 +162,15 @@ export default function OptionsPage() {
                 helperText: "Access admin-panel without entering credentials"
             },
 
-            { k: CFG.proxies, comp: NumberField, xs: 12, sm: 4, md: 4, max: 9, label: "Number of incoming HTTP proxies", placeholder: "none",
+            { k: CFG.proxies, comp: NumberField, xs: 6, md: 3, max: 9, label: "Number of incoming HTTP proxies", placeholder: "none",
                 error: proxyWarning(values, status),
                 helperText: "Necessary to detect users' IP"
             },
-            { k: CFG.outbound_proxy, xs: 12, sm: 5, md: 4, placeholder: "none", helperText: "URL form",
+            { k: CFG.outbound_interface, comp: SelectField, xs: 6, md: 3,
+                label: "Outgoing interface", options: [{ label: "automatic", value: '' }, ...status?.ips?.map(value => ({ value })) || []] },
+            { k: CFG.outbound_proxy, xs: 6, md: 4, placeholder: "none", helperText: "URL form",
                 getError: x => try_(() => x && new URL(x) && '', () => "Invalid URL") },
-            { k: CFG.allowed_referer, comp: AllowedReferer, sm: 3, md: 4, placeholder: "any", label: "Links from other websites",
+            { k: CFG.allowed_referer, comp: AllowedReferer, md: 2, placeholder: "any", label: "Links from other websites",
                 helperText: "In case another website is linking your files" },
 
             { k: CFG.block, label: false, comp: ArrayField, xs: 12, prepend: true, sm: true, autoRowHeight: true,
