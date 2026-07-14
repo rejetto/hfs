@@ -3,6 +3,14 @@ import { httpStream, httpString, parseHttpUrl } from './util-http'
 import { reg } from './util-os'
 import { IS_WINDOWS } from './const'
 import { CFG, prefix } from './cross'
+import { isIP } from 'node:net'
+
+defineConfig(CFG.outbound_interface, '', v => {
+    if (!v || isIP(v))
+        return httpStream.defaultLocalAddress = v || undefined
+    console.warn("Invalid outbound interface IP", v)
+    httpStream.defaultLocalAddress = undefined
+})
 
 const outboundProxy = defineConfig(CFG.outbound_proxy, '', v => {
     httpStream.defaultProxy = undefined

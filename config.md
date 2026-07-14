@@ -137,6 +137,7 @@ Some properties use a `Who` descriptor, with one of these values:
   Multiple URLs are supported, and you can specify one for each line.
 - `outbound_proxy` if you need outgoing http(s) requests to pass through an HTTP proxy. E.g.: `http://user:password@localhost:8888`. Default is none.
   Setting one will trigger a test request to google.com. You can skip this with env HFS_SKIP_PROXY_TEST=1 . 
+- `outbound_interface` IP address to use for outgoing HTTP(S) requests made by HFS. Default is automatic.
 - `auto_basic` automatically detect (based on user-agent) when the basic web interface should be served, to support legacy browsers. Default is true. No UI.
   You can disable it setting it to `false`, or recognize additional user-agents by setting a regular expression. 
 - `file_timeout` number of seconds to wait before giving up when accessing a file. Default is 3. No UI.

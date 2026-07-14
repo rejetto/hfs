@@ -32,7 +32,7 @@ export const CFG = constMap([
     'localhost_admin', 'log', 'log_api', 'log_gui', 'log_host', 'log_rotation', 'log_spam',
     'log_ua', 'mapped_port', 'max_downloads', 'max_downloads_per_account',
     'max_downloads_per_ip', 'max_kbps', 'max_kbps_per_ip', 'menu_at_top', 'mime',
-    'min_available_mb', 'open_browser_at_start', 'outbound_proxy', 'own_upload_delete_hours',
+    'min_available_mb', 'open_browser_at_start', 'outbound_interface', 'outbound_proxy', 'own_upload_delete_hours',
     'page_size', 'plugins_config', 'port', 'private_key', 'proxies', 'roots', 'server_code',
     'session_duration', 'show_hidden_files', 'show_uploader', 'size_1024',
     'smart_unc_folder_detection', 'sort_by', 'sort_numerics', 'split_uploads',
