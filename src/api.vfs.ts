@@ -209,6 +209,7 @@ export default {
                         for (const n of await getDrives())
                             list.add({ n, k: 'd' })
                     } catch (error) {
+                        list.error(String(error))
                         console.debug(error)
                     }
                     return list.close()
