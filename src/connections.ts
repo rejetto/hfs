@@ -96,8 +96,9 @@ export function disconnect(what: Context | Socket | Connection, logMessage='') {
         console.debug("Disconnection:", logMessage, ip)
     ip2country(ip).then(res => {
         const rec = { ip, country: res || undefined, ts: new Date, msg: logMessage || undefined }
-        disconnectionsLog.unshift(rec)
-        disconnectionsLog.length = Math.min(1000, disconnectionsLog.length)
+        disconnectionsLog.push(rec)
+        if (disconnectionsLog.length > 1000)
+            disconnectionsLog.shift()
         events.emit('disconnection', rec)
     })
     return what.destroy()
