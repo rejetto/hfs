@@ -15,9 +15,10 @@ export const block = defineConfig('block', [] as BlockingRule[], rules => {
             rule.expire &&= new Date(rule.expire)
             return !rule.disabled && (rule.expire || now) >= now && makeNetMatcher(rule.ip)
         }))
-    // reapply new block to existing connections
-    for (const { socket, ip } of getConnections())
-        applyBlock(socket, ip)
+    setTimeout(() => { // wait until defineConfig has stored the newly compiled rules, because applyBlock uses isBlocked, that uses block.compiled
+        for (const { socket, ip } of getConnections()) // reapply new block to existing connections
+            applyBlock(socket, ip)
+    })
     return ret
 })
 
