@@ -133,7 +133,6 @@ const considerHttps = debounceAsync(async () => {
                 const cn = certObj.subject?.CN
                 if (cn)
                     console.log("Certificate loaded for", certObj.altNames?.join(' + ') || cn)
-                const now = new Date()
                 const from = new Date(certObj.validFrom)
                 const to = new Date(certObj.validTo)
                 updateError() // error will change at from and to dates of the certificate
@@ -145,6 +144,7 @@ const considerHttps = debounceAsync(async () => {
                 })
                 function updateError() {
                     if (!httpsSrv) return
+                    const now = new Date()
                     httpsSrv.error = from > now ? "certificate not valid yet" : to < now ? "certificate expired" : undefined
                 }
             }
