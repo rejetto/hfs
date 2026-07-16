@@ -123,7 +123,8 @@ export const frontEndApis: ApiHandlers = {
             return new ApiError(HTTP_UNAUTHORIZED)
         if (!node.source)
             return new ApiError(HTTP_FAILED_DEPENDENCY)
-        await setCommentFor(node.source, comment)
+        if (!await setCommentFor(node.source, comment))
+            return new ApiError(HTTP_SERVER_ERROR)
         return {}
     },
 

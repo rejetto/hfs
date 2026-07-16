@@ -30,7 +30,7 @@ export async function storeFileAttr(path: string, k: string, v: any) {
         return true
     }
     // fallback to our kv-storage
-    return await fileAttrDb.put(fileAttrKey(path, k), v)?.catch((e: any) => {
+    return await fileAttrDb.put(fileAttrKey(path, k), v)?.then(() => true, (e: any) => {
         console.error("Couldn't store metadata on", path, String(e.message || e))
         return false
     }) ?? true // if put is undefined, the value was already there
