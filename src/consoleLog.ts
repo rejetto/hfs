@@ -5,7 +5,11 @@ import { argv } from './argv'
 
 export const consoleLog: Array<{ ts: Date, k: string, msg: string }> = []
 const originalConsoleLog = console.log
-const f = argv.consoleFile ? createWriteStream(argv.consoleFile, { flags: 'a', encoding: 'utf8' }) : null
+let f = argv.consoleFile ? createWriteStream(argv.consoleFile, { flags: 'a', encoding: 'utf8' }) : null
+f?.on('error', err => {
+    f = null // stop using a failed stream so later logs cannot repeat the same error
+    console.error("Cannot write console file", argv.consoleFile, String(err))
+})
 let terminalOutputBroken = false
 for (const stream of [process.stdout, process.stderr])
     stream.on('error', err => {
