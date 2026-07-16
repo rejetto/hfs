@@ -43,12 +43,15 @@ export async function loadFileAttr(path: string, k: string) {
         ?? undefined // normalize, as we get null instead of undefined on windows
 }
 
+// remove file-attr for files that don't exist anymore
 export async function purgeFileAttr() {
     let n = 0
     await Promise.all(Array.from(fileAttrDb.keys()).map(k => {
         const fn = splitFileAttrKey(k)?.filePath
-        return fn && access(fn).catch(() =>
-            n++ && void fileAttrDb.del(k))
+        return fn && access(fn).catch(() => {
+            n++
+            return fileAttrDb.del(k)
+        })
     }))
     if (n)
         await fileAttrDb.rewrite()
