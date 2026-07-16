@@ -5,7 +5,8 @@ import { parseFile, parseFileCache, createSafeWriteStream, exists } from './util
 import { loadFileAttr, singleWorkerFromBatchWorker, storeFileAttr } from './misc'
 import _ from 'lodash'
 import iconv from 'iconv-lite'
-import { unlink } from 'node:fs/promises'
+import { rm } from 'node:fs/promises'
+import { finished } from 'stream/promises'
 import { expiringCache } from './expiringCache'
 
 export const DESCRIPT_ION = 'descript.ion'
@@ -36,17 +37,30 @@ export async function getCommentFor(path?: string) {
 }
 
 export async function setCommentFor(path: string, comment: string) {
-    if (commentsStorage.get()) {
-        await storeFileAttr(path, COMMENT_ATTR, comment || undefined)
-        return setCommentDescriptIon(path, '')
+    if (commentsStorage.get())
+        return prep(storeFileAttr(path, COMMENT_ATTR, comment || undefined)).then(v => {
+            if (v)
+                void setCommentDescriptIon(path, '').catch(() => {})
+            return v
+        })
+    // should we also remove from file-attr, similarly as above we remove from descript.ion? not sure, but for the time we won't because #1 storeFileAttr is not really deleting, and we would store a lot of empty attributes, #2 more people will switch from descript.ion to attr (because introduced later) than the opposite
+    return prep(setCommentDescriptIon(path, comment))
+
+    function prep(p: Promise<any>): Promise<boolean> {
+        return p.then(v => v !== false, (e: any) => {
+            console.error(`${comment ? "Error setting comment" : "Error removing comment"}: ${String(e)}`)
+            return false
+        })
     }
-    return setCommentDescriptIon(path, comment) // should we also remove from file-attr? not sure, but for the time we won't because #1 storeFileAttr is not really deleting, and we would store a lot of empty attributes, #2 more people will switch from descript.ion to attr (because introduced later) than the opposite
 }
 
-const setCommentDescriptIon = singleWorkerFromBatchWorker(async (jobs: [path: string, comment: string][]) => {
-    const byFolder = _.groupBy(jobs, job => dirname(job[0]))
-    return Promise.allSettled(_.map(byFolder, async (jobs, folder) => {
-        const comments = await readDescriptIon(folder).catch(() => new Map())
+const setCommentDescriptIon = singleWorkerFromBatchWorker((jobs: [path: string, comment: string][]) => {
+    const byFolder = _.groupBy(jobs, job => dirname(job[0])) // jobs in the same folder share one write and its success or failure
+    const resultByFolder = _.mapValues(byFolder, async (jobs, folder) => {
+        const comments = await readDescriptIon(folder).catch(e => {
+            if (e?.code !== 'ENOENT') throw e
+            return new Map()
+        })
         for (const [path, comment] of jobs) {
             const file = path.slice(folder.length + 1)
             if (!comment)
@@ -56,7 +70,7 @@ const setCommentDescriptIon = singleWorkerFromBatchWorker(async (jobs: [path: st
         }
         const path = await filePathHelper(folder)
         if (!comments.size)
-            return unlink(path)
+            return rm(path, { force: true })
         // encode comments in descript.ion format
         const ws = await createSafeWriteStream(path)
         comments.forEach((comment, filename) => {
@@ -68,8 +82,10 @@ const setCommentDescriptIon = singleWorkerFromBatchWorker(async (jobs: [path: st
                 ws.write(MULTILINE_SUFFIX, 'binary')
             ws.write('\n')
         })
-        await new Promise(res => ws.end(res))
-    }))
+        ws.end()
+        await finished(ws)
+    })
+    return jobs.map(([path]) => resultByFolder[dirname(path)])
 })
 
 export function areCommentsEnabled() {
