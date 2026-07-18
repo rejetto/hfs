@@ -878,6 +878,26 @@ describe('sessions', () => {
             await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
         }
     })
+    test('allow_net cache follows account switch', async () => {
+        const u = `allow-net-switch-${randomId(6)}`.toLowerCase()
+        const p = `pw-${randomId(8)}`
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: u, password: p, allow_net: '192.0.2.1' },
+                res => res?.username === u, adminReq)()
+            const jar = {}
+            // cache the current account mask before presenting credentials for another account
+            await reqApi('refresh_session', {}, res => res?.username === username, { auth, jar })()
+            await reqApi('refresh_session', {}, res => res?.username === username, { jar })()
+            await reqApi('refresh_session', {}, res => {
+                if (res?.username)
+                    throw Error(`account switch bypassed allow_net as ${res.username}`)
+            }, { auth: `${u}:${p}`, jar })()
+        }
+        finally {
+            await reqApi('del_account', { username: u }, 200, adminReq)().catch(() => {})
+        }
+    })
     test('auto_login_net.canLogin', async () => {
         const user = `auto-login-${randomId(6)}`.toLowerCase()
         const adminReq = { auth, jar: {} }

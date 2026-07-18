@@ -6,7 +6,7 @@ import { API_URI, DEV } from './const'
 import { ALLOW_SESSION_IP_CHANGE, DAY, hasDirTraversal, isLocalHost, netMatches, splitAt, stream2string, try_, tryJson } from './misc'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
-import { Account, accountCanLogin, accounts, getAccount, getFromAccount } from './perm'
+import { Account, accountCanLogin, accounts, getAccount, getFromAccount, normalizeUsername } from './perm'
 import { Connection, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
 import { clearTextLogin, invalidateSessionBefore, setLoggedIn } from './auth'
 import { constants } from 'zlib'
@@ -145,9 +145,11 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
 }
 
 export function failAllowNet(ctx: Koa.Context, a: Account | undefined) {
-    const cached = ctx.session?.allowNet // won't reflect changes until session is terminated
+    // a cached mask is valid only for the identity that stored it
+    const sameAccount = ctx.session?.username === normalizeUsername(a?.username || '')
+    const cached = sameAccount ? ctx.session?.allowNet : undefined
     const mask = cached ?? getFromAccount(a || '', a => a.allow_net)
-    if (!cached && mask && ctx.session?.username)
+    if (sameAccount && !cached && mask)
         ctx.session.allowNet = mask // must be deleted on logout by setLoggedIn
     const ret = mask && !netMatches(ctx.ip, mask, true)
     if (ret)

@@ -65,7 +65,10 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
     const a = ctx.state.account = getAccount(username)
     if (!a) return
     await events.emitAsync('finalizingLogin', { ctx, username, inputs: { ...ctx.state.params, ...ctx.query } })
-    s.username = normalizeUsername(username)
+    const normalized = normalizeUsername(username)
+    if (s.username !== normalized)
+        delete s.allowNet // discard restrictions cached for another identity before replacing the session account
+    s.username = normalized
     s.ts = Date.now()
     const k = ALLOW_SESSION_IP_CHANGE
     s[k] = k in ctx.query || Boolean(ctx.state.params?.[k]) || undefined // login APIs will get ctx.state.params, others can rely on ctx.query
