@@ -46,8 +46,14 @@ class Logger {
     }
 
     reopen() {
-        return this.stream = createFileWithPath(this.path, { flags: 'a' })
-            ?.on('error', () => this.stream = undefined)
+        const {path} = this
+        const s = this.stream = createFileWithPath(path, { flags: 'a' })
+        s?.on('error', e => {
+            if (this.stream === s) // a late error from an old stream must not detach its replacement
+                this.stream = undefined
+            console.error("Cannot write log file", path, String(e))
+        })
+        return s
     }
 }
 
