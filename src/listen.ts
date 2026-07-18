@@ -254,14 +254,16 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                 srv.error = String(e)
                 srv.busy = undefined
                 const { code } = e as any
-                if (code)
+                // share the lookup with status readers, but classify the error from its resolved result
+                if (code === 'EADDRINUSE' || code === 'EACCES')
                     srv.busy = findProcess('port', port).then(
                         res => res?.map(x => prefix("Service", x.name === 'svchost.exe' && x.cmd.split(x.name)[1]?.trim()) || x.name).join(' + '),
                         () => '')
-                if (code === 'EACCES' && port < 1024 && !srv.busy) // on Windows, when port is used by a service, we get EACCES
+                const busy = await srv.busy
+                if (code === 'EACCES' && port < 1024 && !busy) // on Windows, when port is used by a service, we get EACCES
                     srv.error = `lacking permission on port ${port}, try with permission (${IS_WINDOWS ? 'administrator' : 'sudo'}) or port > 1024`
-                if (code === 'EADDRINUSE' || srv.busy)
-                    srv.error = `port ${port} busy: ${await srv.busy || "unknown process"}`
+                if (code === 'EADDRINUSE' || busy)
+                    srv.error = `port ${port} busy: ${busy || "unknown process"}`
                 if (!silence)
                     console.error(srv.name, srv.error)
                 resolve(0)
