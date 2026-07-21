@@ -63,8 +63,7 @@ Some properties use a `Who` descriptor, with one of these values:
 - `error_log` path of the log file for errors. Default is `error.log`.
 - `dont_log_net` don't include in log entries if IP matches this network mask. Default is `127.0.0.1|::1`.
 - `accounts` list of accounts. For details see the dedicated following section.
-- `mime` command what mime-type to be returned with some files.
-  E.g.: `"*.jpg": image/jpeg`
+- `mime` most types are already detected automatically, but you can override them. E.g.: `"*.jpg": image/jpeg`
   You can specify multiple entries, or separate multiple file masks with a p|pe.
   You can use the special value `auto` to attempt automatic detection.
 - `max_kbps` throttle output speed. Default is Infinity.

@@ -244,7 +244,7 @@ export default function OptionsPage() {
             },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, xs: 12, sm: 6, md: 3, unit: "seconds", required: true,
                 label: "Calculate ZIP size for", helperText: "If time is not enough, the browser will not show download percentage" },
-            { k: 'mime', comp: ArrayField, label: false, reorder: true, prepend: true, xs: 12, sm: 12, md: 6,
+            { k: 'mime', comp: ArrayField, label: "Custom MIME types", reorder: true, prepend: true, xs: 12, sm: 12, md: 6,
                 fields: [
                     { k: 'v', label: "Mime type", placeholder: "auto", $width: 2, helperText: "Leave empty to get automatic value" },
                     { k: 'k', label: "File mask", helperText: h(WildcardsSupported), $width: 1, $column: {
@@ -258,6 +258,7 @@ export default function OptionsPage() {
                 ],
                 toField: x => Object.entries(x || {}).map(([k,v]) => ({ k, v })),
                 fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v || 'auto'])),
+                helperText: "Most MIME types are detected automatically",
             },
 
             { k: CFG.force_webdav_login, comp: WebdavAgentAuthField, sm: true, label: "WebDAV force login",
