@@ -24,7 +24,7 @@ export default function addFiles() {
                 h(FilePicker, {
                     from: lastFolder ?? parent.source,
                     async onSelect(sel) {
-                        addNodes(parent, sel.map(source => ({ source, name: basename(source) })))
+                        addNodes(parent, sel.map(source => ({ source, name: getFreeName(parent, basename(source)) })))
                         lastFolder = sel[0].slice(0, sel[0].lastIndexOf('/'))
                         close()
                     }
