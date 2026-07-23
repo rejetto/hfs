@@ -5,6 +5,7 @@ import { IS_WINDOWS } from './const'
 import { CFG, prefix } from './cross'
 
 const outboundProxy = defineConfig(CFG.outbound_proxy, '', v => {
+    httpStream.defaultProxy = undefined
     if (!v) return
     try {
         parseHttpUrl(v) // just validate
