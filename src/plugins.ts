@@ -10,7 +10,7 @@ import {
 import * as Const from './const'
 import Koa from 'koa'
 import {
-    escapeGlobPath, callable, Callback, CFG, debounceAsync, Dict, onlyTruthy, prefix,
+    escapeGlobPath, callable, Callback, callAsPromise, CFG, debounceAsync, Dict, onlyTruthy, prefix,
     PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir, objFromKeys, patchKey
 } from './misc'
 import * as misc from './misc'
@@ -124,9 +124,10 @@ export function getPluginConfigFields(id: string) {
     return plugins.get(id)?.getData().config
 }
 
-async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict) {
+async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict, onInitError?: () => Promisable<unknown>) {
     const undoEvents: any[] = []
     const timeouts: NodeJS.Timeout[] = []
+    let unload = pl.unload
     const controlledEvents = Object.create(events, objFromKeys(['on', 'once', 'multi'], k => ({
         value() {
             if (k === 'multi')
@@ -157,7 +158,7 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict) {
 
         }
     })))
-    const res = await pl.init?.({
+    const res = await callAsPromise(() => pl.init?.({
         Const, require,
         // intercept all subscriptions, so to be able to undo them on unload
         events: controlledEvents,
@@ -194,16 +195,24 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict) {
         customApiCall, notifyClient, addBlock, ctxBelongsTo, getConnections, normalizeFilename,
         getCurrentUsername, getAccount, getUsernames, addAccount, delAccount, updateAccount, renameAccount,
         ...morePassedToInit
+    })).catch(async e => {
+        // failed initialization must not leave any partially allocated plugin resources active
+        await cleanup().catch(console.error)
+        await onInitError?.()
+        throw e
     })
     Object.assign(pl, typeof res === 'function' ? { unload: res } : res)
-    patchKey(pl, 'unload', was => () => {
-        for (const x of timeouts) clearTimeout(x)
-        for (const cb of undoEvents) cb()
-        if (typeof was === 'function')
-            return was(...arguments)
-    })
+    unload = pl.unload
+    patchKey(pl, 'unload', () => cleanup)
     events.emit('pluginInitialized', pl)
     return pl
+
+    async function cleanup() {
+        for (const x of timeouts) clearTimeout(x)
+        for (const cb of undoEvents) cb()
+        if (typeof unload === 'function')
+            return unload()
+    }
 }
 
 export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
@@ -611,7 +620,7 @@ function watchPlugin(id: string, path: string) {
                 async i18n(ctx: any) {
                     return i18nFromTranslations(await getLangData(ctx), EMBEDDED_LANGUAGE)
                 },
-            })
+            }, unloadResources)
             const folder = dirname(module)
             const { sections, unwatch } = watchLoadCustomHtml(folder)
             pluginData.getCustomHtml = () =>
@@ -621,9 +630,7 @@ function watchPlugin(id: string, path: string) {
             const plugin = new Plugin(id, folder, pluginData, async () => {
                 unwatchIcons()
                 unwatch()
-                for (const x of subbedConfigs) x()
-                await Promise.allSettled(openDbs.map(x => x.close()))
-                openDbs.length = 0
+                await unloadResources()
             })
             pluginReady.resolve()
             if (alreadyRunning)
@@ -635,6 +642,12 @@ function watchPlugin(id: string, path: string) {
                 events.emit(wasInstalled ? 'pluginStarted' : 'pluginInstalled', plugin)
             }
             events.emit('pluginStarted:'+id)
+
+            async function unloadResources() {
+                for (const x of subbedConfigs) x()
+                await Promise.allSettled(openDbs.map(x => x.close()))
+                openDbs.length = 0
+            }
         } catch (e: any) {
             await markItInactive()
             const parsed = e.stack?.split('\n\n') // this form is used by syntax-errors inside the plugin, which is useful to show
