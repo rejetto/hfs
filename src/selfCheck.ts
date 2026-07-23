@@ -6,11 +6,11 @@ import _ from 'lodash'
 import { findDefined, haveTimeout } from './cross'
 import { httpString } from './util-http'
 
-let selfChecking = false
+let activeSelfChecks = 0
 
 const CHECK_URL = SPECIAL_URI + 'self-check'
 export const selfCheckMiddleware: Middleware = (ctx, next) => {
-    if (!selfChecking || !ctx.url.startsWith(CHECK_URL))
+    if (!activeSelfChecks || !ctx.url.startsWith(CHECK_URL))
         return next()
     ctx.body = 'HFS'
     ctx.state.skipFilters = true
@@ -37,7 +37,7 @@ export async function selfCheck(url: string) {
     const parsed = new URL(url)
     const family = !isIP(parsed.hostname) ? undefined : isIPv6(parsed.hostname) ? 6 : 4
     try {
-        selfChecking = true
+        ++activeSelfChecks
         for (const services of _.chunk(_.shuffle<PortScannerService>(prjInfo.selfCheckServices), 2)) {
             try {
                 const results = await Promise.allSettled(services.map(async svc => {
@@ -66,7 +66,7 @@ export async function selfCheck(url: string) {
         }
     }
     finally {
-        selfChecking = false
+        --activeSelfChecks
     }
 
     function applySymbols(s?: string) {
