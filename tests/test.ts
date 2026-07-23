@@ -1628,6 +1628,19 @@ describe('admin', () => {
                 throw Error("condition not met on list: " + JSON.stringify(lastNames))
         }
     })
+    test('plugins.failed init cleans event handlers', async () => {
+        const script = `exports.init = api => {
+            api.events.on('dirEntry', ({ entry }) => entry.n === 'f2/' && api.events.stop)
+            throw Error('expected init failure')
+        }`
+        await reqApi('set_config', { values: { server_code: script } }, 200, { auth })()
+        try {
+            await reqList('/f1/', { status: 200, inList: ['f2/'] })()
+        }
+        finally {
+            await reqApi('set_config', { values: { server_code: '' } }, 200, { auth })().catch(() => {})
+        }
+    })
     test('plugins.download-counter percent name', async () => {
         const id = 'download-counter'
         await reqApi('start_plugin', { id }, 200, { auth })()
