@@ -50,7 +50,7 @@ vfs:
       can_see: can_read
       children:
         - name: upload
-          source: ..
+          source: ../tmp
           can_upload:
             - admins
           can_delete:

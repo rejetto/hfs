@@ -31,6 +31,8 @@ const TEST_PORT = Number(yaml.parse(readFileSync(resolve(__dirname, 'config.yaml
 const BASE_URL = `http://[::1]:${TEST_PORT}`
 const BASE_URL_127 = `http://127.0.0.1:${TEST_PORT}`
 const UPLOAD_ROOT = '/for-admins/upload/'
+// keep generated uploads under the directory reset by test runners
+const UPLOAD_DISK_ROOT = resolve(__dirname, 'tmp')
 const VIRTUAL_UPLOAD_ROOT = '/renameChild/'
 const FUNNY_NAME = 'x%25#x'
 const FUNNY_NAME_ENCODED = '/x%2525%23x'
@@ -305,7 +307,7 @@ describe('basics', () => {
         const output = await execP(`curl -u ${auth} -F upload=@${SAMPLE_FILE_PATH} ${BASE_URL}${UPLOAD_ROOT}`)
         const uri = tryJson(output)?.uris?.[0]
         if (!uri) throw "unexpected output " + output
-        const fn = resolve(__dirname, basename(decodeURI(uri)))
+        const fn = uploadUriToPath(uri)
         const stats = statSync(fn)
         rm(fn).catch(() => {}) // clear
         if (stats?.size !== statSync(SAMPLE_FILE_PATH).size)
@@ -370,7 +372,7 @@ describe('basics', () => {
 
 describe('webdav', () => {
     const jar = {}
-    after(() => rmAny(resolve(__dirname, UPLOAD_DIR)))
+    after(() => rmAny(resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR)))
     test('webdav force login.scope propfind', req('/f1/', 401, { method: 'PROPFIND', headers: { depth: '0' }, jar }))
     test('webdav force login.scope options', req('/f1/', (_data, res) =>
         res.statusCode === 401 && res.headers?.['www-authenticate'] === BASIC_AUTHENTICATE_HEADER, {
@@ -689,7 +691,7 @@ describe('webdav', () => {
         const traversal = `../../${escapedName}` // climbs above the upload node's source
         // encode as a single path segment so dirname(dest) still matches dirname(path) and we hit the rename branch
         const destination = `${BASE_URL}${UPLOAD_ROOT}${UPLOAD_DIR}/${encodeURIComponent(traversal)}`
-        const escapedDiskPath = resolve(ROOT, UPLOAD_DIR, traversal)
+        const escapedDiskPath = resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR, traversal)
         let destPath = ''
         try {
             destPath = await webdavUpload(uri, x => x?.uri === uri, 'test')()
@@ -955,7 +957,7 @@ describe('after-login', () => {
     test('create_folder.empty name', reqApi('create_folder', { uri: UPLOAD_ROOT, name: '' }, 400))
     test('create_folder.tricky chars', async () => {
         await reqApi('create_folder', { uri: UPLOAD_ROOT, name: trickyChars }, 200)()
-        const dest = resolve(__dirname, trickyChars)
+        const dest = resolve(UPLOAD_DISK_ROOT, trickyChars)
         await access(dest)
         await rm(dest, { recursive: true })
     })
@@ -1017,7 +1019,7 @@ describe('after-login', () => {
         }
         finally {
             await req(percentUri, 200, { method: 'delete' })().catch(() => {})
-            await rmAny(resolve(__dirname, percentName))
+            await rmAny(resolve(UPLOAD_DISK_ROOT, percentName))
         }
     })
 
@@ -1034,7 +1036,7 @@ describe('after-login', () => {
         }
         finally {
             await req(renamedUri, 200, { method: 'delete' })().catch(() => {})
-            await rmAny(resolve(__dirname, renameName))
+            await rmAny(resolve(UPLOAD_DISK_ROOT, renameName))
         }
     })
 
@@ -1055,16 +1057,16 @@ describe('after-login', () => {
         finally {
             await req(percentUri, 200, { method: 'delete' })().catch(() => {})
             await req(movedUri, 200, { method: 'delete' })().catch(() => {})
-            await rmAny(resolve(__dirname, percentName))
-            await rmAny(resolve(__dirname, folderName, percentName))
-            await rmAny(resolve(__dirname, folderName))
+            await rmAny(resolve(UPLOAD_DISK_ROOT, percentName))
+            await rmAny(resolve(UPLOAD_DISK_ROOT, folderName, percentName))
+            await rmAny(resolve(UPLOAD_DISK_ROOT, folderName))
         }
     })
     test('zip.no-list but archive', req('/zipNoList/?get=zip', 403, { jar: {} }))
     test('upload but not delete', async () => {
         const name = `cant-delete`
-        await mkdir(resolve(__dirname, name), { recursive: true })
-        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        await mkdir(resolve(UPLOAD_DISK_ROOT, name), { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
         try {
             const dest = `${UPLOAD_ROOT}${name}/no-delete.txt`
             await reqUpload(dest, 200)()
@@ -1072,7 +1074,7 @@ describe('after-login', () => {
         }
         finally {
             await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
-            await rmAny(resolve(__dirname, name))
+            await rmAny(resolve(UPLOAD_DISK_ROOT, name))
         }
     })
     test('move.overwrite needs delete', async () => {
@@ -1090,13 +1092,13 @@ describe('after-login', () => {
                 throw "file overwritten"
         }
         finally {
-            await rmAny(resolve(__dirname, UPLOAD_DIR, destFile))
+            await rmAny(resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR, destFile))
             await rmAny(destDir)
         }
     })
     test('upload.path bypass', async () => {
         const name = 'no-upload'
-        const targetDir = resolve(__dirname, 'tmp', name)
+        const targetDir = resolve(UPLOAD_DISK_ROOT, name)
         try {
             await execP(`curl -g -s -u ${auth} -F "upload=@${SAMPLE_FILE_PATH};filename=${name}/evil.txt" ${BASE_URL}${UPLOAD_ROOT}`)
             if (existsSync(resolve(targetDir, 'evil.txt')))
@@ -1107,7 +1109,7 @@ describe('after-login', () => {
         }
     })
     test('upload.existing.skip', async () => {
-        const filePath = resolve(__dirname, UPLOAD_RELATIVE)
+        const filePath = resolve(UPLOAD_DISK_ROOT, UPLOAD_RELATIVE)
         const before = statSync(filePath).size
         await reqUpload(UPLOAD_DEST + '?existing=skip', 409)()
         const after = statSync(filePath).size
@@ -1127,7 +1129,7 @@ describe('after-login', () => {
         ..._.range(3).map(i =>  reqUpload(UPLOAD_DEST + i, 200, new StringRepeaterStream(BIG_CONTENT, 50))()) // 3 x 100MB
     ]).then(() => {}))
     test('upload.interrupted', async () => {
-        const fn = resolve(__dirname, UPLOAD_RELATIVE.replace('/', '/hfs$upload-'))
+        const fn = resolve(UPLOAD_DISK_ROOT, UPLOAD_RELATIVE.replace('/', '/hfs$upload-'))
         await rm(fn, {force: true})
         const neededTime = 600
         const makeAbortedRequest = (afterMs: number) => {
@@ -1158,14 +1160,14 @@ describe('after-login', () => {
     })
     test('rename.backslash', async () => {
         await reqApi('rename', { uri: UPLOAD_DEST, dest: 'sub\\file' }, process.platform === 'win32' ? 403 : 200)()
-        const d = resolve(__dirname, UPLOAD_DIR)
+        const d = resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR)
         await rename(resolve(d, 'sub\\file'), resolve(d, basename(UPLOAD_DEST))).catch(() => {})
     })
     const renameTo = 'z'
     test('rename.ok', reqApi('rename', { uri: UPLOAD_DEST, dest: renameTo }, 200))
     test('delete.miss renamed', req(UPLOAD_DEST, 404, { method: 'delete' }))
     test('delete.ok', async () => {
-        const fn = resolve(__dirname, dirname(UPLOAD_RELATIVE), renameTo)
+        const fn = resolve(UPLOAD_DISK_ROOT, dirname(UPLOAD_RELATIVE), renameTo)
         if (!existsSync(fn))
             throw "missing file"
         await req(dirname(UPLOAD_DEST) + '/' + renameTo, 200, { method: 'delete' })()
@@ -1177,8 +1179,8 @@ describe('after-login', () => {
     test('delete.miss deleted', req(UPLOAD_DEST, 404, { method: 'delete' }))
     test('rename.tricky chars', async () => {
         const dest = trickyChars
-        await mkdir(resolve(__dirname, UPLOAD_DIR), { recursive: true })
-        const fn = resolve(__dirname, UPLOAD_RELATIVE)
+        await mkdir(resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR), { recursive: true })
+        const fn = resolve(UPLOAD_DISK_ROOT, UPLOAD_RELATIVE)
         await writeFile(fn, 'z')
         try {
             await reqApi('rename', { uri: UPLOAD_DEST, dest }, 200)() // dest is not encoded
@@ -1191,7 +1193,7 @@ describe('after-login', () => {
         if (res.statusCode === 400) return // status 400 is caused by nodejs itself, intercepting the mismatch, but it's probably an unreliable race condition
         if (res.statusCode !== 200) // it happened sometimes that node didn't block (can't replicate). In such case we should get a 200 with a file the size of declaredSize.
             throw `expected 200, got ${res.statusCode}`
-        const size = try_(() => statSync(resolve(__dirname, UPLOAD_RELATIVE)).size)
+        const size = try_(() => statSync(resolve(UPLOAD_DISK_ROOT, UPLOAD_RELATIVE)).size)
         if (size !== declaredSize)
             throw `expected ${declaredSize}, got ${size}`
     }, BIG_CONTENT, declaredSize))
@@ -1216,7 +1218,7 @@ describe('after-login', () => {
         await reqApi('logout', {}, 401)()
         await reqApi('get_accounts', {}, 401)() // no more
     })
-    after(() => rmAny(resolve(__dirname, UPLOAD_DIR)))
+    after(() => rmAny(resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR)))
 })
 
 describe('admin', () => {
@@ -1284,7 +1286,7 @@ describe('admin', () => {
             if (res.status !== 200)
                 throw `unexpected status ${res.status}`
         }
-        finally { await rmAny(resolve(__dirname, rawName)) }
+        finally { await rmAny(resolve(UPLOAD_DISK_ROOT, rawName)) }
     })
     test('monitor.connections upload path decodes colon folder', async () => {
         const body = makeReadableThatTakes(700)
@@ -1303,7 +1305,7 @@ describe('admin', () => {
             if (res.data.includes(encodedPath))
                 throw Error('upload path still encoded: ' + res.data)
         }
-        finally { await rmAny(resolve(__dirname, folderName)) }
+        finally { await rmAny(resolve(UPLOAD_DISK_ROOT, folderName)) }
     })
     test('plugins.start_stop', async () => {
         const id = 'download-counter'
@@ -1529,7 +1531,7 @@ function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?
 }
 
 function uploadUriToPath(uri: string) {
-    return ROOT + decodeURI(uri).replace(UPLOAD_ROOT, '')
+    return resolve(UPLOAD_DISK_ROOT, decodeURI(uri).replace(UPLOAD_ROOT, ''))
 }
 
 async function testMaxDl(uri: string, good: number, bad: number, reqOptions: ReqOptions={}) {
