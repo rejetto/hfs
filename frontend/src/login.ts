@@ -29,7 +29,7 @@ async function login(username:string, password:string, extra?: object) {
         return res
     }, err => {
         hfsEvent('loginFailed', { username, error: err }) // the name inconsistency with the backend event 'failedLogin' can make it easier to distinguish
-        throw Error(err.data === 'trust' ? t('login_untrusted', "Login aborted: server identity cannot be trusted")
+        throw Error(err === 'trust' ? t('login_untrusted', "Login aborted: server identity cannot be trusted")
             : err.code === HTTP_UNAUTHORIZED && !err.data ? t('login_bad_credentials', "Invalid credentials") // err.data is empty on standard errors, but a plugin may want to show differently
                 : err.code === HTTP_CONFLICT ? t('login_bad_cookies', "Cookies are not working - login failed")
                     : t(err.message || String(err)) )
