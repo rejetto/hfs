@@ -34,9 +34,11 @@ export function forceDownload(ctx: Koa.Context, name: string) {
 }
 
 export function disposition(ctx: Koa.Context, name: string, forceDownload=false) {
-    // ctx.attachment is not working well on Windows. Eg: for the file "èÖ.txt" it is producing `Content-Disposition: attachment; filename="??.txt"`. Koa uses module content-disposition, that actually produces a better result anyway: ``
-    ctx.set('Content-Disposition', (forceDownload ? 'attachment; ' : '')
-        + `filename="${toAsciiEquivalent(name)}"; filename*=UTF-8''${encodeURIComponent(name)}`)
+    // override Koa's question-mark fallback for decomposed Unicode filenames on Windows
+    ctx.attachment(name, {
+        type: forceDownload ? 'attachment' : 'inline',
+        fallback: toAsciiEquivalent(name),
+    })
 }
 
 export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {

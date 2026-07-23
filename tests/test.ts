@@ -118,6 +118,14 @@ describe('basics', () => {
         }
     })
     test('download.mime', req('/f1/f2/alfa.txt', { re:/abcd/, mime:'text/plain' }))
+    test('download.disposition', req('/f1/f2/alfa.txt', (_data, res) => res.headers['content-disposition'].startsWith('inline; filename=')))
+    test('download.disposition quotes', { skip: process.platform === 'win32' }, async () => {
+        const name = '"quoted".txt'
+        const file = resolve(__dirname, name)
+        await writeFile(file, '')
+        await req('/tests/' + pathEncode(name), (_data, res) => res.headers['content-disposition'].includes('filename="\\"quoted\\".txt"'))()
+            .finally(() => rm(file))
+    })
     test('download.not modified', async () => {
         let lm = ''
         await req('/f1/f2/alfa.txt', (_data, res) => lm = res.headers?.['last-modified'])()
