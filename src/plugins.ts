@@ -86,7 +86,7 @@ export async function startPlugin(id: string) {
 
 async function waitRunning(id: string, state=true) {
     while (isPluginRunning(id) !== state) {
-        await wait(500)
+        await wait(50)
         const error = getError(id)
         if (error)
             throw Error(error)
