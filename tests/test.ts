@@ -79,6 +79,22 @@ describe('basics', () => {
         if (parsedPath !== '/a/../%D1%80%D0%B5%D0%BF%D0%BE%20with%20space/%2e%2e/file')
             throw Error('unexpected path: ' + parsedPath)
     })
+    test('unwatch cancels pending language load', async () => {
+        const marker = `watch-load-${randomId(6)}`
+        const file = resolve(__dirname, 'work/hfs-lang-zz.json')
+        const adminReq = { auth, jar: {} }
+        await writeFile(file, JSON.stringify({ translate: { marker } }))
+        try {
+            await reqApi('set_config', { values: { force_lang: 'zz' } }, 200, adminReq)()
+            await reqApi('set_config', { values: { force_lang: '' } }, 200, adminReq)()
+            await wait(600)
+            await req('/', data => !data.includes(marker), { jar: {} })()
+        }
+        finally {
+            await reqApi('set_config', { values: { force_lang: '' } }, 200, adminReq)().catch(() => {})
+            await rm(file, { force: true })
+        }
+    })
     test('folder size avoids symlink cycles', { skip: process.platform === 'win32' }, async () => {
         const root = await mkdtemp(resolve(UPLOAD_DISK_ROOT, 'walk-cycle-'))
         try {

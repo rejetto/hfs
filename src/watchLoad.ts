@@ -14,8 +14,9 @@ type WriteFile = (data: string, options?: { reparse: boolean }) => Promise<void>
 interface WatchLoadReturn { unwatch:WatchLoadCanceller, save: WriteFile, emitter: BetterEventEmitter, getText: () => string | undefined, getPath: () => string }
 export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { failedOnFirstAttempt, immediateFirst }:Options={}): WatchLoadReturn {
     let doing = false
+    let cancelled = false
     let watcher: FSWatcher | undefined
-    const debounced = debounceAsync(load, { wait: 500, maxWait: 1000, reuseRunning: true })
+    const debounced = debounceAsync<true>(load, { wait: 500, maxWait: 1000, reuseRunning: true, cancelable: true })
     let retry: NodeJS.Timeout
     let last: string | undefined
     const emitter = new BetterEventEmitter()
@@ -30,6 +31,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
     return { unwatch, save, emitter, getText: () => last, getPath: () => path }
 
     function install(first=false) {
+        if (cancelled) return
         try {
             watcher = watch(path, () => {
                 if (!save.isWorking())
@@ -47,6 +49,13 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
     }
 
     function unwatch() {
+        // a pending or running load must not resurrect a watcher cancelled by its owner
+        cancelled = true
+        debounced.cancel!()
+        closeWatcher()
+    }
+
+    function closeWatcher() {
         watcher?.close()
         clearTimeout(retry)
         watcher = undefined
@@ -65,12 +74,14 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
                     return ''
                 throw e
             })
+            if (cancelled)
+                return
             if (text === last)
                 return
             last = text
             emitter.emit('change', last)
             console.debug('Loaded', path)
-            unwatch(); install() // reinstall, as the original file could have been renamed. We watch by the name.
+            closeWatcher(); install() // reinstall, as the original file could have been renamed. We watch by the name.
             await parser(text)
         }
         catch(e) {
