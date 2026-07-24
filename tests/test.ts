@@ -563,6 +563,42 @@ describe('webdav', () => {
             await rmAny(destPath)
         }
     })
+    test('webdav.lock requires write permission', async () => {
+        const user = `wd-lock-readonly-${randomId(6)}`.toLowerCase()
+        const password = randomId(10)
+        const uri = '/tests/page/gpl.png'
+        let token = ''
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: user, password }, res => res?.username === user, adminReq)()
+            await req(uri, 401, {
+                method: 'LOCK',
+                auth: `${user}:${password}`,
+                jar: {},
+                headers: { 'content-type': 'text/xml', 'user-agent': WEBDAV_UA },
+                body: WEBDAV_LOCK_BODY,
+            })()
+            await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+        }
+        finally {
+            if (token)
+                await webdavUnlock(uri, token)().catch(() => {})
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
+    test('webdav.lock allows a missing upload destination', async () => {
+        const uri = `${UPLOAD_ROOT}wd-lock-missing-${randomId(6)}.txt`
+        let token = ''
+        try {
+            await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            if (!token)
+                throw "missing lock token"
+        }
+        finally {
+            if (token)
+                await webdavUnlock(uri, token)().catch(() => {})
+        }
+    })
     test('webdav.lock refresh keeps token', async () => {
         const name = `wd-lock-${randomId(6)}.txt`
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`

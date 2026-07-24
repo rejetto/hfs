@@ -259,6 +259,18 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
 
     async function handleLock() {
         setWebdavHeaders()
+        // a lock reserves a future write, so authorize it against the existing resource or its parent
+        const node = await urlToNode(path, ctx)
+        const permissionNode = node || await urlToNode(dirname(path), ctx)
+        if (!permissionNode)
+            return ctx.status = HTTP_CONFLICT
+        const missingWritePerm = node && canOverwrite.has(path + prefix('|', getCurrentUsername(ctx))) ? 0
+            : statusCodeForMissingPerm(permissionNode, node ? 'can_delete' : 'can_upload', ctx)
+        if (missingWritePerm) {
+            if (ctx.status === HTTP_UNAUTHORIZED)
+                setWebdavHeaders(true)
+            return
+        }
         const body = ctx.length || ctx.get('content-length') || ctx.get('transfer-encoding') ? await stream2string(ctx.req) : ''
         const token = getProvidedLockToken()
         let seconds = Number(ctx.get('timeout').split(',').find(x => /^Second-\d+$/i.test(x.trim()))?.trim().split('-', 2)[1])
