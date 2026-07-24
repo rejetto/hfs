@@ -135,7 +135,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, filename: string, c
         // append if resuming
         if (!resume && stats)
             fs.unlinkSync(tempName)
-        const writeStream = createStreamLimiter(contentLength ?? Infinity)
+        const writeStream = createStreamLimiter(isNaN(contentLength) ? Infinity : contentLength)
         const fullSize = stillToWrite + resume
         // allow plugins to mess with the write-stream, because the read-stream can be complicated in case of multipart
         const obj = { ctx, writeStream, fullPath, tempName, resume, fullSize, uri: '' }
