@@ -11,7 +11,7 @@ import unzipper from 'unzipper'
 import { findDefined, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, UPLOAD_TEMP_PREFIX, wait, waitFor } from '../src/cross'
 import { httpStream, httpWithBody, parseHttpUrl, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
-import { mkdir, rm, rename, writeFile, access } from 'fs/promises'
+import { mkdir, rm, rename, writeFile, access, mkdtemp, symlink } from 'fs/promises'
 import { Readable } from 'stream'
 import { XMLValidator } from 'fast-xml-parser'
 import { BASIC_AUTHENTICATE_HEADER } from '../src/cross'
@@ -78,6 +78,20 @@ describe('basics', () => {
         const parsedPath = parseHttpUrl('https://example.com/a/../репо with space/%2e%2e/file').path
         if (parsedPath !== '/a/../%D1%80%D0%B5%D0%BF%D0%BE%20with%20space/%2e%2e/file')
             throw Error('unexpected path: ' + parsedPath)
+    })
+    test('folder size avoids symlink cycles', { skip: process.platform === 'win32' }, async () => {
+        const root = await mkdtemp(resolve(UPLOAD_DISK_ROOT, 'walk-cycle-'))
+        try {
+            await mkdir(join(root, 'dir'))
+            await symlink('..', join(root, 'dir/loop'))
+            await reqApi('get_folder_size', {
+                uri: UPLOAD_ROOT + basename(root),
+                id: randomId(6),
+            }, res => res?.folders === 2 && res?.files === 0, { auth, jar: {}, timeout: 1000 })()
+        }
+        finally {
+            await rm(root, { recursive: true, force: true })
+        }
     })
     //before(async () => appStarted)
     test('frontend', req('/', /<body>/, { headers: { accept: '*/*' } })) // workaround: 'accept' is necessary when running server-for-test-dev, still don't know why
