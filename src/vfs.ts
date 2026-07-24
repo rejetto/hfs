@@ -527,10 +527,15 @@ events.on('accountRenamed', ({ from, to }) => {
     saveVfs()
 
     function renameInPerm(a?: WhoVfs) {
-        if (!Array.isArray(a)) return
-        for (let i=0; i < a.length; i++)
-            if (a[i] === from)
-                a[i] = to
+        if (isWhoObject(a)) {
+            renameInPerm(a.this)
+            renameInPerm(a.children)
+            return
+        }
+        if (Array.isArray(a))
+            for (let i=0; i < a.length; i++)
+                if (a[i] === from)
+                    a[i] = to
     }
 
 })

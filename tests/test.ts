@@ -1247,6 +1247,29 @@ describe('admin', () => {
             throw "missing name"
         await reqApi('del_vfs', { uris: ['/' + name] }, data => [0, 404].includes(data?.errors?.[0]), { auth })().catch(() => {})
     })
+    test('account rename updates nested VFS permissions', async () => {
+        const oldUsername = `vfs-old-${randomId(6)}`.toLowerCase()
+        const newUsername = `vfs-new-${randomId(6)}`.toLowerCase()
+        const name = `vfs-account-${randomId(6)}`
+        try {
+            await reqApi('add_account', { username: oldUsername }, 200, { auth })()
+            await reqApi('add_vfs', {
+                source: '.',
+                name,
+                can_read: { this: [oldUsername], children: [oldUsername] },
+            }, 200, { auth })()
+            await reqApi('set_account', { username: oldUsername, changes: { username: newUsername } }, 200, { auth })()
+            await reqApi('get_vfs', {}, res => {
+                const permission = _.find(res?.root?.children, { name })?.can_read
+                throwIf(!_.isEqual(permission, { this: [newUsername], children: [newUsername] })
+                    ? 'nested VFS permission not updated' : '')
+            }, { auth })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: ['/' + name] }, 200, { auth })().catch(() => {})
+            await reqApi('del_account', { username: [newUsername, oldUsername] }, 200, { auth })().catch(() => {})
+        }
+    })
     test('set_vfs.rename and props', async () => {
         const name = `set vfs ${randomId(6)}`
         const renamed = `${name}-renamed`
