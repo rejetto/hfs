@@ -7,8 +7,9 @@ import { basename, dirname, join, resolve } from 'path'
 import { exec } from 'child_process'
 import _ from 'lodash'
 import yaml from 'yaml'
+import unzipper from 'unzipper'
 import { findDefined, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, wait, waitFor } from '../src/cross'
-import { httpStream, parseHttpUrl, stream2string, XRequestOptions } from '../src/util-http'
+import { httpStream, httpWithBody, parseHttpUrl, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { mkdir, rm, rename, writeFile, access } from 'fs/promises'
 import { Readable } from 'stream'
@@ -297,6 +298,13 @@ describe('basics', () => {
     test('zip.list.compacted folders', req('/f1/?get=zip&list=page%2Fgpl.png%2F%2F%00index.html', /page\/gpl.png.+page\/index.html/))
     test('zip.list.selected folder decodes prefix', req('/tests/?get=zip&list=C%253A', data =>
         String(data).includes('C:/gpl.png') && !String(data).includes('C%3A/gpl.png')))
+    test('zip.list.selected nested folder preserves path', async () => {
+        const url = '/?get=zip&list=f1%2Fpage'
+        const { body } = await httpWithBody(BASE_URL + url, { path: url })
+        const paths = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+        if (!paths.includes('f1/page/') || paths.includes('page/'))
+            throw Error('unexpected archive paths: ' + paths)
+    })
     test('zip.list.bad encoding', req('/f1/?get=zip&list=%E0%A4%A//%00', { status: 200, length: 22 })) // basically empty
     test('zip.list.null filename', req('/f1/?get=zip&list=%00', 400)) // tries to name the output with null-byte
     test('zip.masked deep', req('/cantSearchForMasksDeep/?get=zip', {

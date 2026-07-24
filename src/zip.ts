@@ -35,8 +35,9 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
                     continue
                 if (nodeIsFolder(subNode)) { // a directory needs to be walked
                     if (hasPermission(subNode, 'can_list', ctx) && hasPermission(subNode, 'can_archive', ctx)) {
-                        yield subNode // it could be empty
-                        yield* walkNode(subNode, { ctx, prefixPath: pathDecodeSegments(uri) + '/', requiredPerm: 'can_archive' })
+                        const archivePath = pathDecodeSegments(uri)
+                        yield { ...subNode, name: archivePath } // keep empty selected folders at the same path used for their contents
+                        yield* walkNode(subNode, { ctx, prefixPath: archivePath + '/', requiredPerm: 'can_archive' })
                     }
                     continue
                 }
