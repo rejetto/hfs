@@ -3,7 +3,7 @@
 import * as http from 'http'
 import { defineConfig, subMultipleConfigs } from './config'
 import { app } from './index'
-import * as https from 'https'
+import * as http2 from 'http2'
 import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { getConnections, newConnection } from './connections'
@@ -27,10 +27,13 @@ import { onProcessExit, quitting } from './first'
 import { fileAttrDb } from './fileAttr'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
-let httpSrv: undefined | http.Server & ServerExtra
-let httpsSrv: undefined | http.Server & ServerExtra
+type HttpServer = http.Server & ServerExtra
+type HttpsServer = http2.Http2SecureServer & ServerExtra
 
-// the update relaunch can keep a bridge process alive, so we proactively close listeners here to release ports before the next binary binds; do it before (5) the storage file is closed, because sockets write there
+let httpSrv: undefined | HttpServer
+let httpsSrv: undefined | HttpsServer
+
+// the update relaunch can keep a bridge process alive, so we proactively close listeners here to release ports before the next binary binds; do it before (5) the storage file is closed, because s[...]
 onProcessExit(() => Promise.all([stopServer(httpSrv), stopServer(httpsSrv)]), 5)
 
 const openBrowserAtStart = defineConfig('open_browser_at_start', true)
@@ -118,12 +121,13 @@ const considerHttps = debounceAsync(async () => {
     try {
         const moreOptions = Object.assign({}, ...await events.emitAsync('httpsServerOptions') || [])  // emitAsync returns an array of objects
         httpsSrv = Object.assign(
-            https.createServer(port === PORT_DISABLED ? {} : {
-                ...commonServerOptions,
+            http2.createSecureServer(port === PORT_DISABLED ? { allowHTTP1: true } : {
+                ...(commonServerOptions as http2.SecureServerOptions),
                 key: privateKey.compiled(),
                 cert: cert.compiled(),
+                allowHTTP1: true,
                 ...moreOptions,
-            }, app.callback()),
+            }, app.callback() as any),
             { name: 'https' },
             commonServerAssign
         )
@@ -157,7 +161,7 @@ const considerHttps = debounceAsync(async () => {
         }
     }
     catch(e: any) {
-        httpsSrv ||= Object.assign(https.createServer({}), { name: 'https' }) // a dummy container, in case creation failed because of certificate errors
+        httpsSrv ||= Object.assign(http2.createSecureServer({ allowHTTP1: true }), { name: 'https' }) // a dummy container, in case creation failed because of certificate errors
         httpsSrv.error = "bad private key or certificate"
         console.error("Failed to create https server: check your private key and certificate", e.message)
         return
@@ -204,7 +208,7 @@ function renderHost(host: string) {
 }
 
 interface StartServer { port: number, host?:string }
-export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
+export function startServer(srv: HttpServer | HttpsServer | undefined, { port, host }: StartServer) {
     return new Promise<number>(async resolve => {
         if (!srv) return resolve(0)
         try {
@@ -213,7 +217,7 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
             if (!host && !await testIpV4()) // !host means ipV4+6, and if v4 port alone is busy, we won't be notified of the failure, so we'll first test it on its own
                 throw srv.error
             // from a few tests, this seems enough to support the expect-100 http/1.1 mechanism, at least with curl -T, not used by chrome|firefox anyway
-            srv.on('checkContinue', (req, res) => srv.emit('request', req, res))
+            srv.on('checkContinue', (req: any, res: any) => srv.emit('request', req, res))
             port = await listen(host)
             if (port)
                 console.log(`Serving ${srv.name} on ${renderHost(host || '')} port ${port}`)
@@ -268,24 +272,27 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
     }
 }
 
-export function stopServer(srv?: http.Server) {
+export function stopServer(srv?: HttpServer | HttpsServer) {
     return new Promise(resolve => {
         if (!srv?.listening)
             return resolve(null)
         const ad = srv.address()
         if (ad && typeof ad !== 'string')
             console.log("Stopped port", ad.port)
-        srv.close(err => {
+        srv.close((err?: Error | null) => {
             if (err && (err as any).code !== 'ERR_SERVER_NOT_RUNNING')
                 console.debug("Failed to stop server", String(err))
             resolve(err)
         })
-        if (quitting)
-            srv.closeAllConnections()
+        if (quitting) {
+            const closeAllConnections = (srv as any).closeAllConnections
+            if (typeof closeAllConnections === 'function')
+                closeAllConnections.call(srv)
+        }
     })
 }
 
-function getCurrentPort(srv: typeof httpSrv) {
+function getCurrentPort(srv: HttpServer | HttpsServer | undefined) {
     return (srv?.address() as any)?.port as number | undefined
 }
 
@@ -295,7 +302,7 @@ export async function getServerStatus(includeSrv=true) {
         https: await serverStatus(httpsSrv, httpsPortCfg.get()),
     }
 
-    async function serverStatus(srv: typeof httpSrv, configuredPort: number) {
+    async function serverStatus(srv: HttpServer | HttpsServer | undefined, configuredPort: number) {
         const busy = await srv?.busy
         await wait(0) // simple trick to wait for also .error to be updated. If this trickery becomes necessary elsewhere, then we should make also error a Promise.
         return {
