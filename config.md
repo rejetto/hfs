@@ -169,7 +169,9 @@ In the second example, HFS shows a folder named "data" at the root (name inferre
 
 Valid keys in a node are:
 - `name`: this is the name we'll use to display this file/folder. If not provided, HFS will infer it from the source. At least `name` or `source` must be provided.
-- `source`: absolute or relative path of where to get the content
+- `source`: absolute or relative path of where to get the content. If it's a folder, it should end with `/` (or `\\` on Windows).
+- `see_without_probing`: for folders whose disk source may be slow or unavailable, show the folder in its parent's list
+  without checking the source or reading its metadata
 - `children`: just for folders, specify its virtual children.
   Value is a list and its entries are nodes.
 - `rename`: when `source` is a folder, you can rename entries *virtually* as they are read from disk.

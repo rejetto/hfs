@@ -4,7 +4,7 @@ import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } fr
 import { apiCall, useApi, useApiList } from './api'
 import _ from 'lodash'
 import { Alert, Box, Checkbox, ListItemButton, ListItemIcon, ListItemText, TextField, Typography } from '@mui/material'
-import { enforceFinal, formatBytes, isWindowsDrive, err2msg, basename, formatPerc } from './misc'
+import { enforceFinal, formatBytes, isWindowsDrive, err2msg, basename, formatPerc, hasFinalSlash } from './misc'
 import { spinner, Center, IconBtn, Flex, IconProgress, useBreakpoint, Btn } from './mui'
 import { ArrowUpward, CreateNewFolder, Storage, VerticalAlignTop } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
@@ -88,7 +88,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                     disabled: isRoot,
                     icon: ArrowUpward,
                     onClick() {
-                        const cwdND = /[\\/]$/.test(cwd) ? cwd.slice(0,-1) : cwd // exclude final delimiter, if any
+                        const cwdND = hasFinalSlash(cwd) ? cwd.slice(0,-1) : cwd // exclude final delimiter, if any
                         const last = cwdND.lastIndexOf(pathDelimiter)
                         const isUNCroot = last === 1 // whe cwd is '\\host'
                         const parent = isWindowsDrive(cwdND) || isUNCroot ? root : cwdND.slice(0, last || 1)

@@ -131,14 +131,16 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
         const name = getNodeName(node)
         const isFolder = nodeIsFolder(node)
         try {
-            const [web, comment, st] = await Promise.all([
-                getDefaultFile(node, ctx).then(x => x ? true : undefined),
-                node.comment ?? getCommentFor(source),
-                nodeStats(node).catch(e => {
-                    if (!isFolder || !node.children?.length) // folders with virtual children, keep them
-                        throw e
-                })
-            ])
+            const [web, comment, st] = node.see_without_probing
+                ? [undefined, node.comment, undefined] as const
+                : await Promise.all([
+                    getDefaultFile(node, ctx).then(x => x ? true : undefined),
+                    node.comment ?? getCommentFor(source),
+                    nodeStats(node).catch(e => {
+                        if (!isFolder || !node.children?.length) // folders with virtual children, keep them
+                            throw e
+                    })
+                ])
             // permissions of entries are sent as a difference with permissions of parent
             const pl = node.can_list === WHO_NO_ONE ? 'l'
                 : !hasPermission(node, 'can_list', ctx) ? 'L'

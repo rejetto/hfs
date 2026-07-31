@@ -1542,6 +1542,18 @@ describe('admin', () => {
             throw "missing name"
         await reqApi('del_vfs', { uris: ['/' + name] }, data => [0, 404].includes(data?.errors?.[0]), { auth })().catch(() => {})
     })
+    test('see_without_probing lists VFS node without its source', async () => {
+        const name = `no-probe-${randomId(6)}`
+        const source = resolve(UPLOAD_DISK_ROOT, name)
+        try {
+            await reqApi('add_vfs', { source: source + '/', name, see_without_probing: true }, 404, { auth })()
+            await reqApi('add_vfs', { source: source + '/', name, see_without_probing: true, skip_source_check: true }, 200, { auth })()
+            await reqList('/', { inList: [name + '/'] })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: ['/' + name] }, 200, { auth })().catch(() => {})
+        }
+    })
     test('account rename updates nested VFS permissions', async () => {
         const oldUsername = `vfs-old-${randomId(6)}`.toLowerCase()
         const newUsername = `vfs-new-${randomId(6)}`.toLowerCase()

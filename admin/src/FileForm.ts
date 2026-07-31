@@ -170,6 +170,8 @@ export default function FileForm({ file, addToBar, statusApi, accountsApi, done,
                 helperText: md("...instead of showing list of files")
             },
             { k: 'comment', multiline: true, xl: true },
+            isDir && hasSource && { k: 'see_without_probing', comp: BoolField, xl: 6,
+                label: "Show without probing disk source", helperText: "Don't access this folder's disk source when listing its parent" },
             isDir && { k: 'masks', multiline: true, xl: 6,
                 toField: yaml.stringify, fromField: v => v ? yaml.parse(v) : undefined,
                 comp: TextEditorField, lang: 'yaml',

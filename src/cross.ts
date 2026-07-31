@@ -85,7 +85,7 @@ export type VfsNodeAdminSend = {
 export const PERM_KEYS = typedKeys(defaultPerms)
 
 export const VFS_STORED_KEYS: (keyof VfsNodeStored)[] = ['name', 'source', 'masks', 'default', 'accept', 'rename',
-    'mime', 'url', 'target', 'comment', 'icon', 'order', 'children', ...PERM_KEYS]
+    'mime', 'url', 'target', 'comment', 'icon', 'order', 'see_without_probing', 'children', ...PERM_KEYS]
 
 export function isWhoObject(v: undefined | WhoVfs): v is WhoObject {
     return v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -136,6 +136,10 @@ export function haveTimeout<T>(ms: number, job: Promise<T>, error?: any) {
 
 export function objFromKeys<K extends string, VR=unknown>(src: K[], getValue: (value: K)=> VR) {
     return Object.fromEntries(src.map(k => [k, getValue(k)]))
+}
+
+export function hasFinalSlash(s: string) {
+    return /[\\/]$/.test(s)
 }
 
 export function enforceFinal(sub:string, s='', evenEmpty=false) {

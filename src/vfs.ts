@@ -5,7 +5,7 @@ import { basename, dirname, join, resolve } from 'path'
 import {
     CFG, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, WhoVfs, debounceAsync,
     isWhoObject, WHO_ANY_ACCOUNT, WHO_ADMIN, defaultPerms, PERM_KEYS, HTTP_SERVER_ERROR, try_, matches, Promisable,
-    statWithTimeout, safeDecodeURIComponent, getUncHost, Who, enforceFinal, pathEncode,
+    statWithTimeout, safeDecodeURIComponent, getUncHost, Who, enforceFinal, hasFinalSlash, pathEncode,
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -39,6 +39,7 @@ export interface VfsNodeStored extends VfsPerms {
     comment?: string
     icon?: string
     order?: number
+    see_without_probing?: boolean // show this folder in its parent without waking its disk source
 }
 export interface VfsNode extends VfsNodeStored { // include fields that are only filled at run-time
     isTemp?: true // this node doesn't belong to the tree and was created by necessity
@@ -198,7 +199,7 @@ const smartUncFolderDetection = defineConfig(CFG.smart_unc_folder_detection, fal
 
 async function setIsFolder(node: VfsNode) {
     if (!node.source) return
-    const isFolder = /[\\/]$/.test(node.source)
+    const isFolder = hasFinalSlash(node.source)
         || smartUncFolderDetection.get() && getUncHost(node.source) && !basename(node.source).includes('.') // no dot = folder; not very reliable but fast for unreachable unc hosts, and it's an opt-in
         || await nodeStats(node).then(x => x?.isDirectory(), () => undefined)
     setHidden(node, { isFolder })
@@ -368,7 +369,7 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                 taken?.add(normalizeFilename(name))
                 const item = setVfsPath({ ...child, original: child, name, parent }, name, parent)
                 if (await cantSee(item)) return
-                if (item.source && !item.children?.length) // real items must be accessible, unless there's more to it
+                if (item.source && !item.children?.length && !item.see_without_probing) // real items must be accessible, unless probing was explicitly disabled
                     try { await fs.access(item.source) }
                     catch { return }
                 const isFolder = nodeIsFolder(child)

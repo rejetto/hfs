@@ -346,7 +346,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
             if (nodeIsLink(node)) return
             const name = getNodeName(node)
             const isDir = await nodeIsFolder(node)
-            const st = await nodeStats(node)
+            const st = append && node.see_without_probing ? undefined : await nodeStats(node)
             res.write(`<D:response>
               <D:href>${_.escape(outPath + (append ? pathEncode(name, true) + (isDir ? '/' : '') : ''))}</D:href>
               <D:propstat>

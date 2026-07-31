@@ -36,7 +36,8 @@ export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
     const stream = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
         const isFolder = nodeIsFolder(el)
         const name = getNodeName(el) + (isFolder ? '/' : '')
-        return `<li>${a(pathEncode(name) + (isFolder && !await getDefaultFile(el, ctx) ? force : ''), name)}\n`
+        const forceThis = isFolder && (el.see_without_probing || !await getDefaultFile(el, ctx)) ? force : ''
+        return `<li>${a(pathEncode(name) + forceThis, name)}\n`
     }))
     ctx.body = stream
     stream.push(`<meta name="viewport" content="width=device-width" />`)
