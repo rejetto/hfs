@@ -1,13 +1,13 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    getNodeName, isSameFilenameAs, nodeIsFolder, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
+    getFreeVfsName, getNodeName, isSameFilenameAs, nodeIsFolder, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
     permsFromParent, isRoot, nodeStats
 } from './vfs'
 import _ from 'lodash'
 import { mkdir } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
-import { dirname, extname, join, resolve } from 'path'
+import { dirname, join, resolve } from 'path'
 import {
     enforceFinal, enforceStarting, hasFinalSlash, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, pathDecode, pathEncode, PERM_KEYS,
     VFS_STORED_KEYS, statWithTimeout, VfsNodeAdminSend
@@ -138,11 +138,7 @@ export default {
             return new ApiError(HTTP_NOT_FOUND, 'source not found')
         const child = { source, name, ...sanitizeVfsProps(rest) }
         name = getNodeName(child) // could be not given as input
-        const ext = extname(name)
-        const noExt = ext ? name.slice(0, -ext.length) : name
-        let idx = 2
-        while (parentNode.children?.find(isSameFilenameAs(name)))
-            name = `${noExt} ${idx++}${ext}`
+        name = getFreeVfsName(parentNode.children, name)
         child.name = name
         simplifyName(child)
         ;(parentNode.children ||= []).unshift(child)

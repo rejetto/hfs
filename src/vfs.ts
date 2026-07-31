@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import fs from 'fs/promises'
-import { basename, dirname, join, resolve, sep } from 'path'
+import { basename, dirname, extname, join, resolve, sep } from 'path'
 import {
     CFG, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, WhoVfs, debounceAsync,
     isWhoObject, WHO_ANY_ACCOUNT, WHO_ADMIN, defaultPerms, PERM_KEYS, HTTP_SERVER_ERROR, try_, matches, Promisable,
@@ -100,6 +100,15 @@ export function isSameFilenameAs(name: string) {
 
 export function normalizeFilename(x: string) {
     return (IS_WINDOWS || IS_MAC ? x.toLocaleLowerCase() : x).normalize()
+}
+
+export function getFreeVfsName(siblings: VfsNode[] | undefined, name: string) {
+    const ext = extname(name)
+    const noExt = ext ? name.slice(0, -ext.length) : name
+    let idx = 2
+    while (siblings?.find(isSameFilenameAs(name)))
+        name = `${noExt} ${idx++}${ext}`
+    return name
 }
 
 export async function applyParentToChild(child: VfsNode | undefined, parent: VfsNodeWithPath, name?: string) {
@@ -220,8 +229,18 @@ async function reviewVfs() {
     await (async function recur(node: VfsNode) {
         if (node.source && !node.children?.length && node.isFolder === undefined)
             await setIsFolder(node)
-        if (node.children)
-            await Promise.allSettled(node.children.map(recur))
+        if (!node.children) return
+        // we rename your node in case you got 2 nodes with the same name
+        const usedNames = new Set<string>()
+        for (const child of node.children) {
+            const name = getNodeName(child)
+            const normalized = normalizeFilename(name)
+            if (usedNames.has(normalized))
+                child.name = getFreeVfsName(node.children, name)
+            usedNames.add(normalizeFilename(getNodeName(child)))
+        }
+
+        await Promise.allSettled(node.children.map(recur))
     })(vfs.compiled())
 }
 
