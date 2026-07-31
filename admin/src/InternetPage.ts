@@ -40,7 +40,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     const localColor = with_([status.data?.http?.error, status.data?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
     const nat = useApiEx<typeof adminApis.get_nat>('get_nat', {}, { timeout: 20 })
-    const { data: publicIps } = useApiEx<typeof adminApis.get_public_ips>('get_public_ips', { timeout: 20 })
+    const { data: publicIps, error: publicIpsError } = useApiEx<typeof adminApis.get_public_ips>('get_public_ips', { timeout: 20 })
     const { data } = nat
     const port = data?.internalPort
     const wrongMap = data?.mapped && data.mapped.private.port !== port && data.mapped.private.port
@@ -346,9 +346,10 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                     ),
             }),
             h(DataLine),
-            h(Device, { name: "Internet", icon: PublicTwoTone, ip: publicIps,
+            h(Device, { name: "Internet", icon: PublicTwoTone, ip: publicIpsError ? [] : publicIps,
                 color: checkResult ? 'success' : checkResult === false ? 'error' : doubleNat ? 'warning' : undefined,
-                below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : publicIps && h(Box, { className: HIDE_IN_TESTS },
+                below: publicIpsError ? String(publicIpsError)
+                    : checking ? h(LinearProgress, { sx: { height: '1em' } }) : publicIps && h(Box, { className: HIDE_IN_TESTS },
                     doubleNat && h(LinkBtn, { sx: { display: 'block' }, onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
                     checkResult ? "Working!" : checkResult === false ? "Failed!" : '',
                     ' ',

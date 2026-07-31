@@ -76,7 +76,8 @@ export function apiCall<FT=any>(cmd: string, params?: Dict, options: ApiCallOpti
             throw Error("Server unreachable")
         }
         throw aborted || err
-    }).finally(() => clearTimeout(timeout)), {
+    }).catch(err => { throw aborted || err })
+        .finally(() => clearTimeout(timeout)), {
         abort() {
             controller?.abort(aborted='cancel')
         },
@@ -119,7 +120,7 @@ export function useApi<FT extends ApiHandler>(cmd: string | Falsy, params?: obje
                 setData(isAborted() ? undefined : res)
                 setError(undefined)
             }, err => {
-                setError(isAborted() ? undefined : err)
+                setError(undone ? undefined : err)
                 setData(undefined)
             })
             .finally(() => {
