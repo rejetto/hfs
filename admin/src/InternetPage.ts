@@ -491,10 +491,12 @@ function DataLine() {
 
 function Device({ name, icon, color, ip, below }: any) {
     const fontSize = 'min(20vw, 10vh)'
+    const ips = wantArray(ip)
+    const onlyV4 = ips.every(x => typeof x === 'string' && isIP(x) && !x.includes(':'))
     return h(Box, { sx: { display: 'inline-block', textAlign: 'center' } },
         h(icon, { color, sx: { fontSize, mb: '-0.1em' } }),
         h(Box, { sx: { fontSize: 'larger' } }, name),
-        ip === undefined ? h(Skeleton) : h(Box, { sx: { fontSize: 'smaller', whiteSpace: 'pre-wrap' }, className: 'ip ' + HIDE_IN_TESTS }, wantArray(ip).join('\n') || "unknown"),
+        ip === undefined ? h(Skeleton) : h(Box, { sx: { fontSize: 'smaller', whiteSpace: onlyV4 ? 'pre' : 'pre-wrap' }, className: 'ip ' + HIDE_IN_TESTS }, ips.join('\n') || "unknown"),
         below ? h(Box, { sx: { fontSize: 'smaller' } }, below) : h(Skeleton),
     )
 }
