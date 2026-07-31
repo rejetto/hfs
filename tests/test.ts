@@ -801,7 +801,7 @@ describe('webdav', () => {
         let destPath = ''
         try {
             destPath = await webdavUpload(uri, x => x?.uri === uri, 'test')()
-            await req(uri, data => data.includes(`<href>${uri}</href>`) && !data.includes(`<href>${uri}/</href>`), {
+            await req(uri, data => data.includes(`<D:href>${uri}</D:href>`) && !data.includes(`<D:href>${uri}/</D:href>`), {
                 method: 'PROPFIND',
                 auth,
                 jar,
@@ -812,9 +812,9 @@ describe('webdav', () => {
                     throw `expected 207, got ${res.statusCode}`
                 if (XMLValidator.validate(data) !== true)
                     throw "invalid XML"
-                if (!/<Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 200 OK/.test(data))
+                if (!/<D:Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 200 OK/.test(data))
                     throw "missing no-op success for Windows property"
-                if (!/<getlastmodified\/>[\s\S]*HTTP\/1\.1 403 Forbidden/.test(data))
+                if (!/<D:getlastmodified\/>[\s\S]*HTTP\/1\.1 403 Forbidden/.test(data))
                     throw "missing forbidden status for protected live property"
             }, {
                 method: 'PROPPATCH',
@@ -835,7 +835,7 @@ describe('webdav', () => {
         }
     })
     test('webdav.proppatch requires upload permission for timestamp changes', req('/f1/f2/alfa.txt', data =>
-        /<Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 403 Forbidden/.test(data), {
+        /<D:Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 403 Forbidden/.test(data), {
         method: 'PROPPATCH',
         auth,
         jar,
@@ -856,7 +856,7 @@ describe('webdav', () => {
         let freshPath = ''
         try {
             await writeFile(stalePath, 'stale')
-            await req(staleUri, data => /<Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 403 Forbidden/.test(data), {
+            await req(staleUri, data => /<D:Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 403 Forbidden/.test(data), {
                 method: 'PROPPATCH',
                 auth,
                 jar,
@@ -868,7 +868,7 @@ describe('webdav', () => {
                 body: WEBDAV_PROPPATCH_BODY,
             })()
             freshPath = await webdavUpload(freshUri, x => x?.uri === freshUri, 'fresh')()
-            await req(freshUri, data => /<Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 200 OK/.test(data), {
+            await req(freshUri, data => /<D:Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 200 OK/.test(data), {
                 method: 'PROPPATCH',
                 auth,
                 jar,

@@ -332,14 +332,14 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         ctx.status = 207
         const outPath = webdavHrefPath(path, node, ctx)
         const res = ctx.body = new PassThrough({ encoding: 'utf8' })
-        res.write(`<?xml version="1.0" encoding="utf-8" ?><multistatus xmlns="DAV:">`)
+        res.write(`<?xml version="1.0" encoding="utf-8" ?><D:multistatus xmlns:D="DAV:">`)
         await sendEntry(node)
         if (isList) {
             depth = Math.max(0, depth - 1)
             for await (const n of walkNode(node, { ctx, depth }))
                 await sendEntry(n, true)
         }
-        res.write(`</multistatus>`)
+        res.write(`</D:multistatus>`)
         res.end()
 
         async function sendEntry(node: VfsNode, append=false) {
@@ -347,18 +347,18 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
             const name = getNodeName(node)
             const isDir = await nodeIsFolder(node)
             const st = await nodeStats(node)
-            res.write(`<response>
-              <href>${_.escape(outPath + (append ? pathEncode(name, true) + (isDir ? '/' : '') : ''))}</href>
-              <propstat>
-                <prop>
-                    ${prefix('<getlastmodified>', (st?.mtime as any)?.toGMTString(), '</getlastmodified>')}
-                    ${prefix('<creationdate>', (st?.birthtime || st?.ctime)?.toISOString().replace(/\..*/, '-00:00'), '</creationdate>')}
-                    ${isDir ? '<resourcetype><collection/></resourcetype>'
-                : `<resourcetype/><getcontentlength>${st?.size}</getcontentlength>`}
-                </prop>
-                <status>HTTP/1.1 200 OK</status>
-              </propstat>
-              </response>
+            res.write(`<D:response>
+              <D:href>${_.escape(outPath + (append ? pathEncode(name, true) + (isDir ? '/' : '') : ''))}</D:href>
+              <D:propstat>
+                <D:prop>
+                    ${prefix('<D:getlastmodified>', (st?.mtime as any)?.toGMTString(), '</D:getlastmodified>')}
+                    ${prefix('<D:creationdate>', (st?.birthtime || st?.ctime)?.toISOString().replace(/\..*/, '-00:00'), '</D:creationdate>')}
+                    ${isDir ? '<D:resourcetype><D:collection/></D:resourcetype>'
+                : `<D:resourcetype/><D:getcontentlength>${st?.size}</D:getcontentlength>`}
+                </D:prop>
+                <D:status>HTTP/1.1 200 OK</D:status>
+              </D:propstat>
+              </D:response>
             `)
         }
     }
@@ -426,14 +426,14 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
     }
 
     function renderLockResponse(token: string, seconds: number) {
-        return `<?xml version="1.0" encoding="utf-8"?><prop xmlns="DAV:"><lockdiscovery><activelock>
-            <locktype><write/></locktype>
-            <lockscope><exclusive/></lockscope>
-            <locktoken><href>${_.escape(token)}</href></locktoken>
-            <lockroot><href>${_.escape(path)}</href></lockroot>
-            <depth>0</depth>
-            <timeout>Second-${seconds}</timeout>
-        </activelock></lockdiscovery></prop>`
+        return `<?xml version="1.0" encoding="utf-8"?><D:prop xmlns:D="DAV:"><D:lockdiscovery><D:activelock>
+            <D:locktype><D:write/></D:locktype>
+            <D:lockscope><D:exclusive/></D:lockscope>
+            <D:locktoken><D:href>${_.escape(token)}</D:href></D:locktoken>
+            <D:lockroot><D:href>${_.escape(path)}</D:href></D:lockroot>
+            <D:depth>0</D:depth>
+            <D:timeout>Second-${seconds}</D:timeout>
+        </D:activelock></D:lockdiscovery></D:prop>`
     }
 }
 
@@ -524,13 +524,13 @@ function parseWindowsFileAttributes(v: unknown) {
 
 function renderProppatchResponse(path: string, statuses: { prop: string, status: number }[]) {
     const byStatus = _.groupBy(statuses, 'status')
-    return `<?xml version="1.0" encoding="utf-8" ?><multistatus xmlns="DAV:"><response>
-        <href>${_.escape(path)}</href>
-        ${_.map(byStatus, (items, status) => `<propstat>
-            <prop>${items.map(({ prop }) => `<${prop}/>`).join('')}</prop>
-            <status>HTTP/1.1 ${status} ${_.escape(HTTP_MESSAGES[Number(status)] || STATUS_CODES[Number(status)] || '')}</status>
-        </propstat>`).join('')}
-    </response></multistatus>`
+    return `<?xml version="1.0" encoding="utf-8" ?><D:multistatus xmlns:D="DAV:"><D:response>
+        <D:href>${_.escape(path)}</D:href>
+        ${_.map(byStatus, (items, status) => `<D:propstat>
+            <D:prop>${items.map(({ prop }) => `<D:${prop}/>`).join('')}</D:prop>
+            <D:status>HTTP/1.1 ${status} ${_.escape(HTTP_MESSAGES[Number(status)] || STATUS_CODES[Number(status)] || '')}</D:status>
+        </D:propstat>`).join('')}
+    </D:response></D:multistatus>`
 }
 
 function getXmlChildren(obj: unknown, name: string) {
