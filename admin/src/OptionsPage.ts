@@ -167,7 +167,7 @@ export default function OptionsPage() {
                 helperText: "Necessary to detect users' IP"
             },
             { k: CFG.outbound_interface, comp: SelectField, xs: 6, md: 3,
-                label: "Outgoing interface", options: [{ label: "automatic", value: '' }, ...status?.ips?.map(value => ({ value })) || []] },
+                options: [{ label: "automatic", value: '' }, ...status?.ips?.map(value => ({ value })) || []] },
             { k: CFG.outbound_proxy, xs: 6, md: 4, placeholder: "none", helperText: "URL form",
                 getError: x => try_(() => x && new URL(x) && '', () => "Invalid URL") },
             { k: CFG.allowed_referer, comp: AllowedReferer, md: 2, placeholder: "any", label: "Links from other websites",
@@ -228,8 +228,8 @@ export default function OptionsPage() {
             { k: CFG.delete_unfinished_uploads_after, comp: NumberField, md: 3, min : 0, unit: "seconds", required: true },
             { k: CFG.min_available_mb, comp: NumberField, md: 3, min : 0, unit: "MBytes", placeholder: "None",
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
-            { k: CFG.own_upload_delete_hours, comp: NumberField, md: 3, min: 0, unit: "hours",
-                label: "Uploader delete window", placeholder: "disabled" },
+            { k: CFG.own_upload_delete_hours, comp: NumberField, md: 3, min: 0, unit: "hours", required: true,
+                label: "Uploaders can delete their files for", helperText: "Set to 0 to disable" },
 
             h(Section, { title: "Others" }),
             { k: CFG.show_hidden_files, comp: BoolField, sm: 3 },

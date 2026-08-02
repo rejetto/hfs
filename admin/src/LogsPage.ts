@@ -95,17 +95,17 @@ export default function LogsPage({ setTitleSide }: PageProps) {
                             { k: CFG.log_gui, sm: 6, comp: BoolField, label: "Log interface loading", helperText: "Some requests are necessary to load the interface" },
                             { k: CFG.log_api, sm: 6, comp: BoolField, label: "Log API requests", helperText: "Requests for commands" },
                             { k: CFG.log_ua, sm: 6, comp: BoolField, label: "Log User-Agent", helperText: "Contains browser and possibly OS information. Can double the size of your logs on disk." },
-                            { k: CFG.log_host, sm: 6, comp: BoolField, label: "Log Host", helperText: "Log the host header of each request." },
-                            { k: CFG.log_spam, sm: 6, comp: BoolField, label: "Log spam requests", helperText: md`Spam requests are *failed* requests that you probably don't want to see` },
+                            { k: CFG.log_host, sm: 6, comp: BoolField, label: "Log Host header" },
+                            { k: CFG.log_spam, sm: 6, comp: BoolField, label: "Log spam requests", helperText: md`Failed requests that you probably don't want to see` },
                             { k: CFG.track_ips, sm: 6, comp: BoolField, label: "Keep track of IPs",
-                                parentProps: { sx: { display: 'flex', gap: 1 } },
+                                parentProps: { sx: { display: 'flex', gap: 1, alignItems: 'flex-start' } },
                                 after: h(Btn, {
-                                    size: 'small', variant: 'outlined', color: 'warning',
+                                    size: 'small', variant: 'outlined', color: 'warning', sx: { mt: '4px' },
                                     confirm: true, doneMessage: true,
                                     onClick: () => apiCall('reset_ips').then(reloadIps)
                                 }, "Reset")
                             },
-                            { k: CFG.debug, sm: 6, comp: BoolField, label: "Debug" },
+                            { k: CFG.debug, sm: 6, comp: BoolField, label: "Debug messages in console" },
                         ]
                     }
                 })
