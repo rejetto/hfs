@@ -3,7 +3,7 @@
 import { alertDialog, newDialog, promptDialog, toast } from './dialog'
 import { createElement as h, Fragment } from 'react'
 import { Box } from '@mui/material'
-import { reindexVfs, VfsNodeAdmin } from './VfsPage'
+import { reindexVfs, VfsNodeAdmin } from './state'
 import { addToChildrenOf } from './VfsMove'
 import { prepareVfsUndo, state } from './state'
 import FilePicker from './FilePicker'

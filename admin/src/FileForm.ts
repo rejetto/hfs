@@ -1,33 +1,30 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { markVfsModified, prepareVfsUndo, state } from './state'
-import { createElement as h, forwardRef, memo, ReactElement, ReactNode, useEffect, useMemo, useState } from 'react'
-import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList, useTheme } from '@mui/material'
+import { getInheritedPerms, id2vfsNode, markVfsModified, prepareVfsUndo, reindexVfs, state, VfsNodeAdmin } from './state'
+import { createElement as h, forwardRef, memo, ReactNode, useEffect, useMemo, useState } from 'react'
+import { Alert, Box, Link, useTheme } from '@mui/material'
 import {
-    BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, NumberField, SelectField, StringField
+    BoolField, DisplayField, FieldProps, Form, NumberField, SelectField
 } from '@hfs/mui-grid-form'
-import { apiCall, UseApi, useApiEx } from './api'
+import { UseApi } from './api'
 import {
-    basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, useRequestRender, try_, pathEncode,
-    onlyTruthy, prefix, VfsPerms, wantArray, WhoVfs, WhoObject, matches, xlate, md, Callback, copyTextToClipboard,
-    splitAt, IMAGE_FILEMASK, CFG, MASK_IN_TESTS, WHO_ANY_ACCOUNT, WHO_ADMIN, WHO_NO_ONE, WHO_ANYONE, stringBefore,
-    ipForUrl
+    basename, defaultPerms, formatBytes, formatTimestamp, isModifiedConfig, newDialog, useRequestRender, try_, pathEncode,
+    onlyTruthy, prefix, VfsPerms, wantArray, WhoVfs, matches, md, Callback, copyTextToClipboard,
+    IMAGE_FILEMASK, MASK_IN_TESTS, WHO_ANY_ACCOUNT, WHO_ADMIN,
 } from './misc'
-import { isModifiedConfig } from './AccountForm'
-import { Btn, Flex, IconBtn, LinkBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'
-import { getInheritedPerms, id2vfsNode, reindexVfs, VfsNodeAdmin } from './VfsPage'
+import { Btn, Flex, IconBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'
 import VfsActionButtons from './VfsActionButtons'
 import _ from 'lodash'
 import FileField from './FileField'
-import { alertDialog, toast, useDialogBarColors } from './dialog'
+import { alertDialog, useDialogBarColors } from './dialog'
 import yaml from 'yaml'
-import { Check, ContentCopy, Edit, QrCode2, Save, RestartAlt } from '@mui/icons-material'
+import { Check, ContentCopy, Edit, QrCode2, RestartAlt } from '@mui/icons-material'
 import QrCreator from 'qr-creator'
 import { AddVfsBtn } from './VfsMenuBar'
 import { SYS_ICONS } from '@hfs/frontend/src/sysIcons'
 import { TextEditorField } from './TextEditor'
-import { account2icon } from './AccountsPage'
-import apiAccounts from '../../src/api.accounts'
+import { type AccountsApi, perm2word, WhoField, type WhoFieldProps, who2desc } from './WhoField'
+import { changeBaseUrl } from './baseUrl'
 
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
 
@@ -250,111 +247,6 @@ export default function FileForm({ file, addToBar, statusApi, accountsApi, done,
 
 }
 
-function perm2word(perm: string) {
-    return xlate(perm.split('_')[1], { read: 'download', archive: 'zip', list: 'access list' })
-}
-
-type AccountsApi = ReturnType<typeof useAccountsApi>
-export function useAccountsApi() {
-    return useApiEx<typeof apiAccounts.get_accounts>('get_accounts', {}, {
-        onResponse(_res, data) {
-            if (!data) return
-            data.list = _.sortBy(data.list, 'username')
-        }
-    })
-}
-
-interface WhoFieldProps extends FieldProps<WhoVfs | undefined> {
-    accountsApi?: AccountsApi,
-    otherPerms?: any[],
-    isChildren?: boolean,
-    isDir: boolean
-    contentText?: string
-}
-export function WhoField({ value, onChange, parent, inherit, accountsApi, helperText, otherPerms, byMasks,
-        hideValues, isChildren, isDir, contentText="folder content", setApi, offerInheritance, ...rest }: WhoFieldProps): ReactElement {
-    const defaultLabel = who2desc(byMasks ?? inherit)
-        + prefix(' (', byMasks !== undefined ? "from masks" : parent !== undefined ? "as parent folder" : "default", ')')
-    const objectMode = isWhoObject(value)
-    const thisValue = objectMode ? value.this : value
-    accountsApi ??= useAccountsApi() // it's important that the "accounts" prop is stable in the truthy sense
-    const accounts = accountsApi?.data?.list
-
-    const options = useMemo(() =>
-        onlyTruthy([
-            offerInheritance && { value: null, label: defaultLabel },
-            { value: WHO_NO_ONE },
-            { value: WHO_ANY_ACCOUNT },
-            { value: WHO_ADMIN },
-            { value: WHO_ANYONE },
-            ...otherPerms || [],
-            { value: [], label: "Select accounts" },
-        ].map(x => x && !hideValues?.includes(x.value)
-            && { label: who2desc(x.value), ...x })), // default label
-        [inherit, parent, thisValue, ...wantArray(hideValues)])
-
-    const timeout = 500
-    const arrayMode = Array.isArray(thisValue)
-    // a large sideband will convey union across the fields
-    return h(Box, { sx: { borderRight: objectMode ? '8px solid #8884' : undefined, transition: `all ${timeout}ms` } },
-        h(SelectField as typeof SelectField<typeof thisValue | null>, {
-            ...rest,
-            value: arrayMode ? [] : thisValue ?? null,
-            onChange(v, { event }) {
-                onChange(objectMode ? simplify({ ...value, this: v ?? undefined }) : v ?? undefined, { was: value, event })
-            },
-            options,
-        }),
-        h(Collapse, { in: arrayMode, timeout },
-            arrayMode && h(MultiSelectField as Field<string[]>, {
-                label: accounts?.length ? "Accounts " + rest.label : "You didn't create any account yet",
-                value: thisValue,
-                onChange,
-                options: accounts?.map(a => ({ value: a.username, label: a.username, a })) || [],
-                placeholder: "none",
-                ...thisValue.length === 0 && { helperText: "Select some account", error: true },
-                // show icon only for groups, to save space inside the field (not the list)
-                renderOption: (x: any) => h('span', {}, x.a?.isGroup && account2icon(x.a), ' ', x.label),
-            }) ),
-        h(FormHelperText, {},
-            helperText,
-            !isChildren && isDir && h(LinkBtn, {
-                sx: { display: 'block', mt: -.5 },
-                onClick(event) {
-                    onChange(objectMode ? thisValue : { this: thisValue, children: thisValue == null ? !inherit : undefined  } , { was: value, event })
-                }
-            }, objectMode ? "Set same permission for " : "Set different permission for ", contentText)
-        ),
-        !isChildren && h(Collapse, { in: objectMode, timeout },
-            h(WhoField, {
-                label: "Permission for " + contentText,
-                parent, inherit, accountsApi, otherPerms, isDir,
-                value: objectMode ? value?.children : undefined,
-                isChildren: true,
-                hideValues: [thisValue ?? inherit, thisValue],
-                onChange(v, { event }) {
-                    if (objectMode) // shut up ts
-                        onChange(simplify({ ...value, children: v }), { was: value, event })
-                }
-            })
-        ),
-    )
-
-    function simplify(v: WhoObject) {
-        return v.this === v.children ? v.this : v
-    }
-}
-
-function who2desc(who: any) {
-    return who === false ? "No one"
-        : who === true ? "Anyone"
-            : who === WHO_ANY_ACCOUNT ? "Any logged-in account"
-                : who === WHO_ADMIN ? "Any admin"
-                    : Array.isArray(who) ? who.join(', ')
-                        : typeof who === 'string' ? `As "can ${perm2word(who)}"`
-                            : "*UNKNOWN*" + JSON.stringify(who)
-}
-
 interface LinkFieldProps extends FieldProps<string> {
     statusApi: UseApi<any> // receive status from parent, to avoid asking server at each click on a file
 }
@@ -454,73 +346,6 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
         return uri?.startsWith(root, 1) ? uri.slice(root.length) : undefined
     }
 }
-
-export async function changeBaseUrl() {
-    return new Promise(async resolve => {
-        const res = await apiCall('get_status')
-        const { base_url, roots } = await apiCall('get_config', { only: [CFG.base_url, CFG.roots] })
-        const urls: string[] = res.urls.https || res.urls.http
-        const domainsFromRoots = Object.keys(roots).map(x => x.split('|')).flat().filter(x => !/[*?]/.test(x))
-        const proto = splitAt('//', urls[0])[0] + '//'
-        urls.push(..._.difference(domainsFromRoots.map(x => proto + x), urls))
-        const { close } = newDialog({
-            title: "Main address",
-            Content() {
-                const [v, setV] = useState(base_url || '')
-                const proto = stringBefore('//', v || urls[0]) + '//'
-                const host = urls.includes(v) ? '' : v.slice(proto.length)
-                const check = h(Check, { sx: { ml: 2 } })
-                return h(Box, { sx: { display: 'flex', flexDirection: 'column' } },
-                    h(Box, { sx: { mb: 2 } }, "Choose a main address for your links"),
-                    h(MenuList, {},
-                        h(MenuItem, {
-                            selected: !v,
-                            onClick: () => set(''),
-                        }, "Automatic", !v && check),
-                        urls.map(u => h(MenuItem, {
-                            key: u,
-                            selected: u === v,
-                            onClick: () => set(u),
-                        }, u, u === v && check))
-                    ),
-                    h(StringField, {
-                        label: "Custom IP or domain",
-                        helperText: md("You can type any address but *you* are responsible to make the address work.\nThis functionality is just to help you copy the link in case you have a domain or a complex network configuration."),
-                        value: host,
-                        onChange: v => set(prefix(proto, ipForUrl(v))),
-                        start: h(SelectField as Field<string>, {
-                            value: proto,
-                            onChange: v => host ? set(v + host) : toast("Enter domain first"),
-                            options: ['http://','https://'],
-                            size: 'small',
-                            variant: 'standard',
-                            sx: { '& .MuiSelect-select': { pt: '1px', pb: 0 } },
-                        }),
-                        sx: { mt: 2 }
-                    }),
-                    h(Box, { sx: { mt: 2, textAlign: 'right' } },
-                        h(Btn, {
-                            icon: Save,
-                            children: "Save",
-                            async onClick() {
-                                if (v !== base_url)
-                                    await apiCall('set_config', { values: { [CFG.base_url]: v.replace(/\/$/, '') } })
-                                close()
-                                resolve(v)
-                            },
-                        }) ),
-                )
-
-                function set(u: string) {
-                    if (u.endsWith('/'))
-                        u = u.slice(0, -1)
-                    setV(u)
-                }
-            }
-        })
-    })
-}
-
 
 interface IconProps { name:string, className?:string, alt?:string, [rest:string]: any }
 // name = null ? none : unicode ? unicode : "?" ? file_url : font_icon_class

@@ -12,10 +12,10 @@ import { TreeItem, SimpleTreeView } from '@mui/x-tree-view'
 import MenuButton from './MenuButton'
 import AccountForm from './AccountForm'
 import _ from 'lodash'
-import { alertDialog, confirmDialog, toast } from './dialog'
+import { alertDialog, confirmDialog } from './dialog'
 import { state, useSnapState } from './state'
 import { importAccountsCsv } from './importAccountsCsv'
-import apiAccounts from '../../src/api.accounts'
+import type apiAccounts from '../../src/api.accounts'
 
 export type Account = Jsonify<ReturnType<typeof apiAccounts.get_accounts>['list'][0]>
 
@@ -192,6 +192,6 @@ export default function AccountsPage() {
 
 }
 
-export function account2icon(ac: Account, props={}) {
-    return h(ac.isGroup ? Group : Person, props)
+function account2icon(account: Account, props={}) {
+    return h(account.isGroup ? Group : Person, props)
 }

@@ -12,8 +12,6 @@ const TABS = [
     { label: "Check updates", path: 'updates', Pane: () => h(InstalledPlugins, { updates: true }) },
 ]
 const TAB_PATHS = TABS.map(x => x.path)
-export const PLUGIN_ERRORS = { ENOTFOUND: "Cannot reach github.com", ECONNREFUSED: "Cannot reach github.com" }
-
 export default function PluginsPage() {
     const [tab, setTab] = useRoutedTab('plugins', TAB_PATHS)
     const { Pane } = TABS[tab]

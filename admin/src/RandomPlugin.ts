@@ -5,8 +5,7 @@ import { state, useSnapState } from './state'
 import { useApiList } from './api'
 import { DAY, tryJson, wantArray } from './misc'
 import _ from 'lodash'
-import { renderName } from './InstalledPlugins'
-import { installPluginFromResult } from './OnlinePlugins'
+import { installPluginFromResult, renderPluginName } from './plugin'
 import { toast } from './dialog'
 
 const cacheKey = 'onlinePluginsCache'
@@ -34,7 +33,7 @@ export function RandomPlugin() {
     return h(Card, { sx: { display: { xs: 'none', md: 'block' }, float: 'right', width: 'min(50%, 30em)', ml: '1em' } },
         h(CardContent, {},
             h(Box, { sx: { fontWeight: 'bold', fontSize: '1.4em' } }, h(Box, { sx: { color: 'warning.main', mr: 1, display: 'inline' } }, '🎲'), "Random plugin:"),
-            h(Box, { sx: { fontWeight: 'bold', fontSize: '1.8em', my: 1 } }, renderName({ row: one })),
+            h(Box, { sx: { fontWeight: 'bold', fontSize: '1.8em', my: 1 } }, renderPluginName({ row: one })),
             h(Box, {}, one.description),
             one.preview && h('img', {
                 src: wantArray(one.preview)[0],

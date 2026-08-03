@@ -1,23 +1,23 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, ReactNode, useCallback, useEffect, useState } from 'react'
+import { createElement as h, Fragment, lazy, ReactNode, Suspense, useCallback, useEffect, useState } from 'react'
 import { Route, Router, Switch, useLocation } from 'wouter'
 import { useHashLocation } from 'wouter/use-hash-location'
 import MainMenu, { getMenuLabel, mainMenu, matchesMenuPath } from './MainMenu'
 import { AppBar, Box, BoxProps, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
 import { anyDialogOpen, Dialogs } from './dialog'
 import { useMyTheme } from './theme'
-import { Flex, useBreakpoint } from './mui'
+import { fillFlexParentSx, Flex, spinner, useBreakpoint } from './mui'
 import { LoginRequired } from './LoginRequired'
 import { Menu } from '@mui/icons-material'
 import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
-import ConfigFilePage from './ConfigFilePage'
 import { useSnapState } from './state'
 import { useEventListener } from 'usehooks-ts'
 import { AriaOnly, isMac, useFixSticky, xlate } from './misc'
 import { loadLocale } from './locale'
-import { fillFlexParentSx } from './DataTable'
+
+const ConfigFilePage = lazy(() => import('./ConfigFilePage'))
 
 // always use useMemo with setTitleSide
 export interface PageProps { setTitleSide: (content: ReactNode, fullWidth?: boolean) => void }
@@ -129,7 +129,7 @@ function Routed() {
                     // @ts-ignore
                     h(Flex, { ...titleSideFullWidth as any && { width: '100%' } }, titleSide),
                 ),
-                h(Switch, {
+                h(Suspense, { fallback: h(spinner) }, h(Switch, {
                     children: [
                         ...mainMenu.flatMap((it,idx) => [
                             h(Route, { key: idx, path: it.path }, h(it.comp, { setTitleSide: set }) ),
@@ -138,7 +138,7 @@ function Routed() {
                         ]),
                         h(Route, { path: '/config' }, h(ConfigFilePage))
                     ]
-                })
+                }))
             ),
         )
     )

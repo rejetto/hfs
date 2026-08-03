@@ -13,7 +13,7 @@ import {
 } from '@mui/icons-material'
 import { state, useSnapState } from './state'
 import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
-import { isCertError, isKeyError, suggestMakingCert } from './OptionsPage'
+import { isCertError, isKeyError, suggestMakingCert } from './cert'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { SwitchThemeBtn } from './theme'

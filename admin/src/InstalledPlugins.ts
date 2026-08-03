@@ -1,20 +1,20 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { apiCall, useApiList } from './api'
-import { createElement as h, Fragment, useEffect, useState } from 'react'
-import { Box, Link, Table, TableBody, TableCell, TableRow, useTheme } from '@mui/material'
+import { createElement as h, useEffect, useState } from 'react'
+import { Box, Table, TableBody, TableCell, TableRow, useTheme } from '@mui/material'
 import type { Breakpoint } from '@mui/material/styles'
 import { DataTable, DataTableColumn } from './DataTable'
 import {
-    Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, ListAlt, PlayCircle, Settings, StopCircle, Upgrade
+    Delete, FormatPaint as ThemeIcon, ListAlt, PlayCircle, Settings, StopCircle, Upgrade
 } from '@mui/icons-material'
 import {
-    CFG, HTTP_FAILED_DEPENDENCY, md, prefix, with_, xlate, tryJson, NBSP, isPrimitive, HIDE_IN_TESTS, wait
+    CFG, HTTP_FAILED_DEPENDENCY, md, prefix, xlate, tryJson, isPrimitive, HIDE_IN_TESTS, wait
 } from './misc'
-import { alertDialog, confirmDialog, toast } from './dialog'
+import { confirmDialog, toast } from './dialog'
 import _ from 'lodash'
-import { PLUGIN_ERRORS } from './PluginsPage'
-import { Btn, hTooltip, IconBtn, iconTooltip, usePauseButton } from './mui'
+import { PLUGIN_ERRORS, pluginName, renderPluginName, startPlugin } from './plugin'
+import { Btn, IconBtn, iconTooltip, usePauseButton } from './mui'
 import { showPluginOptions, evalWrapper } from './pluginOptions'
 
 // updates=true will show the "check updates" version of the page
@@ -25,7 +25,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
     const [sortAgain, setSortAgain] = useState(0)
     useEffect(() => {
         setList(list =>
-            _.sortBy(list, x => (x.error ? 0 : x.started ? 1 : x.badApi ? 2 : 3) + treatPluginName(x.repo?.split('/').reverse().join('/') || x.id).toLowerCase()))
+            _.sortBy(list, x => (x.error ? 0 : x.started ? 1 : x.badApi ? 2 : 3) + pluginName(x.repo?.split('/').reverse().join('/') || x.id).toLowerCase()))
     }, [list.length, sortAgain])
     const size = 'small'
     const { pause, pauseButton } = usePauseButton("plugins", () => getSingleConfig(CFG.suspend_plugins).then(x => !x), {
@@ -54,7 +54,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 headerName: "name",
                 flex: .3,
                 minWidth: 150,
-                renderCell: renderName,
+                renderCell: renderPluginName,
                 valueGetter(_value: any, row: any) { return row.repo || row.id },
                 mergeRender: { [updates ? 'changelog' : 'description']: { sx: { fontSize: 'x-small' } } }
             },
@@ -164,40 +164,6 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
 
 function getSingleConfig(k: string) {
     return apiCall('get_config', { only: [k] }).then(x => x[k])
-}
-
-// hide the hfs- prefix, as one may want to use it for its repository, because github is the context, but in the hfs context the prefix it's not only redundant, but also ruins the sorting
-function treatPluginName(name: string) {
-    return name.replace(/hfs-/, '')
-}
-
-export function renderName({ row, value }: any) {
-    const { repo } = row
-    return h(Fragment, {},
-        row.downgrade && errorIcon("This version is older than the one you installed. It is possible that the author found a problem with your version and decided to retire it.", true),
-        errorIcon(row.error || row.badApi, !row.error),
-        repo?.includes('//') ? h(Link, { href: repo, target: 'plugin' }, value)
-            : with_(repo?.split('/'), arr => arr?.length !== 2 ? value
-                : h(Fragment, {},
-                    h(Link, { href: 'https://github.com/' + repo, target: 'plugin', onClick(ev) { ev.stopPropagation() } }, treatPluginName(arr[1])),
-                    NBSP + 'by ', arr[0]
-                ))
-)
-
-    function errorIcon(msg: string, warning=false) {
-        return msg && hTooltip(msg, msg, h(ErrorIcon, { fontSize: 'small', color: warning ? 'warning' : 'error', sx: { ml: -.5, mr: .5 } }))
-    }
-}
-
-export async function startPlugin(id: string) {
-    try {
-        await apiCall('start_plugin', { id })
-        toast("Plugin started", h(PlayCircle, { color: 'success' }))
-        return true
-    }
-    catch(e: any) {
-        alertDialog(`Plugin ${id} didn't start, with error: ${String(e?.message || e)}`, 'error')
-    }
 }
 
 export const descriptionField: DataTableColumn = {

@@ -1,7 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { markVfsModified, prepareVfsUndo, state } from './state'
-import { id2vfsNode, isDescendantUri, reindexVfs, VfsNodeAdmin } from './VfsPage'
+import { id2vfsNode, isDescendantUri, markVfsModified, prepareVfsUndo, reindexVfs, state, VfsNodeAdmin } from './state'
 import { onlyTruthy, pathEncode, prefix } from './misc'
 import { alertDialog } from './dialog'
 import _ from 'lodash'

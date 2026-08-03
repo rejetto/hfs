@@ -5,7 +5,7 @@ import { Alert, Box, ButtonProps, List, ListItem, ListItemIcon, ListItemText } f
 import { Add, Save, Storage, Undo } from '@mui/icons-material'
 import addFiles, { addLink, addVirtual } from './addFiles'
 import MenuButton from './MenuButton'
-import { osIcon } from './LogsPage'
+import { osIcon } from './agentIcons'
 import { reloadVfs } from './VfsPage'
 import { Dict, prefix, VFS_STORED_KEYS } from './misc'
 import { state, undoVfs, useSnapState } from './state'

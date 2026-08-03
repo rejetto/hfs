@@ -5,29 +5,29 @@ import { createElement as h, useEffect, useId, useRef, useState } from 'react'
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'wouter'
-import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
+import { EditNote, Refresh, Warning } from '@mui/icons-material'
 import { adminApis } from '../../src/adminApis'
 import {
     MAX_TILE_SIZE, REPO_URL, SORT_BY_OPTIONS, THEME_OPTIONS, CFG, IMAGE_FILEMASK, Dict, md, with_, try_, ipForUrl, Html,
 } from './misc'
 import {
-    iconTooltip, InLink, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported,
+    iconTooltip, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported,
     execDoneMessage,
 } from './mui'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
-import { alertDialog, confirmDialog, newDialog, toast } from './dialog'
+import { alertDialog, confirmDialog, toast } from './dialog'
 import { proxyWarning } from './HomePage'
 import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
 import { TextEditorField } from './TextEditor'
-import { WhoField } from './FileForm';
+import { WhoField } from './WhoField';
 import { SERVER_CODE_SPLIT, parseServerCode } from '../../src/serverCode'
 import { highlight, languages } from 'prismjs'
+import { isCertError, isKeyError, suggestMakingCert } from './cert'
 
 let loaded: Dict | undefined
-let exposedReloadStatus: undefined | (() => void)
 const pageState = proxy({
     changes: {} as Dict
 })
@@ -44,9 +44,14 @@ export default function OptionsPage() {
     const { changes } = useSnapshot(pageState)
     const statusApi  = useApiEx<typeof adminApis.get_status>(data && 'get_status')
     const status = statusApi.data
-    const reloadStatus = exposedReloadStatus = statusApi.reload
+    const reloadStatus = statusApi.reload
+    const makeCert = () => suggestMakingCert(saved => {
+        if (loaded)
+            Object.assign(loaded, saved)
+        setTimeout(reloadStatus, 1000) // give some time for backend to apply
+        setTimeout(reloadStatus, 2000) // try again in case it's very slow
+    })
     useEffect(() => void reloadStatus(), [data]) //eslint-disable-line
-    useEffect(() => () => exposedReloadStatus = undefined, []) // clear this on unmount
     const sm = useBreakpoint('sm')
     const saveBtnRef = useRef<HTMLButtonElement>(null)
 
@@ -119,7 +124,7 @@ export default function OptionsPage() {
             { k: CFG.https_port, comp: PortField, xs: 12, sm: 4, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
                 onChange(v: number) {
                     if (v >= 0 && !httpsEnabled && !values[CFG.cert])
-                        void suggestMakingCert()
+                        void makeCert()
                     return v
                 }
             },
@@ -130,7 +135,7 @@ export default function OptionsPage() {
                 helperText: wikiLink('HTTPS#certificate', "What is this?"),
                 error: with_(status?.https.error, e => isCertError(e) && (
                     status!.https.listening ? e
-                        : [e, ' - ', h(LinkBtn, { key: 'fix', onClick: suggestMakingCert }, "make one")] )),
+                        : [e, ' - ', h(LinkBtn, { key: 'fix', onClick: makeCert }, "make one")] )),
             },
             httpsEnabled && { k: CFG.private_key, comp: FileField, sm: 4, label: "HTTPS private key file",
                 ...with_(status?.https.error, e => isKeyError(e) ? { error: true, helperText: e } : null)
@@ -361,14 +366,6 @@ function recalculateChanges() {
     pageState.changes = o
 }
 
-export function isCertError(error: any) {
-    return /certificate/.test(error)
-}
-
-export function isKeyError(error: any) {
-    return /private key/.test(error)
-}
-
 function PortField({ label, value, onChange, setApi, status, suggestedPort=1, error, helperText }: FieldProps<number | null>) {
     const lastCustom = useRef(suggestedPort)
     if (value! > 0)
@@ -453,33 +450,4 @@ function WebdavAgentAuthField({ label, value, onChange, error, helperText, fallb
         ),
         h(FormHelperText, { id: helperId }, helperText),
     )
-}
-
-export async function suggestMakingCert() {
-    return new Promise(resolve => {
-        const { close } = newDialog({
-            icon: CardMembership,
-            title: "Get a certificate",
-            onClose: resolve,
-            Content: () => h(Box, { sx: { p: 1, lineHeight: 1.5 } },
-                h(Box, {}, "HTTPS needs a certificate to work."),
-                h(Box, {}, "We suggest you to ", h(InLink, { to: '/internet' }, "get a free but proper certificate"), '.'),
-                h(Box, {}, "If you don't have a domain ", h(LinkBtn, { onClick: makeCertAndSave }, "make a self-signed certificate"),
-                    " but that ", wikiLink('HTTPS#certificate', " won't be perfect"), '.' ),
-            )
-        })
-
-        async function makeCertAndSave() {
-            if (!window.crypto.subtle)
-                return alertDialog("Retry this procedure on localhost", 'warning')
-            const saved = await apiCall('make_self_signed_cert', { fileName: 'self' })
-            if (loaded) // when undefined we are not in this page
-                Object.assign(loaded, saved)
-            setTimeout(exposedReloadStatus!, 1000) // give some time for backend to apply
-            setTimeout(exposedReloadStatus!, 2000) // try again in case it's very slow
-            Object.assign(state.config, saved)
-            await alertDialog("Certificate saved", 'success')
-            close()
-        }
-    })
 }

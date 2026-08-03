@@ -542,4 +542,3 @@ function NoRowsOverlay({ initializing, noRows }: { initializing?: boolean, noRow
 }
 
 // required in case of fillFlex:true
-export const fillFlexParentSx = { display: 'flex', flexDirection: 'column' } as const

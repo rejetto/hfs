@@ -1,21 +1,21 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from "lodash"
-import { createElement as h, useMemo, Fragment, useState } from "react"
+import { createElement as h, useMemo, Fragment, useState, type CSSProperties } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { LinkOff as DisconnectIcon, Lock, FolderZip, Upload, Download, ChevronRight, ChevronLeft, History } from '@mui/icons-material'
 import { Alert, Box, Chip, ChipProps, Grid } from '@mui/material'
-import { DataTable, fillFlexParentSx } from './DataTable'
+import { DataTable } from './DataTable'
 import {
     formatBytes, ipForUrl, CFG, formatSpeed, with_, createDurationFormatter, formatTimestamp, formatPerc, md, Callback,
     reactJoin, SPECIAL_URI,
 } from "./misc"
 import {
-    IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country, hTooltip, useToggleButton, Flex, Btn
+    fillFlexParentSx, IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country, hTooltip, useToggleButton, Flex, Btn
 } from './mui'
 import { Field, SelectField } from '@hfs/mui-grid-form'
-import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
-import { agentIcons, LogFile } from './LogsPage'
+import { LogFile } from './LogsPage'
+import { agentIcons } from './agentIcons'
 import { state, useSnapState } from './state'
 import { BlockIpBtn } from './blockIp'
 import { alertDialog, confirmDialog, toast } from './dialog'
@@ -75,7 +75,7 @@ function MoreInfo() {
     interface PairOptions {
         label?: string
         render?: Render
-        minWidth?: StandardCSSProperties['minWidth']
+        minWidth?: CSSProperties['minWidth']
         title?: (v: any) => string
         onDelete?: Callback
     }

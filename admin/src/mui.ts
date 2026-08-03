@@ -28,6 +28,8 @@ export function spinner() {
     return h(CircularProgress)
 }
 
+export const fillFlexParentSx = { display: 'flex', flexDirection: 'column' } as const
+
 // return true if same size or larger
 export function useBreakpoint(breakpoint: Breakpoint) {
     return useMediaQuery((theme: any) => theme.breakpoints.up(breakpoint), { noSsr:true }) // without noSsr, first execution always returns false

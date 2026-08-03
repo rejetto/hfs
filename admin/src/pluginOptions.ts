@@ -3,7 +3,7 @@ import { createElement as h, Fragment, useMemo } from 'react'
 import { Box, Link, Paper } from '@mui/material'
 import { callable, formatDate, formatTime, newObj } from './misc'
 import { Btn, Flex, iconTooltip, NetmaskField } from './mui'
-import { MilitaryTech, Clear } from '@mui/icons-material'
+import { MilitaryTech, Clear, Group } from '@mui/icons-material'
 import { Html, md, replaceStringToReact, useAutoScroll } from '@hfs/shared'
 import {
     BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectField, StringField, FormApi
@@ -16,7 +16,7 @@ import { DateTimeField } from './DateTimeField'
 import { formDialog, toast } from './dialog'
 import { useApiEx, useApiList } from './api'
 import { adminApis } from '../../src/adminApis'
-import { Account, account2icon } from './AccountsPage'
+import { type Account } from './AccountsPage'
 
 export async function showPluginOptions(row: any, maxWidth: string) {
     const {id} = row
@@ -166,7 +166,7 @@ function UsernameField({ value, onChange, multiple, groups, ...rest }: FieldProp
         renderOption: (x: UsernameOption) => {
             if (!x.a)
                 return h('span', { style: { textDecoration: 'line-through' } }, x.label)
-            const icon = x.a.isGroup && account2icon(x.a) || x.a.adminActualAccess && iconTooltip(MilitaryTech, "Can login into Admin")
+            const icon = x.a.isGroup && h(Group) || x.a.adminActualAccess && iconTooltip(MilitaryTech, "Can login into Admin")
             return !icon ? x.label
                 : h('span', {},
                     h('span', { style: { marginLeft: -8, marginRight: 8 } }, icon),

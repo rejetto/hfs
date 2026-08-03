@@ -5,9 +5,9 @@ import { BoolField, Form, MultiSelectField, NumberField, SelectField } from '@hf
 import { Alert, Box } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, useDialogBarColors } from './dialog'
-import { apiNewPassword, formatTimestamp, isEqualLax, prefix, reactJoin, useIsMobile, wantArray } from './misc'
+import { apiNewPassword, formatTimestamp, isModifiedConfig, prefix, reactJoin, useIsMobile, wantArray } from './misc'
 import { Btn, Flex, IconBtn, NetmaskField, propsForModifiedValues } from './mui'
-import { Account } from './AccountsPage'
+import { type Account } from './AccountsPage'
 import { AutoDelete, Delete } from '@mui/icons-material'
 import { state, useSnapState } from './state'
 import VfsPathField from './VfsPathField'
@@ -150,8 +150,4 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             }
         }
     })
-}
-
-export function isModifiedConfig(a: any, b: any) {
-    return !isEqualLax(a, b, (a,b) => !a && !b || undefined)
 }

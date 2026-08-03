@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, FC } from 'react';
+import { createElement as h, ComponentType, lazy } from 'react';
 import { List, ListItemButton, ListItemIcon, ListItemText, Box } from '@mui/material'
 import {
     AccountTree, Extension, History, Home, Logout, ManageAccounts, Monitor, Public, Settings, Translate, Code,
@@ -8,29 +8,30 @@ import {
 } from '@mui/icons-material'
 import _ from 'lodash'
 import { Link, useLocation } from 'wouter'
-import MonitorPage from './MonitorPage'
-import OptionsPage from './OptionsPage';
-import VfsPage from './VfsPage';
-import AccountsPage from './AccountsPage';
 import HomePage from './HomePage'
 import LogoutPage from './LogoutPage';
-import LangPage from './LangPage'
-import LogsPage from './LogsPage';
-import PluginsPage from './PluginsPage';
 import { getHFS, HIDE_IN_TESTS, replaceStringToReact, WEBSITE } from '@hfs/shared'
-import CustomHtmlPage from './CustomHtmlPage';
-import InternetPage from './InternetPage'
+import type { PageProps } from './App'
 import { useWindowSize } from 'usehooks-ts'
 import { hTooltip } from './mui'
-import { PageProps } from './App'
 import { confirmDialog } from './dialog'
+
+const InternetPage = lazy(() => import('./InternetPage'))
+const OptionsPage = lazy(() => import('./OptionsPage'))
+const VfsPage = lazy(() => import('./VfsPage'))
+const AccountsPage = lazy(() => import('./AccountsPage'))
+const MonitorPage = lazy(() => import('./MonitorPage'))
+const LogsPage = lazy(() => import('./LogsPage'))
+const LangPage = lazy(() => import('./LangPage'))
+const PluginsPage = lazy(() => import('./PluginsPage'))
+const CustomHtmlPage = lazy(() => import('./CustomHtmlPage'))
 
 export interface MenuEntry {
     path: `/${string}`
     icon: SvgIconComponent
     label?: string
     title?: string
-    comp: FC<PageProps>
+    comp: ComponentType<PageProps>
     noPaddingOnMobile?: true
     subRoutes?: true
 }

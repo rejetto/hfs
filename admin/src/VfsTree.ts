@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { state, useSnapState } from './state'
+import { id2vfsNode, state, useSnapState, VfsNodeAdmin } from './state'
 import { createElement as h, ReactElement, useCallback, useEffect, useRef, MouseEvent } from 'react'
 import { TreeItem, SimpleTreeView } from '@mui/x-tree-view'
 import {
@@ -8,7 +8,7 @@ import {
     RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff, UnfoldMore, UnfoldLess
 } from '@mui/icons-material'
 import { Box, Typography } from '@mui/material'
-import { deleteVfs, id2vfsNode, isDescendantUri, reindexVfs, VfsNodeAdmin } from './VfsPage'
+import { deleteVfs } from './VfsPage'
 import { onlyTruthy, pathDecode, toMutable, wantArray, WhoVfs, with_ } from './misc'
 import { Flex, iconTooltip, useToggleButton } from './mui'
 import VfsMenuBar from './VfsMenuBar'

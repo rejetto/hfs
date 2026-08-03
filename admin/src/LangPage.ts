@@ -2,11 +2,11 @@
 
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react';
 import { apiCall, useApiEx, useApiList } from './api'
-import { DataTable, fillFlexParentSx } from './DataTable'
+import { DataTable } from './DataTable'
 import { Alert, Box } from '@mui/material'
 import { Delete, Upload } from '@mui/icons-material'
 import { CFG, readFile, selectFiles } from './misc'
-import { Btn, IconBtn } from './mui'
+import { Btn, fillFlexParentSx, IconBtn } from './mui'
 import { PageProps } from './App'
 import _ from 'lodash'
 import { alertDialog, toast } from './dialog'
