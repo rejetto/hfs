@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import fs from 'fs/promises'
-import { basename, dirname, join, resolve } from 'path'
+import { basename, dirname, join, resolve, sep } from 'path'
 import {
     CFG, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, WhoVfs, debounceAsync,
     isWhoObject, WHO_ANY_ACCOUNT, WHO_ADMIN, defaultPerms, PERM_KEYS, HTTP_SERVER_ERROR, try_, matches, Promisable,
@@ -203,6 +203,8 @@ async function setIsFolder(node: VfsNode) {
         || smartUncFolderDetection.get() && getUncHost(node.source) && !basename(node.source).includes('.') // no dot = folder; not very reliable but fast for unreachable unc hosts, and it's an opt-in
         || await nodeStats(node).then(x => x?.isDirectory(), () => undefined)
     setHidden(node, { isFolder })
+    if (isFolder)
+        persistFolderMarker(node)
     return isFolder
 }
 
@@ -261,11 +263,23 @@ export function nodeIsFolder(node: VfsNode) {
     function reconsider() {
         // a networked source may be offline at startup, and become online later: recalculate in the background
         nodeStats(node).then(s => {
-            if (s)
-                setHidden(node.original || node, { isFolder: s.isDirectory() })
+            if (s) {
+                const isFolder = s.isDirectory()
+                setHidden(node.original || node, { isFolder })
+                if (isFolder)
+                    persistFolderMarker(node)
+            }
         }, () => {})
         return undefined
     }
+}
+
+// we mark folder paths with a final slash – the UI already does so, but the config may be modified
+function persistFolderMarker(node: VfsNode) {
+    const stored = node.original || node // temporary VFS nodes must update their stored original for saveVfs to persist the marker
+    if (!stored.source || hasFinalSlash(stored.source)) return
+    stored.source += sep
+    void saveVfs()
 }
 
 export async function getDefaultFile(node: VfsNodeWithPath, ctx: Koa.Context) {
