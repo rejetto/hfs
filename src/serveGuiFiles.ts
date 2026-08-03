@@ -151,6 +151,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         proxyDetected: Boolean(getProxyDetected()),
                         dontOverwriteUploading: dontOverwriteUploading.get(),
                         splitUploads: splitUploads.get(),
+                        disableDefaultStyle: mapPlugins(p => p.disableDefaultStyle).some(Boolean),
                         kb: size1024.compiled(),
                         forceTheme: mapPlugins(p => _.isString(p.isTheme) ? p.isTheme : undefined).find(Boolean),
                         customHtml: _.omit(getAllSections(), ['top', 'bottom', 'htmlHead', 'style']), // exclude the sections we already apply in this phase
@@ -228,7 +229,7 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
         proxy = lib.default('127.0.0.1:'+port, {
             parseReqBody: false, // the dev GUI proxy serves app/assets, so avoid koa-better-http-proxy trying to reread ctx.req
             proxyReqPathResolver: (ctx) =>
-                shouldServeApp(ctx) ? '/' : ctx.path,
+                shouldServeApp(ctx) ? '/' : ctx.url,
             userResDecorator(_res, data, ctx) {
                 return shouldServeApp(ctx) ? treatIndex(ctx, uri, String(data))
                     : adjustBundlerLinks(ctx, uri, data)

@@ -171,6 +171,7 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
   it will be merged with other "exported" properties described in this section, so you can return `{ unload }` for example.
   If you return a function, this is just a shorter way to return the `unload`.
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
+- `disableDefaultStyle: boolean` prevents the default frontend style from being applied. Default is false.
   You can also include external files, by entering a full URL. Multiple files can be specified as `['file1.css', 'file2.css']`.  
 - `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
   You can also include external files, by entering a full URL.
@@ -1207,4 +1208,6 @@ If you want to override a text regardless of the language, use the special langu
 - 13.1 (v3.2.0)
   - backend events: logRotated
   - listDiskFolder gets "hidden" parameter
-  - backend event uploadFinished: fullPath corresponds to the path that was actually written 
+  - backend event uploadFinished: fullPath corresponds to the path that was actually written
+- 13.2 (v3.3.0)
+  - exports.disableDefaultStyle

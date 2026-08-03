@@ -339,6 +339,7 @@ export class Plugin implements CommonPluginInterface {
     get depend(): undefined | Depend { return this.data?.depend }
     get afterPlugin(): undefined | string { return this.data?.afterPlugin }
     get beforePlugin(): undefined | string { return this.data?.beforePlugin }
+    get disableDefaultStyle(): undefined | boolean { return this.data?.disableDefaultStyle }
 
     get middleware(): undefined | PluginMiddleware {
         return this.data?.middleware
@@ -436,6 +437,7 @@ export interface CommonPluginInterface {
     repo?: Repo
     depend?: Depend
     isTheme?: boolean | 'light' | 'dark'
+    disableDefaultStyle?: boolean
     preview?: string | string[]
     changelog?: unknown
 }

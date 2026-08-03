@@ -2,10 +2,14 @@
 
 import { createElement as h, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.scss'
+import defaultStyle from './index.scss?inline'
+import { getHFS } from '@hfs/shared'
 import '@hfs/shared/min-crypto-polyfill'
 import '@hfs/shared/polyfills'
 import App from './App'
+
+if (!getHFS().disableDefaultStyle)
+    document.head.append(Object.assign(document.createElement('style'), { textContent: defaultStyle }))
 
 createRoot(document.getElementById('root')!)
     .render( h(StrictMode, {}, h(App)) )
