@@ -1,5 +1,5 @@
 import {
-    CFG, DAY, Dict, haveTimeout, HOUR, HTTP_FAILED_DEPENDENCY, HTTP_OK, ipForUrl, MINUTE, repeat, formatDate,
+    CFG, Dict, haveTimeout, HOUR, HTTP_FAILED_DEPENDENCY, HTTP_OK, ipForUrl, MINUTE, repeat, formatDate,
 } from './misc'
 import { createServer, IncomingMessage, ServerResponse } from 'http'
 import { Middleware } from 'koa'

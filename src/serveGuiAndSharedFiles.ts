@@ -1,6 +1,6 @@
 import Koa from 'koa'
 import { basename, dirname, join } from 'path'
-import { getDefaultFile, getNodeName, nodeIsFolder, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, VfsNodeWithPath, walkNode } from './vfs'
+import { getDefaultFile, getNodeName, nodeIsFolder, statusCodeForMissingPerm, urlToNode, vfs, VfsNodeWithPath, walkNode } from './vfs'
 import { sendErrorPage } from './errorPages'
 import events from './events'
 import {

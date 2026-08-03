@@ -6,7 +6,6 @@ import {
     stopPlugin, startPlugin, CommonPluginInterface, getMissingDependencies, findPluginByRepo, suspendPlugins,
 } from './plugins'
 import _ from 'lodash'
-import assert from 'assert'
 import { apiAssertTypes, HTTP_CONFLICT, HTTP_PRECONDITION_FAILED, newObj, waitFor } from './misc'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { rm } from 'fs/promises'

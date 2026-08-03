@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { basename, dirname, join } from 'path'
+import { basename } from 'path'
 import Koa from 'koa'
 import { Connection } from './connections'
 export * from './util-http'
@@ -141,4 +141,3 @@ export function retrySync(cb: Callback, attempts=20, sleep=500) {
         }
     }
 }
-

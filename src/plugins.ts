@@ -4,8 +4,7 @@ import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
 import {
-    API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, IS_WINDOWS, MIME_AUTO, PLUGINS_PUB_URI, EMBEDDED_LANGUAGE,
-    HTTP_NOT_FOUND,
+    API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, MIME_AUTO, PLUGINS_PUB_URI, EMBEDDED_LANGUAGE, HTTP_NOT_FOUND,
 } from './const'
 import * as Const from './const'
 import Koa from 'koa'
@@ -22,7 +21,7 @@ import events from './events'
 import { mkdir, readdir, readFile, rm } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
 import { getConnections } from './connections'
-import { dirname, join, resolve } from 'path'
+import { dirname, join, resolve, sep } from 'path'
 import { watchLoadCustomHtml } from './customHtml'
 import { KvStorage, KvStorageOptions } from '@rejetto/kvstorage'
 import { onProcessExit } from './first'
@@ -567,7 +566,7 @@ function watchPlugin(id: string, path: string) {
 
             await alreadyRunning?.unload(true)
             console.debug("Starting plugin", id)
-            const storageDir = resolve(PATH, id, STORAGE_FOLDER) + (IS_WINDOWS ? '\\' : '/')
+            const storageDir = resolve(PATH, id, STORAGE_FOLDER) + sep
             await mkdir(storageDir, { recursive: true })
             const openDbs: KvStorage[] = []
             const subbedConfigs: Callback[] = []
