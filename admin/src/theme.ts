@@ -5,6 +5,7 @@ import { createElement as h, useMemo } from 'react'
 import { state, useSnapState } from './state'
 import { Btn, BtnProps } from './mui'
 import { Brightness4, Brightness7 } from '@mui/icons-material'
+import type {} from '@mui/x-data-grid/themeAugmentation'
 
 export function useDark() {
     return useMediaQuery('(prefers-color-scheme: dark)')
@@ -26,6 +27,11 @@ export function useMyTheme() {
             fontFamily: 'Roboto, "Noto sans", "Segoe UI", "San Francisco", "Helvetica Neue", Arial, sans-serif'
         },
         components: {
+            MuiDataGrid: {
+                styleOverrides: {
+                    panel: ({ theme }) => ({ color: theme.palette.text.primary }), // DataGrid panels are portaled and don't inherit the grid's foreground color
+                },
+            },
             MuiLink: {
                 defaultProps: lightMode || { color: 'primary.light' }, // primary.main too dark for dark theme
             },
