@@ -11,6 +11,7 @@ export * from './cross-const'
 
 export const API_VERSION = 13.2
 export const COMPATIBLE_API_VERSION = 1 // the day we break with the past, we'll update this
+export const FRONTEND_VERSION = 1 // contract of the frontend's markup, for themes painting on a bare base (suppressDefaultCss). Bump on any structural change that can break them.
 
 // you can add arguments with this file, currently used for the update process on mac/linux.
 // we are using homedir because it's the only stable path both the old and new process can agree on (open() doesn't preserve cwd)

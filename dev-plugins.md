@@ -144,6 +144,17 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
   instead of having to unset our rules. The whole default look goes away (`index.scss`, `dialog.css` and `toasts.scss`),
   and is not even downloaded. What's left for you to count on: the icon font, the `theme-dark`/`theme-light` class,
   the css variables of plugins' configs, the `style` section of custom.html, and your own `frontend_css`.
+  Requires `isTheme` and `frontendRequired`. Without them, or with a frontend you don't declare support for, the plugin
+  is refused just like a bad `apiRequired`: it stays inactive with the reason in the Admin panel, and the user gets the
+  default frontend. Consider that you are taking ownership of the whole look: when the markup changes your plugin will
+  stop starting until you release an update, because a half-styled page is worse than no theme.
+- `frontendRequired: number | [min:number,max:number]` version(s) of the frontend's markup the plugin was made for.
+  Only meaningful with `suppressDefaultCss`, where it is mandatory. It is a separate number from `apiRequired` because
+  it moves on its own schedule: the API version says what you can call, this one says what the html looks like, and HFS
+  bumps it whenever the markup changes structurally. Current frontend version is 1, also readable as
+  `api.Const.FRONTEND_VERSION`.
+  Unlike `apiRequired`, a single number is not a minimum but an exact match, since HFS makes no promise of backward
+  compatibility on the markup: use the array form to declare the range you have actually tested.
 - `preview: string | string[]` one or more URLs to images you want to show before your plugin is downloaded. *[STATIC JSON]* 
 - `depend: { repo: string, version: number }[]` declare what other plugins this depends on. *[STATIC JSON]*
 - `beforePlugin: string` control the order this plugin is executed relative to another
@@ -1214,3 +1225,5 @@ If you want to override a text regardless of the language, use the special langu
   - backend event uploadFinished: fullPath corresponds to the path that was actually written 
 - 13.2 (v3.3.0)
   - exports.suppressDefaultCss
+  - exports.frontendRequired
+  - api.Const.FRONTEND_VERSION

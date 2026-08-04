@@ -5,6 +5,7 @@ import { watchLoad } from './watchLoad'
 import _ from 'lodash'
 import {
     API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, MIME_AUTO, PLUGINS_PUB_URI, EMBEDDED_LANGUAGE, HTTP_NOT_FOUND,
+    FRONTEND_VERSION,
 } from './const'
 import * as Const from './const'
 import Koa from 'koa'
@@ -438,6 +439,7 @@ export interface CommonPluginInterface {
     depend?: Depend
     isTheme?: boolean | 'light' | 'dark'
     suppressDefaultCss?: boolean
+    frontendRequired?: number | [number,number]
     preview?: string | string[]
     changelog?: unknown
 }
@@ -565,6 +567,9 @@ function watchPlugin(id: string, path: string) {
             calculateBadApi(pluginData)
             if (pluginData.badApi)
                 throw Error(pluginData.badApi)
+            const badFrontend = calculateBadFrontend(pluginData)
+            if (badFrontend)
+                throw Error(badFrontend)
 
             await alreadyRunning?.unload(true)
             console.debug("Starting plugin", id)
@@ -731,6 +736,18 @@ function calculateBadApi(data: InactivePlugin) {
     data.badApi = !r ? "missing mandatory property apiRequired"
         : min > API_VERSION ? "may not work correctly as it is designed for a newer version of HFS - check for updates"
         : min < COMPATIBLE_API_VERSION || max < API_VERSION ? "may not work correctly as it is designed for an older version of HFS - check for updates"
+            : undefined
+}
+
+// dropping our style makes the plugin the owner of the whole look, and ties it to the markup it was made for
+function calculateBadFrontend(data: CommonPluginInterface) {
+    if (!data.suppressDefaultCss) return
+    if (!data.isTheme) // a plugin owning the look is a theme, and must be handled as one
+        return "missing mandatory property isTheme, required by suppressDefaultCss"
+    const r = data.frontendRequired
+    const [min=0, max=Infinity] = Array.isArray(r) ? r : [r, r] // unlike apiRequired, a single number is not a minimum, as the markup makes no promise of compatibility
+    return !r ? "missing mandatory property frontendRequired, required by suppressDefaultCss"
+        : min > FRONTEND_VERSION || max < FRONTEND_VERSION ? "designed for a different version of the frontend - check for updates"
             : undefined
 }
 
