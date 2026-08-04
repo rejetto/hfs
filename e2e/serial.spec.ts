@@ -108,12 +108,12 @@ async function startUpload1Diagnostics(page: Page) {
                         total: progress?.lengthComputable ? progress.total : undefined,
                     })).catch(() => {})
                 }
-                for (const event of ['loadstart', 'abort', 'error', 'timeout', 'loadend'])
-                    this.addEventListener(event, log.bind(null, event))
+                for (const event of ['loadstart', 'abort', 'error', 'timeout', 'loadend'] as const)
+                    this.addEventListener(event, e => log(event, e))
                 this.upload.addEventListener('progress', e => log('upload-progress', e))
                 this.addEventListener('readystatechange', () => log('readystatechange'))
             }
-            return originalSend.apply(this, args)
+            return Reflect.apply(originalSend, this, args)
         }
     })
     trackPage(page, 'main')
@@ -210,7 +210,22 @@ test('admin2', async ({ page, browserName }) => {
 
     await clickAdminMenu(page, 'Options')
     await expect(page.getByText('Correctly working on port')).toBeVisible()
+    const firstOptionsTab = page.getByRole('tab').first()
+    await expect(firstOptionsTab).toHaveAttribute('aria-selected', 'true')
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+    await expect(firstOptionsTab).toBeInViewport()
+    await page.getByRole('tab', { name: 'Front-end' }).click()
+    await expect(page).toHaveURL(/#\/options\/frontend$/)
+    await page.getByRole('spinbutton', { name: 'Auto-play seconds delay' }).fill('0')
+    await page.getByRole('tab', { name: 'Uploads' }).click()
+    await expect(page).toHaveURL(/#\/options\/uploads$/)
+    await page.locator('button.saveBtn').click()
+    await expect(page.getByText('Please review errors')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('tab', { name: 'Front-end' })).toHaveAttribute('aria-selected', 'true')
+    await expect(page).toHaveURL(/#\/options\/frontend$/)
     await page.getByRole('button', { name: 'Reload' }).click()
+    await firstOptionsTab.click()
     await page.getByRole('row', { name: /^Blocked/ }).getByRole('button', { name: /Add/ }).click()
     const addDialog = page.getByRole('dialog', { name: /Add/ })
     await addDialog.getByRole('textbox', { name: 'Blocked IP' }).fill('5.6.7.8')

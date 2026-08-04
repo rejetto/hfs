@@ -40,7 +40,7 @@ export const mainMenu: MenuEntry[] = [
     { path: '/', icon: Home, label: "Home", comp: HomePage },
     { path: '/fs', icon: AccountTree, label: "Shared files", comp: VfsPage },
     { path: '/accounts', icon: ManageAccounts, comp: AccountsPage },
-    { path: '/options', icon: Settings, comp: OptionsPage },
+    { path: '/options', icon: Settings, comp: OptionsPage, subRoutes: true },
     { path: '/internet', icon: Public, comp: InternetPage },
     { path: '/monitoring', icon: Monitor, comp: MonitorPage, noPaddingOnMobile: true },
     { path: '/logs', icon: History, comp: LogsPage, noPaddingOnMobile: true, subRoutes: true },
