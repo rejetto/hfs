@@ -9,10 +9,10 @@ jobs:
     permissions:
       contents: read
     env:
-      NODE_VERSION: '22'
+      NODE_VERSION: '24'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Resolve Windows pkg target
         id: pkg_target
@@ -30,7 +30,7 @@ jobs:
           "target=$target" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -62,13 +62,13 @@ jobs:
 
       - name: Upload unsigned artifact
         id: upload_unsigned
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: hfs-windows-unsigned
           path: dist/signpath/**
 
       - name: Sign with SignPath
-        uses: SignPath/github-action-submit-signing-request@v1
+        uses: SignPath/github-action-submit-signing-request@v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
@@ -97,7 +97,7 @@ jobs:
           Compress-Archive -Path "$outputDir/*" -DestinationPath 'dist/hfs-windows-x64-signed.zip' -Force
 
       - name: Upload signed package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: hfs-windows-signed
           path: dist/hfs-windows-x64-signed.zip

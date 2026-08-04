@@ -18,7 +18,7 @@ on:
         type: string
 
 env:
-  NODE_VERSION: '22'
+  NODE_VERSION: '24'
 
 jobs:
   windows:
@@ -28,7 +28,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Resolve Windows pkg target
         id: pkg_target
@@ -46,7 +46,7 @@ jobs:
           "target=$target" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -78,13 +78,13 @@ jobs:
 
       - name: Upload unsigned artifact
         id: upload_unsigned
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: hfs-windows-unsigned
           path: dist/signpath/**
 
       - name: Sign with SignPath
-        uses: SignPath/github-action-submit-signing-request@v1
+        uses: SignPath/github-action-submit-signing-request@v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
@@ -117,7 +117,7 @@ jobs:
           Compress-Archive -Path "$outputDir/*" -DestinationPath $target -Force
 
       - name: Upload signed package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: release-assets-windows
           path: dist/hfs-windows-x64-*.zip
@@ -131,10 +131,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -155,7 +155,7 @@ jobs:
         run: npm run dist-bin-linux
 
       - name: Upload Linux package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: release-assets-linux
           path: dist/hfs-linux-x64-*.zip
@@ -169,10 +169,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -193,7 +193,7 @@ jobs:
         run: npm run dist-bin-linux-arm
 
       - name: Upload Linux arm64 package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: release-assets-linux-arm64
           path: dist/hfs-linux-arm64-*.zip
@@ -207,10 +207,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -231,7 +231,7 @@ jobs:
         run: npm run dist-bin-mac
 
       - name: Upload macOS x64 package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: release-assets-mac-x64
           path: dist/hfs-mac-x64-*.zip
@@ -245,10 +245,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -269,7 +269,7 @@ jobs:
         run: npm run dist-bin-mac-arm
 
       - name: Upload macOS arm64 package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: release-assets-mac-arm
           path: dist/hfs-mac-arm64-*.zip
@@ -282,7 +282,7 @@ jobs:
       contents: write
     steps:
       - name: Download assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: release-assets-*
           merge-multiple: true
@@ -297,7 +297,7 @@ jobs:
           echo "name=${tag#v}" >> "$GITHUB_OUTPUT"
 
       - name: Create draft release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.tag }}
           name: ${{ steps.release_title.outputs.name }}
