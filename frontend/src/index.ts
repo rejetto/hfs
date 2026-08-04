@@ -2,10 +2,17 @@
 
 import { createElement as h, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.scss'
 import '@hfs/shared/min-crypto-polyfill'
 import '@hfs/shared/polyfills'
+import { getHFS } from '@hfs/shared'
 import App from './App'
 
-createRoot(document.getElementById('root')!)
-    .render( h(StrictMode, {}, h(App)) )
+if (getHFS().bare) // a theme is taking over the look, so we skip the download too
+    start()
+else
+    import('./defaultCss').then(start) // render only once styled, or we'd flash unstyled content
+
+function start() {
+    createRoot(document.getElementById('root')!)
+        .render( h(StrictMode, {}, h(App)) )
+}

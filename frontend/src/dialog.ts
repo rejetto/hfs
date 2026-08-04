@@ -2,7 +2,6 @@
 
 import { createElement as h, ReactElement, ReactNode, useEffect, useRef, useState, KeyboardEvent,
     InputHTMLAttributes } from 'react'
-import './dialog.css'
 import { newDialog, closeDialog, DialogOptions, dialogsDefaults } from '@hfs/shared/dialogs'
 import _ from 'lodash'
 import { useInterval } from 'usehooks-ts'

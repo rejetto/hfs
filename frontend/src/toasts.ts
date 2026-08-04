@@ -5,7 +5,6 @@ import { proxy, ref, useSnapshot } from 'valtio'
 import { AlertType } from './dialog'
 import { hIcon, pendingPromise } from './misc'
 import _ from 'lodash'
-import './toasts.scss'
 
 type ToastType = AlertType | 'success'
 type Content = string | ReactElement

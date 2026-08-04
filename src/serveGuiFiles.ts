@@ -130,6 +130,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
             group++
         return ret
     }))
+    const bare = Boolean(isFrontend) && mapPlugins(p => p.suppressDefaultCss).some(Boolean) // a theme is asking for a bare base, without our default look
     return body
         .replace(/((?:src|href) *= *['"])\/?(?!([a-z]+:\/)?\/)(?!\?)/g, '$1' + ctx.state.revProxyPath + filesUri)
         .replace(/<(\/)?(head|body)>/g, (all, isClose, name) => { // must make these changes in one .replace call, otherwise we may encounter head/body tags due to customHtml. This simple trick makes html parsing unnecessary.
@@ -147,6 +148,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         session: session instanceof ApiError ? null : session,
                         plugins,
                         loadScripts,
+                        bare, // the frontend will skip our stylesheets entirely, not even downloading them
                         prefixUrl: ctx.state.revProxyPath || '',
                         proxyDetected: Boolean(getProxyDetected()),
                         dontOverwriteUploading: dontOverwriteUploading.get(),

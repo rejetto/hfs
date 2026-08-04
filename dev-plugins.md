@@ -140,6 +140,10 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
 - `isTheme: boolean | "light" | "dark"` set true if this is a theme that's not supposed to work together with other themes. 
   Running a theme will cause other themes to be stopped. Missing this, HFS will check if the name of the plugin ends with `-theme`.
   Special values "light" and "dark" to declare whether the theme is (for example) dark and forces HFS to use dark-theme as a base.   
+- `suppressDefaultCss: boolean` don't load the default style of the frontend, so your theme can paint on a bare page,
+  instead of having to unset our rules. The whole default look goes away (`index.scss`, `dialog.css` and `toasts.scss`),
+  and is not even downloaded. What's left for you to count on: the icon font, the `theme-dark`/`theme-light` class,
+  the css variables of plugins' configs, the `style` section of custom.html, and your own `frontend_css`.
 - `preview: string | string[]` one or more URLs to images you want to show before your plugin is downloaded. *[STATIC JSON]* 
 - `depend: { repo: string, version: number }[]` declare what other plugins this depends on. *[STATIC JSON]*
 - `beforePlugin: string` control the order this plugin is executed relative to another
@@ -1208,3 +1212,5 @@ If you want to override a text regardless of the language, use the special langu
   - backend events: logRotated
   - listDiskFolder gets "hidden" parameter
   - backend event uploadFinished: fullPath corresponds to the path that was actually written 
+- 13.2 (v3.3.0)
+  - exports.suppressDefaultCss

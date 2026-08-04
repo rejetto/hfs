@@ -335,6 +335,7 @@ export class Plugin implements CommonPluginInterface {
     get description(): undefined | string { return this.data?.description }
     get apiRequired(): undefined | number | [number,number] { return this.data?.apiRequired }
     get isTheme(): undefined | boolean { return this.data?.isTheme }
+    get suppressDefaultCss(): undefined | boolean { return this.data?.suppressDefaultCss }
     get repo(): undefined | Repo { return this.data?.repo }
     get depend(): undefined | Depend { return this.data?.depend }
     get afterPlugin(): undefined | string { return this.data?.afterPlugin }
@@ -436,6 +437,7 @@ export interface CommonPluginInterface {
     repo?: Repo
     depend?: Depend
     isTheme?: boolean | 'light' | 'dark'
+    suppressDefaultCss?: boolean
     preview?: string | string[]
     changelog?: unknown
 }
