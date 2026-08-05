@@ -14,7 +14,7 @@ process.chdir(dist + nm)
 console.log('more pruning')
 for (const f of ['fswin/ia32', 'fswin/arm64', 'node-forge/dist', 'node-forge/flash', 'axios/lib', 'react', 'yaml/browser', 'limiter/dist/esm'])
     fs.rmSync(f, {recursive:true})
-for (const fn of glob.sync(['**/*.map', '**/*.tsbuildinfo', '**/*.bak', '**/*.ts', '**/license', '**/*.md']))
+for (const fn of glob.sync(['fs-x-attributes/prebuilds/win32-*', '**/*.map', '**/*.tsbuildinfo', '**/*.bak', '**/*.ts', '**/license', '**/*.md']))
     fs.unlinkSync(fn)
 
 console.log('pruning lodash')
