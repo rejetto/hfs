@@ -846,6 +846,18 @@ describe('webdav', () => {
         },
         body: WEBDAV_PROPPATCH_BODY,
     }))
+    test('webdav.proppatch rejects timestamp changes on virtual nodes', req('/renameChild/orderTest/', data =>
+        /<D:Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 403 Forbidden/.test(data), {
+        method: 'PROPPATCH',
+        auth,
+        jar,
+        headers: {
+            'content-type': 'text/xml',
+            'content-length': Buffer.byteLength(WEBDAV_PROPPATCH_BODY),
+            'user-agent': WEBDAV_UA,
+        },
+        body: WEBDAV_PROPPATCH_BODY,
+    }))
     test('webdav.proppatch metadata grace is bound to recent upload', async () => {
         const staleName = `wd-proppatch-stale-${randomId(6)}.txt`
         const freshName = `wd-proppatch-fresh-${randomId(6)}.txt`

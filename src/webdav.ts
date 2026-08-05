@@ -481,14 +481,18 @@ async function applyProppatchProp(prop: ProppatchProp, node: VfsNode, path: stri
     const k = prop.name.toLowerCase()
     if (PROPPATCH_PROTECTED_LIVE_PROPS.has(k))
         return HTTP_FORBIDDEN
-    if (node.source && (PROPPATCH_UTIME_PROPS.has(k) || IS_WINDOWS && k === 'win32fileattributes')) {
-        // WebDAV clients patch metadata right after upload; outside that short same-username grace, metadata writes are file modifications
-        const missingWritePerm = canOverwrite.has(path + prefix('|', getCurrentUsername(ctx))) ? 0
-            : statusCodeForMissingPerm(node, 'can_delete', ctx, false)
-        if (missingWritePerm)
-            return missingWritePerm
-    }
-    if (node.source && PROPPATCH_UTIME_PROPS.has(k)) {
+    if (!PROPPATCH_UTIME_PROPS.has(k)
+    && !(IS_WINDOWS && k === 'win32fileattributes'))
+        return HTTP_OK // PROPPATCH is only persisted when HFS gets real dead-property storage; no-op success keeps Windows and macOS clients from aborting writes
+    const { source } = node
+    if (!source)
+        return HTTP_FORBIDDEN
+    // WebDAV clients patch metadata right after upload; outside that short same-username grace, metadata writes are file modifications
+    const missingWritePerm = canOverwrite.has(path + prefix('|', getCurrentUsername(ctx))) ? 0
+        : statusCodeForMissingPerm(node, 'can_delete', ctx, false)
+    if (missingWritePerm)
+        return missingWritePerm
+    if (PROPPATCH_UTIME_PROPS.has(k)) {
         const date = new Date(String(prop.value))
         if (isNaN(Number(date)))
             return HTTP_BAD_REQUEST
@@ -496,19 +500,18 @@ async function applyProppatchProp(prop: ProppatchProp, node: VfsNode, path: stri
         const atime = k === 'win32lastaccesstime' ? date : stats?.atime ?? new Date()
         const mtime = k === 'win32lastmodifiedtime' ? date : stats?.mtime ?? new Date()
         // WebDAV clients often use dead properties for file times; apply the portable subset instead of only pretending success
-        await utimes(node.source, atime, mtime)
+        await utimes(source, atime, mtime)
     }
-    if (node.source && IS_WINDOWS && k === 'win32fileattributes') {
+    else {
         const attributes = parseWindowsFileAttributes(prop.value)
         if (attributes === undefined)
             return HTTP_BAD_REQUEST
         // fswin is already our Windows attribute bridge; this keeps PROPPATCH metadata aligned with the actual filesystem
         const ok = await new Promise<boolean>(resolve =>
-            fswin.setAttributes(node.source!, _.mapValues(WINDOWS_FILE_ATTRIBUTE_FLAGS, flag => Boolean(attributes & flag)), ok => resolve(Boolean(ok))) )
+            fswin.setAttributes(source, _.mapValues(WINDOWS_FILE_ATTRIBUTE_FLAGS, flag => Boolean(attributes & flag)), ok => resolve(Boolean(ok))) )
         if (!ok)
             return HTTP_SERVER_ERROR
     }
-    // PROPPATCH is only persisted when HFS gets real dead-property storage; no-op success keeps Windows and macOS clients from aborting writes
     return HTTP_OK
 }
 
