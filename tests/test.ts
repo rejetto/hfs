@@ -1695,6 +1695,95 @@ describe('admin', () => {
             await reqApi('set_config', { values: { server_code: '' } }, 200, { auth })().catch(() => {})
         }
     })
+    test('watchLoad.save waits for active reads', async () => {
+        const previous = await reqApi('get_config', { only: ['server_code'] }, 200, { auth })().then(x => x.server_code)
+        const marker = `watch-load-race-${randomId(6)}`
+        const script = `// ${marker}
+exports.init = api => {
+    const fs = require('fs/promises')
+    const fsSync = require('fs')
+    const { configFile } = require('./config')
+    const originalReadFile = fs.readFile
+    const originalWriteFile = fs.writeFile
+    let testing = false
+    let reading = false
+    let writeStarted = false
+    let startRead, releaseRead, releaseWrite
+    const readStarted = new Promise(resolve => startRead = resolve)
+    const readGate = new Promise(resolve => releaseRead = resolve)
+    const writeGate = new Promise(resolve => releaseWrite = resolve)
+
+    fs.readFile = async (path, ...args) => {
+        if (testing && String(path).endsWith(api.Const.CONFIG_FILE)) {
+            testing = false
+            reading = true
+            startRead()
+            await readGate
+        }
+        return originalReadFile(path, ...args)
+    }
+    fs.writeFile = async (path, data, ...args) => {
+        if (reading && String(path).endsWith(api.Const.CONFIG_FILE)) {
+            writeStarted = true
+            // emulate writeFile's truncate-to-write window deterministically
+            fsSync.truncateSync(path, 0)
+            await writeGate
+        }
+        return originalWriteFile(path, data, ...args)
+    }
+    exports.customRest = {
+        async watch_load_race({ text }) {
+            let saving
+            try {
+                testing = true
+                await originalWriteFile(api.Const.CONFIG_FILE, await originalReadFile(api.Const.CONFIG_FILE))
+                await Promise.race([
+                    readStarted,
+                    new Promise((_, reject) => setTimeout(() => reject(Error('watcher did not reload config')), 3000)),
+                ])
+                saving = configFile.save(text, { reparse: true })
+                // let save reach its first blocking point before inspecting it
+                await new Promise(resolve => setImmediate(resolve))
+                const overlapped = writeStarted
+                releaseRead()
+                await new Promise(resolve => setImmediate(resolve))
+                releaseWrite()
+                await saving
+                reading = false
+                return { overlapped }
+            }
+            finally {
+                reading = false
+                releaseRead()
+                releaseWrite()
+                await saving?.catch(() => {})
+            }
+        },
+    }
+    return () => {
+        fs.readFile = originalReadFile
+        fs.writeFile = originalWriteFile
+        releaseRead()
+        releaseWrite()
+    }
+}`
+        await reqApi('set_config', { values: { server_code: script } }, 200, { auth })()
+        try {
+            const saved = await waitFor(async () =>
+                (await reqApi('get_config_text', {}, 200, { auth })()).text.includes(marker),
+            { interval: 50, timeout: 3000 })
+            if (!saved)
+                throw Error('server_code was not saved')
+            await wait(1100) // let watcher activity from installing server_code settle before arranging the race
+            const text = (await reqApi('get_config_text', {}, 200, { auth })()).text + '\n'
+            const res = await reqApi('_watch_load_race', { text }, x => typeof x?.overlapped === 'boolean', { auth })()
+            if (res.overlapped)
+                throw Error('save started while config was being read')
+        }
+        finally {
+            await reqApi('set_config', { values: { server_code: previous } }, 200, { auth })().catch(() => {})
+        }
+    })
     test('plugins.download-counter percent name', async () => {
         const id = 'download-counter'
         await reqApi('start_plugin', { id }, 200, { auth })()

@@ -21,6 +21,8 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
     let last: string | undefined
     const emitter = new BetterEventEmitter()
     const save = debounceAsync(async (data: string, { reparse=false }={}) => {
+        if (doing)
+            await debounced.isWorking()
         await fs.writeFile(path, data, 'utf8')
         last = data
         if (reparse)
@@ -63,9 +65,10 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
 
     async function load(){
         if (doing) return
+        const saving = save.flush() // saves started after this handoff wait for the read, while we wait only for the save captured here
         doing = true
         try {
-            await save.flush() // apply pending saves first
+            await saving // apply pending saves first
             const text = await readFileWithBusyRetry(path).catch(e => { // ignore read errors
                 if (e.code === 'EPERM')
                     console.error("Missing permissions on file", path) // warn user, who could be clueless about this problem
