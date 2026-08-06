@@ -295,6 +295,7 @@ export function nodeIsFolder(node: VfsNode) {
 
 // we mark folder paths with a final slash – the UI already does so, but the config may be modified
 function persistFolderMarker(node: VfsNode) {
+    if ('original' in node && !node.original) return // disk-derived nodes are temporary and must not persist VFS changes
     const stored = node.original || node // temporary VFS nodes must update their stored original for saveVfs to persist the marker
     if (!stored.source || hasFinalSlash(stored.source)) return
     stored.source += sep
