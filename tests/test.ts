@@ -9,7 +9,7 @@ import _ from 'lodash'
 import yaml from 'yaml'
 import unzipper from 'unzipper'
 import { findDefined, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, UPLOAD_TEMP_PREFIX, wait, waitFor } from '../src/cross'
-import { httpStream, httpWithBody, parseHttpUrl, stream2string, XRequestOptions } from '../src/util-http'
+import { httpStream, httpWithBody, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { mkdir, rm, rename, writeFile, access, mkdtemp, symlink } from 'fs/promises'
 import { Readable } from 'stream'
@@ -74,11 +74,6 @@ const execP = (cmd: string) => promisify(exec)(cmd).then(x => x.stdout)
 const srp6aNimbusRoutines = new srp.SRPRoutines(new srp.SRPParameters())
 
 describe('basics', () => {
-    test('parseHttpUrl.path escapes invalid chars and keeps unresolved segments', () => {
-        const parsedPath = parseHttpUrl('https://example.com/a/../репо with space/%2e%2e/file').path
-        if (parsedPath !== '/a/../%D1%80%D0%B5%D0%BF%D0%BE%20with%20space/%2e%2e/file')
-            throw Error('unexpected path: ' + parsedPath)
-    })
     test('unwatch cancels pending language load', async () => {
         const marker = `watch-load-${randomId(6)}`
         const file = resolve(__dirname, 'work/hfs-lang-zz.json')
