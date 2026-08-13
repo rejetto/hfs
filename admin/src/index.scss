@@ -98,6 +98,36 @@ h2.MuiDialogTitle-root { /* less padding */
   100% { transform: inherit; color: inherit; }
 }
 
+@keyframes wave {
+  from { transform: rotate(-20deg); }
+  to { transform: rotate(20deg); }
+}
+
+.usage-stats-celebrate::before, .usage-stats-celebrate::after {
+  content: '▪ • ▲';
+  position: absolute;
+  inset: .2em auto auto .4em;
+  color: #f44336;
+  font-size: .35em;
+  white-space: nowrap;
+  animation: confetti-left 1s ease-out forwards;
+}
+.usage-stats-celebrate::after {
+  color: #2196f3;
+  animation-name: confetti-right;
+}
+@keyframes celebrate {
+  0% { transform: scale(.3) rotate(-20deg); }
+  45% { transform: scale(1.35) rotate(10deg); }
+  100% { transform: none; }
+}
+@keyframes confetti-left {
+  to { transform: translate(-2em, -2em) rotate(-90deg); opacity: 0; }
+}
+@keyframes confetti-right {
+  to { transform: translate(2em, -2em) rotate(90deg); opacity: 0; }
+}
+
 // (try) avoid hidden scrollbars
 ::-webkit-scrollbar { width: 4px }
 ::-webkit-scrollbar-thumb { background: #8888 }

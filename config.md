@@ -130,6 +130,7 @@ Some properties use a `Who` descriptor, with one of these values:
   To hide an entry from listings while still allowing downloads, use `can_see: false` instead.
 - `show_uploader` who can see who uploaded files. Value is a `Who` descriptor. Default is `"admin"`.
 - `update_to_beta` includes beta versions searching for updates. Default is false.
+- `share_usage_stats` opts in to sharing a random installation ID, HFS version, and installed plugin repositories, versions, and enabled states once a day. Default is false.
 - `roots` maps hosts (or mask of hosts) to a root different from the home folder. Default is none. E.g.
   ```
   roots:
