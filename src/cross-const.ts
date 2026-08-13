@@ -8,6 +8,7 @@ export const PORT_DISABLED = -1
 export const NBSP = '\xA0'
 export const PLUGIN_CUSTOM_REST_PREFIX = '_'
 export const HFS_REPO = 'rejetto/hfs'
+export const PLUGIN_USAGE_URL = 'https://hfs-api.rejetto.com/plugin-usage'
 export const UPLOAD_TEMP_PREFIX = 'hfs$upload-'
 export const UPLOAD_TEMP_HASH = 'upload-temp-hash'
 export const MTIME_CHECK = 'x-mtime-check'
@@ -36,7 +37,7 @@ export const CFG = constMap([
     'max_downloads_per_ip', 'max_kbps', 'max_kbps_per_ip', 'menu_at_top', 'mime',
     'min_available_mb', 'open_browser_at_start', 'outbound_interface', 'outbound_proxy', 'own_upload_delete_hours',
     'page_size', 'plugins_config', 'port', 'private_key', 'proxies', 'roots', 'server_code',
-    'session_duration', 'show_hidden_files', 'show_uploader', 'size_1024',
+    'session_duration', 'share_usage_stats', 'show_hidden_files', 'show_uploader', 'size_1024',
     'smart_unc_folder_detection', 'sort_by', 'sort_numerics', 'split_uploads',
     'suspend_plugins', 'theme', 'tile_size', 'title', 'title_with_path', 'track_ips',
     'update_to_beta', 'upnp_enabled', 'version', 'vfs', 'webdav_initial_auth',

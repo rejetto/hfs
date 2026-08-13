@@ -1,11 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, ReactNode, useState } from 'react'
-import { Box, Card, CardContent, Link } from '@mui/material'
+import { Box, Card, CardContent, Checkbox, FormControlLabel, Link } from '@mui/material'
 import { apiCall, useApiEx, useApiList } from './api'
 import {
     dontBotherWithKeys, onlyTruthy, prefix, REPO_URL, md,
-    replaceStringToReact, wait, with_, DAY, HOUR, PREVIOUS_TAG
+    replaceStringToReact, wait, with_, DAY, HOUR, PREVIOUS_TAG, PLUGIN_USAGE_URL
 } from './misc'
 import { Btn, Flex, InLink, LinkBtn, wikiLink, } from './mui'
 import {
@@ -28,12 +28,14 @@ export default function HomePage() {
     const { username } = useSnapState()
     const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<typeof adminApis.get_status>('get_status')
     const { data: account } = useApiEx<typeof adminApis.get_account>(username && 'get_account')
-    const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'ignore_proxies', 'vfs', 'split_uploads'] })
+    const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'ignore_proxies', 'vfs', 'split_uploads', 'share_usage_stats'] })
     const { list: plugins } = useApiList('get_plugins')
     const [checkPlugins, setCheckPlugins] = useState(false)
     const { list: pluginUpdates} = useApiList(checkPlugins && 'get_plugin_updates')
     const [updates, setUpdates] = useState<undefined | Release[]>()
     const [otherVersions, setOtherVersions] = useState<undefined | Release[]>()
+    const [usageStatsFeedback, setUsageStatsFeedback] = useState<boolean>()
+    const shareUsage = Boolean(cfg.data?.share_usage_stats)
     if (statusEl || !status) // !status here to shut up ts
         return statusEl
     const { http, https } = status
@@ -146,6 +148,39 @@ export default function HomePage() {
                         }))),
             ),
             h(SwitchThemeBtn),
+            h(FormControlLabel, {
+                label: h(Box, { sx: { fontSize: 'large' } }, "Help motivate authors 💪 by sharing anonymous usage stats",
+                    SOLUTION_SEP,
+                    h(Link, { href: '#', onClick(ev) {
+                        ev.stopPropagation()
+                        ev.preventDefault()
+                        showUsageStatsInfo()
+                    } }, "how it helps")
+                ),
+                control: h(Box, { sx: { position: 'relative', display: 'inline-flex' } },
+                    h(Checkbox, {
+                        checked: shareUsage,
+                        onChange(ev) {
+                            const v = ev.target.checked
+                            apiCall('set_config', { values: { share_usage_stats: v } })
+                                .then(() => {
+                                    setUsageStatsFeedback(v)
+                                    return cfg.reload()
+                                }, alertDialog)
+                        }
+                    }),
+                    usageStatsFeedback !== undefined && h('span', {
+                        'aria-hidden': true,
+                        className: usageStatsFeedback ? 'usage-stats-celebrate' : undefined,
+                        style: {
+                            position: 'absolute', bottom: '-1em', right: '-1em', pointerEvents: 'none', fontSize: '2em', lineHeight: 1,
+                            transformOrigin: '70% 80%',
+                            animation: usageStatsFeedback ? 'celebrate 1s ease-out' : 'wave .18s 5 alternate ease-in-out',
+                        },
+                        onAnimationEnd: () => setUsageStatsFeedback(undefined),
+                    }, usageStatsFeedback ? '🎉' : '👋')
+                )
+            }),
             Date.now() - Number(new Date(status.started)) > HOUR && h(Link, {
                 title: "Donate",
                 target: 'donate',
@@ -159,8 +194,34 @@ export default function HomePage() {
         return apiCall<typeof adminApis.get_other_versions>('get_other_versions')
             .then(x => setOtherVersions(x.options), alertDialog)
     }
-}
 
+    function showUsageStatsInfo() {
+        alertDialog(h(Box, { sx: { alignSelf: 'stretch' } },
+            h('p', {}, "It's like saying \"I'm using your program, thanks!\" so that we can count people."),
+            h('p', {}, "Knowing that people actively use HFS and its plugins gives their authors a concrete reason to keep improving them."),
+            h('p', {}, "Numbers turn otherwise invisible users into visible encouragement. 💪"),
+            h('details', {},
+                h('summary', {}, "Details"),
+                h('p', {}, "What is sent:"),
+                h(Box, { sx: { overflow: 'auto', p: 1, bgcolor: 'action.hover', whiteSpace: 'pre' } },
+`{
+  "uuid": "random installation UUID",
+  "hfsVersion": "${status?.version}",
+  "plugins": [
+    {
+      "repo": "owner/repository",
+      "version": 1,
+      "enabled": true
+    }
+  ]
+}`),
+                h('p', {}, "Turning participation off deletes your installation's report."),
+                h(Link, { href: PLUGIN_USAGE_URL, target: 'plugin-stats' }, "See public statistics"),
+        ),
+        ), { title: "Anonymous statistics" })
+    }
+
+}
 function Update({ info, title, bodyCollapsed, fromAuto, disabled }: { title?: ReactNode, info: Release, bodyCollapsed?: boolean, fromAuto?: true, disabled?: boolean }) {
     const [collapsed, setCollapsed] = useState(bodyCollapsed)
     return h(Flex, { alignItems: 'flex-start', flexWrap: 'wrap' },

@@ -36,7 +36,7 @@ export async function httpWithBody(url: string, options?: XRequestOptions): Prom
 }
 
 export interface XRequestOptions extends https.RequestOptions {
-    body?: string | Buffer | Readable
+    body?: string | Buffer | Readable | object
     proxy?: string // url format
     // very basic cookie store
     jar?: { [host: string]: { [cookieName: string]: string } }
@@ -65,12 +65,13 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
             options.headers['user-agent'] = httpStream.defaultUA
         if (body) {
             options.method ||= 'POST'
-            if (_.isPlainObject(body)) {
-                options.headers['content-type'] ??= 'application/json'
-                body = JSON.stringify(body)
-            }
-            if (!(body instanceof Readable))
+            if (!(body instanceof Readable)) {
+                if (typeof body === 'object' && !(body instanceof Buffer)) {
+                    options.headers['content-type'] ??= 'application/json'
+                    body = JSON.stringify(body)
+                }
                 options.headers['content-length'] ??= Buffer.byteLength(body)
+            }
         }
         const { auth, ...parsed } = parseHttpUrl(url)
         const hostJar = jar && (jar[parsed.hostname || ''] ||= {})
