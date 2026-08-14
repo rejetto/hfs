@@ -1,5 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
+import { t } from './i18n'
+
 import { id2vfsNode, state, useSnapState, VfsNodeAdmin } from './state'
 import { createElement as h, ReactElement, useCallback, useEffect, useRef, MouseEvent } from 'react'
 import { TreeItem, SimpleTreeView } from '@mui/x-tree-view'
@@ -63,7 +65,7 @@ export default function VfsTree({ statusApi, isSideBreakpoint }:{ statusApi: Api
                     if (!from?.length) return
                     const movingCount = from.length
                     if (moveVfs(from, id))
-                        toast(`Moved ${movingCount} item(s) under "${id2vfsNode.get(id)?.name}"`, 'success')
+                        toast(t('items_moved', { n: movingCount, name: id2vfsNode.get(id)?.name }), 'success')
                 },
                 sx: {
                     display: 'flex',
@@ -80,21 +82,22 @@ export default function VfsTree({ statusApi, isSideBreakpoint }:{ statusApi: Api
                             display: 'grid', gridAutoFlow: 'column', gridTemplateRows: 'auto auto', height: '1em',
                         }
                     },
-                        node.can_delete != null && iconTooltip(Delete, "Delete permission"),
-                        node.can_upload != null && iconTooltip(Upload, "Upload permission"),
-                        !isRoot && !node.source && !node.url && iconTooltip(Cloud, "Virtual (no source)"),
-                        isRestricted(node.can_see) && iconTooltip(RemoveRedEye, "Restrictions on who can see"),
-                        isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),
-                        node.default && iconTooltip(Web, "Show as web-page"),
-                        node.masks && iconTooltip(TheaterComedy, "Masks"),
-                        node.size === -1 && iconTooltip(HighlightOff, "Source not found"),
-                        rootFor && iconTooltip(Home, `home for ${rootFor}`)
+                        node.can_delete != null && iconTooltip(Delete, t`Delete permission`),
+                        node.can_upload != null && iconTooltip(Upload, t`Upload permission`),
+                        !isRoot && !node.source && !node.url && iconTooltip(Cloud, t`Virtual (no source)`),
+                        isRestricted(node.can_see) && iconTooltip(RemoveRedEye, t`Restrictions on who can see`),
+                        isRestricted(node.can_read) && iconTooltip(Lock, t`Restrictions on who can download`),
+                        node.default && iconTooltip(Web, t`Show as web-page`),
+                        node.masks && iconTooltip(TheaterComedy, t`Masks`),
+                        node.size === -1 && iconTooltip(HighlightOff, t`Source not found`),
+                        rootFor && iconTooltip(Home, t("home for {rootFor}", { rootFor: rootFor }))
                     ),
                 ),
-                isRoot ? "Home folder" : name
+                isRoot ? t`Home folder` : name
             ),
             itemId: id
-        }, with_(node.source && isFolder ? "files from " + node.source : !node.children?.length && isRoot && "nothing here", x =>
+        }, with_(node.source && isFolder ? t("files from {source}", { source: node.source })
+                : !node.children?.length && isRoot && t`nothing here`, x =>
                 x && h(TreeItem, { itemId: SPECIAL_TREE_ITEM + id, label: h('i', {}, x) })),
             ...node.children?.map(x => h(Branch, { key: x.id, node: x })) || []
         )
@@ -117,7 +120,7 @@ export default function VfsTree({ statusApi, isSideBreakpoint }:{ statusApi: Api
         once = false
         state.expanded = initialExpansion
     }
-    const [_expandAll, toggleBtn] = useToggleButton("Collapse all", "Expand all", exp => ({
+    const [_expandAll, toggleBtn] = useToggleButton(t`Collapse all`, t`Expand all`, exp => ({
         icon: exp ? UnfoldLess : UnfoldMore,
         sx: { rotate: exp ? 0 : '180deg' },
         onClick() {
@@ -135,7 +138,7 @@ export default function VfsTree({ statusApi, isSideBreakpoint }:{ statusApi: Api
     }, [first])
     return h(Flex, { flexDirection: 'column', alignItems: 'stretch', flex: 1 },
         h(Flex, { mb: 1, flexWrap: 'wrap', gap: [1, 2], mt: '2px' /*account for the save button's outline*/ },
-            h(Typography, { variant: 'h6' }, "Virtual File System"),
+            h(Typography, { variant: 'h6' }, t`Virtual File System`),
             h(VfsMenuBar, { statusApi, add: toggleBtn, isSideBreakpoint }),
         ),
         vfs && h(SimpleTreeView, {
@@ -172,8 +175,8 @@ export default function VfsTree({ statusApi, isSideBreakpoint }:{ statusApi: Api
 }
 
 export function vfsNodeIcon(node: VfsNodeAdmin) {
-    return node.isRoot ? iconTooltip(Home, "home, or root if you like")
-        : node.type === 'folder' ? iconTooltip(FolderIcon, "Folder")
-            : node.url ? iconTooltip(Link, "Web-link")
-                : iconTooltip(FileIcon, "File")
+    return node.isRoot ? iconTooltip(Home, t`home, or root if you like`)
+        : node.type === 'folder' ? iconTooltip(FolderIcon, t`Folder`)
+            : node.url ? iconTooltip(Link, t`Web-link`)
+                : iconTooltip(FileIcon, t`File`)
 }

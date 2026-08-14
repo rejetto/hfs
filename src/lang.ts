@@ -38,11 +38,13 @@ export async function getLangData(ctxOrLangCsv: Koa.Context | string) {
     const csv = ctxOrLangCsv.toLowerCase()
     return cache.try(csv, async () => {
         const langs = csv.split(',').map(normalizeLangCode).filter(Boolean)
+        if (!langs.includes(EMBEDDED_LANGUAGE))
+            langs.push(EMBEDDED_LANGUAGE)
         const ret: Dict = {}
         let i = 0
         while (i < langs.length) {
             let k = langs[i] || '' // shut up ts
-            if (!k || k === EMBEDDED_LANGUAGE) break
+            if (!k) break
             const fn = code2file(k)
             try { ret[k] = JSON.parse(await readFile(fn, 'utf8')) } // allow external files to override embedded translations
             catch {
@@ -75,10 +77,16 @@ defineConfig(CFG.force_lang, '', v => {
     if (!v)
         return forceLangData = undefined
     const translation = (EMBEDDED_TRANSLATIONS as any)[v]
-    forceLangData = { [v]: translation }
+    forceLangData = {
+        [v]: translation,
+        ...v === EMBEDDED_LANGUAGE ? {} : { [EMBEDDED_LANGUAGE]: EMBEDDED_TRANSLATIONS.en },
+    }
     if (v === EMBEDDED_LANGUAGE) return
     const res = watchLoad(code2file(v), data => {
-        forceLangData = { [v]: tryJson(data) || translation }
+        forceLangData = {
+            [v]: tryJson(data) || translation,
+            [EMBEDDED_LANGUAGE]: EMBEDDED_TRANSLATIONS.en,
+        }
     })
     undo = res.unwatch
 })

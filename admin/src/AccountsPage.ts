@@ -1,5 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
+import { t } from './i18n'
 import { createElement as h, useState, useEffect, Fragment, useMemo, ReactNode } from "react"
 import { apiCall, useApiEx } from './api'
 import { Alert, Box, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
@@ -39,8 +40,8 @@ export default function AccountsPage() {
     const sideContent = !(sel.length > 0) || !list ? null // this clever test is true both when some accounts are selected and when we are in "new account" modes
         : selectionMode && sel.length > 1 ? h(Fragment, {},
                 h(Flex, {},
-                    h(Typography, {variant: 'h6'}, sel.length + " selected"),
-                    h(Btn, { onClick: deleteAccounts, icon: Delete }, "Remove"),
+                    h(Typography, {variant: 'h6'}, t('select_count', { n: sel.length })),
+                    h(Btn, { onClick: deleteAccounts, icon: Delete }, t`Remove`),
                 ),
                 h(List, {},
                     _.uniq(sel.map(userFromItemId)).map(username =>
@@ -55,7 +56,7 @@ export default function AccountsPage() {
                         h(Box, { sx: { flex: 1 } }),
                         account2icon(a, { fontSize: 'large', sx: { p: 1 }}),
                         // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
-                        h(IconBtn, {  icon: Close, title: "Close", onClick: selectNone }),
+                        h(IconBtn, {  icon: Close, title: t`Close`, onClick: selectNone }),
                     ],
                     reload,
                     done(username, saveBtn) {
@@ -68,8 +69,8 @@ export default function AccountsPage() {
         if (isSideBreakpoint || !sideContent || !sel.length) return
         const { close } = newDialog({
             title: _.isString(sel) ? _.startCase(sel)
-                : sel.length > 1 ? "Multiple selection"
-                    : selectedAccount ? (selectedAccount.isGroup ? "Group: " : "User: ") + selectedAccount.username
+                : sel.length > 1 ? t`Multiple selection`
+                    : selectedAccount ? t(selectedAccount.isGroup ? "Group: " : "User: ") + selectedAccount.username
                         : '?', // never
             Content: () => sideContent,
             onClose(keepSelection) {
@@ -82,7 +83,7 @@ export default function AccountsPage() {
     }, [isSideBreakpoint, sel, selectedAccount])
 
     const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
-    const [showTree, showTreeBtn] = useToggleButton("Show tree", "Show list", () => ({ icon: AccountTree }), accountsAsTree)
+    const [showTree, showTreeBtn] = useToggleButton(t`Show tree`, t`Show list`, () => ({ icon: AccountTree }), accountsAsTree)
     state.accountsAsTree = showTree
     return element || h(Grid, { container: true, sx: { rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 } },
         h(Grid, { size: { xs: 12, [sideBreakpoint]: 5, lg: 4, xl: 5 } as any, sx: scrollProps },
@@ -104,16 +105,17 @@ export default function AccountsPage() {
                     variant: 'contained',
                     startIcon: h(PersonAdd),
                     items: [
-                        { children: "user", onClick: () => setSel('new-user') },
-                        { children: "group", onClick: () => setSel('new-group') },
-                        { children: "from CSV", onClick: () => importAccountsCsv(reload) },
+                        { children: t`user`, onClick: () => setSel('new-user') },
+                        { children: t`group`, onClick: () => setSel('new-group') },
+                        { children: t`from CSV`, onClick: () => importAccountsCsv(reload) },
                     ]
-                }, "Add"),
+                }, t`Add`),
                 reloadBtn(reload),
                 showTreeBtn,
-                list?.length! > 0 && h(Typography, { sx: { p: 1 } }, `${list!.length} account(s)`),
+                list?.length! > 0 && h(Typography, { sx: { p: 1 } },
+                    t('accounts_count', { n: list!.length })),
             ),
-            !list?.length && h(Alert, { severity: 'info' }, md`To access administration <u>remotely</u> you will need to create a user account with admin permission`),
+            !list?.length && h(Alert, { severity: 'info' }, md(t`remote_admin_account_required`)),
             h(SimpleTreeView<true>, { // true because it's not detecting multiSelect correctly (ts495)
                     multiSelect: true,
                     sx: { pr: 4, pb: 2, minWidth: '15em' },
@@ -143,9 +145,9 @@ export default function AccountsPage() {
                                 },
                                 account2icon(ac),
                                 (ac.disabled || ac.canLogin === false)
-                                && iconTooltip(DoNotDisturb, ac.disabled ? "Disabled" : "Disabled by its groups", ac.disabled ? undefined : { color: 'text.secondary' }),
+                                && iconTooltip(DoNotDisturb, ac.disabled ? t`Disabled` : t`Disabled by its groups`, ac.disabled ? undefined : { color: 'text.secondary' }),
                                 (ac.expire || ac.days_to_live) && h(Schedule),
-                                ac.adminActualAccess && iconTooltip(MilitaryTech, "Can login into Admin"),
+                                ac.adminActualAccess && iconTooltip(MilitaryTech, t`Can login into Admin`),
                                 ac.username,
                                 Boolean(ac.belongs?.length) && h(Box, { sx: { color: 'text.secondary', fontSize: 'small' } },
                                     '(', ac.belongs?.join(', '), ')')
@@ -180,18 +182,18 @@ export default function AccountsPage() {
     async function deleteAccounts() {
         if (typeof sel === 'string') return
         if (sel.some(x => userFromItemId(x) === username))
-            if (!await confirmDialog(`You cannot ask to delete the account you are using. Continue with the rest?`)) return
+            if (!await confirmDialog(t`current_account_delete_warning`)) return
         const toDelete = _.without(_.uniq(sel.map(userFromItemId)), username)
         if (!toDelete.length)
-            return alertDialog("Nothing to delete", 'info')
-        if (!await confirmDialog(`Delete ${toDelete.length} item(s)?`)) return
+            return alertDialog(t`Nothing to delete`, 'info')
+        if (!await confirmDialog(t('delete_items', { n: toDelete.length }))) return
         const errors = []
         for (const username of toDelete)
             if (!await apiCall('del_account', { username }).then(() => 1, () => 0))
                 errors.push(username)
         reload()
         if (errors.length)
-            return alertDialog("The following items couldn't be deleted: " + errors.join(', '), 'error')
+            return alertDialog(t('items_delete_failed', { n: errors.length, list: errors.join(', ') }), 'error')
     }
 
 }

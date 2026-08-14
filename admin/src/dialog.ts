@@ -1,5 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
+import { t } from './i18n'
+
+
 import { Box, Button, CircularProgress, Dialog as MuiDialog, DialogContent, DialogTitle, Modal
 } from '@mui/material'
 import {
@@ -8,12 +11,12 @@ import {
 } from 'react'
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode, pendingPromise,
-    focusSelector, md, focusableSelector, useIsMobile, callable, Functionable } from '@hfs/shared'
+    focusSelector, focusableSelector, useIsMobile, callable, Functionable } from '@hfs/shared'
 import { Form, FormApi, FormProps } from '@hfs/mui-grid-form'
 import { IconBtn, Flex, Center, mergeSx } from './mui'
 import { useDark } from './theme'
 import _ from 'lodash'
-import { err2msg } from './misc'
+import { err2msg, md } from './misc'
 import { useSnapState } from './state'
 export * from '@hfs/shared/dialogs'
 
@@ -53,7 +56,7 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
         },
             d.icon && componentOrNode(d.icon),
             h(Box, { sx: { flex: 1, minWidth: 40, ml: 1 } }, componentOrNode(d.title)),
-            d.closable && h(IconBtn, { icon: Close, title: "Close", onClick: () => closeDialog() }),
+            d.closable && h(IconBtn, { icon: Close, title: t`Close`, onClick: () => closeDialog() }),
         ),
         h(DialogContent, {
             ref,
@@ -114,7 +117,7 @@ interface ConfirmOptions extends Omit<DialogOptions, 'Content'> {
     after?: FC<{ onClick: (result: any) => unknown }>
 }
 
-export function confirmDialog(msg: ReactNode, { href, trueText="Go", falseText="Don't", before, after,  ...rest }: ConfirmOptions={}) {
+export function confirmDialog(msg: ReactNode, { href, trueText=t`Go`, falseText=t`Don't`, before, after,  ...rest }: ConfirmOptions={}) {
     const promise = pendingPromise<boolean>()
     const dialog = newDialog({
         className: 'dialog-confirm',
@@ -189,6 +192,7 @@ export async function formDialog<T, RT=Partial<T>>(
                             })
                         },
                         save: props.save !== false && {
+                            children: t`Save`,
                             ...props.save,
                             onClick() {
                                 const { current: submitAction } = submitActionRef
@@ -227,14 +231,14 @@ export async function promptDialog(msg: ReactNode, { value='', field, save, addT
                 { k: 'text', label: null, autoFocus: true, ...field, before: h(Box, { sx: { mb: 2 } }, msg) },
             ],
             save: {
-                children: "Continue",
+                children: t`Continue`,
                 startIcon: h(Forward),
                 ...save,
             },
             saveOnEnter: true,
             barSx: { gap: 2 },
             addToBar: [
-                h(Button, { onClick: closeDialog }, "Cancel"),
+                h(Button, { onClick: closeDialog }, t`Cancel`),
                 ...addToBar,
             ],
             ...props.form,

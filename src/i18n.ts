@@ -39,10 +39,19 @@ export function i18nFromTranslations(translations: Record<string, any>, embedded
         let selectedLang = '' // keep track of where we find the translation
         const { embedded } = state
         const langs = Object.keys(state.translations)
-        for (const key of keys) {
+        const english = state.translations[embedded]?.translate || {}
+        for (let key of keys) {
+            const originalKey = key
+            if (!(key in english))
+                key = Object.keys(english).find(k => english[k] === key) || key // support extensions still passing English text
+            const legacyKey = english[key] === key ? undefined : english[key]
             for (const lang of searchLangs)
-                if (found = state.translations[selectedLang=lang]?.translate?.[key]) break
+                if (found = state.translations[selectedLang=lang]?.translate?.[key]
+                    || legacyKey && state.translations[selectedLang=lang]?.translate?.[legacyKey]) break
             if (found) break
+            if (!fallback && english[key])
+                fallback = english[key]
+            key = originalKey
             if (!warns.has(key) && langs.length && langs[0] !== embedded) {
                 warns.add(key)
                 console.debug("i18n miss:", key)
@@ -85,7 +94,7 @@ export function i18nFromTranslations(translations: Record<string, any>, embedded
             return pick(other)
 
             function pick(s: string) {
-                return s.replace('#', String(v))
+                return s.replaceAll('#', String(v)).replace(/\{(\w+)\}/g, (_, key) => params[key] ?? '')
             }
         }
     }

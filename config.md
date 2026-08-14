@@ -96,6 +96,8 @@ Some properties use a `Who` descriptor, with one of these values:
 - `favicon` path to file to be used as favicon. Default is none.
 - `force_https` redirect http traffic to https. Requires https to be working. Default is true.
 - `force_lang` force translation for frontend. Default is none, meaning *let browser decide*.
+- `admin_lang` force translation for the Admin panel. Default is none, meaning *let browser decide*.
+  Upload frontend translations as `hfs-lang-<code>.json` and Admin translations as `hfs-admin-lang-<code>.json` from Admin → Language. Both use a JSON `translate` object, with optional `author` and `version`. Uploaded files are stored in the CWD and override built-in translations for the same interface and code; deleting an override restores the built-in translation. New language codes are also supported.
 - `admin_net` net-mask specifying what addresses are allowed to access Admin-panel. Default is any.
 - `title` text displayed in the tab of your browser. Default is "File server".
 - `file_menu_on_link` if to display file-menu when clicking on a link, or have a dedicated button instead. Default is true.

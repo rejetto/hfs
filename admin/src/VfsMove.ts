@@ -4,35 +4,36 @@ import { id2vfsNode, isDescendantUri, markVfsModified, prepareVfsUndo, reindexVf
 import { getHFS, normalizeFilenameForPlatform, onlyTruthy, pathEncode, prefix } from './misc'
 import { alertDialog } from './dialog'
 import _ from 'lodash'
+import { t } from './i18n'
 
 export type MoveVfsSources = string | readonly string[]
 
 export function getMoveVfsError(from: MoveVfsSources, to: string) {
     const fromUris = normalizeMoveSources(from)
     if (fromUris.includes('/'))
-        return "Cannot move root"
+        return t`Cannot move root`
     const topLevelUris = getTopLevelMoveSources(fromUris)
     const fromNodes = onlyTruthy(topLevelUris.map(uri => id2vfsNode.get(uri)))
     if (fromNodes.length !== topLevelUris.length)
-        return "Item to move not found"
+        return t`Item to move not found`
     const toNode = id2vfsNode.get(to)
     if (!toNode || toNode.type !== 'folder')
-        return "Destination folder not found"
+        return t`Destination folder not found`
     if (topLevelUris.some(uri => isDescendantUri(to, uri)))
-        return "Cannot move inside itself"
+        return t`Cannot move inside itself`
     if (topLevelUris.every(uri => isDirectChildOf(uri, to)))
-        return "Already in this folder"
+        return t`Already in this folder`
     if (_.uniqBy(fromNodes, node => normalizeName(node.name)).length !== fromNodes.length)
-        return "Some selected items have the same name"
+        return t`Some selected items have the same name`
     if (fromNodes.some(fromNode => toNode.children?.some(x => normalizeName(x.name) === normalizeName(fromNode.name) && x.id !== fromNode.id)))
-        return "Item with same name already present in destination"
+        return t`Item with same name already present in destination`
     if (fromNodes.some(fromNode => !fromNode.parent?.children))
-        return "Source parent not found"
-
+        return t`Source parent not found`
+}
     function normalizeName(name: string) {
         return normalizeFilenameForPlatform(name, getHFS().platform)
     }
-}
+
 
 export function moveVfs(from: MoveVfsSources, to: string) {
     const error = getMoveVfsError(from, to)

@@ -2,6 +2,7 @@
 
 import { useApiList } from './api'
 import { Fragment, createElement as h, useState } from 'react'
+import { language, t } from './i18n'
 import { DataTable } from './DataTable'
 import { err2msg, newDialog, wantArray, xlate } from './misc'
 import { ArrowBack, ArrowForward, Download, RemoveRedEye, Search } from '@mui/icons-material'
@@ -23,12 +24,12 @@ export default function OnlinePlugins() {
             onChange: setSearch as any,
             start: h(Search),
             typing: true,
-            label: "Search text"
+            label: t`Search text`
         }),
         h(DataTable, {
             error: error && err2msg(xlate(error, PLUGIN_ERRORS)),
             rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
-            noRows: "No compatible plugins have been found",
+            noRows: t`No compatible plugins have been found`,
             fillFlex: true,
             initializing,
             columnVisibilityModel: snap.onlinePluginsColumns,
@@ -36,22 +37,22 @@ export default function OnlinePlugins() {
             columns: [
                 {
                     field: 'id',
-                    headerName: "name",
+                    headerName: t`Name`,
                     flex: 1,
                     renderCell: renderPluginName,
                     mergeRender: { description: { sx: { fontSize: 'x-small' } } },
                 },
                 {
-                    field: 'version',
+                    field: 'version', headerName: t`Version`,
                     width: 70,
                 },
                 {
                     field: 'pushed_at',
-                    headerName: "last update",
-                    valueGetter: (value) => new Date(value).toLocaleDateString(),
+                    headerName: t`last update`,
+                    valueGetter: (value) => new Date(value).toLocaleDateString(language),
                 },
                 {
-                    field: 'license',
+                    field: 'license', headerName: t`License`,
                     width: 80,
                 },
                 themeField,
@@ -63,7 +64,7 @@ export default function OnlinePlugins() {
                 {
                     field: 'stargazers_count',
                     width: 50,
-                    headerName: "stars",
+                    headerName: t`stars`,
                     align: 'center',
                     hideUnder: 'sm',
                 },
@@ -71,7 +72,7 @@ export default function OnlinePlugins() {
             actions: ({ row, id }) => [
                 h(IconBtn, {
                     icon: Download,
-                    title: "Install",
+                    title: t`Install`,
                     progress: row.downloading,
                     disabled: row.installed && "Already installed",
                     tooltipProps: { placement:'bottom-end' }, // workaround problem with horizontal scrolling by moving the tooltip leftward

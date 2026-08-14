@@ -1,15 +1,16 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment } from 'react'
+import { t } from './i18n'
 import { Tab, Tabs } from '@mui/material'
 import InstalledPlugins from './InstalledPlugins'
 import OnlinePlugins from './OnlinePlugins'
 import { useRoutedTab } from './routing'
 
 const TABS = [
-    { label: "Installed", path: 'installed', Pane: InstalledPlugins },
-    { label: "Get more", path: 'get', Pane: OnlinePlugins },
-    { label: "Check updates", path: 'updates', Pane: () => h(InstalledPlugins, { updates: true }) },
+    { label: t`Installed`, path: 'installed', Pane: InstalledPlugins },
+    { label: t`Get more`, path: 'get', Pane: OnlinePlugins },
+    { label: t`Check updates`, path: 'updates', Pane: () => h(InstalledPlugins, { updates: true }) },
 ]
 const TAB_PATHS = TABS.map(x => x.path)
 export default function PluginsPage() {

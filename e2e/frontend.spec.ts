@@ -527,7 +527,7 @@ test('frontend-admin', async ({ page }) => {
     // no admin button yet,
     await expect(page.getByRole('dialog')).toMatchAriaSnapshot(`
     - dialog:
-      - button "Close"
+      - button "Close": x
       - heading "Options" [level=1]
       - combobox:
         - 'option "Sort by: name" [selected]'
@@ -541,11 +541,13 @@ test('frontend-admin', async ({ page }) => {
       - text: Folders first
       - checkbox "Numeric names"
       - text: "Numeric names Tiles mode: off"
-      - slider: "0"
+      - slider "Tiles mode": "0"
       - combobox:
-        - 'option "Theme: auto" [selected]'
-        - 'option "Theme: light"'
-        - 'option "Theme: dark"'
+        - 'option "theme: auto" [selected]'
+        - 'option "theme: light"'
+        - 'option "theme: dark"'
+      - checkbox "English"
+      - text: English
     `)
     await page.getByRole('button', { name: 'Close' }).click()
     await page.getByRole('button', { name: 'Login' }).click()
@@ -612,6 +614,8 @@ test('admin1', async ({ page }) => {
 
     await clickAdminMenu(page, 'Logs')
     await dataTableLoading()
+    if (!isPhone)
+        await expect(page.getByRole('columnheader', { name: 'URI', exact: true })).toBeVisible() // wait for virtualized columns before the screenshot
     await screenshot(page)
     await clickIconBtn('Options', page)
     await page.getByRole('textbox', { name: 'Served', exact: true }).click()
@@ -619,7 +623,7 @@ test('admin1', async ({ page }) => {
     await clickAdminMenu(page, 'Language')
     await dataTableLoading()
     if (!isPhone)
-        await expect(page.getByText('author', { exact: true })).toBeVisible() // wait for the layout to be stable
+        await expect(page.getByRole('columnheader', { name: 'Author', exact: true })).toBeVisible() // wait for the layout to be stable
     await screenshot(page, '.MuiDataGrid-root')
     await clickAdminMenu(page, 'Plugins')
     await expect(page.getByText('antibrute')).toBeVisible() // wait for data

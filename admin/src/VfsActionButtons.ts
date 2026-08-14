@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment } from 'react'
+import { t } from './i18n'
 import { Box } from '@mui/material'
 import { ContentCut, ContentPaste, Delete } from '@mui/icons-material'
 import { Btn } from './mui'
@@ -25,11 +26,11 @@ export default function VfsActionButtons({ files, pasteTo, done }: {
             disabled: !files.length ? "Select something to cut"
                 : hasRoot ? "Cannot cut Home"
                 : _.isEqual(ids.slice().sort(), movingFiles.slice().sort()) && "Already cut",
-            title: "Cut (you can also use drag & drop to move items)",
-            'aria-label': "Cut",
+            title: t`Cut (you can also use drag & drop to move items)`,
+            'aria-label': t`Cut`,
             onClick() {
                 state.movingFiles = ids
-                alertDialog(h(Box, {}, "Now that this is marked for moving, click on the destination folder, and then the paste button ", h(ContentPaste)), 'info')
+                alertDialog(h(Box, {}, t`vfs_move_paste_hint`, h(ContentPaste)), 'info')
             },
         }),
         movingFiles.length > 0 && h(Btn, {
@@ -43,7 +44,7 @@ export default function VfsActionButtons({ files, pasteTo, done }: {
         }),
         h(Btn, {
             icon: Delete,
-            title: "Delete",
+            title: t`Delete`,
             disabled: !files.length ? "Select something to delete"
                 : hasRoot && "Cannot delete Home",
             onClick() {

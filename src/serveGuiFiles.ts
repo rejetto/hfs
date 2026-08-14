@@ -20,6 +20,7 @@ import { getAllSections, getSection } from './customHtml'
 import _ from 'lodash'
 import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
+import { adminLang, adminLangs, getAdminLangData } from './adminLang'
 import { dontOverwriteUploading } from './upload'
 import { customizedIcons, CustomizedIcons } from './icons'
 import { getProxyDetected } from './middlewares'
@@ -123,7 +124,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
         return !_.isEmpty(configs) && [name, configs]
     })))
     const timestamp = await getFaviconTimestamp()
-    const lang = await getLangData(ctx)
+    const lang = isFrontend ? await getLangData(ctx) : await getAdminLangData(ctx)
     let group = 0 // this represents the loading-group: all plugins with the same group can be loaded concurrently
     const loadScripts = onlyTruthy(mapPlugins((p, id) => {
         const js = p.frontend_js?.map(f => f.includes('//') ? f : pub + id + '/' + f)
@@ -163,7 +164,8 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         customHtml: _.omit(getAllSections(), ['top', 'bottom', 'htmlHead', 'style']), // exclude the sections we already apply in this phase
                         ...newObj(FRONTEND_OPTIONS, (v, k) => getConfig(k)),
                         icons: Object.assign({}, ...mapPlugins(p => iconsToObj(p.icons, p.id + '/')), iconsToObj(customizedIcons)), // name-to-uri 
-                        lang
+                        lang,
+                        ...(isFrontend ? {} : { adminLangs, adminLang: adminLang.get() })
                     }, null, 4).replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
                     document.documentElement.setAttribute('ver', HFS.VERSION.split('-')[0])
                     document.documentElement.setAttribute('browser', ${JSON.stringify(shortenAgent(ctx.get('user-agent')))})
