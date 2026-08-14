@@ -1,10 +1,11 @@
 import { apiCall } from '@hfs/shared/api'
 import { createElement as h, Fragment, useMemo } from 'react'
+import { t } from './i18n'
 import { Box, Link, Paper } from '@mui/material'
-import { callable, formatDate, formatTime, newObj } from './misc'
+import { callable, formatDate, formatTime, md, newObj } from './misc'
 import { Btn, Flex, iconTooltip, NetmaskField } from './mui'
 import { MilitaryTech, Clear, Group } from '@mui/icons-material'
-import { Html, md, replaceStringToReact, useAutoScroll } from '@hfs/shared'
+import { Html, replaceStringToReact, useAutoScroll } from '@hfs/shared'
 import {
     BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectField, StringField
 } from '@hfs/mui-grid-form'
@@ -26,17 +27,17 @@ export async function showPluginOptions(row: any, maxWidth: string) {
     // support css values without having to wrap in sx, as in DialogProps it only supports breakpoints
     const showOptions = Boolean(row.config)
     const values = await formDialog({
-        title: showOptions ? `Options for ${id}` : `Log for ${id}`,
+        title: showOptions ? t("Options for {id}", { id: id }) : t("Log for {id}", { id: id }),
         form: (values, { submit }) => ({
             before: row.description && h(Box, { sx: { mx: 2, mb: 2 } }, row.description),
             fields: makeFields(callable(row.config, values) || {}, values),
-            save: showOptions ? { children: "Save and close" } : false,
+            save: showOptions ? { children: t`Save and close` } : false,
             barSx: { gap: 1 },
             onError: alertDialog,
             addToBar: [h(Btn, {
                 variant: 'outlined',
                 onClick: () => submit(save),
-            }, "Save")],
+            }, t`Save`)],
         }),
         values: lastSaved,
         dialogProps: _.merge({ maxWidth: 'md', sx: { m: 'auto' } }, // center content when it is smaller than mobile (because of full-screen)
@@ -56,14 +57,14 @@ export async function showPluginOptions(row: any, maxWidth: string) {
                 } }, children),
                 h(Paper, { elevation: 1, sx: { position: 'relative', fontFamily: 'monospace', flex: 1, minWidth: 'min(40em, 90vw)', minHeight: '20em', px: .5 } },
                     h(Box, { sx: { my: .5, pb: .5, borderBottom: '1px solid', display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
-                        "Output",
-                        h(Btn, { size: 'small', sx: { p: 0 }, onClick() { setList([]) } }, "Clear")
+                        t`Plugin output`,
+                        h(Btn, { size: 'small', sx: { p: 0 }, onClick() { setList([]) } }, t`Clear`)
                     ),
                     h(Box, {
                         ref: useAutoScroll(list),
                         sx: { position: 'absolute', bottom: 0, top: '31px', left: 0, right: 0, overflowY: 'auto' }
                     },
-                        !list.length && h(Box, { sx: { p: 1 } }, "Log is empty"),
+                        !list.length && h(Box, { sx: { p: 1 } }, t`Log is empty`),
                         h(Box, {
                             sx: {
                                 textIndent: '-1em', pl: '1em',
@@ -94,7 +95,7 @@ export async function showPluginOptions(row: any, maxWidth: string) {
     async function save(values: any) {
         await apiCall('set_plugin', { id, config: values })
         Object.assign(lastSaved, values)
-        toast("Configuration saved")
+        toast(t`Configuration saved`)
     }
 }
 
@@ -124,7 +125,7 @@ function makeFields(config: any, values: any) {
             rest.fields = (values: unknown) => _.map(makeFields(callable(fields, values), values), (v,k) => v && ({ k, ...v, defaultValue: undefined })).filter(Boolean)
         }
         if (defaultValue !== undefined && type === 'boolean')
-            rest.placeholder = `Default value is ${JSON.stringify(defaultValue)}`
+            rest.placeholder = t('default_value_is', { defaultValue: JSON.stringify(defaultValue) })
         return { k, comp, ...rest }
     })
 }
@@ -161,7 +162,7 @@ function UsernameField({ value, onChange, multiple, groups, ...rest }: FieldProp
         renderOption: (x: UsernameOption) => {
             if (!x.a)
                 return h('span', { style: { textDecoration: 'line-through' } }, x.label)
-            const icon = x.a.isGroup && h(Group) || x.a.adminActualAccess && iconTooltip(MilitaryTech, "Can login into Admin")
+            const icon = x.a.isGroup && h(Group) || x.a.adminActualAccess && iconTooltip(MilitaryTech, t`Can login into Admin`)
             return !icon ? x.label
                 : h('span', {},
                     h('span', { style: { marginLeft: -8, marginRight: 8 } }, icon),
@@ -178,7 +179,7 @@ function ColorField(rest: FieldProps<string>) {
                 icon: Clear,
                 size: 'small',
                 sx: { position: 'absolute', right: 0, bottom: 3 },
-                title: "Clear",
+                title: t`Clear`,
                 onClick(event) {
                     rest.onChange(null as any, { was: rest.value, event: event })
                 }
@@ -192,7 +193,7 @@ function ColorField(rest: FieldProps<string>) {
                     color: '#fff',
                     background: 'repeating-linear-gradient(45deg, #333, #333 10px, #444 10px, #444 20px)',
                 }
-            }, "default") },
+            }, t`default`) },
         typing: true,
         ...rest,
     })

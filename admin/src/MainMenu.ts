@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, ComponentType, lazy } from 'react';
+import { t } from './i18n'
 import { List, ListItemButton, ListItemIcon, ListItemText, Box } from '@mui/material'
 import {
     AccountTree, Extension, History, Home, Logout, ManageAccounts, Monitor, Public, Settings, Translate, Code,
@@ -37,17 +38,17 @@ export interface MenuEntry {
 }
 
 export const mainMenu: MenuEntry[] = [
-    { path: '/', icon: Home, label: "Home", comp: HomePage },
-    { path: '/fs', icon: AccountTree, label: "Shared files", comp: VfsPage },
-    { path: '/accounts', icon: ManageAccounts, comp: AccountsPage },
-    { path: '/options', icon: Settings, comp: OptionsPage, subRoutes: true },
-    { path: '/internet', icon: Public, comp: InternetPage },
-    { path: '/monitoring', icon: Monitor, comp: MonitorPage, noPaddingOnMobile: true },
-    { path: '/logs', icon: History, comp: LogsPage, noPaddingOnMobile: true, subRoutes: true },
-    { path: '/language', icon: Translate, comp: LangPage },
-    { path: '/plugins', icon: Extension, comp: PluginsPage, noPaddingOnMobile: true, subRoutes: true },
-    { path: '/html', icon: Code, label: "Custom HTML", comp: CustomHtmlPage },
-    { path: '/logout', icon: Logout, comp: LogoutPage }
+    { path: '/', icon: Home, label: t`Home`, comp: HomePage },
+    { path: '/fs', icon: AccountTree, label: t`Shared files`, comp: VfsPage },
+    { path: '/accounts', icon: ManageAccounts, label: t`Accounts`, comp: AccountsPage },
+    { path: '/options', icon: Settings, label: t`Options`, comp: OptionsPage, subRoutes: true },
+    { path: '/internet', icon: Public, label: t`Internet`, comp: InternetPage },
+    { path: '/monitoring', icon: Monitor, label: t`Monitoring`, comp: MonitorPage, noPaddingOnMobile: true },
+    { path: '/logs', icon: History, label: t`Logs`, comp: LogsPage, noPaddingOnMobile: true, subRoutes: true },
+    { path: '/language', icon: Translate, label: t`Language`, comp: LangPage },
+    { path: '/plugins', icon: Extension, label: t`Plugins`, comp: PluginsPage, noPaddingOnMobile: true, subRoutes: true },
+    { path: '/html', icon: Code, label: t`Custom HTML`, comp: CustomHtmlPage },
+    { path: '/logout', icon: Logout, label: t`Logout`, comp: LogoutPage }
 ]
 
 export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, itemTitle: (idx: number) => string }) {
@@ -69,10 +70,10 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
                 h(Box, {
                     sx: { color: 'primary.contrastText', fontSize: 'min(3rem, max(5vw, 4vh))', cursor: 'pointer' },
                     async onClick() {
-                        if (await confirmDialog("Open HFS website?"))
+                        if (await confirmDialog(t`Open HFS website?`))
                             window.open(WEBSITE)
                     }
-                }, 'HFS'),
+                }, t`HFS`),
                 h(Box, { sx: { fontSize: 'small' }, className: HIDE_IN_TESTS }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
                 short && h('img', { src: logo, style: { height: '2.5em' } }),
             ),

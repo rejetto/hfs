@@ -1,6 +1,7 @@
 import { Form, FormProps } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
 import { createElement as h, useEffect, useState, Dispatch } from 'react'
+import { t } from './i18n'
 import _ from 'lodash'
 import { IconBtn, propsForModifiedValues } from './mui'
 import { RestartAlt } from '@mui/icons-material'
@@ -35,6 +36,7 @@ export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }:
             setValues((was: any) => ({ ...was, [k]: v }))
         },
         save: saveOnChange ? false : {
+            children: t`Save`,
             onClick: save,
             ...propsForModifiedValues(modified),
         },
@@ -46,7 +48,7 @@ export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }:
             h(IconBtn, {
                 icon: RestartAlt,
                 disabled: !modified,
-                title: "Reset",
+                title: t`Reset`,
                 onClick(){ setValues(config.data) }
             }),
             ...rest.addToBar||[],

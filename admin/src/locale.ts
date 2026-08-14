@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { findDefined } from './misc'
+import { findDefined, getHFS } from './misc'
 import dayjs from 'dayjs'
 
 const localeLoaders = import.meta.glob<{ default: ILocale }>('../../node_modules/dayjs/esm/locale/*.js')
@@ -15,7 +15,7 @@ function lang2locale(lang: string): string | undefined {
 }
 
 export function getLocale() {
-    return findDefined([navigator.language, ...navigator.languages], lang2locale)
+    return findDefined([Object.keys(getHFS().lang || {})[0]], lang2locale)
 }
 
 export async function loadLocale() {

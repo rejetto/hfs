@@ -2,11 +2,11 @@ import { DataGrid, DataGridProps, getGridStringOperators, GridColDef, GridFilter
     GridFooter, GridFooterContainer, gridClasses, GridLogicOperator, GridPanelContent, GridPanelFooter, GridPanelWrapper,
     GridValidRowModel, useGridApiContext, useGridApiRef, GridRenderCellParams, QuickFilter, QuickFilterControl,
     useGridRootProps } from '@mui/x-data-grid'
-import { enUS } from '@mui/x-data-grid/locales'
 import { GridColumnHeaderFilterIconButton, type ColumnHeaderFilterIconButtonProps } from '@mui/x-data-grid/components'
 import { Alert, Box, BoxProps, Chip, LinearProgress, useTheme } from '@mui/material'
 import type { Breakpoint } from '@mui/material/styles'
 import { createElement as h, type ElementType, Fragment, ReactNode, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { t } from './i18n'
 import { callable, Callback, Falsy, newDialog, objFromKeys, onlyTruthy, useGetSize } from '@hfs/shared'
 import _ from 'lodash'
 import { Center, Flex, IconBtn, mergeSx } from './mui'
@@ -60,7 +60,7 @@ export function DataTable({
     const [quickFilterOpen, setQuickFilterOpen] = useState(false)
     const [merged, setMerged] = useState(0)
     const manipulatedColumns = useMemo(() => {
-        const { localeText } = enUS.components.MuiDataGrid.defaultProps as any
+        const { localeText } = theme.components?.MuiDataGrid?.defaultProps as any
         const ret = onlyTruthy(columns.map(col => {
             if (!col) return
             const { type, sx } = col
@@ -74,7 +74,7 @@ export function DataTable({
                             const res = op.getApplyFilterFn(item, col)
                             return res && _.negate(res)
                         },
-                        label: "(not) " + (localeText['filterOperator' + _.upperFirst(op.value)] || op.value)
+                        label: t('negated_filter_operator', { operator: localeText['filterOperator' + _.upperFirst(op.value)] || op.value })
                     } satisfies typeof op
                 ])
             if (!col.mergeRender && !col.sx)
@@ -119,7 +119,7 @@ export function DataTable({
                 renderHeader: quickFilter || actionsHeader ? renderActionsHeader : actionsProps?.renderHeader,
             })
         return ret
-    }, [columns, actions, actionsHeader, actionsLength, actionsProps, quickFilter])
+    }, [columns, actions, actionsHeader, actionsLength, actionsProps, quickFilter, theme])
     const sizeGrid = useGetSize()
     const width = useDebounce(sizeGrid.w || 0, 100) // stabilize width
     const hideCols = useMemo(() => {
@@ -166,7 +166,7 @@ export function DataTable({
         gap: 0,
     },
         footerSide?.(width),
-        !rest.disableColumnFilter && h(IconBtn, { icon: FilterAlt, title: "Filters", size: 'small', onClick: () => apiRef.current?.showFilterPanel() }),
+        !rest.disableColumnFilter && h(IconBtn, { icon: FilterAlt, title: t`Filters`, size: 'small', onClick: () => apiRef.current?.showFilterPanel() }),
     )
     const [causingScrolling, setCausingScrolling] = useState(false)
     const updateCausingScrolling = useCallback(_.debounce(() => {
@@ -233,6 +233,7 @@ export function DataTable({
             disableRowSelectionOnClick: true,
             ref: sizeGrid.refToPass,
             ...rest,
+            localeText: { ...rest.localeText, paginationRowsPerPage: t`Rows per page` },
             rows: filteredRows,
             ...quickFilter && { showToolbar: quickFilterOpen || rest.showToolbar },
             sx: mergeSx({
@@ -255,7 +256,6 @@ export function DataTable({
                 footer: { ...(effectiveSlotProps as any)?.footer, add: wrappedFooterSide },
                 noRowsOverlay: { ...(effectiveSlotProps as any)?.noRowsOverlay, initializing, noRows },
                 pagination: {
-                    labelRowsPerPage: "Rows",
                     ...!causingScrolling && {
                         showFirstButton: true,
                         showLastButton: true,
@@ -272,7 +272,7 @@ export function DataTable({
                 const visibleInList = merged + _.intersectionBy(showInDialog, apiRef.current!.getVisibleColumns(), 'field').length
                 if (showInDialog.length <= visibleInList) return // no need for dialog
                 newDialog({
-                    title: "Details",
+                    title: t`Details`,
                     onClose() {
                         displayingDetails.current = {}
                     },
@@ -335,7 +335,7 @@ export function DataTable({
     function renderActionsHeader(params: any) {
         return h(Box, { sx: { display: 'flex', width: '100%', justifyContent: 'center' }, onClick: stopPropagation, onKeyDown: stopPropagation },
             actionsHeader !== undefined ? callable(actionsHeader, params) : actionsProps?.renderHeader?.(params),
-            quickFilter && h(IconBtn, { icon: Search, title: "Search", size: 'small', onClick: () => setQuickFilterOpen(true) }))
+            quickFilter && h(IconBtn, { icon: Search, title: t`Search`, size: 'small', onClick: () => setQuickFilterOpen(true) }))
 
         function stopPropagation(ev: SyntheticEvent) {
             // prevent header controls from triggering grid sorting or column interactions
@@ -359,7 +359,7 @@ export function DataTable({
     }
 
     async function saveFilterPreset() {
-        const name = (await promptDialog("Preset name"))?.trim()
+        const name = (await promptDialog(t`Preset name`))?.trim()
         if (!name) return
         persistFilterPresets({
             ...filterPresets,
@@ -455,14 +455,14 @@ function MultiFilterPanel({ model, onChange, presets, onSavePreset, onLoadPreset
     const activeFilters = countActiveMultiFilters(undefined, model, apiRef)
     return h(GridPanelWrapper, {},
         h(Box, { sx: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, pl: 2 } },
-            h(Box, { sx: { color: 'text.primary', fontWeight: 'bold' } }, "Filters"),
+            h(Box, { sx: { color: 'text.primary', fontWeight: 'bold' } }, t`Filters`),
             h(rootProps.slots.baseIconButton, {
-                'aria-label': "Close",
-                title: "Close",
+                'aria-label': t`Close`,
+                title: t`Close`,
                 size: 'small',
                 onClick: () => apiRef.current.hideFilterPanel(),
             }, h(Close, { fontSize: 'small' })) ),
-        _.isEmpty(model.items) ? h(Box, { sx: { ml: 2, mb: 1, fontStyle: 'italic', color: 'text.primary' } }, "none")
+        _.isEmpty(model.items) ? h(Box, { sx: { ml: 2, mb: 1, fontStyle: 'italic', color: 'text.primary' } }, t`none`)
             : h(GridPanelContent, {}, model.items.map((item, index) =>
                 h(GridFilterForm, {
                     key: item.id ?? index,
@@ -483,7 +483,7 @@ function MultiFilterPanel({ model, onChange, presets, onSavePreset, onLoadPreset
                     },
                 }))),
         presets && h(Flex, { px: 2, pb: 1, gap: 1, flexWrap: 'wrap', alignItems: 'center' },
-            !_.isEmpty(presets) && h(Box, { sx: { color: 'text.primary' } }, "Presets:"),
+            !_.isEmpty(presets) && h(Box, { sx: { color: 'text.primary' } }, t`Presets:`),
             ..._.map(presets, (_preset, name) => h(Chip, {
                 key: name,
                 label: name,
@@ -491,8 +491,8 @@ function MultiFilterPanel({ model, onChange, presets, onSavePreset, onLoadPreset
                 onDelete: () => onDeletePreset?.(name),
             })) ),
         h(GridPanelFooter, { sx: { justifyContent: 'flex-end', gap: 1 } },
-            h(Button, { onClick: addFilter, startIcon: h(AddIcon, {}) }, "Add"),
-            presets && h(Button, { disabled: !activeFilters, onClick: onSavePreset, startIcon: h(Save, {}) }, "Save"),
+            h(Button, { onClick: addFilter, startIcon: h(AddIcon, {}) }, t`Add`),
+            presets && h(Button, { disabled: !activeFilters, onClick: onSavePreset, startIcon: h(Save, {}) }, t`Save`),
             model.items.length > 0 && h(Button, {
                 onClick() {
                     onChange({ ...model, items: [] }, 'removeAllFilterItems')
@@ -532,7 +532,7 @@ function DataTableQuickFilterToolbar({ onExpandedChange }: {
         }
     },
         h(QuickFilter, { expanded: true, debounceMs: 300, onExpandedChange },
-            h(QuickFilterControl as ElementType, { fullWidth: true, inputRef, size: 'small', placeholder: "Search" })))
+            h(QuickFilterControl as ElementType, { fullWidth: true, inputRef, size: 'small', placeholder: t`Search` })))
 }
 
 function CustomFooter({ add, ...props }: { add?: ReactNode }) {
@@ -540,7 +540,7 @@ function CustomFooter({ add, ...props }: { add?: ReactNode }) {
 }
 
 function NoRowsOverlay({ initializing, noRows }: { initializing?: boolean, noRows?: ReactNode }) {
-    return initializing ? null : h(Center, {}, noRows || "No entries")
+    return initializing ? null : h(Center, {}, noRows || t`No entries`)
 }
 
 // required in case of fillFlex:true

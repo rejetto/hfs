@@ -1,4 +1,5 @@
 import { createElement as h, type ReactElement, useMemo } from 'react'
+import { t, translateText } from './i18n'
 import { Box, Collapse, FormHelperText } from '@mui/material'
 import { Group } from '@mui/icons-material'
 import { type Field, type FieldProps, MultiSelectField, SelectField } from '@hfs/mui-grid-form'
@@ -12,7 +13,7 @@ import apiAccounts from '../../src/api.accounts'
 import _ from 'lodash'
 
 export function perm2word(perm: string) {
-    return xlate(perm.split('_')[1], { read: 'download', archive: 'zip', list: 'access list' })
+    return t(xlate(perm.split('_')[1], { see: 'permission_see', read: 'permission_download', archive: 'permission_zip', list: 'permission_access_list' }))
 }
 
 export type AccountsApi = ReturnType<typeof useAccountsApi>
@@ -35,7 +36,7 @@ export interface WhoFieldProps extends FieldProps<WhoVfs | undefined> {
 export function WhoField({ value, onChange, parent, inherit, accountsApi, helperText, otherPerms, byMasks,
         hideValues, isChildren, isDir, contentText="folder content", setApi, offerInheritance, ...rest }: WhoFieldProps): ReactElement {
     const defaultLabel = who2desc(byMasks ?? inherit)
-        + prefix(' (', byMasks !== undefined ? "from masks" : parent !== undefined ? "as parent folder" : "default", ')')
+        + prefix(' (', t(byMasks !== undefined ? "from masks" : parent !== undefined ? "as parent folder" : "default"), ')')
     const objectMode = isWhoObject(value)
     const thisValue = objectMode ? value.this : value
     accountsApi ??= useAccountsApi() // it's important that the "accounts" prop is stable in the truthy sense
@@ -49,7 +50,7 @@ export function WhoField({ value, onChange, parent, inherit, accountsApi, helper
             { value: WHO_ADMIN },
             { value: WHO_ANYONE },
             ...otherPerms || [],
-            { value: [], label: "Select accounts" },
+            { value: [], label: t`Select accounts` },
         ].map(x => x && !hideValues?.includes(x.value)
             && { label: who2desc(x.value), ...x })), // default label
         [inherit, parent, thisValue, ...wantArray(hideValues)])
@@ -66,12 +67,12 @@ export function WhoField({ value, onChange, parent, inherit, accountsApi, helper
         }),
         h(Collapse, { in: arrayMode, timeout },
             arrayMode && h(MultiSelectField as Field<string[]>, {
-                label: accounts?.length ? "Accounts " + rest.label : "You didn't create any account yet",
+                label: accounts?.length ? t("Accounts {label}", { label: rest.label }) : t`You didn't create any account yet`,
                 value: thisValue,
                 onChange: changeThis,
                 options: accounts?.map(a => ({ value: a.username, label: a.username, a })) || [],
-                placeholder: "none",
-                ...thisValue.length === 0 && { helperText: "Select some account", error: true },
+                placeholder: t`none`,
+                ...thisValue.length === 0 && { helperText: t`Select some account`, error: true },
                 // show icon only for groups, to save space inside the field (not the list)
                 renderOption: (x: any) => h('span', {}, x.a?.isGroup && h(Group), ' ', x.label),
             }) ),
@@ -82,11 +83,11 @@ export function WhoField({ value, onChange, parent, inherit, accountsApi, helper
                 onClick(event) {
                     onChange(objectMode ? thisValue : { this: thisValue, children: thisValue == null ? !inherit : undefined  } , { was: value, event })
                 }
-            }, objectMode ? "Set same permission for " : "Set different permission for ", contentText)
+            }, objectMode ? t`Set same permission for ` : t`Set different permission for `, translateText(contentText))
         ),
         !isChildren && h(Collapse, { in: objectMode, timeout },
             h(WhoField, {
-                label: "Permission for " + contentText,
+                label: t("Permission for {contentText}", { contentText: contentText }),
                 parent, inherit, accountsApi, otherPerms, isDir,
                 value: objectMode ? value?.children : undefined,
                 isChildren: true,
@@ -109,11 +110,11 @@ export function WhoField({ value, onChange, parent, inherit, accountsApi, helper
 }
 
 export function who2desc(who: any) {
-    return who === false ? "No one"
-        : who === true ? "Anyone"
-            : who === WHO_ANY_ACCOUNT ? "Any logged-in account"
-                : who === WHO_ADMIN ? "Any admin"
+    return who === false ? t`No one`
+        : who === true ? t`Anyone`
+            : who === WHO_ANY_ACCOUNT ? t`Any logged-in account`
+                : who === WHO_ADMIN ? t`Any admin`
                     : Array.isArray(who) ? who.join(', ')
-                        : typeof who === 'string' ? `As "can ${perm2word(who)}"`
-                            : "*UNKNOWN*" + JSON.stringify(who)
+                        : typeof who === 'string' ? t('same_as_permission', { permission: perm2word(who) })
+                            : t("unknown_value", { value: JSON.stringify(who) })
 }

@@ -1,5 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
+import { t } from './i18n'
+
 import { createElement as h, ReactNode, useState } from 'react'
 import { Box, Card, CardContent, Checkbox, FormControlLabel, Link } from '@mui/material'
 import { apiCall, useApiEx, useApiList } from './api'
@@ -43,26 +45,30 @@ export default function HomePage() {
     const srv = goSecure ? https : (http?.listening && http)
     const href = srv && `http${goSecure}://`+window.location.hostname + (srv.port === (goSecure ? 443 : 80) ? '' : ':'+srv.port)
     const serverErrors = _.mapValues({ http, https }, v =>
-        v.busy ? [`port ${v.configuredPort} already used by ${v.busy}${SOLUTION_SEP}choose a `, cfgLink('different port'), ` or stop ${v.busy}`]
+        v.busy ? [
+            t('port_already_in_use', { configuredPort: v.configuredPort, process: v.busy }),
+            SOLUTION_SEP, cfgLink('use_different_port'),
+            t('or_stop_process', { process: v.busy }),
+        ]
             : v.error )
     const errors = serverErrors && onlyTruthy(Object.entries(serverErrors).map(([k,v]) =>
-        v && [md(`Protocol <u>${k}</u>: `), v,
-            (isCertError(v) || isKeyError(v)) && [
+        v && [md(t("Protocol <u>{k}</u>: ", { k: k })), v,
+                    (isCertError(v) || isKeyError(v)) && [
                 SOLUTION_SEP, h(LinkBtn, {
                     onClick() { suggestMakingCert().then(() => wait(999)).then(cfg.reload).then(reloadStatus) } },
-                    "make one"
-                ), " or ", SOLUTION_SEP, cfgLink("provide adequate files")
+                    t`make one`
+                ), t` or `, SOLUTION_SEP, cfgLink('provide_adequate_files')
             ]]))
     const rightClickToInstallFromUrl = {
         async onContextMenu(ev: any) {
             ev.preventDefault()
             if (!status.updatePossible)
-                return alertDialog("Automatic update is not supported for your installation", 'warning')
-            const res = await promptDialog("Enter a link to the zip to install")
+                return alertDialog(t`update_not_supported`, 'warning')
+            const res = await promptDialog(t`Enter a link to the zip to install`)
             if (res)
                 await update(res)
         },
-        title: status.updatePossible && "Right-click if you want to install a zip",
+        title: status.updatePossible && t`Right-click if you want to install a zip`,
     }
     const vfs = cfg.data?.vfs
     return h(Box, {},
@@ -70,52 +76,55 @@ export default function HomePage() {
         h(Box, { sx: { display:'flex', gap: 2, flexDirection:'column', alignItems: 'flex-start', height: '100%' } },
             dontBotherWithKeys(status.alerts?.map(x => entry('warning', md(x, { html: false }))) || []),
             errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
-                : entry('success', "Server is working"),
-            vfs && !vfs.children?.length && !vfs.source ? entry('warning', "You have no shared files", SOLUTION_SEP, fsLink("add some")) : null,
-            account?.adminActualAccess ? entry('', "Welcome, "+username)
-                : entry('', md("You're accessing the Admin-panel without an account because you are on localhost"),
-                    ...status.anyAccountCanLoginAdmin ? [] : [SOLUTION_SEP, "to access from another computer, you must ", h(InLink, { to:'/accounts' }, md("create an account with *admin* permission"))] ),
-            !href && entry('warning', "Frontend unreachable: ",
-                _.map(serverErrors, (v,k) => k + " " + (v ? "is in error" : "is off")).join(', '),
-                !errors.length && [ SOLUTION_SEP, cfgLink("switch http or https on") ]
+                : entry('success', t`Server is working`),
+            vfs && !vfs.children?.length && !vfs.source ? entry('warning', t`You have no shared files`, SOLUTION_SEP, fsLink('add_some')) : null,
+            account?.adminActualAccess ? entry('', t("Welcome, {username}", { username: username }))
+                : entry('', md(t`localhost_admin_access_notice`),
+                    ...status.anyAccountCanLoginAdmin ? [] : [SOLUTION_SEP, t`to access from another computer, you must `, h(InLink, { to:'/accounts' }, md(t`create an account with *admin* permission`))] ),
+            !href && entry('warning', t`Frontend unreachable: `,
+                _.map(serverErrors, (v,k) => k + " " + t(v ? "is in error" : "is off")).join(', '),
+                !errors.length && [ SOLUTION_SEP, cfgLink('switch_http_or_https_on') ]
             ),
             with_(status.acmeRenewError, x => x && entry('warning', x)),
             with_(status.blacklistedInstalledPlugins, x => x?.length > 0
-                && entry('warning', "Found blacklisted plugin(s): ", x.join(', ')) ),
+                && entry('warning', t('blacklisted_plugins', { n: x.length, list: x.join(', ') })) ),
             with_(plugins?.filter(x => x.error || x.badApi).length, x => x > 0
-                && entry('warning', `${x} plugin(s) failing`, SOLUTION_SEP, h(InLink, { to:'/plugins' }, "check now"))),
+                && entry('warning', t('plugins_failing', { n: x }), SOLUTION_SEP, h(InLink, { to:'/plugins' }, t`check now`))),
             !cfg.data?.split_uploads && (Date.now() - +new Date(status.cloudflareDetected || 0)) < DAY
-                && entry('', wikiLink('Reverse-proxy#cloudflare', "Cloudflare detected, read our guide")),
+                && entry('', wikiLink('Reverse-proxy#cloudflare', t`Cloudflare detected, read our guide`)),
             with_(proxyWarning(cfg.data, status), x => x && entry('warning', x,
-                    SOLUTION_SEP, cfgLink("set the number of proxies"),
-                    SOLUTION_SEP, "unless you are sure and you can ", h(Btn, {
+                    SOLUTION_SEP, cfgLink('set_number_of_proxies'),
+                    SOLUTION_SEP, t`unless you are sure and you can `, h(Btn, {
                         variant: 'outlined',
                         size: 'small',
                         sx: { lineHeight: 'unset' }, // fit in the line, avoiding bad layout
-                        confirm: "Go on only if you know what you are doing",
+                        confirm: t`Go on only if you know what you are doing`,
                         onClick: () => apiCall('set_config', { values: { ignore_proxies: true } }).then(cfg.reload)
-                    }, "ignore this warning"),
-                    SOLUTION_SEP, wikiLink('Proxy-warning', "Explanation")
+                    }, t`ignore this warning`),
+                    SOLUTION_SEP, wikiLink('Proxy-warning', t`Explanation`)
             )),
-            (cfg.data?.proxies > 0 || status?.proxyDetected) && entry('', wikiLink('Reverse-proxy', "Read our guide on proxies")),
-            status.frpDetected && entry('warning', `FRP is detected. It should not be used with "type = tcp" with HFS. Possible solutions are`,
+            (cfg.data?.proxies > 0 || status?.proxyDetected) && entry('', wikiLink('Reverse-proxy', t`Read our guide on proxies`)),
+            status.frpDetected && entry('warning', t`frp_tcp_warning`,
                 h('ol',{},
-                    h('li',{}, `configure FRP with type=http (best solution)`),
-                    h('li',{}, md(`configure FRP to connect to HFS <u>not</u> with localhost (safe, but you won't see users' IPs)`)),
-                    h('li',{}, `disable "admin access for localhost" in HFS (safe, but you won't see users' IPs)`),
+                    h('li',{}, t`frp_http_solution`),
+                    h('li',{}, md(t`frp_non_localhost_solution`)),
+                    h('li',{}, t`frp_disable_localhost_admin_solution`),
                 )),
-            entry('', md("This is the *Admin-panel*, where you manage your server. Access your files on the [Front-end](../..).")),
-            entry('', wikiLink('', "See the documentation"), " and ", h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "get support")),
+            entry('', md(t`admin_panel_intro`)),
+            entry('', wikiLink('', t`See the documentation`), t` and `, h(Link, { target: 'support', href: REPO_URL + 'discussions' }, t`get support`)),
             !updates && with_(status.autoCheckUpdateResult, x =>
-                x?.isNewer && h(Update, { info: x, fromAuto: true, disabled: !status.updatePossible, bodyCollapsed: true, title: "An update has been found" }) ),
-            pluginUpdates.length > 0 && entry('success', "Updates available for plugin(s): " + pluginUpdates.map(p => p.id).join(', ')),
+                x?.isNewer && h(Update, { info: x, fromAuto: true, disabled: !status.updatePossible, bodyCollapsed: true, title: t`An update has been found` }) ),
+            pluginUpdates.length > 0 && entry('success', t('plugin_updates_available', {
+                n: pluginUpdates.length,
+                list: pluginUpdates.map(p => p.id).join(', '),
+            })),
             h(ConfigForm, {
                 // MUI 7 folded Grid2 into Grid, so the generated class name changed with the import path.
                 gridProps: { sx: { mt: 1, display: 'flex', columnGap: 1, alignitems: 'center', '&>div.MuiGrid-root': { width: 'auto', px: .5, py: 0 }, '.MuiCheckbox-root': { pl: '2px' } } },
                 saveOnChange: true,
                 form: {
                     fields: [
-                        status.updatePossible === 'local' ? h(Btn, { icon: UpdateIcon, onClick: () => update() }, "Update from local file")
+                        status.updatePossible === 'local' ? h(Btn, { icon: UpdateIcon, onClick: () => update() }, t`Update from local file`)
                             : !updates && h(Btn, {
                                 icon: UpdateIcon,
                                 onClick() {
@@ -124,23 +133,23 @@ export default function HomePage() {
                                     return apiCall<typeof adminApis.check_update>('check_update').then(x => setUpdates(x.options), alertDialog)
                                 },
                                 ...rightClickToInstallFromUrl
-                            }, "Check for updates"),
-                        { k: 'auto_check_update', comp: CheckboxField, label: "Auto check updates daily" },
-                        { k: 'update_to_beta', comp: CheckboxField, label: "Include beta versions" },
+                            }, t`Check for updates`),
+                        { k: 'auto_check_update', comp: CheckboxField, label: t`Auto check updates daily` },
+                        { k: 'update_to_beta', comp: CheckboxField, label: t`Include beta versions` },
                     ]
                 }
             }),
             updates && with_(_.find(updates, 'isNewer'), newer =>
-                !updates.length || !status.updatePossible && !newer ? entry('', "No update available")
-                    : newer && !status.updatePossible ? entry('success', `Version ${newer.name} available`)
+                !updates.length || !status.updatePossible && !newer ? entry('', t`No update available`)
+                    : newer && !status.updatePossible ? entry('success', t("Version {name} available", { name: newer.name }))
                         : h(Flex, { vert: true },
                             updates.map((x: any) => h(Update, { info: x, key: x.name })) ),
             ),
             h(Flex, { flexWrap: 'wrap' },
                 !otherVersions && status.updatePossible && status.previousVersionAvailable
-                    && h(Btn, { icon: Restore, onClick: () => update(PREVIOUS_TAG) }, "Reinstall previous version"),
-                !status.updatePossible ? entry('', h(Link, { href: REPO_URL + 'releases/', target: 'repo' }, "All releases"))
-                    : !otherVersions ? h(Btn, { icon: Colorize, onClick: getOtherVersions, ...rightClickToInstallFromUrl }, "Get another version")
+                    && h(Btn, { icon: Restore, onClick: () => update(PREVIOUS_TAG) }, t`Reinstall previous version`),
+                !status.updatePossible ? entry('', h(Link, { href: REPO_URL + 'releases/', target: 'repo' }, t`All releases`))
+                    : !otherVersions ? h(Btn, { icon: Colorize, onClick: getOtherVersions, ...rightClickToInstallFromUrl }, t`Get another version`)
                         : h(Flex, { vert: true }, otherVersions.map((x: any) => h(Update, {
                             info: x,
                             key: x.name,
@@ -149,13 +158,13 @@ export default function HomePage() {
             ),
             h(SwitchThemeBtn),
             h(FormControlLabel, {
-                label: h(Box, { sx: { fontSize: 'large' } }, "Help motivate authors 💪 by sharing anonymous usage stats",
+                label: h(Box, { sx: { fontSize: 'large' } }, t`usage_stats_cta`,
                     SOLUTION_SEP,
                     h(Link, { href: '#', onClick(ev) {
                         ev.stopPropagation()
                         ev.preventDefault()
                         showUsageStatsInfo()
-                    } }, "how it helps")
+                    } }, t`how it helps`)
                 ),
                 control: h(Box, { sx: { position: 'relative', display: 'inline-flex' } },
                     h(Checkbox, {
@@ -182,7 +191,7 @@ export default function HomePage() {
                 )
             }),
             Date.now() - Number(new Date(status.started)) > HOUR && h(Link, {
-                title: "Donate",
+                title: t`Donate`,
                 target: 'donate',
                 style: { textDecoration: 'none', position: 'fixed', bottom: 0, right: 4, fontSize: 'large' },
                 href: 'https://www.paypal.com/donate/?hosted_button_id=HC8MB4GRVU5T2'
@@ -197,28 +206,28 @@ export default function HomePage() {
 
     function showUsageStatsInfo() {
         alertDialog(h(Box, { sx: { alignSelf: 'stretch' } },
-            h('p', {}, "It's like saying \"I'm using your program, thanks!\" so that we can count people."),
-            h('p', {}, "Knowing that people actively use HFS and its plugins gives their authors a concrete reason to keep improving them."),
-            h('p', {}, "Numbers turn otherwise invisible users into visible encouragement. 💪"),
+            h('p', {}, t`usage_stats_explanation_1`),
+            h('p', {}, t`usage_stats_explanation_2`),
+            h('p', {}, t`usage_stats_explanation_3`),
             h('details', {},
-                h('summary', {}, "Details"),
-                h('p', {}, "What is sent:"),
+                h('summary', {}, t`Details`),
+                h('p', {}, t`What is sent:`),
                 h(Box, { sx: { overflow: 'auto', p: 1, bgcolor: 'action.hover', whiteSpace: 'pre' } },
 `{
   "uuid": "random installation UUID",
   "hfsVersion": "${status?.version}",
   "plugins": [
     {
-      "repo": "owner/repository",
+      "repo": "GitHub address",
       "version": 1,
       "enabled": true
     }
   ]
 }`),
-                h('p', {}, "Turning participation off deletes your installation's report."),
-                h(Link, { href: 'https://hfs-api.rejetto.com/plugin-usage', target: 'plugin-stats' }, "See public statistics"),
+                h('p', {}, t`usage_stats_disable_warning`),
+                h(Link, { href: 'https://hfs-api.rejetto.com/plugin-usage', target: 'plugin-stats' }, t`See public statistics`),
         ),
-        ), { title: "Anonymous statistics" })
+        ), { title: t`Anonymous statistics` })
     }
 
 }
@@ -233,10 +242,10 @@ function Update({ info, title, bodyCollapsed, fromAuto, disabled }: { title?: Re
                     disabled,
                     ...!info.isNewer && info.prerelease && { color: 'warning', variant: 'outlined' },
                     onClick: () => update(fromAuto ? undefined : info.tag_name) // in case of autoCheck, don't specify the tag_name, as it may have been retired in the meantime (in favor of a newer one)
-                }, prefix("Install ", info.name, info.isNewer ? '' : " (older)")),
+                }, t`Install ` + info.name + (info.isNewer ? '' : t` (older)`)),
                 h(Link, { href: REPO_URL + 'releases/tag/' + info.tag_name, target: 'repo' }, h(OpenInNew)),
             ),
-            collapsed ? h(LinkBtn, { sx: { display: 'block', mt: 1 }, onClick(){ setCollapsed(false) } }, "See details")
+            collapsed ? h(LinkBtn, { sx: { display: 'block', mt: 1 }, onClick(){ setCollapsed(false) } }, t`See details`)
                 : h(Box, { sx: { mt: 1 } }, renderChangelog(info.body))
         )),
     )
@@ -252,24 +261,24 @@ function renderChangelog(s: string) {
 }
 
 async function update(tag?: string) {
-    if (!await confirmDialog("Installation may take less than a minute, depending on the speed of your server")) return
-    toast('Downloading')
+    if (!await confirmDialog(t`update_install_duration_warning`)) return
+    toast(t`Downloading`)
     const err = await apiCall('update', { tag }, { timeout: 600 /*download can be lengthy*/ })
         .then(() => 0, e => e)
     if (err)
         return alertDialog(err)
-    toast("Restarting")
+    toast(t`Restarting`)
     const restarting = Date.now()
     let warning: undefined | ReturnType<typeof alertDialog>
     while (await apiCall('NONE').then(() => 0, e => !e.code)) { // while we get no response
         if (!warning && Date.now() - restarting > 15_000)
-            warning = alertDialog("This is taking too long, please check your server", 'warning')
+            warning = alertDialog(t`This is taking too long, please check your server`, 'warning')
         await wait(500)
     }
     warning?.close()
     // the server is back on, SSE is restored and login dialog may appear, unwanted because we are just waiting to reload
     subscribeKey(state, 'loginRequired', () => state.loginRequired = false)
-    await alertDialog("Procedure complete", 'success')
+    await alertDialog(t`Procedure complete`, 'success')
     window.location.reload() // show new gui
 }
 
@@ -287,16 +296,16 @@ function entry(color: Color, ...content: ReactNode[]) {
     )
 }
 
-function fsLink(text=`File System page`) {
-    return h(InLink, { to:'/fs' }, text)
+function fsLink(key='file_system_page') {
+    return h(InLink, { to:'/fs' }, t(key))
 }
 
-function cfgLink(text=`Options page`) {
-    return h(InLink, { to: '/options' }, text)
+function cfgLink(key='options_page') {
+    return h(InLink, { to: '/options' }, t(key))
 }
 
 export function proxyWarning(cfg: any, status: any) {
-    return status && cfg && !cfg.ignore_proxies && (!cfg.proxies && status.proxyDetected ? "A proxy was detected but none is configured"
-        : cfg.proxies && !status.proxyDetected && (Date.now() - +new Date(status.started) > DAY) ? `Proxy count is set to ${cfg.proxies} but none was detected recently. Consider setting it to zero`
+    return status && cfg && !cfg.ignore_proxies && (!cfg.proxies && status.proxyDetected ? t`A proxy was detected but none is configured`
+        : cfg.proxies && !status.proxyDetected && (Date.now() - +new Date(status.started) > DAY) ? t('configured_proxies_not_detected', { proxyCount: cfg.proxies })
         : '')
 }

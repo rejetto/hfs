@@ -1,4 +1,5 @@
 import { createElement as h, Fragment } from 'react'
+import { t } from './i18n'
 import { Box, Link } from '@mui/material'
 import { Error as ErrorIcon, PlayCircle, Warning } from '@mui/icons-material'
 import { apiCall } from './api'
@@ -31,11 +32,11 @@ export function renderPluginName({ row, value }: any) {
 export async function startPlugin(id: string) {
     try {
         await apiCall('start_plugin', { id })
-        toast("Plugin started", h(PlayCircle, { color: 'success' }))
+        toast(t`Plugin started`, h(PlayCircle, { color: 'success' }))
         return true
     }
     catch(e: any) {
-        alertDialog(`Plugin ${id} didn't start, with error: ${String(e?.message || e)}`, 'error')
+        alertDialog(t('plugin_start_error', { id, error: String(e?.message || e) }), 'error')
     }
 }
 
@@ -44,15 +45,15 @@ export async function installPluginFromResult(row: any) {
         if (!await confirmDialog(
             h(Flex, { vert: true, alignItems: 'center' },
                 h(Warning, { color: 'warning', fontSize: 'large' }),
-                "Proceed only if you trust this plugin",
-                h(Box, { sx: { fontSize: '60%' } }, "A plugin has the same power of any other software"),
+                t`Proceed only if you trust this plugin`,
+                h(Box, { sx: { fontSize: '60%' } }, t`A plugin has the same power of any other software`),
             ))) return
-    if (row.missing && !await confirmDialog("This will also install: " + _.map(row.missing, 'repo').join(', '))) return
+    if (row.missing && !await confirmDialog(t('also_install_plugins', { plugins: _.map(row.missing, 'repo').join(', ') }))) return
     const branch = row.branch || row.default_branch
     return installPlugin(row.id, branch).catch((e: any) => {
         if (e.code !== HTTP_FAILED_DEPENDENCY)
             return alertDialog(e)
-        const msg = h(Fragment, {}, "This plugin has some dependencies unmet:",
+        const msg = h(Fragment, {}, t`This plugin has some dependencies unmet:`,
             e.data.map((x: any) => h('li', { key: x.repo }, x.repo + ': ' + x.error)) )
         return alertDialog(msg, 'error')
     })
@@ -65,7 +66,7 @@ export function pluginName(name: string) {
 async function installPlugin(id: string, branch?: string): Promise<any> {
     try {
         const res = await apiCall('download_plugin', { id, branch, stop: true }, { timeout: false })
-        if (await confirmDialog(`Plugin ${id} downloaded`, { trueText: "Start" }))
+        if (await confirmDialog(t("Plugin {id} downloaded", { id: id }), { trueText: t`Start` }))
             await startPlugin(res.id)
     }
     catch(e:any) {
@@ -73,7 +74,7 @@ async function installPlugin(id: string, branch?: string): Promise<any> {
         if (e.code === HTTP_FAILED_DEPENDENCY) // try to install automatically
             for (const x of e.cause)
                 if (x.error === 'missing') {
-                    toast("Installing dependency: " + x.repo)
+                    toast(t("Installing dependency: {repo}", { repo: x.repo }))
                     await installPlugin(x.repo)
                     done = true
                 }

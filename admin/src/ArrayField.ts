@@ -1,4 +1,5 @@
 import { createElement as h, Fragment, isValidElement, useMemo, useState } from 'react'
+import { t, translateText } from './i18n'
 import { callable, Dict, formatTimestamp, Functionable, isOrderedEqual, setHidden, swap } from './misc'
 import { Add, Edit, Delete, ArrowUpward, ArrowDownward, Undo, Check } from '@mui/icons-material'
 import { DialogOptions, FormDialog, formDialog } from './dialog'
@@ -70,7 +71,7 @@ export function ArrayField<T extends object>({
                 hideFooterSelectedRowCount: true,
                 hideFooter: true,
                 slots: {
-                    noRowsOverlay: () => h(Center, {}, noRows || "No entries"),
+                    noRowsOverlay: () => h(Center, {}, noRows || t`No entries`),
                 },
                 slotProps: {
                     pagination: {
@@ -92,7 +93,7 @@ export function ArrayField<T extends object>({
                         const def = byType[f.$type]?.column
                         return _.defaults({
                             field: f.k,
-                            headerName: f.headerName ?? (typeof f.label === 'string' ? f.label : labelFromKey(f.k)),
+                            headerName: f.headerName ?? (typeof f.label === 'string' ? f.label : translateText(labelFromKey(f.k))),
                             disableColumnMenu: true,
                             valueGetter: (v: any) => (f.toField || _.identity)(v),
                             ...f.$width ? { [f.$width >= 8 ? 'width' : 'flex']: f.$width } : (!def?.width && !def?.flex && { flex: 1 }),
@@ -108,7 +109,7 @@ export function ArrayField<T extends object>({
                         width: 90,
                         headerAlign: 'center' as GridAlignment,
                         renderHeader(){
-                            const title = "Add"
+                            const title = t`Add`
                             return h(Fragment, {},
                                 h(IconBtn, {
                                     icon: Add,
@@ -130,7 +131,7 @@ export function ArrayField<T extends object>({
                                 }),
                                 undo !== undefined && h(IconBtn, {
                                     icon: Undo,
-                                    title: "Undo",
+                                    title: t`Undo`,
                                     size: 'small',
                                     onClick: ev => set(undo!, ev)
                                 }),
@@ -138,7 +139,7 @@ export function ArrayField<T extends object>({
                         },
                         getActions({ row }) {
                             const { $idx=row.id } = row
-                            const title = "Modify"
+                            const title = t`Modify`
                             return [
                                 h(GridActionsCellItem as any, {
                                     key: 'edit',
@@ -156,7 +157,7 @@ export function ArrayField<T extends object>({
                                                 }
                                             } || applyButton && {
                                                 addToBar: h(ApplyButton, {
-                                                    children: "Apply",
+                                                    children: t`Apply`,
                                                     sx: { ml: 2, ...applyButton.sx },
                                                     ...applyButton,
                                                     onClick() {
@@ -178,7 +179,7 @@ export function ArrayField<T extends object>({
                                 h(GridActionsCellItem as any, {
                                     key: 'delete',
                                     icon: h(Delete),
-                                    label: "Delete",
+                                    label: t`Delete`,
                                     showInMenu: reorder,
                                     onClick(ev: any) {
                                         ev.stopPropagation()
@@ -188,7 +189,7 @@ export function ArrayField<T extends object>({
                                 reorder && $idx && h(GridActionsCellItem as any, {
                                     key: 'up',
                                     icon: h(ArrowUpward),
-                                    label: "Move up",
+                                    label: t`Move up`,
                                     showInMenu: true,
                                     onClick(ev: any) {
                                         ev.stopPropagation()
@@ -198,7 +199,7 @@ export function ArrayField<T extends object>({
                                 reorder && $idx < rows.length - 1 && h(GridActionsCellItem as any, {
                                     key: 'down',
                                     icon: h(ArrowDownward),
-                                    label: "Move down",
+                                    label: t`Move down`,
                                     showInMenu: true,
                                     onClick(ev: any) {
                                         ev.stopPropagation()
@@ -234,7 +235,8 @@ export function ArrayField<T extends object>({
 function ApplyButton(props: Parameters<typeof Button>[0]) {
     return h(Button, {
         ref: useCtrlShortcutButton(['s']).ref,
-        title: "Apply\n(ctrl+s)",
+        title: t`Apply
+(ctrl+s)`,
         ...props,
     })
 }

@@ -8,6 +8,7 @@
     "test-dep": "npm audit --production"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.5",
     "@gregoranders/csv": "^0.0.13",
@@ -27,8 +28,10 @@
     "react-dom": "^18.2.0",
     "react-simple-code-editor": "^0.13.1",
     "react-window": "^1.8.10",
-    "valtio": "^1.13.0",
+    "stylis": "^4.2.0",
+    "stylis-plugin-rtl": "^2.1.1",
     "usehooks-ts": "^2.9.5",
+    "valtio": "^1.13.0",
     "wouter": "^3.4.1"
   },
   "devDependencies": {
@@ -36,6 +39,7 @@
     "@types/react": "^18.3.14",
     "@types/react-dom": "^18.3.2",
     "@types/react-window": "^1.8.8",
+    "@types/stylis": "^4.2.7",
     "vite": "^8.0.16"
   },
   "eslintConfig": {

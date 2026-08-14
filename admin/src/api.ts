@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { t } from './i18n'
 import { Dict, err2msg, Falsy, LIST, useStateMounted, wantArray, xlate,
     HTTP_FORBIDDEN, HTTP_UNAUTHORIZED } from './misc'
 import { IconBtn, spinner } from './mui'
@@ -22,7 +23,7 @@ setDefaultApiCallOptions({
     }
 })
 
-const ERRORS = { timeout: "Operation timeout" }
+const ERRORS = { timeout: 'operation_timeout' }
 // expand useApi with things that cannot be shared with Frontend
 export type ApiObject<T extends ApiHandler=any> = ReturnType<typeof useApiEx<T>>
 export function useApiEx<T extends ApiHandler=any>(...args: Parameters<typeof useApi>) {
@@ -31,8 +32,8 @@ export function useApiEx<T extends ApiHandler=any>(...args: Parameters<typeof us
         ...res,
         element: useMemo(() =>
             !args[0] ? null
-                : res.error ? h(Alert, { severity: 'error' }, xlate(String(res.error), ERRORS),
-                                    h(IconBtn, { icon: Refresh, title: "Reload", onClick: res.reload, sx: { m:'-10px 0 -8px 16px' } }) )
+                : res.error ? h(Alert, { severity: 'error' }, t(xlate(String(res.error), ERRORS)),
+                                    h(IconBtn, { icon: Refresh, title: t`Reload`, onClick: res.reload, sx: { m:'-10px 0 -8px 16px' } }) )
                     : res.data === undefined ? spinner()
                         : null,
             Object.values(res))

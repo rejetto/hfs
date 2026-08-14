@@ -1,7 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { FieldProps, StringField } from '@hfs/mui-grid-form'
 import { createElement as h } from 'react'
+import { t } from './i18n'
+
+import { FieldProps, StringField } from '@hfs/mui-grid-form'
 import { Eject } from '@mui/icons-material'
 import { IconBtn, useBreakpoint } from './mui'
 import { enforceFinal, getHFS, newDialog, prefix } from '@hfs/shared'
@@ -17,12 +19,12 @@ export default function FileField({ value, onChange, files=true, folders=false, 
         wrap: true,
         end: h(IconBtn, {
             icon: Eject,
-            title: "Browse files...",
+            title: t`Browse files...`,
             edge: 'end',
             sx: { mb: .5 },
             onClick() {
                 const { close } = newDialog({
-                    title: title ?? ((files ? "Pick a file" : "Pick a folder") + prefix(': ', fileMask)),
+                    title: title ?? t(files ? "Pick a file" : "Pick a folder") + prefix(': ', fileMask),
                     dialogProps: {
                         fullScreen: !large,
                         sx: { minWidth: 'min(90vw, 40em)', minHeight: 'calc(100vh - 9em)' }

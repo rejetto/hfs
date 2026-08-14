@@ -2,6 +2,7 @@
 
 import { alertDialog, newDialog, promptDialog, toast } from './dialog'
 import { createElement as h, Fragment } from 'react'
+import { t } from './i18n'
 import { Box } from '@mui/material'
 import { reindexVfs, VfsNodeAdmin } from './state'
 import { addToChildrenOf } from './VfsMove'
@@ -12,14 +13,14 @@ import { basename, extname, focusSelector, getHFS, Optional } from '@hfs/shared'
 let lastFolder: undefined | string
 export default function addFiles() {
     const { close } = newDialog({
-        title: "Add files or folders",
+        title: t`Add files or folders`,
         dialogProps: { sx:{ minWidth: 'min(80vw, 40em)', minHeight: 'calc(100vh - 9em)' } },
         Content() {
             const parent = getFolderFromSelected()
             return h(Fragment, {},
                 h(Box, { sx:{ typography: 'body1', px: 1, py: 2 } },
-                    "Selected elements will be added under ",
-                    parent.isRoot ? h('i', {}, "Home") : decodeURI(parent.id)
+                    t`Selected elements will be added under `,
+                    parent.isRoot ? h('i', {}, t`Home`) : decodeURI(parent.id)
                 ),
                 h(FilePicker, {
                     from: lastFolder ?? parent.source,
@@ -71,7 +72,7 @@ function isSameFilenameAs(name: string) {
 
 export async function addVirtual() {
     try {
-        let name = await promptDialog("Enter folder name")
+        let name = await promptDialog(t`Enter folder name`)
         if (!name) return
         const parent = getFolderFromSelected()
         name = getFreeName(parent, name)
@@ -89,7 +90,7 @@ export async function addLink() {
         const name = getFreeName(parent, 'new link')
         if (!name) return
         addNodes(parent, [{ name, url: 'https://example.com' }])
-        toast("Link created", 'success', {
+        toast(t`Link created`, 'success', {
             onClose: () => focusSelector('input[name=url]')
         })
     }

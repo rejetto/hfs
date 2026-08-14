@@ -1,4 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
+import { t } from './i18n'
+
 // all content here is shared between client and server
 
 import { PauseCircle, PlayCircle, Refresh, SvgIconComponent } from '@mui/icons-material'
@@ -104,11 +107,11 @@ export function wikiLink(uri: string, content: ReactNode) {
 }
 
 export function WildcardsSupported() {
-    return wikiLink('Wildcards', "Wildcards supported")
+    return wikiLink('Wildcards', t`Wildcards supported`)
 }
 
 export function reloadBtn(onClick: any, props?: any) {
-    return h(IconBtn, { icon: Refresh, title: "Reload", onClick, ...props })
+    return h(IconBtn, { icon: Refresh, title: t`Reload`, onClick, ...props })
 }
 
 export function useCtrlShortcutButton(keys: readonly string[]) {
@@ -182,7 +185,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
         'aria-hidden': disabled,
         async onClick(...args: any[]) {
             if (loadingState) return
-            if (confirm && !await confirmDialog(confirm === true ? "Are you sure?" : confirm)) return
+            if (confirm && !await confirmDialog(confirm === true ? t`Are you sure?` : confirm)) return
             try {
                 const ret = onClick?.apply(this, args as any)
                 if (ret instanceof Promise)
@@ -233,7 +236,7 @@ export function execDoneMessage(msg: boolean | string | undefined, el?: HTMLElem
     if (el)
         restartAnimation(el, 'success .5s')
     if (msg)
-        toast(msg === true ? "Operation completed" : msg, 'success')
+        toast(msg === true ? t`Operation completed` : msg, 'success')
 }
 
 export function iconTooltip(icon: SvgIconComponent, tooltip: ReactNode, sx?: SxProps, props?: SvgIconProps) {
@@ -275,7 +278,7 @@ export function LinkBtn({ ...rest }: LinkProps) {
 }
 
 export function usePauseButton(name='', def: ToggleButtonDefault=true, props?: Partial<IconBtnProps>) {
-    const [going, btn] = useToggleButton(`Pause ${name}`, `Resume ${name}`, v => ({
+    const [going, btn] = useToggleButton(t("Pause {name}", { name: name }), t("Resume {name}", { name: name }), v => ({
         icon: v ? PauseCircle : PlayCircle,
         sx: { rotate: v ? '180deg' : '0deg' },
         ...props,
@@ -319,12 +322,12 @@ export function NetmaskField({ setApi, helperText, ...props }: StringFieldProps)
         }
     })
     return h(StringField, {
-        helperText: h('span', {}, helperText, helperText && ' – ', wikiLink('Wildcards#network-masks', "Wildcards supported")),
+        helperText: h('span', {}, helperText, helperText && ' – ', wikiLink('Wildcards#network-masks', t`Wildcards supported`)),
         ...props,
         onTyping(v) {
             if (!warned.current && v?.includes('127.0.0.1') && !v.includes('::1')) {
                 warned.current = true
-                alertDialog(`Hostname "localhost" is normally translated as ::1 instead of 127.0.0.1`, 'warning')
+                alertDialog(t`localhost_resolution_hint`, 'warning')
             }
             return props.onTyping?.(v) ?? v
         },

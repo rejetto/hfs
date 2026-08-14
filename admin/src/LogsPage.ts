@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { language, t } from './i18n'
 import httpCodes from './httpCodes'
 import { Box, Tab, Tabs } from '@mui/material'
 import { PageProps } from './App'
@@ -40,17 +41,19 @@ let reloadIps: any
 export default function LogsPage({ setTitleSide }: PageProps) {
     const files = LOG_FILES
     const [tab, setTab] = useRoutedTab('logs', files)
-    const shorterLabels = !useBreakpoint('sm') && { error_log: "Not", console: h(Terminal), disconnections: h(LinkOff) }
+    const shorterLabels = !useBreakpoint('sm') && { error_log: t`Failed`, console: h(Terminal), disconnections: h(LinkOff) }
     const file = files[tab]
     const fileAvailable = file.endsWith('log')
 
     const logInfo = useApiEx('get_log_info')
     setTitleSide(useMemo(() => fileAvailable && (logInfo.element || with_(logInfo.data, data =>
         h(Box, { sx: { fontSize: 'smaller' } },
-            `Current: ${formatBytes(_.sum(Object.values(data.current)))}`,
+            t('current_log_size', { size: formatBytes(_.sum(Object.values(data.current))) }),
             h('br'),
-            with_(Object.values(data.rotated).flat(), rotatedAsArray =>
-                `Archived: ${formatBytes(_.sumBy(rotatedAsArray, 'size'))} / ${rotatedAsArray.length} files`)
+            with_(Object.values(data.rotated).flat(), rotatedAsArray => t('archived_files', {
+                n: rotatedAsArray.length,
+                totalSize: formatBytes(_.sumBy(rotatedAsArray, 'size')),
+            }))
         )
     )), [logInfo.element, logInfo.data, fileAvailable]))
 
@@ -58,18 +61,18 @@ export default function LogsPage({ setTitleSide }: PageProps) {
         h(Flex, { gap: 0  },
             h(Tabs, { value: tab, onChange(_ev,i){ setTab(i) } },
                 files.map(f => h(Tab, {
-                    label: _.get(shorterLabels, f) || logLabels[f],
+                    label: _.get(shorterLabels, f) || t(logLabels[f]),
                     key: f,
                     sx: { minWidth: 0, px: { xs: 1.5, sm: 2 } } // save space
                 }))),
             h(Box, { sx: { flex: 1 } }),
             h(IconBtn, {
                 icon: Download,
-                title: fileAvailable ? "Download as file" : "Not available",
+                title: fileAvailable ? t`Download as file` : t`Not available`,
                 link: API_URL + `get_log_file?file=${file}`,
                 disabled: !fileAvailable
             }),
-            h(IconBtn, { icon: Settings, title: "Options", onClick: showLogOptions })
+            h(IconBtn, { icon: Settings, title: t`Options`, onClick: showLogOptions })
         ),
         files.map(f =>
             h(LogFile, { hidden: file !== f, file: f, key: f, fillFlex: true }) ),
@@ -77,7 +80,7 @@ export default function LogsPage({ setTitleSide }: PageProps) {
 
     function showLogOptions() {
         newDialog({
-            title: "Log options",
+            title: t`Log options`,
             dialogProps: { sx: { maxWidth: '40em' } },
             Content() {
                 return h(ConfigForm, {
@@ -85,28 +88,29 @@ export default function LogsPage({ setTitleSide }: PageProps) {
                     form: {
                         stickyBar: true,
                         fields: [
-                            { k: CFG.log, label: logLabels.log, sm: 6, helperText: "Requests are logged here. Empty to disable it." },
-                            { k: CFG.error_log, label: logLabels.error_log, sm: 6, placeholder: "errors go to main log",
-                                helperText: "Write errors in a different file. Empty to use same file."
+                            { k: CFG.log, label: t(logLabels.log), sm: 6, helperText: t`Requests are logged here. Empty to disable it.` },
+                            { k: CFG.error_log, label: t(logLabels.error_log), sm: 6, placeholder: t`errors go to main log`,
+                                helperText: t`error_log_help`
                             },
-                            { k: CFG.log_rotation, comp: SelectField, sm: 6, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
-                                helperText: [wikiLink('Logs#rotation', "To keep log-files smaller"), " (deletion is not automatic)"],
+                            { k: CFG.log_rotation, comp: SelectField, sm: 6, label: t`Log rotation`, options: [{ value:'', label:t`disabled` },
+                                    ...['daily', 'weekly', 'monthly'].map(value => ({ value, label: t(value) })) ],
+                                helperText: [wikiLink('Logs#rotation', t`To keep log-files smaller`), t` (deletion is not automatic)`],
                             },
-                            { k: CFG.dont_log_net, comp: NetmaskField, label: "Don't log address", sm: 6, placeholder: "no exception" },
-                            { k: CFG.log_gui, sm: 6, comp: BoolField, label: "Log interface loading", helperText: "Some requests are necessary to load the interface" },
-                            { k: CFG.log_api, sm: 6, comp: BoolField, label: "Log API requests", helperText: "Requests for commands" },
-                            { k: CFG.log_ua, sm: 6, comp: BoolField, label: "Log User-Agent", helperText: "Contains browser and possibly OS information. Can double the size of your logs on disk." },
-                            { k: CFG.log_host, sm: 6, comp: BoolField, label: "Log Host header" },
-                            { k: CFG.log_spam, sm: 6, comp: BoolField, label: "Log spam requests", helperText: md`Failed requests that you probably don't want to see` },
-                            { k: CFG.track_ips, sm: 6, comp: BoolField, label: "Keep track of IPs",
+                            { k: CFG.dont_log_net, comp: NetmaskField, label: t`Don't log address`, sm: 6, placeholder: t`no exception` },
+                            { k: CFG.log_gui, sm: 6, comp: BoolField, label: t`Log interface loading`, helperText: t`Some requests are necessary to load the interface` },
+                            { k: CFG.log_api, sm: 6, comp: BoolField, label: t`Log API requests`, helperText: t`Requests for commands` },
+                            { k: CFG.log_ua, sm: 6, comp: BoolField, label: t`Log User-Agent`, helperText: t`user_agent_log_size_warning` },
+                            { k: CFG.log_host, sm: 6, comp: BoolField, label: t`Log Host header` },
+                            { k: CFG.log_spam, sm: 6, comp: BoolField, label: t`Log spam requests`, helperText: md(t`Failed requests that you probably don't want to see`) },
+                            { k: CFG.track_ips, sm: 6, comp: BoolField, label: t`Keep track of IPs`,
                                 parentProps: { sx: { display: 'flex', gap: 1, alignItems: 'flex-start' } },
                                 after: h(Btn, {
                                     size: 'small', variant: 'outlined', color: 'warning', sx: { mt: '4px' },
                                     confirm: true, doneMessage: true,
                                     onClick: () => apiCall('reset_ips').then(reloadIps)
-                                }, "Reset")
+                                }, t`Reset`)
                             },
-                            { k: CFG.debug, sm: 6, comp: BoolField, label: "Debug messages in console" },
+                            { k: CFG.debug, sm: 6, comp: BoolField, label: t`Debug messages in console` },
                         ]
                     }
                 })
@@ -123,7 +127,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
     const [showAgent, setShowAgent] = useState(false)
     const [showHost, setShowHost] = useState(false)
     const { pause, pauseButton } = usePauseButton()
-    const [showApi, showApiButton] = useToggleButton("Show APIs", "Hide APIs", v => ({
+    const [showApi, showApiButton] = useToggleButton(t`Show APIs`, t`Hide APIs`, v => ({
         icon: SmartToy,
         sx: { rotate: v ? 0 : '180deg' },
     }), true)
@@ -155,7 +159,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 }
             }
             else if (skipped) {
-                toast(`Entire log loaded, ${formatBytes(skipped)}`)
+                toast(t('entire_log_loaded', { loadedSize: formatBytes(skipped) }))
                 setSkipped(0)
             }
             // older file batches must not reuse the IDs of rows already displayed
@@ -172,15 +176,15 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
         reloadIps = reload
     const tsColumn: DataTableColumn = {
         field: 'ts',
-        headerName: "Timestamp",
+        headerName: t`Timestamp`,
         type: 'dateTime',
         width: 96,
         valueGetter: v => new Date(v),
-        renderCell: ({ value }) => h(Fragment, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString()),
+        renderCell: ({ value }) => h(Fragment, {}, value.toLocaleDateString(language), h('br'), value.toLocaleTimeString(language)),
     }
     const ipColumn: DataTableColumn = {
         field: 'ip',
-        headerName: "Address",
+        headerName: t`Address`,
         flex: .6,
         minWidth: 130,
         maxWidth: 230,
@@ -209,19 +213,19 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             isIps && h(Btn, {
                 icon: Delete,
                 confirm: true,
-                title: `Delete ${row.ip}`,
+                title: t("Delete {ip}", { ip: row.ip }),
                 doneMessage: true,
                 onClick: () => apiCall('delete_ips', { ip: row.ip }).then(() => setList(was => was.filter(x => x.ip !== row.ip)))
             }),
             isIps && h(Btn, {
                 icon: AutoDelete,
                 confirm: true,
-                title: `Delete all records up to ${formatTimestamp(row.ts)}`,
-                onClick: () => apiCall('delete_ips', { ts: row.ts }).then(res => toast(`${res.n} deleted`)).then(reload)
+                title: t('delete_records_up_to', { timestamp: formatTimestamp(row.ts) }),
+                onClick: () => apiCall('delete_ips', { ts: row.ts }).then(res => toast(t('items_deleted', { n: res.n }))).then(reload)
             }),
             hasFile && h(Btn, {
                 icon: ContentCopy,
-                title: "Copy request",
+                title: t`Copy request`,
                 doneAnimation: true,
                 onClick: () => copyTextToClipboard(JSON.stringify(_.omit(row, 'id'), undefined, 2))
             })
@@ -236,22 +240,22 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 variant: 'outlined',
                 sx: { ml: { sm: 1 } },
                 labelIf: width > 700,
-                title: `Only ${formatBytes(MAX)} was loaded, for speed. Total size is ${formatBytes(totalSize)}`,
+                title: t('partial_log_loaded', { loadedSize: formatBytes(MAX), totalSize: formatBytes(totalSize) }),
                 loading: !limited,
                 onClick: () => setLimited(false)
-            }, "Load whole log"),
+            }, t`Load whole log`),
             footerSide,
         ),
         columns: isConsole ? [
             tsColumn,
             {
                 field: 'k',
-                headerName: "Level",
+                headerName: t`Level`,
                 hideUnder: 'sm',
             },
             {
                 field: 'msg',
-                headerName: "Message",
+                headerName: t`Message`,
                 flex: 1,
                 mergeRender: { k: { override: { valueFormatter: (value) => value !== 'log' && value } } }
             }
@@ -260,14 +264,14 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             ipColumn,
             isIps && {
                 field: 'served',
-                headerName: "Requests",
+                headerName: t`Requests`,
                 width: 85,
                 sx: { whiteSpace: 'pre-line' },
                 valueGetter: (v, row) => v === undefined ? undefined : v + row.failed, // is this heavy with many records?
                 renderCell: ({ row, value }) => value >= 0 && `✅ ${row.served}\n 🚫 ${row.failed}`,
             },
             {
-                headerName: "Country",
+                headerName: t`Country`,
                 field: 'country',
                 flex: 1,
                 hideUnder: !showCountry || 'md',
@@ -276,13 +280,13 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             },
             !isIps && {
                 field: 'msg',
-                headerName: "Message",
+                headerName: t`Message`,
                 flex: 4,
             }
         ] : [
             ipColumn,
             {
-                headerName: "Country",
+                headerName: t`Country`,
                 field: 'country',
                 valueGetter: (_value, row) => row.extra?.country,
                 hideUnder: !showCountry || 'xl',
@@ -290,7 +294,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             },
             {
                 field: 'user',
-                headerName: "Username",
+                headerName: t`Username`,
                 flex: .3,
                 maxWidth: 200,
                 hideUnder: 'xl',
@@ -298,28 +302,28 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             tsColumn,
             {
                 field: 'method',
-                headerName: "Method",
+                headerName: t`Method`,
                 width: 80,
                 hideUnder: 'xl',
             },
             {
                 field: 'status',
-                headerName: "Code",
+                headerName: t`Code`,
                 type: 'number',
                 width: 70,
                 hideUnder: 'xl',
-                renderCell: ({ value }) => hTooltip(prefix(value + ' - ', httpCodes[value]) || "Unknown", undefined,
+                renderCell: ({ value }) => hTooltip(prefix(value + ' - ', httpCodes[value]) || t`Unknown`, undefined,
                     h(Box, { sx: { bgcolor: '#888a', color: '#fff', borderRadius: '.3em', p: '.05em .3em', lineHeight: '1.2em' } }, value))
             },
             {
                 field: 'length',
-                headerName: "Size",
+                headerName: t`Size`,
                 type: 'number',
                 hideUnder: 'md',
                 valueFormatter: (value) => formatBytes(value as number)
             },
             {
-                headerName: "Agent",
+                headerName: t`Agent`,
                 field: 'ua',
                 width: 60,
                 hideUnder: !showAgent || 'md',
@@ -328,14 +332,14 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             },
             {
                 field: 'host',
-                headerName: "Host",
+                headerName: t`Host`,
                 width: 100,
                 hideUnder: !showHost || 'md',
                 valueGetter: (_value: any, row: any) => row.extra?.host,
             },
             {
                 field: 'notes',
-                headerName: "Notes",
+                headerName: t`Notes`,
                 width: 110,
                 hideUnder: 'sm',
                 cellClassName: 'wrap',
@@ -343,7 +347,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             },
             {
                 field: 'uri',
-                headerName: "URI",
+                headerName: t`URI`,
                 flex: 2,
                 minWidth: 100,
                 sx: { wordBreak: 'break-all' }, // be flexible, uri can be a mess
@@ -357,13 +361,13 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                         return [path, query && h(Box as any, { key: 0, component: 'span', sx: { color: 'text.secondary', fontSize: 'smaller' } }, '?', query)]
                     const name = path.slice(API_URL.length)
                     const params = query && ': ' + Array.from(new URLSearchParams(query)).map(x => `${x[0]}=${tryJson(x[1]) ?? x[1]}`).join(' ; ')
-                    return "API " + name + params
+                    return t("API {name}{params}", { name: name, params: params })
                 }
             },
             {
                 field: 'agentText',
                 valueGetter: (_value: any, row: any) => row.extra?.ua,
-                headerName: "Agent text",
+                headerName: t`Agent text`,
                 flex: 2,
                 hideUnder: true,
             },
@@ -385,12 +389,16 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             if (upload)
                 row.length =  (extra?.size ?? 0)
                     + (!partial && Number(row.uri.match(/\?.*resume=(\d+)/)?.[1]) || 0) // show full size for full uploads
-            row.notes = extra?.dl ? "full download " + (extra.speed ? formatSpeed(extra.speed, { sep: ' ' }) : '') // 'dl' here is not the '?dl' of the url, and has a different meaning
-                : upload ? `${partial ? "partial " : ""} upload ${extra.speed ? formatSpeed(extra.speed, { sep: ' ' }) : ''}`
-                    : row.status === HTTP_UNAUTHORIZED && row.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
+            const speed = extra?.speed && formatSpeed(extra.speed, { sep: ' ' })
+            row.notes = extra?.dl ? t(speed ? 'log_full_download_at_speed' : 'log_full_download', { speed }) // 'dl' here is not the '?dl' of the url, and has a different meaning
+                : upload ? t(partial
+                    ? speed ? 'log_partial_upload_at_speed' : 'log_partial_upload'
+                    : speed ? 'log_upload_at_speed' : 'log_upload', { speed })
+                    : row.status === HTTP_UNAUTHORIZED && row.uri?.startsWith(API_URL + 'loginSrp')
+                        ? t(extra?.u ? 'log_login_failed_for_user' : 'log_login_failed', { username: extra?.u })
                         : _.map(extra?.params, (v, k) => `${k}: ${v}\n`).join('') + (row.notes || '')
             if (extra?.aborted)
-                row.notes += ' (aborted)'
+                row.notes += t` (aborted)`
         }
         return row
     }

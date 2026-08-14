@@ -1,4 +1,5 @@
 import { createElement as h, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { t } from './i18n'
 import {
     Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link, Typography, Skeleton,
 } from '@mui/material'
@@ -28,7 +29,7 @@ const COUNTRIES = ALL.filter(x => WITH_IP.includes(x.code))
 
 const PORT_FORWARD_URL = 'https://portforward.com/'
 const HIGHER_PORT = 1080
-const MSG_ISP = h('div', {}, "HFS will probably not be reachable on the Internet. ", wikiLink('Work-on-the-internet#double-nat', "Read more"))
+const MSG_ISP = h('div', {}, t`internet_probably_unreachable`, ' ', wikiLink('Work-on-the-internet#double-nat', t`Read more`))
 
 export default function InternetPage({ setTitleSide }: PageProps) {
     const [checkResult, setCheckResult] = useState<boolean | undefined>()
@@ -51,7 +52,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
             void verify(true)
     }, [verifyAgain.state])
     setTitleSide(useMemo(() =>
-        h(Alert, { severity: 'info', sx: { display: { xs: 'none', sm: 'inherit' }  } }, "This page makes sure your site is working correctly on the Internet"),
+        h(Alert, { severity: 'info', sx: { display: { xs: 'none', sm: 'inherit' }  } }, t`internet_page_intro`),
         []))
     return h(Flex, { vert: true, gap: '2em' },
         h(Box, { sx: { maxWidth: '40em' } }, networkBox()),
@@ -71,13 +72,13 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         const { data } = useApiEvents<DynamicDnsResult>('get_dynamic_dns_error')
         const ref = useRef<any>()
         useEffect(() => ref.current && restartAnimation(ref.current, '1s blink'), [data]);
-        return h(TitleCard, { icon: Dns, title: "Dynamic DNS updater" },
+        return h(TitleCard, { icon: Dns, title: t`Dynamic DNS updater` },
             data && h(Flex, {},
                 data.error ? h(ErrorIcon, { color: 'error', ref }) : h(Check, { color: 'success', ref }),
                 formatTimestamp(data.ts), ' – ',
-                prefix("Error: ", stripTags(data.error)).slice(0, 500) || "Updated successfully",
+                data.error ? (t`Error: ` + stripTags(data.error)).slice(0, 500) : t`Updated successfully`,
             ),
-            "This tool can keep your domain updated with your latest IP address. Not every service is compatible, and most of them have their own software for the job, which is superior, but we offer this lightweight solution if you prefer it.",
+            t`dynamic_dns_intro`,
             h(ConfigForm<{
                 [CFG.dynamic_dns_url]: string,
             }>, {
@@ -87,28 +88,31 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                             _.map({
                                 NoIP: {
                                     url: 'https://$username:$password@dynupdate.no-ip.com/nic/update?hostname=$domain',
-                                    fields: ['username', 'password', 'domain'],
+                                    fields: ['username', 'password', 'domain'].map(k => ({ k, label: t(_.upperFirst(k)) })),
                                 },
                                 DuckDNS: {
                                     url: 'https://www.duckdns.org/update/$domain/$token>OK',
-                                    fields: [{ k: 'domain', helperText: "do NOT include the .duckdns.org part" }, 'token'],
+                                    fields: [
+                                        { k: 'domain', label: t`Domain`, helperText: t`do NOT include the .duckdns.org part` },
+                                        { k: 'token', label: t`Token` },
+                                    ],
                                 }
                             }, ({ url, fields }, label) =>
                                 h(Btn, {
                                     key: url,
                                     onClick: () => formDialog({
-                                        title: label + " wizard",
+                                        title: t("{label} wizard", { label: label }),
                                         form: {
                                             sx: { maxWidth: '20em' },
-                                            before: h(Box, { sx: { mb: 1 } }, "The following information is stored unencrypted"),
+                                            before: h(Box, { sx: { mb: 1 } }, t`The following information is stored unencrypted`),
                                             fields: fields.map(k => _.isString(k) ? { k } : k)
                                         }
                                     }).then(symbols => symbols && setValues({ [CFG.dynamic_dns_url]: replace(url, symbols as any, '$') }))
-                                }, label + " wizard")
+                                }, t("{label} wizard", { label: label }))
                             )
                         ),
-                        { k: CFG.dynamic_dns_url, label: "Updater URL", multiline: true,
-                            helperText: "Refer to your DNS service provider to know what URL can automatically keep your domain updated. Supported symbols are $IP4, $IP6, $IPX. Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used."
+                        { k: CFG.dynamic_dns_url, label: t`Updater URL`, multiline: true,
+                            helperText: t`dynamic_dns_url_help`
                         },
                     ]
                 })
@@ -118,7 +122,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
 
     function geoBox() {
         const countryOptions = useMemo(() => COUNTRIES.map(x => ({ value: x.code, label: x.name })), [COUNTRIES])
-        return h(TitleCard, { title: "Geo IP", icon: Public },
+        return h(TitleCard, { title: t`Geo IP`, icon: Public },
             h(ConfigForm<{
                 [CFG.geo_enable]: boolean
                 [CFG.geo_allow]: null | boolean
@@ -128,57 +132,57 @@ export default function InternetPage({ setTitleSide }: PageProps) {
             }>, {
                 keys: [ CFG.geo_enable, CFG.geo_allow, CFG.geo_list, CFG.geo_allow_unknown, CFG.geo_ignore_net ],
                 form: values => ({ fields: [
-                    { k: CFG.geo_enable, comp: BoolField, label: "Enable", helperText: md("Necessary database will be downloaded every month (2MB). Service is made possible thanks to [IP2Location](https://www.ip2location.com).") },
+                    { k: CFG.geo_enable, comp: BoolField, label: t`Enable`, helperText: md(t`geo_db_download_notice`) },
                     ...!values?.[CFG.geo_enable] ? [] : [
                         {
                             k: CFG.geo_allow,
                             comp: SelectField,
-                            label: "Rule",
-                            options: { "no restriction": null, "block selected countries": false, "allow selected countries": true },
+                            label: t`Rule`,
+                            options: { [t`no restriction`]: null, [t`block selected countries`]: false, [t`allow selected countries`]: true },
                         },
                         values[CFG.geo_allow] != null && {
                             k: CFG.geo_list,
                             comp: MultiSelectField<string>,
-                            label: `Selected countries (${values[CFG.geo_list]?.length || 0})`,
+                            label: t('selected_countries_count', { count: values[CFG.geo_list]?.length || 0 }),
                             valueSeparator: false,
-                            placeholder: "none",
+                            placeholder: t`none`,
                             options: countryOptions,
                             renderOption: (v: any) => h(Country, { code: v.value, long: true }),
                             clearable: true,
-                            getError: (v: any) => values[CFG.geo_allow] && !v?.length && "Cannot be empty",
+                            getError: (v: any) => values[CFG.geo_allow] && !v?.length && t`Cannot be empty`,
                         },
                         values[CFG.geo_allow] != null && {
                             k: CFG.geo_allow_unknown,
                             comp: SelectField,
-                            label: "When country cannot be determined",
-                            helperText: "Local IPs are ignored",
-                            options: { Allow: true, Block: false },
+                            label: t`When country cannot be determined`,
+                            helperText: t`Local IPs are ignored`,
+                            options: { [t`Allow`]: true, [t`Block`]: false },
                             sm: 6,
                         },
                         {
                             k: CFG.geo_ignore_net,
                             comp: NetmaskField,
-                            label: "Ignore IP addresses",
-                            placeholder: "none",
-                            helperText: "Bypass geo-filtering",
+                            label: t`Ignore IP addresses`,
+                            placeholder: t`none`,
+                            helperText: t`Bypass geo-filtering`,
                             sm: 6,
                         },
                     ]
                 ] }),
                 addToBar: [
                     h(Box, { sx: { flex: 1 } }),
-                    h(Btn, { icon: Search, onClick: lookup }, "Lookup IP")
+                    h(Btn, { icon: Search, onClick: lookup }, t`Lookup IP`)
                 ],
             })
         )
     }
 
     async function lookup() {
-        const ip = await promptDialog("Lookup IP")
+        const ip = await promptDialog(t`Lookup IP`)
         if (!ip) return
         const { country } = await apiCall('geo_ip', { ip })
         if (!country)
-            return alertDialog("IP not found", 'error')
+            return alertDialog(t`IP not found`, 'error')
         return alertDialog(h(Country, { code: country, long: true }), 'success')
     }
 
@@ -191,15 +195,15 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         const { https } = status.data ||{}
         const disabled = https?.port === PORT_DISABLED
         const error = https?.error
-        return status.element || h(TitleCard, { title: "HTTPS", icon: Lock, color: https?.listening && !error ? 'success' : 'warning' },
+        return status.element || h(TitleCard, { title: t`HTTPS`, icon: Lock, color: https?.listening && !error ? 'success' : 'warning' },
             error ? h(Alert, { severity: 'warning' }, error) :
-                (disabled && h(LinkBtn, { onClick: notEnabled }, "Not enabled")),
-            cert.element || with_(cert.data, c => c.none ? h(LinkBtn, { onClick: noCertClick }, "No certificate configured") : h(Box, {},
-                h(CardMembership, { fontSize: 'small', sx: { mr: 1, verticalAlign: 'middle' } }), "Current certificate",
+                (disabled && h(LinkBtn, { onClick: notEnabled }, t`Not enabled`)),
+            cert.element || with_(cert.data, c => c.none ? h(LinkBtn, { onClick: noCertClick }, t`No certificate configured`) : h(Box, {},
+                h(CardMembership, { fontSize: 'small', sx: { mr: 1, verticalAlign: 'middle' } }), t`Current certificate`,
                 h('ul', {},
-                    h('li', {}, "Domain: ", c.altNames?.join(' + ') ||'-'),
-                    h('li', {}, "Issuer: ", c.issuer?.O || h('i', {}, 'self-signed')),
-                    h('li', {}, "Validity: ", ['validFrom', 'validTo'].map(k => formatTimestamp(c[k])).join(' – ')),
+                    h('li', {}, t`Domain: `, c.altNames?.join(' + ') ||'-'),
+                    h('li', {}, t`Issuer: `, c.issuer?.O || h('i', {}, t`self-signed`)),
+                    h('li', {}, t`Validity: `, ['validFrom', 'validTo'].map(k => formatTimestamp(c[k])).join(' – ')),
                 )
             )),
             h(Divider),
@@ -216,29 +220,29 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                     })
                 },
                 fields: [
-                    md("Generate certificate using [Let's Encrypt](https://letsencrypt.org)"),
+                    md(t('generate_lets_encrypt_certificate', { letsEncryptUrl: 'https://letsencrypt.org' })),
                     {
                         k: 'acme_domain',
-                        label: "Domain for certificate",
+                        label: t`Domain for certificate`,
                         sm: values.acme_domain?.length > 30 ? 12 : 6,
                         required: true,
                         multiline: true,
                         fromField: x => x.replaceAll('\n', ','),
                         toField: x => x.replaceAll(',', '\n'),
-                        helperText: md("Example: your.domain.com\nMultiple domains on separate lines")
+                        helperText: md(t`certificate_domains_example`)
                     },
                     values.acme_domain?.split(',').some(isIP) && h(Alert, { severity: 'info' },
-                        "IP addresses require Let's Encrypt's short-lived profile: the whole certificate will last 160 hours, and automatic renew is necessary"),
+                        t`acme_ip_short_lived_notice`),
                     {
                         k: 'acme_renew',
-                        label: "Automatic renew before expiration",
+                        label: t`Automatic renew before expiration`,
                         comp: BoolField,
                         disabled: !values.acme_domain
                     },
                     with_(status.data.acmeRenewError, x => x && h(Alert, { severity: 'error' }, x)),
                 ],
                 save: {
-                    children: "Request",
+                    children: t`Request`,
                     disabled: !cert.data,
                     startIcon: h(Send),
                     ...saving && { loading: true },
@@ -248,13 +252,13 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                         const renewBefore = (validTo - Number(new Date(cert.data.validFrom))) / 3
                         const fresh = cert.data.altNames?.includes(domain)
                             && validTo - Date.now() >= renewBefore
-                        if (fresh && !await confirmDialog("Your certificate is still good", { trueText: "Make a new one anyway" }))
+                        if (fresh && !await confirmDialog(t`Your certificate is still good`, { trueText: t`Make a new one anyway` }))
                             return
-                        if (!await confirmDialog("HFS must temporarily serve HTTP on public port 80, and your router must be configured or this operation will fail")) return
+                        if (!await confirmDialog(t`acme_http_port_requirement`)) return
                         if (await stopOnCheckDomain(domain)) return
                         await apiCall('make_cert', { domain, altNames }, { timeout: 20_000 })
                             .then(async () => {
-                                await alertDialog("Certificate created", 'success')
+                                await alertDialog(t`Certificate created`, 'success')
                                 if (disabled)
                                     await notEnabled()
                                 cert.reload()
@@ -273,7 +277,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     }
 
     async function notEnabled() {
-        if (!await confirmDialog("HTTPS is currently disabled.\nFull configuration is available in the Options page.", { trueText: "Enable it"})) return
+        if (!await confirmDialog(t`https_disabled_notice`, { trueText: t`Enable it`})) return
         const stop = waitDialog()
         try {
             await apiCall('set_config', { values: { https_port: 443 } })
@@ -284,16 +288,16 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     }
 
     function baseUrlBox() {
-        return config.element || h(TitleCard, { icon: Public, title: "Address" },
+        return config.element || h(TitleCard, { icon: Public, title: t`Address` },
             h(Flex, { flexWrap: 'wrap' },
-                "Main address: ",
-                baseUrl ? h('tt', {}, baseUrl) : "automatic, not configured",
+                t`Main address: `,
+                baseUrl ? h('tt', {}, baseUrl) : t`automatic, not configured`,
                 h(Btn, {
                     size: 'small',
                     variant: 'outlined',
-                    'aria-label': "Change address",
+                    'aria-label': t`Change address`,
                     onClick: () => void changeBaseUrl().then(config.reload)
-                }, "Change"),
+                }, t`Change`),
             ),
             h(Divider),
             h(ConfigForm<{ roots: any, force_address: boolean }>, {
@@ -305,21 +309,21 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                     fields: [
                         {
                             k: CFG.roots,
-                            label: "Domain roots",
-                            helperText: "You can decide different home-folders (in the VFS) for different domains, a bit like virtual hosts. If none is matched, the default home will be used.",
+                            label: t`Domain roots`,
+                            helperText: t`domain_roots_help`,
                             comp: ArrayField,
                             fields: [
-                                { k: 'host', label: "Domain/Host", helperText: "Wildcards supported: *.domain.com|other.com",
-                                    getError: (v?: string) => v?.includes('/') && "No URLs or paths here!" },
-                                { k: 'root', label: "Home/Root", comp: VfsPathField, files: false, placeholder: "default", helperText: "Root path in VFS",
-                                    $column: { renderCell({ value }: any) { return value || h('i', {}, 'default') } } },
+                                { k: 'host', label: t`Domain/Host`, helperText: t`Wildcards supported: *.domain.com|other.com`,
+                                    getError: (v?: string) => v?.includes('/') && t`No URLs or paths here!` },
+                                { k: 'root', label: t`Home/Root`, comp: VfsPathField, files: false, placeholder: t`default`, helperText: t`Root path in VFS`,
+                                    $column: { renderCell({ value }: any) { return value || h('i', {}, t`default`) } } },
                             ],
                             toField: x => Object.entries(x || {}).map(([host,root]) => ({ host, root })),
                             fromField: x => Object.fromEntries(x.map((row: any) => [row.host, row.root || ''])),
                         },
                         {
                             k: CFG.force_address,
-                            label: "Accept requests only using domains above (and localhost)",
+                            label: t`accept_listed_domains_only`,
                             comp: BoolField,
                         }
                     ]
@@ -332,29 +336,29 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         if (nat.error) return nat.element
         const direct = publicIps?.includes(data?.localIp!)
         return h(Flex, { justifyContent: 'space-around' },
-            h(Device, { name: "Server", icon: direct ? Storage : HomeWorkTwoTone, color: localColor, ip: data?.localIp,
-                below: port && h(Box, { className: 'port ' + HIDE_IN_TESTS }, "port ", port),
+            h(Device, { name: t`Server`, icon: direct ? Storage : HomeWorkTwoTone, color: localColor, ip: data?.localIp,
+                below: port && h(Box, { className: "port " + HIDE_IN_TESTS }, t`port `, port),
             }),
             !direct && h(DataLine),
             !direct && h(Device, {
-                name: "Router", icon: RouterTwoTone, ip: data?.gatewayIp,
+                name: t`Router`, icon: RouterTwoTone, ip: data?.gatewayIp,
                 color: checkResult ? 'success' : data?.mapped && (wrongMap ? 'warning' : 'success'),
                 below: mapping ? h(LinearProgress, { sx: { height: '1em' } })
                     : data && (
-                        checkResult && !data.mapped ? `port ${data.externalPort || data.internalPort}`
+                        checkResult && !data.mapped ? t('port_number', { port: data.externalPort || data.internalPort })
                             : h(LinkBtn, { sx: { display: 'block' }, onClick: configure },
-                                "port ", wrongMap ? "is wrong" : data?.externalPort || (checkResult ? "verified" : "unknown"))
+                                t`port `, wrongMap ? t`is wrong` : data?.externalPort || (checkResult ? t`verified` : t`unknown`))
                     ),
             }),
             h(DataLine),
-            h(Device, { name: "Internet", icon: PublicTwoTone, ip: publicIpsError ? [] : publicIps,
+            h(Device, { name: t`Internet`, icon: PublicTwoTone, ip: publicIpsError ? [] : publicIps,
                 color: checkResult ? 'success' : checkResult === false ? 'error' : doubleNat ? 'warning' : undefined,
                 below: publicIpsError ? String(publicIpsError)
                     : checking ? h(LinearProgress, { sx: { height: '1em' } }) : publicIps && h(Box, { className: HIDE_IN_TESTS },
-                    doubleNat && h(LinkBtn, { sx: { display: 'block' }, onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
-                    checkResult ? "Working!" : checkResult === false ? "Failed!" : '',
+                    doubleNat && h(LinkBtn, { sx: { display: 'block' }, onClick: () => alertDialog(MSG_ISP, 'warning') }, t`Double NAT`),
+                    checkResult ? t`Working!` : checkResult === false ? t`Failed!` : '',
                     ' ',
-                    (baseUrl > '' || publicIps?.length > 0) && data?.internalPort && h(LinkBtn, { onClick: () => verify() }, "Verify")
+                    (baseUrl > '' || publicIps?.length > 0) && data?.internalPort && h(LinkBtn, { onClick: () => verify() }, t`Verify`)
                         || ' ' // steadier layout, mainly for testing
                 )
             }),
@@ -363,7 +367,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
 
     async function stopOnCheckDomain(domain: string) {
         return domain && false === await apiCall('check_domain', { domain }).catch(e =>
-            confirmDialog(String(e), { trueText: "Continue anyway", falseText: "Stop" }))
+            confirmDialog(String(e), { trueText: t`Continue anyway`, falseText: t`Stop` }))
     }
 
     async function verify(again=false): Promise<any> {
@@ -371,28 +375,28 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         const data = nat.getData() // fresh data
         if (!data) return
         setCheckResult(undefined)
-        if (!again && !await confirmDialog("This test will check if your server is working properly on the Internet")) return
+        if (!again && !await confirmDialog(t`internet_test_intro`)) return
         setChecking(true)
         try {
             const hostname = baseUrl && new URL(baseUrl).hostname
             const checkUrl = !isIpLan(hostname) && baseUrl
             if (!isIP(hostname) && await stopOnCheckDomain(hostname)) return
             const urlResult = checkUrl && await apiCall('self_check', { url: checkUrl }).catch(e =>
-                alertDialog(!e.code ? e : "Sorry, this function is not available at the moment. Retry later.", 'error'))
+                alertDialog(!e.code ? e : t`internet_test_unavailable`, 'error'))
             if (checkUrl && !urlResult)
                 return
             if (urlResult?.success) {
                 setCheckResult(true)
-                return alertDialog(h(Box, {}, "Your server is responding correctly over the Internet:",
+                return alertDialog(h(Box, {}, t`server_reachable_over_internet`,
                     h('ul', {}, h('li', {}, urlResult.url))), 'success')
             }
             if (urlResult?.success === false)
-                await alertDialog(md(`Your configured address ${checkUrl} doesn't seem to work 😰\nstill, we are going to test your IP address 🤞`), 'warning')
+                await alertDialog(md(t('configured_address_failed_testing_ip', { checkUrl })), 'warning')
             const res = await apiCall('self_check', {})
             if (res.some((x: any) => x.success)) {
                 setCheckResult(true)
-                const mild = urlResult?.success === false && md(`Your server is responding over the Internet 👍\nbut not with configured address ${checkUrl} 👎\njust on your IP:`)
-                return alertDialog(h(Box, {}, mild || "Your server is responding correctly over the Internet:",
+                const mild = urlResult?.success === false && md(t('server_reachable_only_by_ip', { checkUrl }))
+                return alertDialog(h(Box, {}, mild || t`server_reachable_over_internet`,
                     h('ul', {}, ...res.map((x: any) => h('li', {}, x.url)))), mild ? 'warning' : 'success')
             }
             setCheckResult(false)
@@ -400,31 +404,30 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                 return fixPort().then(verifyAgain)
             if (doubleNat)
                 return alertDialog(MSG_ISP, 'warning')
-            const msg = "We couldn't reach your server from the Internet. "
             if (data.upnp && !data!.mapped)
-                return confirmDialog(msg + "Try port-forwarding on your router", { trueText: "Fix it" }).then(async go => {
+                return confirmDialog(t`internet_unreachable_try_port_forward`, { trueText: t`Fix it` }).then(async go => {
                     if (!go) return
                     try { await mapPort(data!.internalPort!, '', '') }
                     catch { await mapPort(HIGHER_PORT, '') }
-                    toast("Port forwarded, now we verify again", 'success')
+                    toast(t`Port forwarded, now we verify again`, 'success')
                     verifyAgain()
                 })
             const cfg = await apiCall('get_config', { only: [CFG.geo_enable, CFG.geo_allow] })
-            const { close } = alertDialog(h(Box, {}, msg + "Possible causes:", h('ul', {},
-                cfg[CFG.geo_enable] && cfg[CFG.geo_allow] != null && h('li', {}, "You may be blocking a country from where the test is performed"),
-                !data.upnp && h('li', {}, "Your router may need to be configured. ", h(Link, { href: PORT_FORWARD_URL, target: 'help' }, "How?")),
-                h('li', {}, "There could be a firewall, try configuring or disabling it."),
+            const { close } = alertDialog(h(Box, {}, t`internet_unreachable_possible_causes`, h('ul', {},
+                cfg[CFG.geo_enable] && cfg[CFG.geo_allow] != null && h('li', {}, t`internet_test_geo_block_cause`),
+                !data.upnp && h('li', {}, t`Your router may need to be configured. `, h(Link, { href: PORT_FORWARD_URL, target: 'help' }, t`How?`)),
+                h('li', {}, t`internet_test_firewall_cause`),
                 (data.externalPort || data.internalPort!) <= 1024 && h('li', {},
-                    "Your Internet Provider may be blocking ports under 1024. ",
+                    t`isp_may_block_low_ports`, ' ',
                     data.upnp && h(Button, {
                         size: 'small',
                         onClick() {
                             close()
                             mapPort(HIGHER_PORT).then(verifyAgain)
                         }
-                    }, "Try " + HIGHER_PORT)),
-                data.mapped && h('li', {}, "A bug in your modem/router, try rebooting it."),
-                h('li', {}, h('div', {}, "Your Internet Provider may not assign you a public IP address. ", wikiLink('Work-on-the-internet#double-nat', "Read more"))),
+                    }, t("Try {HIGHER_PORT}", { HIGHER_PORT: HIGHER_PORT }))),
+                data.mapped && h('li', {}, t`router_bug_reboot_hint`),
+                h('li', {}, h('div', {}, t`internet_test_no_public_ip_cause`, wikiLink('Work-on-the-internet#double-nat', t`Read more`))),
             )), 'warning')
         }
         catch(e: any) {
@@ -438,21 +441,22 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     async function configure() {
         if (!data) return // shut up ts
         if (wrongMap)
-            return await confirmDialog(`There is a port-forwarding but it is pointing to the wrong port (${wrongMap})`, { trueText: "Fix it" })
+            return await confirmDialog(t('port_forward_wrong_port', { mappedPort: wrongMap }), { trueText: t`Fix it` })
                 && fixPort()
         if (!data.upnp)
-            return alertDialog(h(Box, { sx: { lineHeight: 1.5 } }, md(`We cannot help you configuring your router because UPnP is not available.\nFind more help [on this website](${PORT_FORWARD_URL}).`)), 'info')
-        const msg = `For HFS to work over the Internet, you need a port on your modem/router forwarded to this computer's port ${port}.\n\n`
-            + (data?.mapped ? '' : `You may want to check if that's already the case before trying the following.\n\n`)
-            + `This will ask the router to forward a port.\nYou can use the same number as the local network port (${port}), or a different one.`
-        const res = await promptDialog(md(msg), {
+            return alertDialog(h(Box, { sx: { lineHeight: 1.5 } }, md(t('upnp_not_available_help', { helpUrl: PORT_FORWARD_URL }))), 'info')
+        const res = await promptDialog(md([
+            t('port_forward_intro', { localPort: port }),
+            !data.mapped && t`port_forward_check_existing`,
+            t('port_forward_request_help', { localPort: port }),
+        ].filter(Boolean).join('\n\n')), {
             value: data.externalPort || port,
-            field: { label: "Port seen from the Internet", comp: NumberField },
-            addToBar: data.mapped && [h(Button, { color: 'warning', onClick: remove }, "Remove")],
+            field: { label: t`Port seen from the Internet`, comp: NumberField },
+            addToBar: data.mapped && [h(Button, { color: 'warning', onClick: remove }, t`Remove`)],
             dialogProps: { sx: { maxWidth: '20em' } },
         })
         if (res)
-            await mapPort(Number(res), "Port forwarded").catch(() => {})
+            await mapPort(Number(res), t`Port forwarded`).catch(() => {})
 
         function remove() {
             closeDialog()
@@ -461,11 +465,11 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     }
 
     function fixPort() {
-        if (!data?.externalPort) return alertDialog("externalPort not found", 'error')
+        if (!data?.externalPort) return alertDialog(t`externalPort not found`, 'error')
         return mapPort(data.externalPort, "Forwarding corrected")
     }
 
-    async function mapPort(external: number, msg='', errMsg="Operation failed") {
+    async function mapPort(external: number, msg='', errMsg=t`Operation failed`) {
         setMapping(true)
         try {
             await apiCall('map_port', { external })
@@ -476,7 +480,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         catch(e: any) {
             if (errMsg) {
                 const low = (external || data!.internalPort!) < 1024
-                const msg = errMsg + prefix(': ', e?.message) + (low ? ". Some routers refuse to work with ports under 1024." : '')
+                const msg = errMsg + prefix(': ', e?.message) + (low ? ' ' + t`router_may_reject_low_ports` : '')
                 await alertDialog(msg, 'error')
             }
             throw e
@@ -498,7 +502,7 @@ function Device({ name, icon, color, ip, below }: any) {
     return h(Box, { sx: { display: 'inline-block', textAlign: 'center' } },
         h(icon, { color, sx: { fontSize, mb: '-0.1em' } }),
         h(Box, { sx: { fontSize: 'larger' } }, name),
-        ip === undefined ? h(Skeleton) : h(Box, { sx: { fontSize: 'smaller', whiteSpace: onlyV4 ? 'pre' : 'pre-wrap' }, className: 'ip ' + HIDE_IN_TESTS }, ips.join('\n') || "unknown"),
+        ip === undefined ? h(Skeleton) : h(Box, { sx: { fontSize: 'smaller', whiteSpace: onlyV4 ? 'pre' : 'pre-wrap' }, className: 'ip ' + HIDE_IN_TESTS }, ips.join('\n') || t`unknown`),
         below ? h(Box, { sx: { fontSize: 'smaller' } }, below) : h(Skeleton),
     )
 }

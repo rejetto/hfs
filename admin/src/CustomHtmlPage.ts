@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react';
+import { t, translateText } from './i18n'
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
@@ -16,8 +17,8 @@ import { alertDialog } from './dialog'
 import { adminApis } from '../../src/adminApis'
 
 const names: any = {
-    top: "Top of HTML Body",
-    bottom: "Bottom of HTML Body",
+    top: 'top_html_body',
+    bottom: 'bottom_html_body',
 }
 
 export default function CustomHtmlPage({ setTitleSide }: PageProps) {
@@ -37,7 +38,8 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
             state.customHtmlSection = _.findKey(all, Boolean) || keys?.[0] || '' // prefer any key with content
         return keys.map(x => ({
             value: x,
-            label: (names[x] || prefix('HTTP ', HTTP_MESSAGES[x as any]) || _.startCase(x)) + (all[x]?.trim() ? ' *' : '')
+            label: (names[x] ? t(names[x]) : translateText(prefix('HTTP ', HTTP_MESSAGES[x as any]) || _.startCase(x)))
+                + (all[x]?.trim() ? ' *' : '')
         }))
     }, [all])
     const anyChange = useMemo(() => !_.isEqualWith(saved, all, (a,b) => !a && !b || undefined),
@@ -45,16 +47,16 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
     const [enabled, setEnabled] = useState<boolean>()
     setTitleSide(useMemo(() => h(Box, { sx: { display: { xs: 'none', md: 'block' }  } },
         h(Alert, { severity: 'info' },
-            md("Add HTML code to some parts of the Front-end. It's saved to file `custom.html`, that you can edit directly with your editor of choice. "),
-            wikiLink('customization', "More help")
+            md(t`custom_html_help`),
+            wikiLink('customization', t`More help`)
         ),
-        h(Alert, { severity: 'info' }, "To customize icons ", wikiLink('customization#icons', "read documentation") ),
+        h(Alert, { severity: 'info' }, t`To customize icons `, wikiLink('customization#icons', t`read documentation`) ),
     ), []))
     const saveShortcut = useCtrlShortcutButton(['s', 'Enter'])
     return element || h(Fragment, {},
         h(Box, { sx: { display: 'flex', alignItems: 'center', gap: 1, mb: 1 } },
             h(SelectField as Field<string>, {
-                label: "Section",
+                label: t`Section`,
                 value: section,
                 options,
                 onChange: v => state.customHtmlSection = v
@@ -63,12 +65,13 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
             h(IconBtn, {
                 ref: saveShortcut.ref,
                 icon: Save,
-                title: "Save\n(ctrl+s)",
+                title: t`Save
+(ctrl+s)`,
                 modified: anyChange,
                 doneAnimation: true,
                 onClick: save,
             }),
-            hTooltip("Enable all sections", undefined, switchBtn(enabled, async v => {
+            hTooltip(t`Enable all sections`, undefined, switchBtn(enabled, async v => {
                 try {
                     await apiCall('set_config', { values: { [CFG.disable_custom_html]: !v } })
                     setEnabled(v)

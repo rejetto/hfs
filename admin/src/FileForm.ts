@@ -2,6 +2,7 @@
 
 import { getInheritedPerms, id2vfsNode, markVfsModified, prepareVfsUndo, reindexVfs, state, VfsNodeAdmin } from './state'
 import { createElement as h, forwardRef, memo, ReactNode, useEffect, useMemo, useState } from 'react'
+import { t } from './i18n'
 import { Alert, Box, Link, useTheme } from '@mui/material'
 import {
     BoolField, DisplayField, FieldProps, Form, NumberField, SelectField
@@ -65,12 +66,12 @@ export default function FileForm({ file, addToBar, statusApi, accountsApi, done,
     const autoApply = isSideBreakpoint
     const barColors = useDialogBarColors()
     const actions = [
-        isDir && !isSideBreakpoint && h(AddVfsBtn, { variant: 'outlined' }, "Add"),
+        isDir && !isSideBreakpoint && h(AddVfsBtn, { variant: 'outlined' }, t`Add`),
         !autoApply && h(VfsActionButtons, { files: [file], pasteTo: file, done }),
         ...wantArray(addToBar)
     ].filter(Boolean)
 
-    const needSourceWarning = !hasSource && h(Box as any, { sx: { color: 'warning.main' }, component: 'span' }, "Works only on folders with disk source! ")
+    const needSourceWarning = !hasSource && h(Box as any, { sx: { color: 'warning.main' }, component: 'span' }, t`Works only on folders with disk source! `)
     const show: Record<keyof VfsPerms, boolean> = {
         can_read: !isLink,
         can_see: true,
@@ -96,7 +97,7 @@ export default function FileForm({ file, addToBar, statusApi, accountsApi, done,
             addToBar: actions,
             save: {
                 ...propsForModifiedValues(isModifiedConfig(values, rest)),
-                children: "Apply",
+                children: t`Apply`,
                 startIcon: h(Check),
                 async onClick() {
                     applyValues(values)
@@ -105,40 +106,40 @@ export default function FileForm({ file, addToBar, statusApi, accountsApi, done,
             },
         },
         fields: [
-            isRoot ? h(Alert, { severity: 'info' }, "This is the Home folder, the root of your shared files. Options set here will be applied to all files.")
-                : isDir && hasSource && h(Alert, { severity: 'info' }, `To set permissions on individual items in folder, add them by clicking Add button, and then "from disk"`),
+            isRoot ? h(Alert, { severity: 'info' }, t`vfs_home_folder_notice`)
+                : isDir && hasSource && h(Alert, { severity: 'info' }, t`vfs_individual_permissions_hint`),
             {
-                k: 'name', required: true, xl: true, helperText: hasSource && "You can decide a name that's different from the one on your disk",
+                k: 'name', label: t`Name`, required: true, xl: true, helperText: hasSource && t`vfs_custom_name_hint`,
                 ...isRoot && { disabled: true, value: "Home folder" },
                 end: !isRoot && nameFromSource && !nameIsDerivedFromSource && h(Btn, {
-                    icon: RestartAlt, title: "Reset to same name on disk",
+                    icon: RestartAlt, title: t`Reset to same name on disk`,
                     onClick: resetNameFromSource
                 }),
             },
-            isLink ? { k: 'url', label: "URL", lg: 12, xl: 8, required: true }
-                : { k: 'source', label: "Disk source", xl: true, comp: FileField, files: isUnknown || !isDir, folders: isUnknown || isDir,
-                    placeholder: "none",
-                    helperText: !values.source ? "If you enter a path here, its content will be listed. Leaving this empty, makes this folder fully virtual."
-                        : isDir ? "Files from this path on disk will be listed, but you can add more" : undefined,
+            isLink ? { k: 'url', label: t`URL`, lg: 12, xl: 8, required: true }
+                : { k: 'source', label: t`Disk source`, xl: true, comp: FileField, files: isUnknown || !isDir, folders: isUnknown || isDir,
+                    placeholder: t`none`,
+                    helperText: !values.source ? t`vfs_source_path_hint`
+                        : isDir ? t`vfs_source_additional_items_hint` : undefined,
             },
-            { k: 'id', comp: LinkField, statusApi, xs: 12 },
-            { k: 'order', comp: NumberField, min: -1E5, max: 1E5, label: "Priority (order in the frontend)", placeholder: 'default', sm: 4, helperText: wikiLink('Virtual-file-system#order', "To force position") },
+            { k: 'id', label: t`Id`, comp: LinkField, statusApi, xs: 12 },
+            { k: 'order', comp: NumberField, min: -1E5, max: 1E5, label: t`Priority (order in the frontend)`, placeholder: t`default`, sm: 4, helperText: wikiLink('Virtual-file-system#order', t`To force position`) },
             {
-                k: 'iconType',
+                k: 'iconType', label: t`Icon Type`,
                 comp: SelectField,
                 options: ['default', 'file', 'embedded'],
                 value: !values.icon ? 'default' : embeddedIcon ? 'embedded' : 'file',
                 xs: true,
                 sm: defaultIcon ? 8 : true,
             },
-            !defaultIcon && { k: 'icon', xs: 8, sm: 4,
+            !defaultIcon && { k: 'icon', label: t`Icon`, xs: 8, sm: 4,
                 ...embeddedIcon ? {
                     comp: SelectField, // uniqBy to avoid same icon (with different names), but it works only on array, so first step is to convert the object
                     options: _.map(_.uniqBy(_.map(SYS_ICONS, (v,k) => [k, v[0], v[1] ?? k] as const), x => x[2]), ([k, emoji]) =>
                         ({ value: k, label: h(Flex, { gap: '.5em' }, hIcon(k), hIcon(emoji), ' ', k) }) ), // show both font-icon and emoji versions
-                    helperText: "The second icon is the fallback"
+                    helperText: t`The second icon is the fallback`
                 } : {
-                    label: "Icon file", placeholder: "default", comp: FileField, fileMask: IMAGE_FILEMASK,
+                    label: t`Icon file`, placeholder: t`default`, comp: FileField, fileMask: IMAGE_FILEMASK,
                 }
             },
             perm('can_read', "Who can see but not download will be asked to log in"),
@@ -146,33 +147,33 @@ export default function FileForm({ file, addToBar, statusApi, accountsApi, done,
             perm('can_list', "Permission to request the list of a folder. The list will include only things you can see.", { contentText: "subfolders" }),
             perm('can_delete', [needSourceWarning, "Those who can delete can also rename and cut/move"]),
             perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
-            perm('can_see', ["See this item in the list. ", wikiLink('Permissions', "More help.")]),
+            perm('can_see', [t`See this item in the list. `, wikiLink('Permissions', t`More help.`)]),
             isLink && {
                 k: 'target',
                 comp: BoolField,
                 sm: true,
-                label: "Open in new browser",
+                label: t`Open in new browser`,
                 fromField: x => x ? '_blank' : null,
                 toField: x => x > '',
             },
-            showSize && { k: 'size', comp: DisplayField, sm: 6, lg: 4, toField: formatBytes },
-            showTimestamps && { k: 'birthtime', comp: DisplayField, sm: 6, lg: showSize && 4, label: "Created", toField: formatTimestamp },
-            showTimestamps && { k: 'mtime', comp: DisplayField, sm: 6, lg: showSize && 4, label: "Modified", toField: formatTimestamp },
-            showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything", xl: showWebsite ? 4 : 12,
-                helperText: h('span', {}, "Not enforced, just hinting the browser. ", h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip")) },
+            showSize && { k: 'size', label: t`Size`, comp: DisplayField, sm: 6, lg: 4, toField: formatBytes },
+            showTimestamps && { k: 'birthtime', comp: DisplayField, sm: 6, lg: showSize && 4, label: t`Created`, toField: formatTimestamp },
+            showTimestamps && { k: 'mtime', comp: DisplayField, sm: 6, lg: showSize && 4, label: t`Modified`, toField: formatTimestamp },
+            showAccept && { k: 'accept', label: t`Accept on upload`, placeholder: t`anything`, xl: showWebsite ? 4 : 12,
+                helperText: h('span', {}, t`Not enforced, just hinting the browser. `, h(Link, { href: ACCEPT_LINK, target: '_blank' }, t`Example: .zip`)) },
             showWebsite && { k: 'default', comp: BoolField, xl: showAccept ? 8 : 12,
-                label: "Serve as web-page if index.html is found" + (inheritedDefault && values.default == null ? ' (inherited)' : ''),
+                label: t(inheritedDefault && values.default == null ? 'serve_index_html_inherited' : 'serve_index_html'),
                 value: values.default ?? inheritedDefault,
                 toField: Boolean, fromField: (v:boolean) => v && !inheritedDefault ? 'index.html' : v ? null : false,
-                helperText: md("...instead of showing list of files")
+                helperText: md(t`...instead of showing list of files`)
             },
-            { k: 'comment', multiline: true, xl: true },
+            { k: 'comment', label: t`Comment`, multiline: true, xl: true },
             isDir && hasSource && { k: 'see_without_probing', comp: BoolField, xl: 6,
-                label: "Show without probing disk source", helperText: "Don't access this folder's disk source when listing its parent" },
-            isDir && { k: 'masks', multiline: true, xl: 6,
+                label: t`Show without probing disk source`, helperText: t`vfs_dont_probe_source_hint` },
+            isDir && { k: 'masks', label: t`Masks`, multiline: true, xl: 6,
                 toField: yaml.stringify, fromField: v => v ? yaml.parse(v) : undefined,
                 comp: TextEditorField, lang: 'yaml',
-                helperText: ["Special field, leave empty unless you know what you are doing. YAML syntax. ", wikiLink('Masks-field', "(examples)")]
+                helperText: [t`vfs_yaml_field_warning`, wikiLink('Masks-field', t`(examples)`)]
             },
         ]
     })
@@ -193,7 +194,7 @@ export default function FileForm({ file, addToBar, statusApi, accountsApi, done,
             k: perm, sm: 6, lg: 12, xl: 4,
             parent, accountsApi, helperText, isDir,
             otherPerms: others.map(x => ({ value: x, label: who2desc(x) })),
-            label: "Who can " + perm2word(perm),
+            label: t('who_can_permission', { permission: perm2word(perm) }),
             inherit,
             byMasks: byMasks?.[perm],
             offerInheritance: true,
@@ -290,9 +291,9 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
         }, link)
     ), [link])
     return h(Box, { sx: { display: 'flex' } },
-        !baseHost ? "Invalid baseUrl" : !urls ? 'error' : // check data is ok
+        !baseHost ? t`Invalid baseUrl` : !urls ? t`error` : // check data is ok
         h(DisplayField, {
-            label: "Link",
+            label: t`Link`,
             className: MASK_IN_TESTS,
             value: link || `outside of configured main address (${baseHost})`,
             error,
@@ -300,20 +301,20 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
             end: h(Box, {},
                 h(IconBtn, {
                     icon: ContentCopy,
-                    title: "Copy",
+                    title: t`Copy`,
                     disabled: !link,
                     doneAnimation: true,
                     onClick: () => copyTextToClipboard(link)
                 }),
-                h(IconBtn, { icon: QrCode2, title: "QR Code", onClick: showQr, disabled: !link }),
-                h(IconBtn, { icon: Edit, title: "Change", onClick() { changeBaseUrl().then(reload) } }),
+                h(IconBtn, { icon: QrCode2, title: t`QR Code`, onClick: showQr, disabled: !link }),
+                h(IconBtn, { icon: Edit, title: t`Change`, onClick() { changeBaseUrl().then(reload) } }),
             )
         }),
     )
 
     function showQr() {
         newDialog({
-            title: "QR Code",
+            title: t`QR Code`,
             dialogProps: { sx: { bgcolor: 'background.default', border: '1px solid' } },
             Content() {
                 const theme = useTheme()

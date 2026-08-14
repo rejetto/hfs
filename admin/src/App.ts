@@ -1,5 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
+import { isRtl, useI18N, t } from './i18n'
+
 import { createElement as h, Fragment, lazy, ReactNode, Suspense, useCallback, useEffect, useState } from 'react'
 import { Route, Router, Switch, useLocation } from 'wouter'
 import { useHashLocation } from 'wouter/use-hash-location'
@@ -16,14 +18,20 @@ import { useSnapState } from './state'
 import { useEventListener } from 'usehooks-ts'
 import { AriaOnly, isMac, useFixSticky, xlate } from './misc'
 import { loadLocale } from './locale'
+import { CacheProvider } from '@emotion/react'
+import createCache from '@emotion/cache'
+import { prefixer } from 'stylis'
+import rtlPlugin from 'stylis-plugin-rtl'
 
 const ConfigFilePage = lazy(() => import('./ConfigFilePage'))
+const rtlCache = isRtl && createCache({ key: 'mui-rtl', stylisPlugins: [prefixer, rtlPlugin] })
 
 // always use useMemo with setTitleSide
 export interface PageProps { setTitleSide: (content: ReactNode, fullWidth?: boolean) => void }
 
 function App() {
-    return h(ThemeProvider, { theme: useMyTheme() },
+    useI18N()
+    const content = h(ThemeProvider, { theme: useMyTheme() },
         h(ApplyTheme, {},
             h(Localization, {},
                 h(LoginRequired, {},
@@ -37,6 +45,7 @@ function App() {
                             }
                         }, h(Routed))
                     }) ))))
+    return rtlCache ? h(CacheProvider, { value: rtlCache }, content) : content
 }
 
 function Localization(props: any) {
@@ -96,7 +105,7 @@ function Routed() {
             set(null)
     })
     return h(Fragment, {},
-        h(AriaOnly, {}, h('h1', {}, "Admin-panel")),
+        h(AriaOnly, {}, h('h1', {}, t`Admin-panel`)),
         !sideMenu && h(StickyBar, {
             title,
             titleSide,
@@ -156,7 +165,7 @@ function StickyBar({ title, titleSide, openMenu, props }: { props?: BoxProps, ti
                 edge: 'start',
                 color: 'inherit',
                 sx: { mr: 2 },
-                'aria-label': "menu",
+                'aria-label': t`menu`,
                 onClick: openMenu
             }, h(Menu)),
             h(Flex, {
