@@ -245,11 +245,11 @@ function usePagedFilesList() {
 
     const {t} = useI18N()
 
-    const msgInstead = snap.list.length ? snap.filteredList && !snap.filteredList.length && t('filter_none', "No match for this filter")
-        : !snap.loading && (snap.searchManuallyInterrupted ? t('stopped_before', "Stopped before finding anything")
-        : t('empty_list', "Nothing here"))
+    const msgInstead = snap.list.length ? snap.filteredList && !snap.filteredList.length && t`filter_none`
+        : !snap.loading && (snap.searchManuallyInterrupted ? t`stopped_before`
+        : t`empty_list`)
 
-    const focusHint = `${t('focus_hint', "By typing on your keyboard, you search and focus the items in the list.")}\n\nESC: ${t`Cancel`}`
+    const focusHint = `${t`focus_hint`}\n\nESC: ${t`Cancel`}`
     const list = h(Fragment, {},
         focus && h('div', { id: focusTypingId, className: focusIndex < 0 ? 'focus-typing-mismatch' : '' }, focus,
             hIcon('info', { style: { cursor: 'default', marginLeft: '.3em' }, title: focusHint, onClick: () => alertDialog(focusHint) }) ),

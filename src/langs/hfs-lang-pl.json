@@ -191,6 +191,9 @@
         "No":  "Nie",
         "esc_again": "Naciśnij ESC dwukrotnie do zamkniecia",
         "insufficient storage": "za mało miejsca",
-        "Account disabled": "Konto wyłączone"
+        "Account disabled": "Konto wyłączone",
+        "upload_name": "Prześlij pod nową nazwą",
+        "Uploading": "Przesyłanie",
+        "proxy_413": "Sprawdź ten limit na serwerze proxy"
     }
 }

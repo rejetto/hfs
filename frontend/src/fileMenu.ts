@@ -45,7 +45,7 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
                 const open = {
                     id: 'open',
                     icon: 'play',
-                    label: t('file_open', "Open"),
+                    label: t`file_open`,
                     href: uri,
                     target: isFolder || entry.web ? undefined : '_blank',
                     rel: isFolder || entry.web ? undefined : 'noopener noreferrer',
@@ -165,8 +165,8 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
             return data && (
                 data.code ? err2msg(data)
                     : h('span', {}, h(Bytes, _.pick(data,'bytes')),
-                        ' / ', t('n_files', { n: data.files.toLocaleString() }, '{n,plural,one{# file} other{# files}}'),
-                        ' / ', t('n_folders', { n: data.folders.toLocaleString() }, '{n,plural,one{# folder} other{# folders}}'),
+                        ' / ', t('n_files', { n: data.files.toLocaleString() }),
+                        ' / ', t('n_folders', { n: data.folders.toLocaleString() }),
                     )
             )
         }

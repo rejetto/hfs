@@ -54,7 +54,7 @@ export const Paging = memo(({ nPages, current, pageSize, list, changePage, chang
     }, [alphabetGroups.length])
     return h('div', { id: 'paging' },
         h('button', {
-            title: t('go_first', "Go to first item"),
+            title: t`go_first`,
             className: !current ? 'toggled' : undefined,
             onClick() { changePage(0) },
         }, hIcon('to_start')),
@@ -71,7 +71,7 @@ export const Paging = memo(({ nPages, current, pageSize, list, changePage, chang
             })
         ),
         h('button', {
-            title: t('go_last', "Go to last item"),
+            title: t`go_last`,
             className: atBottom ? 'toggled' : undefined,
             onClick(){ changePage(nPages-1, true) }
         }, hIcon('to_end')),
@@ -110,10 +110,10 @@ function AlphabetPaging({ groups, open, toggleOpen, close, changePage }: Alphabe
     return h('div', { ref, id: 'alphabet-paging', className: open ? 'open' : undefined },
         h('button', {
             id: 'alphabet-paging-toggle',
-            title: t('alpha_idx', "Alphabetical index"),
+            title: t`alpha_idx`,
             'aria-expanded': open,
             onClick: toggleOpen,
-        }, t('alpha_idx_button', "AZ")),
+        }, t`alpha_idx_button`),
         open && h('div', { id: 'alphabet-paging-bar' },
             groups.map(({ label, index }) =>
                 h('button', {

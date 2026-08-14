@@ -120,7 +120,7 @@
         "Tiles mode:": "Modo ladrilho:",
         "off": "desligado",
         "Operation successful": "Operação bem sucedida",
-        "Uploader": "Carregador",
+        "Uploader": "Enviado por",
         "Download counter": "Contador de download",
         "Switch zoom mode": "Trocar para modo zoom",
         "Full screen": "Tela cheia",
@@ -137,7 +137,7 @@
         "enter_comment": "Comente neste arquivo",
         "Comment": "Comente",
         "upload_dd_hint": "Você pode fazer upload de arquivos arrastando e soltando na lista de arquivos",
-        "Upload not available": "Enviar não disponível",
+        "Upload not available": "Upload não disponível",
         "Cut": "Recortar",
         "n_items": "{n,plural, one{# item} other{# itens}}",
         "move_results": "{good} movidos, {bad} falharam",
@@ -191,6 +191,9 @@
         "No":  "Nao",
         "esc_again": "Pressione ESC duas vezes para fechar",
         "insufficient storage": "armazenamento insuficiente",
-        "Account disabled": "Conta foi desativada"
+        "Account disabled": "Conta foi desativada",
+        "upload_name": "Carregar com novo nome",
+        "Uploading": "Enviando",
+        "proxy_413": "Verifique este limite no servidor proxy"
     }
 }

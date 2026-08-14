@@ -33,7 +33,7 @@ export function showOptions (){
                 id: 'option-sort-by',
                 options: SORT_BY_OPTIONS.map(x => ({
                     value: x,
-                    label: t("Sort by:", { by: t(x) }, t`Sort by` + ': ' + t(x))
+                    label: t("Sort by:", { by: t(x) })
                 })),
                 value: snap.sort_by,
                 onChange(v) { state.sort_by = v }
@@ -69,7 +69,7 @@ export function showOptions (){
 
             !getHFS().forceTheme && h(Select, {
                 id: 'option-theme',
-                options: _.map(THEME_OPTIONS, (value, label) => ({ label: t(["theme:", "Theme:", ]) + ' ' + t(label), value })),
+                options: _.map(THEME_OPTIONS, (value, label) => ({ label: t`theme:` + ' ' + t(label), value })),
                 value: snap.theme,
                 onChange(v) {
                     state.theme = v

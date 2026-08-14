@@ -29,9 +29,9 @@ async function login(username:string, password:string, extra?: object) {
         return res
     }, err => {
         hfsEvent('loginFailed', { username, error: err }) // the name inconsistency with the backend event 'failedLogin' can make it easier to distinguish
-        throw Error(err === 'trust' ? t('login_untrusted', "Login aborted: server identity cannot be trusted")
-            : err.code === HTTP_UNAUTHORIZED && !err.data ? t('login_bad_credentials', "Invalid credentials") // err.data is empty on standard errors, but a plugin may want to show differently
-                : err.code === HTTP_CONFLICT ? t('login_bad_cookies', "Cookies are not working - login failed")
+        throw Error(err === 'trust' ? t`login_untrusted`
+            : err.code === HTTP_UNAUTHORIZED && !err.data ? t`login_bad_credentials` // err.data is empty on standard errors, but a plugin may want to show differently
+                : err.code === HTTP_CONFLICT ? t`login_bad_cookies`
                     : t(err.message || String(err)) )
     }).finally(stopWorking)
 }
@@ -67,7 +67,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                 resolve(v)
                 closeLoginDialog = undefined
             },
-            title: () => h(Fragment, {}, useI18N().t(`Login`)), // this dialog could be displayed before the language has been loaded
+            title: () => h(Fragment, {}, useI18N().t('login')), // this dialog could be displayed before the language has been loaded
             Content() {
                 const usrRef = useRef<HTMLInputElement>()
                 const pwdRef = useRef<HTMLInputElement>()
@@ -126,7 +126,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                         h('button', { type: 'submit' }, t`Continue`)),
                     h('div', { id: 'login-options' },
                         h(Checkbox, { ref: ipRef, id: ALLOW_SESSION_IP_CHANGE },
-                            t(ALLOW_SESSION_IP_CHANGE, "Allow IP change during this session")),
+                            t(ALLOW_SESSION_IP_CHANGE)),
                     ),
                 )
 

@@ -141,8 +141,8 @@
         "in_queue": "{n} en cola",
         "enter_comment": "Descripción para {name}",
         "Comment": "Descripción",
-        "upload_dd_hint": "Puede cargar archivos arrastrando y soltando en la lista de archivos",
-        "Upload not available": "Carga no disponible",
+        "upload_dd_hint": "Puede subir archivos arrastrándolos y soltándolos en la lista de archivos",
+        "Upload not available": "Subida no disponible",
         "Cut": "Cortar",
         "n_items": "{n,plural, one{# elemento} other{# elementos}}",
         "move_results": "{good} movido, {bad} fallado",
@@ -196,6 +196,9 @@
         "No":  "No",
         "esc_again": "Presione ESC dos veces para cerrar",
         "insufficient storage": "almacenamiento insuficiente",
-        "Account disabled": "Cuenta deshabilitada"
+        "Account disabled": "Cuenta deshabilitada",
+        "upload_name": "Subir con nuevo nombre",
+        "Uploading": "Subiendo",
+        "proxy_413": "Verifique este límite en el servidor proxy"
     }
 }

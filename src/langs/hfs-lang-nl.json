@@ -191,6 +191,9 @@
         "No":  "Nee",
         "esc_again": "Druk ESC twee keer om te sluiten",
         "insufficient storage": "onvoldoende opslagruimte",
-        "Account disabled": "Account uitgeschakeld"
-	}
+        "Account disabled": "Account uitgeschakeld",
+        "upload_name": "Uploaden met nieuwe naam",
+        "Uploading": "Uploaden",
+        "proxy_413": "Controleer deze limiet op de proxyserver"
+    }
 }

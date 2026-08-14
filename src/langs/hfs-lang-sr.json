@@ -192,6 +192,9 @@
         "No":  "Не",
         "esc_again": "Пritisnite ESC два пута за затварање",
         "insufficient storage": "недовољно простора",
-        "Account disabled": "Налог је деактивиран"
+        "Account disabled": "Налог је деактивиран",
+        "upload_name": "Отпремите са новим именом",
+        "Uploading": "Отпремање",
+        "proxy_413": "Проверите ово ограничење на прокси серверу"
     } 
 }

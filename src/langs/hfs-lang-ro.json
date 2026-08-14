@@ -192,6 +192,9 @@
         "No":  "Nu",
         "esc_again": "Apasa ESC de doua ori pentru a inchide",
         "insufficient storage": "spațiu de stocare insuficient",
-        "Account disabled": "Cont dezactivat"
+        "Account disabled": "Cont dezactivat",
+        "upload_name": "Încărcați cu un nume nou",
+        "Uploading": "Încărcare",
+        "proxy_413": "Verificați această limită pe serverul proxy"
     }
 }

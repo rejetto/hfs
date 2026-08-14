@@ -47,7 +47,7 @@ export const uploadState = proxy<{
 window.onbeforeunload = ev => {
     if (!uploadState.qs.length) return
     ev.preventDefault()
-    return ev.returnValue = t("Uploading") // modern browsers ignore this message
+    return ev.returnValue = t`Uploading` // modern browsers ignore this message
 }
 
 let stuckSince = Infinity
@@ -148,7 +148,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
                 if (userAborted || status === HTTP_CONFLICT) { // HTTP_CONFLICT = skipped because existing, or upload in progress
                     if (req.responseText === 'retry') // it's our previous request that didn't release the lock yet
                         return await wait(2000) // wait before resolving `finished`
-                    toUpload.error = status ? t('upload_conflict', "already exists") : t`Interrupted` // the I is uppercase because we are just recycling an old string (with all its translations)
+                    toUpload.error = status ? t`upload_conflict` : t`Interrupted` // the I is uppercase because we are just recycling an old string (with all its translations)
                     uploadState.interrupted.push(toUpload)
                 }
                 else if (status >= 400)
@@ -199,14 +199,14 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
 
     function error(status: number) {
         const ERRORS = {
-            [HTTP_PAYLOAD_TOO_LARGE]: t`file too large` + (getHFS().proxyDetected ?  '\n– ' + t('proxy_413', "Check for this limit on the proxy server") : ''),
-            [HTTP_CONFLICT]: t('upload_conflict', "already exists"),
+            [HTTP_PAYLOAD_TOO_LARGE]: t`file too large` + (getHFS().proxyDetected ?  '\n– ' + t`proxy_413` : ''),
+            [HTTP_CONFLICT]: t`upload_conflict`,
             [HTTP_INSUFFICIENT_STORAGE]: t`insufficient storage`,
         }
         const specifier = (ERRORS as any)[status] || HTTP_MESSAGES[status] || status
         toUpload.error = specifier
         if (uploadState.errors.push(toUpload) > 1) return
-        const msg = t('failed_upload', { name: toUpload.path }, "Couldn't upload {name}") + prefix(': ', specifier)
+        const msg = t('failed_upload', { name: toUpload.path }) + prefix(': ', specifier)
         closeLastDialog?.()
         closeLastDialog = alertDialog(msg, 'error')?.close
     }
@@ -226,7 +226,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         // freeze and reset
         const snap = snapshot(uploadState)
         resetCounters()
-        const msg = h('div', {}, t(['upload_concluded', "Upload terminated"], "Upload concluded:"),
+        const msg = h('div', {}, t`upload_concluded`,
             h(UploadStatus, { snapshot: snap, display: 'flex', flexDirection: 'column' }) )
         if (snap.errors.length || snap.interrupted.length)
             alertDialog(msg, 'warning')
@@ -250,7 +250,7 @@ subscribe(uploadState, () => {
 
 export async function enqueueUpload(entries: ToUpload[], to=location.pathname, accept=state.props?.accept) {
     if (_.remove(entries, x => !simulateBrowserAccept(x.file, accept)).length)
-        await alertDialog(t('upload_file_rejected', "Some files were not accepted"), 'warning')
+        await alertDialog(t`upload_file_rejected`, 'warning')
 
     entries = _.uniqBy(entries, x => x.path)
     if (!entries.length) return

@@ -62,7 +62,7 @@
 		"ready_to_upload": "{n,plural,one{# fichier} other{# fichiers}}, {size}, prêt à téléverser",
 		"Send": "Envoyer",
 		"Clear": "Effacer",
-		"failed_upload": "Impossible de transférer {name}",
+		"failed_upload": "Impossible de téléverser {name}",
 		"confirm_resume": "Reprendre le télé-versement?",
 		"file too large": "Fichier trop gros",
 		"Enter folder name": "Saisissez le nom du dossier",
@@ -97,12 +97,12 @@
 		"Not found": "Non trouvé",
 		"Server error": "Erreur du serveur",
 
-		"Upload": "Envoyer",
-		"upload_concluded": "Envoi terminé:",
+		"Upload": "Téléverser",
+		"upload_concluded": "Téléversement terminé:",
 		"upload_finished": "{n} terminé(s) ({size})",
 		"upload_errors": "{n} échoués",
 		"upload_file_rejected": "Certains fichiers ont été refusés",
-		"delete_unfinished_upload": "Supprimer l'envoi inachevé ?",
+		"delete_unfinished_upload": "Supprimer le téléversement inachevé ?",
 
 		"File menu": "Menu du fichier",
 		"Folder menu": "Menu du dossier",
@@ -121,7 +121,7 @@
 		"Tiles mode:": "Mode tuiles:",
 		"off": "Désactivé",
 		"Operation successful": "Opération réussie",
-		"Uploader": "Téléchargeur",
+		"Uploader": "Téléverseur",
 		"download counter": "Compteur de téléchargements",
 		"Switch zoom mode": "Changer le mode zoom",
         "Full screen": "Plein écran",
@@ -196,6 +196,9 @@
 		"No":  "Non",
 		"esc_again": "Appuyez ESC deux fois pour fermer",
 		"insufficient storage": "espace insuffisant",
-		"Account disabled": "Compte désactivé"
-	}
+		"Account disabled": "Compte désactivé",
+        "upload_name": "Téléverser sous un nouveau nom",
+        "Uploading": "Téléversement",
+        "proxy_413": "Vérifiez cette limite sur le serveur proxy"
+    }
 }

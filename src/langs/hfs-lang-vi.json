@@ -197,6 +197,9 @@
         "No":  "Không",
         "esc_again": "Nhấn ESC hai lần để đóng",
         "insufficient storage": "không đủ dung lượng",
-        "Account disabled": "Tài khoản đã bị vô hiệu hóa"
+        "Account disabled": "Tài khoản đã bị vô hiệu hóa",
+        "upload_name": "Tải lên với tên mới",
+        "Uploading": "Đang tải lên",
+        "proxy_413": "Kiểm tra giới hạn này trên máy chủ proxy"
     }
 }

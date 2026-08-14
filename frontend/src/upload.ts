@@ -49,13 +49,13 @@ export function showUpload() {
         const { props, uploadOnExisting } = useSnapState()
         const etaStr = useMemo(() => !eta || eta === Infinity ? '' : formatTime(eta*1000, 0, 2), [eta])
         const inQ = _.sumBy(qs, q => q.entries.length) - (uploadState.uploading ? 1 : 0)
-        const queueStr = inQ && t('in_queue', { n: inQ }, "{n} in queue")
+        const queueStr = inQ && t('in_queue', { n: inQ })
         const size = formatBytes(adding.reduce((a, x) => a + x.file.size, 0))
         const isMobile = useIsMobile()
 
         return h(FlexV, { gap: '.5em' },
             h(FlexV, { className: 'upload-toolbar' },
-                props && !props.can_upload ? t('no_upload_here', "No upload permission for the current folder")
+                props && !props.can_upload ? t`no_upload_here`
                     : h(FlexV, {},
                         h(Flex, { center: true, flexWrap: 'wrap', alignItems: 'stretch' },
                             h('button', {
@@ -79,10 +79,10 @@ export function showUpload() {
                                 ])
                             }),
                         ),
-                        !isMobile && h(Flex, { gap: 4 }, hIcon('info'), t('upload_dd_hint', "You can upload files by dragging and dropping them onto the file list")),
+                        !isMobile && h(Flex, { gap: 4 }, hIcon('info'), t`upload_dd_hint`),
                         h(UploadStatus, { margin: '.5em 0' }),
                         adding.length > 0 && h(Flex, { center: true, flexWrap: 'wrap' },
-                            t('ready_to_upload', { n: adding.length, size }, "{n,plural,one{# file} other{# files}}, {size}, ready to upload"),
+                            t('ready_to_upload', { n: adding.length, size }),
                             h(Flex, {}, // avoid just one button to wrap
                                 h('button', {
                                     className: 'upload-send',
@@ -108,7 +108,7 @@ export function showUpload() {
                     },
                     async edit(rec) {
                         const was = rec.path
-                        const s = await promptDialog(t('upload_name', "Upload with new name"), {
+                        const s = await promptDialog(t`upload_name`, {
                             value: was,
                             onField: el => {
                                 const ofs = was.lastIndexOf('/') + 1 // browsers picking a folder use / as separator even on Windows
@@ -171,7 +171,7 @@ export function showUpload() {
         )
 
         async function askToRemoveUnfinishedUpload(f: ToUpload, to: string) {
-            if (!await confirmDialog(t('delete_unfinished_upload', "Remove the unfinished upload?")))
+            if (!await confirmDialog(t`delete_unfinished_upload`))
                 return
             const dir = dirname(f.path)
             await apiCall('delete', {}, {
@@ -230,7 +230,7 @@ function FileList({ entries, actions }: { entries: ToUpload[], actions: { [icon:
                     e.comment && h('tr', {}, h('td', { colSpan: 3 }, h('div', { className: 'entry-comment' }, e.comment)) )
                 )
             }),
-            rest > 0 && h('tr', {}, h('td', { colSpan: 99 }, h(Btn, { asText: true, label: t('more_items', { n: rest }, "{n} more item(s)"), onClick: () => setAll(true) })))
+            rest > 0 && h('tr', {}, h('td', { colSpan: 99 }, h(Btn, { asText: true, label: t('more_items', { n: rest }), onClick: () => setAll(true) })))
         )
     )
 }
@@ -286,16 +286,16 @@ function formatTime(time: number, decimals=0, length=Infinity) {
 export function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snapshot<typeof uploadState> } & CSSProperties) {
     const current = useSnapshot(uploadState)
     const { done, doneByte, errors, interrupted } = snapshot || current
-    const msgDone = done.length > 0 && t('upload_finished', { n: done.length, size: formatBytes(doneByte) }, "{n} finished ({size})")
-    const msgInterrupted = interrupted.length > 0 && t('upload_interrupted', { n: interrupted.length }, "{n} interrupted")
-    const msgErrors = errors.length > 0 && t('upload_errors', { n: errors.length }, "{n} failed")
+    const msgDone = done.length > 0 && t('upload_finished', { n: done.length, size: formatBytes(doneByte) })
+    const msgInterrupted = interrupted.length > 0 && t('upload_interrupted', { n: interrupted.length })
+    const msgErrors = errors.length > 0 && t('upload_errors', { n: errors.length })
     const msg = [msgDone, msgInterrupted, msgErrors].filter(Boolean).join(' – ')
     if (!msg) return null
     const sep = h('span', { className: 'horiz-sep' }, ' – ')
     return h('div', { style: { ...props } },
         msg, sep, h(Btn, { label: t`Show details`, asText: true, onClick: showDetails }),
         sep, h(Btn, {
-            label: t('copy_links', "Copy links"),
+            label: t`copy_links`,
             asText: true,
             successFeedback: true,
             async onClick() {
@@ -375,14 +375,14 @@ export async function createFolder() {
         await alertDialog(h(() =>
             h(FlexV, {},
                 h('div', {}, t`Successfully created`),
-                h(LinkClosingDialog, { to: uri + pathEncode(name) + '/' }, t('enter_folder', "Enter the folder")),
+                h(LinkClosingDialog, { to: uri + pathEncode(name) + '/' }, t`enter_folder`),
             )))
     }
     catch(e: any) {
-        await alertDialog(e.code === HTTP_CONFLICT ? t('folder_exists', "Folder with same name already exists") : e)
+        await alertDialog(e.code === HTTP_CONFLICT ? t`folder_exists` : e)
     }
 }
 
 export function inputComment(filename: string, value?: string) {
-    return promptDialog(t('enter_comment', { name: filename }, "Comment for {name}"), { value, type: 'textarea' })
+    return promptDialog(t('enter_comment', { name: filename }), { value, type: 'textarea' })
 }

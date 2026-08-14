@@ -62,7 +62,7 @@
         "ready_to_upload": "{n,plural, one{# файл} few{# файла} many{# файлов}}, {size}, готово к загрузке",
         "Send": "Загрузить",
         "Clear": "Очистить",
-        "failed_upload": "Не удалась загрузить {name}",
+        "failed_upload": "Не удалось загрузить {name}",
         "confirm_resume": "Возобновить загрузку?",
         "file too large": "слишком большой файл",
         "Enter folder name": "Введите имя папки",
@@ -121,7 +121,7 @@
         "Tiles mode:": "Плитки:",
         "off": "выключено",
         "Operation successful": "Операция успешна",
-        "Uploader": "Загружено",
+        "Uploader": "Загрузил",
         "Download counter": "Счётчик загрузок",
         "Switch zoom mode": "Переключить увеличение",
         "Full screen": "Полный экран",
@@ -195,6 +195,9 @@
         "No":  "Нет",
         "esc_again": "Нажмите ESC дважды для закрытия",
         "insufficient storage": "недостаточно места",
-        "Account disabled": "Учетная запись отключена"
+        "Account disabled": "Учетная запись отключена",
+        "upload_name": "Загрузить под новым именем",
+        "Uploading": "Загрузка",
+        "proxy_413": "Проверьте этот лимит на прокси-сервере"
     }
 }
