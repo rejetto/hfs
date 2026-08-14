@@ -146,7 +146,7 @@ export default function useFetchList() {
                         // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then get_file_list the file (because we didn't know it was file or folder)
                         // it also happens accessing a web-page folder, and the reload is the right solution too.
                         if (error === HTTP_METHOD_NOT_ALLOWED) {
-                            state.messageOnly = t('download_starting', "Your download should now start")
+                            state.messageOnly = t`download_starting`
                             window.location.reload() // reload will start the download, because now we got authenticated
                             continue
                         }
@@ -156,7 +156,7 @@ export default function useFetchList() {
                             if (error === HTTP_UNAUTHORIZED && snap.username)
                                 apiCall('refresh_session').then(x => {
                                     if (x.username) // check if username was actually considered (or instead session was refused)
-                                        void alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning')
+                                        void alertDialog(t('wrong_account', { u: snap.username }), 'warning')
                                 })
                             state.loginRequired = error === HTTP_UNAUTHORIZED
                             lastParams.current = null

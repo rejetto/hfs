@@ -199,6 +199,9 @@
         "No":  "Nem",
         "esc_again": "Nyomja meg kétszer az ESC gombot a bezáráshoz",
         "insufficient storage": "elégtelen tárhely",
-        "Account disabled": "A fiók deaktiválva"
+        "Account disabled": "A fiók deaktiválva",
+        "upload_name": "Feltöltés új néven",
+        "Uploading": "Feltöltés",
+        "proxy_413": "Ellenőrizze ezt a korlátot a proxyszerveren"
     }
 }

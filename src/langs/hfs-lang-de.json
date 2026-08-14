@@ -182,6 +182,9 @@
         "No":  "Nein",
         "esc_again": "Drucken Sie ESC zwei Mal, um das Fenster zu schließen.",
         "insufficient storage": "nicht genügend Speicherplatz",
-        "Account disabled": "Konto deaktiviert"
+        "Account disabled": "Konto deaktiviert",
+        "upload_name": "Mit neuem Namen hochladen",
+        "Uploading": "Hochladen",
+        "proxy_413": "Überprüfen Sie den Proxyserver auf dieses Limit"
     }
 }

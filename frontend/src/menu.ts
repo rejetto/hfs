@@ -60,7 +60,7 @@ export function MenuPanel() {
                 id: 'select-button',
                 icon: 'check',
                 label: t`Select`,
-                tooltip: t('select_tooltip', `Selection applies to "Zip" and "Delete" (when available), but you can also filter the list`),
+                tooltip: t`select_tooltip`,
                 toggled: showFilter,
                 onClick() {
                     state.showFilter = !showFilter
@@ -72,7 +72,7 @@ export function MenuPanel() {
                 label: t`Delete`,
                 className: 'show-sliding',
                 disabled: !list,
-                tooltip: t('delete_select', "Select something to delete"),
+                tooltip: t`delete_select`,
                 onClick: () => deleteFiles(Object.keys(selected))
             } : {
                 id: 'upload-button',
@@ -118,22 +118,22 @@ export function MenuPanel() {
                 icon: 'archive',
                 label: t`Zip`,
                 disabled: !can_archive,
-                tooltip: list ? t('zip_tooltip_selected', "Download selected elements as a single zip file")
-                    : t('zip_tooltip_whole', "Download whole list (unfiltered) as a single zip file. If you select some elements, only those will be downloaded."),
+                tooltip: list ? t`zip_tooltip_selected`
+                    : t`zip_tooltip_whole`,
                 href: buildUrlQueryString(_.pickBy({
                     get: 'zip',
                     ...remoteSearch,
                     list: isAllSelected() ? undefined : list
                 })),
                 ...!list && {
-                    confirm: remoteSearch ? t('zip_confirm_search', "Download ALL results of this search as ZIP archive?")
-                        : t('zip_confirm_folder', "Download WHOLE folder as ZIP archive?"),
+                    confirm: remoteSearch ? t`zip_confirm_search`
+                        : t`zip_confirm_folder`,
                     confirmOptions: {
                         afterButtons: h('button', {
                             onClick() {
                                 state.showFilter = true
                                 closeDialog(false)
-                                return alertDialog(t('zip_checkboxes', "Use checkboxes to select the files, then you can use Zip again"))
+                                return alertDialog(t`zip_checkboxes`)
                             },
                         }, t`Select some files`),
                     }
@@ -198,7 +198,7 @@ function LoginButton() {
 
 export async function deleteFiles(uris: string[]) {
     const n = uris.length
-    if (!await confirmDialog(t('delete_confirm', {n}, "Delete {n,plural, one{# item} other{# items}}?")))
+    if (!await confirmDialog(t('delete_confirm', {n})))
         return false
     const stop = working()
     const errors = onlyTruthy(await Promise.all(uris.map(uri =>
@@ -208,11 +208,11 @@ export async function deleteFiles(uris: string[]) {
     stop()
     reloadList()
     const e = errors.length
-    const msg = t('delete_completed', {n: n-e}, "Deletion: {n} completed")
+    const msg = t('delete_completed', {n: n-e})
     if (n === 1 && !e)
         return toast(msg, 'success')
     void alertDialog(h(Fragment, {},
-        msg, e > 0 && t('delete_failed', {n:e}, ", {n} failed"),
+        msg, e > 0 && t('delete_failed', {n:e}),
         h('div', { style: { textAlign: 'left', marginTop: '1em', } },
             ...errors.map(e => h(ErrorMsg, { err: t(err2msg(e.err)) + ': ' + e.uri }))
         )
@@ -227,7 +227,7 @@ function searchDialog() {
         Content() {
             const style = { width: 0, minWidth: '100%', maxWidth: '100%', boxSizing: 'border-box' }
             return h(Fragment, {},
-                t('search_msg', "Search this folder and sub-folders"),
+                t`search_msg`,
                 h('div', { className: 'field name' },
                     h('label', { htmlFor: 'name' }, t`Name`),
                     h('input', { name: 'name', style, autoFocus: true, defaultValue: was?.search }),

@@ -98,7 +98,7 @@
         "Server error": "Sunucu hatası",
 
         "Upload": "Upload",
-        "upload_concluded": "Upload concluded:",
+        "upload_concluded": "Yükleme tamamlandı:",
         "upload_finished": "{n} tamamlandı ({size})",
         "upload_errors": "{n} başarısız",
         "upload_file_rejected": "Bazı dosyalar kabul edilmiyor",
@@ -192,6 +192,9 @@
         "No":  "Hayır",
         "esc_again": "ESC'i iki kere basarak kapat",
         "insufficient storage": "yetersiz depolama alanı",
-        "Account disabled": "Hesap devre dışı bırakıldı"
+        "Account disabled": "Hesap devre dışı bırakıldı",
+        "upload_name": "Yeni adla yükle",
+        "Uploading": "Yükleniyor",
+        "proxy_413": "Proxy sunucusunda bu sınırı kontrol edin"
     }
 }

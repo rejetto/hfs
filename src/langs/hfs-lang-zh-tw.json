@@ -192,6 +192,9 @@
         "No":  "否",
         "esc_again": "按 ESC 兩次關閉",
         "insufficient storage": "儲存空間不足",
-        "Account disabled": "帳戶已停用"
+        "Account disabled": "帳戶已停用",
+        "upload_name": "使用新名稱上傳",
+        "Uploading": "上傳中",
+        "proxy_413": "檢查代理伺服器上的此限制"
     }
 }

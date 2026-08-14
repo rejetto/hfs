@@ -196,6 +196,9 @@
         "No":  "否",
         "esc_again": "按 ESC 两次关闭",
         "insufficient storage": "存储空间不足",
-        "Account disabled": "账户已禁用"
+        "Account disabled": "账户已禁用",
+        "upload_name": "使用新名称上传",
+        "Uploading": "上传中",
+        "proxy_413": "检查代理服务器上的此限制"
     }
 }

@@ -59,7 +59,7 @@
         "Create folder": "Tee uusi kansio",
         "Pick files": "Valitse lähetettävät tiedostot",
         "Pick folder": "Valitse lähetettävä kansio",
-        "ready_to_upload": "{n,plural,one{# tiedosto} other{# tiedostot}}, {size}, valmis ladattavaksi",
+        "ready_to_upload": "{n,plural,one{# tiedosto} other{# tiedostot}}, {size}, valmis lähetettäväksi",
         "Send": "Lähetä",
         "Clear": "Tyhjennä",
         "failed_upload": "Lähetys epäonnistui {name}",
@@ -196,6 +196,9 @@
         "No":  "Ei",
         "esc_again": "Paina ESC kahdesti sulkeaksesi",
         "insufficient storage": "riittämätön tallennustila",
-        "Account disabled": "Tili on poistettu käytöstä"
+        "Account disabled": "Tili on poistettu käytöstä",
+        "upload_name": "Lähetä uudella nimellä",
+        "Uploading": "Lähetetään",
+        "proxy_413": "Tarkista tämä raja välityspalvelimelta"
     }
 }

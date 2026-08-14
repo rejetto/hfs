@@ -69,7 +69,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                     if (escOnce)
                         return close()
                     escOnce = true
-                    onClose = toast(t('esc_again', "Press ESC twice to close")).close
+                    onClose = toast(t`esc_again`).close
                     return
                 }
                 escOnce = false
@@ -137,7 +137,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             mediaSession?.setActionHandler('previoustrack', goPrev)
 
             const {t} = useI18N()
-            const autoPlaySecondsLabel = t('autoplay_seconds', "Seconds to wait on images")
+            const autoPlaySecondsLabel = t`autoplay_seconds`
             const folder = dirname(cur.n)
             const failOnce = useRef<typeof cur>()
             useEffect(() => {
@@ -420,10 +420,10 @@ function showHelp() {
         title: t`File Show help`,
         className: 'file-show-help',
         Content: () => h(Fragment, {},
-            t('showHelpMain', {}, "You can use the keyboard for some actions:"),
+            t('showHelpMain', {}),
             _.map({
-                "←/→": t('showHelp_←/→_body', "Go to previous/next file"),
-                "↑/↓": t('showHelp_↑/↓_body', "Scroll tall images"),
+                "←/→": t`showHelp_←/→_body`,
+                "↑/↓": t`showHelp_↑/↓_body`,
                 "space": t`Select`,
                 "D": t`Download`,
                 "Z": t`Switch zoom mode`,
@@ -433,7 +433,7 @@ function showHelp() {
                 "A": t`Auto-play`,
             }, (v,k) => h('div', { key: k }, h('kbd', {}, t('showHelp_' + k, k)), ' ', v) ),
             h('div', { style: { marginTop: '1em' } },
-                t('showHelpListShortcut', { key: isMac ? 'SHIFT' : 'WIN' }, "From the file list, click while holding {key} to Show")
+                t('showHelpListShortcut', { key: isMac ? 'SHIFT' : 'WIN' })
             )
         )
     })

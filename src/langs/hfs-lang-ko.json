@@ -192,6 +192,9 @@
         "No":  "안",
         "esc_again": "ESC 두번 페스하기",
         "insufficient storage": "저장 공간 부족",
-        "Account disabled": "계정이 비활성화되었습니다"
+        "Account disabled": "계정이 비활성화되었습니다",
+        "upload_name": "새 이름으로 업로드",
+        "Uploading": "업로드 중",
+        "proxy_413": "프록시 서버에서 이 제한을 확인하세요."
     }
 }

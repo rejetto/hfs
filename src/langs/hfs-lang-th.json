@@ -121,7 +121,7 @@
         "Tiles mode:": "Tiles mode:",
         "off": "ปิด",
         "Operation successful": "การดำเนินงานประสบความสำเร็จ",
-        "Uploader": "โปรแกรมอัปโหลด",
+        "Uploader": "ผู้อัปโหลด",
         "Download counter": "ตัวนับการดาวน์โหลด",
         "Switch zoom mode": "สลับโหมดซูม",
         "Full screen": "เต็มหน้า",
@@ -192,6 +192,9 @@
         "No":  "ไม่",
         "esc_again": "กด ESC สองครั้งเพื่อปิด",
         "insufficient storage": "พื้นที่จัดเก็บไม่เพียงพอ",
-        "Account disabled": "บัญชีถูกปิดใช้งานแล้ว"
+        "Account disabled": "บัญชีถูกปิดใช้งานแล้ว",
+        "upload_name": "อัปโหลดด้วยชื่อใหม่",
+        "Uploading": "กำลังอัปโหลด",
+        "proxy_413": "ตรวจสอบขีดจำกัดนี้บนพร็อกซีเซิร์ฟเวอร์"
     }
 }

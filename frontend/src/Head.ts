@@ -38,8 +38,8 @@ function FolderStats() {
             searchManuallyInterrupted ? hIcon('error', { title: t`Interrupted` })
                 : list.length>0 && loading && h(Spinner),
             [
-                files && t('n_files', { n: files }, '{n,plural,one{# file} other{# files}}'),
-                folders && t('n_folders', { n: folders }, '{n,plural,one{# folder} other{# folders}}'),
+                files && t('n_files', { n: files }),
+                folders && t('n_folders', { n: folders }),
                 size ? formatBytes(size) : '',
             ].filter(Boolean).join(', '),
         ),

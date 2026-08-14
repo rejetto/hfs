@@ -41,7 +41,7 @@ export default function App() {
             const { can_upload, accept='' } = state.props || {}
             const destination = location.pathname
             return can_upload ? files => enqueueUpload(files, destination, accept)
-                : () => alertDialog(t("Upload not available"), 'warning')
+                : () => alertDialog(t`Upload not available`, 'warning')
         })
     },
         h(Toasts),

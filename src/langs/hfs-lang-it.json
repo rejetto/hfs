@@ -53,14 +53,15 @@
 
         "download_starting": "Ora dovrebbe iniziare il download",
         "wrong_account": "L'account {u} non ha accesso a questa cartella, prova con un altro",
-        "no_upload_here": "Non hai il permesso di uplodare in questa cartella",
+        "no_upload_here": "Non hai il permesso di fare upload in questa cartella",
         "Create folder": "Crea cartella",
         "Pick files": "Scegli file",
         "Pick folder": "Scegli una cartella",
-        "ready_to_upload": "{n} file, {size}, pronto per il caricamento",
+        "ready_to_upload": "{n} file, {size}, pronto per l'upload",
         "Send": "Invia",
         "Clear": "Azzera",
         "failed_upload": "Upload fallito per {name}",
+        "Upload": "Upload",
         "file too large": "file troppo grande",
         "Enter folder name": "Inserisci nome cartella",
         "Successfully created": "Creazione riuscita",
@@ -183,6 +184,9 @@
         "No":  "No",
         "esc_again": "Premi ESC due volte per chiudere",
         "insufficient storage": "spazio insufficiente",
-        "Account disabled": "Account disattivato"
+        "Account disabled": "Account disattivato",
+        "upload_name": "Upload con il nuovo nome",
+        "Uploading": "Upload in corso",
+        "proxy_413": "Verificare la presenza di questo limite sul server proxy"
     }
 }

@@ -35,7 +35,7 @@ export function FilterBar() {
         }),
         h('input', {
             id: 'filter',
-            placeholder: t('filter_placeholder', "Type here to filter the list below"),
+            placeholder: t`filter_placeholder`,
             autoComplete: 'off',
             value: filter,
             tabIndex,
@@ -46,8 +46,8 @@ export function FilterBar() {
         }),
         h(CustomCode, { name: 'afterFilter' }),
         h('span', {}, [
-            with_(Object.keys(selected).length, n => n && t('select_count', { n }, "{n} selected")),
-            with_(filteredList?.length, n => n !== undefined && n < list.length && t('filter_count', {n}, "{n} filtered")),
+            with_(Object.keys(selected).length, n => n && t('select_count', { n })),
+            with_(filteredList?.length, n => n !== undefined && n < list.length && t('filter_count', {n})),
         ].filter(Boolean).join(', ') ),
     )
 

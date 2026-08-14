@@ -192,6 +192,9 @@
         "No":  "لا",
         "esc_again": "انقر على ESC ثانية لاغلاق",
         "insufficient storage": "مساحة تخزين غير كافية",
-        "Account disabled": "تم تعطيل الحساب"
+        "Account disabled": "تم تعطيل الحساب",
+        "upload_name": "تحميل بالاسم الجديد",
+        "Uploading": "جارٍ التحميل",
+        "proxy_413": "تحقق من هذا الحد على الخادم الوكيل"
     }
 }

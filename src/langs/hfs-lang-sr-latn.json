@@ -192,6 +192,9 @@
         "No":  "Ne",
         "esc_again": "Pritisnite ESC dva puta da biste zatvorili",
         "insufficient storage": "nedovoljno prostora za skladištenje",
-        "Account disabled": "Nalog je onemogućen"
+        "Account disabled": "Nalog je onemogućen",
+        "upload_name": "Otpremite sa novim imenom",
+        "Uploading": "Otpremanje",
+        "proxy_413": "Proverite ovo ograničenje na proksi serveru"
     }
 }

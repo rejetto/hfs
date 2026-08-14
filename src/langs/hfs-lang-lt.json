@@ -191,6 +191,9 @@
         "No":  "Ne",
         "esc_again": "Paspauskite ESC du kartus, kad uždarytumėte",
         "insufficient storage": "nepakanka vietos",
-        "Account disabled": "Paskyra išjungta"
+        "Account disabled": "Paskyra išjungta",
+        "upload_name": "Įkelti nauju pavadinimu",
+        "Uploading": "Įkeliama",
+        "proxy_413": "Patikrinkite šį apribojimą tarpiniame serveryje"
     }
 }

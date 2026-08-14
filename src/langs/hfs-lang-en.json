@@ -193,6 +193,9 @@
         "No":  "No",
         "esc_again": "Press ESC twice to close",
         "insufficient storage": "insufficient storage",
-        "Account disabled": "Account disabled"
+        "Account disabled": "Account disabled",
+        "upload_name": "Upload with new name",
+        "Uploading": "Uploading",
+        "proxy_413": "Check for this limit on the proxy server"
     }
 }

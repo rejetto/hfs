@@ -55,6 +55,7 @@
         "Not found": "Tidak ditemui",
         "Server error": "Ralat pelayan",
 
+        "no_upload_here": "Tiada kebenaran muat naik dalam folder semasa",
         "Upload": "Muat naik",
         "upload_concluded": "Muat naik selesai:",
         "upload_finished": "{n} selesai ({size})",
@@ -63,6 +64,7 @@
         "delete_unfinished_upload": "Alih keluar muat naik yang belum selesai?",
         "ready_to_upload": "{n,plural,one{# fail} other{# fail}}, {size}, sedia untuk dimuat naik",
         "Send": "Hantar",
+        "failed_upload": "Tidak dapat memuat naik {name}",
         "download counter": "pengira muat turun",
 
         "File menu": "Menu fail",
@@ -153,6 +155,9 @@
         "No":  "Tidak",
         "esc_again": "Tekan ESC dua kali untuk menutup",
         "insufficient storage": "ruang storan tidak mencukupi",
-        "Account disabled": "Akaun dinyahdayakan"
+        "Account disabled": "Akaun dinyahdayakan",
+        "upload_name": "Muat naik dengan nama baharu",
+        "Uploading": "Memuat naik",
+        "proxy_413": "Semak had ini pada pelayan proksi"
     }
 }
