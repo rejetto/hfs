@@ -1750,7 +1750,7 @@ exports.init = api => {
                 releaseWrite()
                 await saving
                 reading = false
-                return { overlapped }
+                return { overlapped, saved: await originalReadFile(api.Const.CONFIG_FILE, 'utf8') === text }
             }
             finally {
                 reading = false
@@ -1776,9 +1776,12 @@ exports.init = api => {
                 throw Error('server_code was not saved')
             await wait(1100) // let watcher activity from installing server_code settle before arranging the race
             const text = (await reqApi('get_config_text', {}, 200, { auth })()).text + '\n'
-            const res = await reqApi('_watch_load_race', { text }, x => typeof x?.overlapped === 'boolean', { auth })()
+            const res = await reqApi('_watch_load_race', { text }, x =>
+                typeof x?.overlapped === 'boolean' && typeof x?.saved === 'boolean', { auth })()
             if (res.overlapped)
                 throw Error('save started while config was being read')
+            if (!res.saved)
+                throw Error('save did not reach the config file')
         }
         finally {
             await reqApi('set_config', { values: { server_code: previous } }, 200, { auth })().catch(() => {})
