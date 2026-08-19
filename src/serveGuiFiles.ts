@@ -24,10 +24,14 @@ import { dontOverwriteUploading } from './upload'
 import { customizedIcons, CustomizedIcons } from './icons'
 import { getProxyDetected } from './middlewares'
 
+defineConfig(CFG.menu_at_top, FRONTEND_OPTIONS[CFG.menu_at_top]).sub((v, { version, set }) => {
+    if (!v && version?.olderThan('3.3.0-alpha1')) // preserve the layout used before this option existed for upgraded installations
+        set(true)
+})
 const size1024 = defineConfig(CFG.size_1024, false, x => formatBytes.k = x ? 1024 : 1000) // we both configure formatBytes, and also provide a compiled version (number instead of boolean)
 const splitUploads = defineConfig(CFG.split_uploads, 0)
 export const logGui = defineConfig(CFG.log_gui, false)
-_.each(FRONTEND_OPTIONS, (v,k) => defineConfig(k, v)) // define default values
+_.each(FRONTEND_OPTIONS, (v,k) => k !== CFG.menu_at_top && defineConfig(k, v)) // define default values
 
 function serveStatic(uri: string): Koa.Middleware {
     const folder = (DEV ? 'dist/' : '') + uri.slice(2,-1)

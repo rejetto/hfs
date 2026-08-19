@@ -57,7 +57,15 @@ const CONFIG_CHANGE_EVENT_PREFIX = 'config.'
 export const currentVersion = new Version(VERSION)
 const configVersion = defineConfig(CFG.version, VERSION, v => new Version(v))
 
-type Subscriber<T,R=void> = (v:T, more: { was?: T, version?: Version, defaultValue: T, k: string, object: object, onlyCompileChanged?: true }) => R
+type Subscriber<T, R = void> = (v: T, more: {
+    was?: T,
+    version?: Version,
+    set(v: T | ((currentValue: T) => T)): void,
+    defaultValue: T,
+    k: string,
+    object: object,
+    onlyCompileChanged?: true
+}) => R
 export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler?: Subscriber<T,CT>) {
     configProps[k] = { defaultValue }
     type Updater = (currentValue:T) => T
@@ -74,11 +82,11 @@ export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler
         },
         sub(cb: Subscriber<T>) {
             if (started) // initial event already passed, we'll make the first call
-                cb(getConfig(k), { k, was: defaultValue, defaultValue, version: configVersion.compiled(), object })
+                cb(getConfig(k), { k, was: defaultValue, defaultValue, version: configVersion.compiled(), set, object })
             return events.on(CONFIG_CHANGE_EVENT_PREFIX + k, (v, was, version, onlyCompileChanged) => {
                 if (stack.includes(cb)) return // avoid infinite loop in case a subscriber changes the value
                 stack.push(cb)
-                try { return cb(v, { k, was, version, defaultValue, object, onlyCompileChanged }) }
+                try { return cb(v, { k, was, version, set, defaultValue, object, onlyCompileChanged }) }
                 finally { stack.pop() }
             }, { warnAfter: 1000 }) // e.g. each plugin watch enable_plugins
         },
@@ -98,7 +106,8 @@ export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler
         },
         dontStore() { dontStore.push(k) },
     }
-    let compiled = compiler?.(defaultValue, { k, version: currentVersion, defaultValue, object })
+    const set = object.set.bind(object)
+    let compiled = compiler?.(defaultValue, { k, version: currentVersion, set, defaultValue, object })
     if (compiler)
         object.sub((v, more) => {
             if (!more.onlyCompileChanged)
@@ -154,14 +163,14 @@ export async function setConfig(newCfg: Record<string,unknown>, save?: boolean) 
     }
     // first time we emit also for the default values
     await Promise.allSettled(Object.keys(configProps).map(k =>
-        newCfg.hasOwnProperty(k) || apply(k, undefined, true)))
+        newCfg.hasOwnProperty(k) || apply(k, undefined)))
     started = true
     events.emit('configReady', startedWithoutConfig)
     if (version?.valueOf() !== VERSION) // be sure to save the new version in the file
         saveConfigAsap()
 
-    function apply(k: string, newV: any, isDefault=false) {
-        return setConfig1(k, newV, save === undefined, argCfg && k in argCfg || isDefault ? currentVersion : version)
+    function apply(k: string, newV: any) {
+        return setConfig1(k, newV, save === undefined, !_.has(argCfg, k) && version || currentVersion)
     }
 }
 
