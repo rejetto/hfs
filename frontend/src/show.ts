@@ -109,8 +109,8 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             const [tags, setTags] = useState<any>()
             useEffect(() => setTags(undefined), [cur]) // reset
 
-            const { auto_play_seconds } = useSnapState()
-            const [autoPlaying, setAutoPlaying] = useState(startPlaying)
+            const { auto_play_seconds, autoPlay } = useSnapState()
+            const [autoPlaying, setAutoPlaying] = useState(startPlaying || autoPlay)
             function getShowElement() {
                 return containerRef.current?.querySelector('.showing') // like this, we don't require component to forward ref (easier for plugins)
             }
@@ -367,7 +367,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             }
 
             function toggleAutoPlay() {
-                setAutoPlaying(x => !x)
+                setAutoPlaying(x => state.autoPlay = !x)
             }
 
             function scrollY(dy: number) {
