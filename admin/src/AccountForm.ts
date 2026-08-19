@@ -142,8 +142,10 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                     username: account.username,
                     changes: withoutPassword,
                 })
-                if (password)
+                if (password) {
                     await apiNewPassword(values.username, password)
+                    setValues(values => ({ ...values, password: '', password2: '' }))
+                }
                 if (account.username === username)
                     state.username = values.username
                 done(got?.username, saveBtn) // username may have been changed, so we pass it back
