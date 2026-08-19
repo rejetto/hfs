@@ -1202,6 +1202,22 @@ describe('after-login', () => {
             await rmAny(dir)
         }
     })
+    test('folder creator can delete without delete permission', async () => {
+        const name = `owner-folder-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const parent = `${UPLOAD_ROOT}${name}/`
+        const folder = `${parent}owned/`
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        try {
+            await reqApi('create_folder', { uri: parent, name: 'owned' }, 200)()
+            await req(folder, 200, { method: 'delete' })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
     test('upload owner follows rename and move', async () => {
         const name = `owner-move-${randomId(6)}`
         const dir = resolve(UPLOAD_DISK_ROOT, name)

@@ -19,7 +19,7 @@ import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
 import { getUploadMeta } from './upload'
 import { apiAssertTypes, CFG, join as joinVfs, moveStoredFileAttrs, pathDecode, pathEncode, popKey, Who, WHO_ADMIN } from './misc'
-import { moveUploadOwner } from './uploadOwners'
+import { moveUploadOwner, setUploadOwner } from './uploadOwners'
 import { defineConfig } from './config'
 import { getCommentFor, setCommentFor } from './comments'
 import { SendListReadable } from './SendList'
@@ -79,6 +79,7 @@ export const frontEndApis: ApiHandlers = {
             return new ApiError(err)
         try {
             await mkdir(join(parentNode.source!, name))
+            await setUploadOwner(joinVfs(uri, pathEncode(name)), ctx)
             return {}
         }
         catch(e:any) {
