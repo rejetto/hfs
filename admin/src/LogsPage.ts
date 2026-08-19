@@ -252,7 +252,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 width: 85,
                 sx: { whiteSpace: 'pre-line' },
                 valueGetter: (v, row) => v === undefined ? undefined : v + row.failed, // is this heavy with many records?
-                renderCell: ({ row, value }) => value >= 0 && `✅ ${value}\n 🚫 ${row.failed}`,
+                renderCell: ({ row, value }) => value >= 0 && `✅ ${row.served}\n 🚫 ${row.failed}`,
             },
             {
                 headerName: "Country",
