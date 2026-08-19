@@ -2,14 +2,14 @@
 
 import { isRtl, useI18N, t } from './i18n'
 
-import { createElement as h, Fragment, lazy, ReactNode, Suspense, useCallback, useEffect, useState } from 'react'
+import { Component, createElement as h, Fragment, lazy, ReactNode, Suspense, useCallback, useEffect, useState } from 'react'
 import { Route, Router, Switch, useLocation } from 'wouter'
 import { useHashLocation } from 'wouter/use-hash-location'
 import MainMenu, { getMenuLabel, mainMenu, matchesMenuPath } from './MainMenu'
-import { AppBar, Box, BoxProps, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
+import { Alert, AppBar, Box, BoxProps, Button, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
 import { anyDialogOpen, Dialogs } from './dialog'
 import { useMyTheme } from './theme'
-import { fillFlexParentSx, Flex, spinner, useBreakpoint } from './mui'
+import { Center, fillFlexParentSx, Flex, spinner, useBreakpoint } from './mui'
 import { LoginRequired } from './LoginRequired'
 import { Menu } from '@mui/icons-material'
 import { LocalizationProvider } from '@mui/x-date-pickers'
@@ -138,19 +138,39 @@ function Routed() {
                     // @ts-ignore
                     h(Flex, { ...titleSideFullWidth as any && { width: '100%' } }, titleSide),
                 ),
-                h(Suspense, { fallback: h(spinner) }, h(Switch, {
-                    children: [
-                        ...mainMenu.flatMap((it,idx) => [
-                            h(Route, { key: idx, path: it.path }, h(it.comp, { setTitleSide: set }) ),
-                            // tab pages encode their selected tab after the parent menu path
-                            it.subRoutes && h(Route, { key: it.path + '/:tab', path: `${it.path}/:tab` }, h(it.comp, { setTitleSide: set }) )
-                        ]),
-                        h(Route, { path: '/config' }, h(ConfigFilePage))
-                    ]
-                }))
+                h(PageErrorBoundary, { key: current?.path ?? location }, // tab navigation must preserve unsaved fields; reset the boundary only when changing pages
+                    h(Suspense, { fallback: h(spinner) }, h(Switch, {
+                        children: [
+                            ...mainMenu.flatMap((it,idx) => [
+                                h(Route, { key: idx, path: it.path }, h(it.comp, { setTitleSide: set }) ),
+                                // tab pages encode their selected tab after the parent menu path
+                                it.subRoutes && h(Route, { key: it.path + '/:tab', path: `${it.path}/:tab` }, h(it.comp, { setTitleSide: set }) )
+                            ]),
+                            h(Route, { path: '/config' }, h(ConfigFilePage))
+                        ]
+                    }))
+                )
             ),
         )
     )
+}
+
+class PageErrorBoundary extends Component<{ children?: ReactNode }, { failed: boolean }> {
+    state = { failed: false }
+
+    static getDerivedStateFromError() {
+        return { failed: true }
+    }
+
+    render() {
+        return this.state.failed
+            ? h(Center, {},
+                h(Alert, {
+                    severity: 'error',
+                    action: h(Button, { color: 'inherit', onClick: () => window.location.reload() }, t`Reload`)
+                }, t`Failed to load page`))
+            : this.props.children
+    }
 }
 
 function itemTitle(idx: number) {
