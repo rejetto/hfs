@@ -17,6 +17,7 @@ import { sendErrorPage } from './errorPages'
 import { Readable } from 'stream'
 import { createHash } from 'crypto'
 import iconv from 'iconv-lite'
+import { getUploadMeta, isUploading } from './upload'
 
 const allowedReferer = defineConfig(CFG.allowed_referer, '')
 const maxDownloads = downloadLimiter(defineConfig(CFG.max_downloads, 0), () => true)
@@ -46,6 +47,7 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     const name = getNodeName(node)
     const mimeString = typeof mime === 'string' ? mime
         : _.find(mime, (_val,mask) => matches(name, mask))
+    const effectiveMime = resolveFileMime(source || '', mimeString)
     if (allowedReferer.get()) {
         const ref = try_(() => new URL(ctx.get('referer')||'').host)
         if (ref && ref !== ctx.host // automatically accept if the referer is basically the hosting domain
@@ -56,12 +58,17 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     ctx.state.vfsNode = node // useful to tell service files from files shared by the user
     const download = 'dl' in ctx.query
     disposition(ctx, name, download)
+    if (!download && source && isActiveContentMime(effectiveMime)) {
+        const upload = await getUploadMeta(source)
+        if (isUploading(source) || upload && upload.approved !== true)
+            return sendErrorPage(ctx, HTTP_FORBIDDEN)
+    }
     const fetchDest = ctx.get('sec-fetch-dest')
     ctx.state.considerAsGui ??= !download && ctx.get('referer')?.endsWith('/')
         && (fetchDest ? fetchDest !== 'document' && fetchDest !== 'empty' // modern clients
             // legacy clients often send Accept: */* for archive downloads, so the served mime is a safer signal than request headers here
-            : GUI_ASSET_MIME.test(mimeString || mimetypes.lookup(source||'') || ''))
-    await serveFile(ctx, source||'', mimeString)
+            : GUI_ASSET_MIME.test(effectiveMime))
+    await serveFile(ctx, source||'', effectiveMime)
 
     await enforceDownloadLimits(ctx)
 }
@@ -77,15 +84,29 @@ const mimeCfg = defineConfig<Dict<string>, (name: string) => string | undefined>
     return (name: string) => values[matchers.findIndex(matcher => matcher(name))]
 })
 
+export function resolveFileMime(filePath: string, mime?: string) {
+    mime ??= mimeCfg.compiled()(basename(filePath))
+    return mime === undefined || mime === MIME_AUTO ? mimetypes.lookup(filePath) || '' : mime
+}
+
+export function getNodeMime(node: VfsNode) {
+    const name = getNodeName(node)
+    const mime = typeof node.mime === 'string' ? node.mime
+        : _.find(node.mime, (_val, mask) => matches(name, mask))
+    return resolveFileMime(node.source || '', mime)
+}
+
+export function isActiveContentMime(mime: string) {
+    return /^(?:text\/html|application\/xhtml\+xml|image\/svg\+xml)(?:;|$)/i.test(mime)
+}
+
 // after this number of seconds, the browser should check the server to see if there's a newer version of the file
 const cacheControlDiskFiles = defineConfig(CFG.cache_control_disk_files, 5)
 
 export async function serveFile(ctx: Koa.Context, filePath:string, mime?:string, cached?: { stats: Stats, content: string | Buffer }) {
     if (!filePath)
         return
-    mime ??= mimeCfg.compiled()(basename(filePath))
-    if (mime === undefined || mime === MIME_AUTO)
-        mime = mimetypes.lookup(filePath) || ''
+    mime = resolveFileMime(filePath, mime)
     if (mime)
         ctx.type = mime
     if (ctx.method === 'OPTIONS') {

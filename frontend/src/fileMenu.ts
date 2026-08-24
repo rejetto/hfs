@@ -103,7 +103,7 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
         restoreFocus: ev.screenY || ev.screenX ? false : undefined,
         Content() {
             const {t} = useI18N()
-            const { data } = useApi<typeof frontEndApis.get_file_details>('get_file_details', { uris: [entry.uri] })
+            const { data, reload } = useApi<typeof frontEndApis.get_file_details>('get_file_details', { uris: [entry.uri] })
             const details = data?.details?.[0]
             const showProps = [ ...props,
                 with_(renderUploaderFromDetails(details), value =>
@@ -118,7 +118,23 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
                     entry.cantOpen && h('div', {}, hIcon('password', { style: { marginRight: '.5em', marginTop: '.5em' } }), t(MISSING_PERM)),
                 ),
                 h('div', { className: 'file-menu' },
-                    dontBotherWithKeys(menu.map((entry: FileMenuEntry, i) => // render menu entries
+                    dontBotherWithKeys([
+                        ...menu,
+                        details?.activeContent && {
+                            id: 'approve-active-content',
+                            label: details.upload.approved ? t`Revoke approval` : t`Approve active content`,
+                            icon: details.upload.approved ? 'cancel' : 'check',
+                            async onClick() {
+                                await apiCall('set_upload_approved', {
+                                    uri: entry.uri,
+                                    approved: !details.upload.approved,
+                                }, { modal: working })
+                                operationSuccessful()
+                                reload()
+                                return false
+                            }
+                        }
+                    ].filter(Boolean).map((entry: FileMenuEntry, i) => // render menu entries
                         isValidElement(entry) ? entry
                             : entry?.label && h('a', {
                                 key: i,
