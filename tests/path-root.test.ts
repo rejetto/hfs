@@ -81,7 +81,7 @@ test('folder upload stops at the first created directory on Windows, including s
                 const result = JSON.parse(runInNewContext(outputText, {
                     ...win32, posix, dir, vfsUri: '/new/' + (dir === first ? '' : 'nested/') + 'file.txt', ctx: {},
                     fs: { mkdirSync: () => namespaced ? win32.toNamespacedPath(first) : first },
-                    setUploadMeta() {},
+                    fillUploadMeta() {},
                     dirname(path: string) {
                         assert.ok(++steps < 10, 'upload ownership walk did not stop')
                         return win32.dirname(path)

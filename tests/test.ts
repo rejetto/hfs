@@ -1806,6 +1806,68 @@ describe('after-login', () => {
         const u = res?.details?.[0]?.upload
         throwIf(!u?.ip ? 'ip' : u?.username !== username ? 'username' : '')
     }))
+    test('uploaded active content requires admin approval', async () => {
+        const name = `active-${randomId(6)}.html`
+        const folderName = `active-copy-${randomId(6)}`
+        const folderUri = `/${folderName}/`
+        const uri = folderUri + name
+        const copyFolderUri = folderUri + 'copy/'
+        const copiedUri = copyFolderUri + name
+        const adminUri = UPLOAD_ROOT + name
+        const dir = resolve(UPLOAD_DISK_ROOT, folderName)
+        const anonJar = {}
+        const body = '<h1>uploaded</h1>'
+        const partialName = `partial-${name}`
+        const partialUri = folderUri + partialName
+        const tempUri = folderUri + pathEncode(UPLOAD_TEMP_PREFIX + partialName)
+        const slowName = `slow-${name}`
+        const slowUri = folderUri + slowName
+        const slowTempUri = folderUri + pathEncode(UPLOAD_TEMP_PREFIX + slowName)
+        const orphanName = UPLOAD_TEMP_PREFIX + `orphan-${name}`
+        const orphanUri = folderUri + pathEncode(orphanName)
+        await mkdir(dir)
+        await reqApi('add_vfs', { parent: '/', source: `../tmp/${folderName}`, name: folderName, can_upload: true }, 200)()
+        try {
+            await reqUpload(adminUri, 200, body)()
+            await req(adminUri, { status: 200, re: /uploaded/ })()
+            await reqApi('get_file_details', { uris: [adminUri] }, res => res?.details?.[0]?.upload?.approved === true)()
+            await reqApi('create_folder', { uri: folderUri, name: 'copy' }, 200)()
+            await writeFile(resolve(dir, orphanName), body)
+            await req(orphanUri, 403)()
+            await reqApi('rename', { uri: orphanUri, dest: 'escaped-orphan.html' }, 409)()
+            const slowUpload = reqUpload(slowUri, (_x, res) => res.statusCode === 200,
+                makeReadableThatTakes(600), undefined, 0, { jar: anonJar })()
+            await waitFor(() => existsSync(resolve(dir, UPLOAD_TEMP_PREFIX + slowName)) || undefined)
+            await req(slowTempUri, 403)()
+            await reqApi('copy_files', { uri_from: [slowTempUri], uri_to: copyFolderUri }, res => res?.errors?.[0] === 409)()
+            await reqApi('rename', { uri: slowTempUri, dest: 'escaped.html' }, 409)()
+            await req(slowTempUri, 409, {
+                method: 'MOVE',
+                headers: { destination: BASE_URL + folderUri + 'escaped.html', 'user-agent': WEBDAV_UA },
+            })()
+            await slowUpload
+            await reqUpload(partialUri + '?partial=1', 204, body, undefined, 0, { jar: anonJar })()
+            await req(tempUri, 403)()
+            await reqUpload(uri, (x, res) => res.statusCode === 200 && x?.uri === uri, body, undefined, 0, { jar: anonJar })()
+            await req(uri, 403)()
+            await req(uri + '?dl', { status: 200, re: /uploaded/ })()
+            await reqApi('copy_files', { uri_from: [uri], uri_to: copyFolderUri }, res => !res?.errors?.[0])()
+            await req(copiedUri, 403)()
+            await reqApi('set_upload_approved', { uri, approved: true }, 401, { jar: {} })()
+            await reqApi('set_upload_approved', { uri, approved: true }, 200)()
+            await req(uri, { status: 200, re: /uploaded/ })()
+            await reqApi('set_upload_approved', { uri, approved: false }, 200)()
+            await req(uri, 403)()
+            await reqUpload(uri + '?existing=overwrite', (_x, res) => res.statusCode === 200,
+                '<h1>changed</h1>', undefined, 0, { jar: anonJar })()
+            await req(uri, 403)()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200)().catch(() => {})
+            await rmAny(uploadUriToPath(adminUri))
+            await rmAny(dir)
+        }
+    })
     test('file_details.non-admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, noVisibleDetails, { jar: {} }))
     test('percent name apis.details', async () => {
         const percentName = `x%25-${randomId(4)}`

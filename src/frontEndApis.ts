@@ -17,7 +17,8 @@ import {
 import fs from 'fs'
 import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
-import { getUploadMeta } from './upload'
+import { getUploadMeta, isUploading, saveUploadMeta, setUploadApproved, whileUploadMetaPending } from './upload'
+import { getNodeMime, isActiveContentMime } from './serveFile'
 import { apiAssertTypes, CFG, join as joinVfs, moveStoredFileAttrs, pathDecode, pathEncode, popKey, Who, WHO_ADMIN } from './misc'
 import { deleteUploadOwner, moveUploadOwner, setUploadOwner } from './uploadOwners'
 import { defineConfig } from './config'
@@ -61,9 +62,21 @@ export const frontEndApis: ApiHandlers = {
                     if (!upload) return
                     if (!isAdmin)
                         upload = _.omit(upload, 'ip')
-                    return { upload }
+                    return { upload, activeContent: isAdmin && isActiveContentMime(getNodeMime(node)) }
                 }))
         }
+    },
+
+    async set_upload_approved({ uri, approved }, ctx) {
+        apiAssertTypes({ string: { uri }, boolean: { approved } })
+        if (!ctxAdminAccess(ctx))
+            return new ApiError(HTTP_UNAUTHORIZED)
+        const node = await urlToNode(uri, ctx)
+        if (!node?.source)
+            return new ApiError(HTTP_NOT_FOUND)
+        if (!isActiveContentMime(getNodeMime(node)))
+            return new ApiError(HTTP_BAD_REQUEST)
+        return await setUploadApproved(node.source, approved) ? {} : new ApiError(HTTP_FAILED_DEPENDENCY)
     },
 
     async create_folder({ uri, name }, ctx) {
@@ -113,11 +126,21 @@ export const frontEndApis: ApiHandlers = {
     },
 
     async copy_files({ uri_from, uri_to }, ctx) {
-        return moveFiles(uri_from, uri_to, ctx, (srcNode: VfsNode, dest: string) => // override behavior
-            statusCodeForMissingPerm(srcNode, 'can_read', ctx)
-                || copyFile(srcNode.source!, dest, fs.constants.COPYFILE_EXCL | fs.constants.COPYFILE_FICLONE) // .source is checked by moveFiles
-                    .catch(e => e.code || String(e))
-        )
+        return moveFiles(uri_from, uri_to, ctx, async (srcNode: VfsNode, dest: string) => { // override behavior
+            const err = statusCodeForMissingPerm(srcNode, 'can_read', ctx)
+            if (err) return err
+            const upload = await getUploadMeta(srcNode.source!)
+            try {
+                return await whileUploadMetaPending(dest, async () => {
+                    await copyFile(srcNode.source!, dest, fs.constants.COPYFILE_EXCL | fs.constants.COPYFILE_FICLONE)
+                    if (upload && !await saveUploadMeta(dest, upload)) {
+                        await unlink(dest)
+                        return HTTP_SERVER_ERROR
+                    }
+                })
+            }
+            catch(e: any) { return e.code || String(e) }
+        })
     },
 
     async comment({ uri, comment }, ctx) {
@@ -192,6 +215,7 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
             const srcNode = await urlToNode(from1, ctx)
             const src = srcNode?.source
             if (!src) return HTTP_NOT_FOUND
+            if (isUploading(src)) return HTTP_CONFLICT
             if (!override && isWebdavLocked(srcNode.vfsPath, ctx)) return ctx.status
             const destName = basename(src)
             const dest = join(destNode!.source!, destName)
@@ -206,11 +230,18 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
                 return ctx.status
             if (_.isFunction(override))
                 return override?.(srcNode, dest)
+            const upload = await getUploadMeta(src)
             return statusCodeForMissingPerm(srcNode, 'can_delete', ctx)
                 || rename(src, dest).catch(async e => {
                     if (e.code !== 'EXDEV') throw e // exdev = different drive
-                    await copyFile(src, dest)
-                    await unlink(src)
+                    await whileUploadMetaPending(dest, async () => {
+                        await copyFile(src, dest)
+                        if (upload && !await saveUploadMeta(dest, upload)) {
+                            await unlink(dest)
+                            throw Error("couldn't move upload metadata")
+                        }
+                        await unlink(src)
+                    })
                 }).then(() => moveStoredFileAttrs(src, dest))
                     .then(() => moveUploadOwner(srcNode.vfsPath, destUri, dest))
                     .catch(e => e.code || String(e))
@@ -221,6 +252,8 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
 export async function requestedRename(node: VfsNodeWithPath | undefined, newName: string, ctx: Koa.Context) {
     if (!node)
         throw new ApiError(HTTP_NOT_FOUND)
+    if (node.source && isUploading(node.source))
+        throw new ApiError(HTTP_CONFLICT)
     // requestedRename is exported, so keep disk rename confinement here even when callers pre-validate
     if (!isValidFileName(newName))
         throw new ApiError(HTTP_BAD_REQUEST)

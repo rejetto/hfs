@@ -8,7 +8,7 @@ import { basename, dirname, extname, join, posix, resolve, toNamespacedPath } fr
 import fs from 'fs'
 import {
     isValidFileName, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter, pathEncode,
-    CFG, enforceFinal, Timeout, waitFor,
+    CFG, enforceFinal, moveStoredFileAttrs, Timeout, waitFor,
 } from './misc'
 import { defineConfig } from './config'
 import { getDiskSpaceSync } from './util-os'
@@ -23,6 +23,7 @@ import { expiringCache } from './expiringCache'
 import { onProcessExit } from './first'
 import { deleteUploadOwner, isUnfinishedUploadOwner, setUploadOwner } from './uploadOwners'
 import { isWebdavLocked } from './webdav'
+import { ctxAdminAccess } from './adminApis'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>(CFG.delete_unfinished_uploads_after, 86_400)
 export const minAvailableMb = defineConfig(CFG.min_available_mb, 100)
@@ -57,14 +58,30 @@ onProcessExit(() => {
 
 const ATTR_UPLOADER = 'uploader'
 
-export function getUploadMeta(path: string) {
+export interface UploadMeta {
+    username?: string
+    ip?: string
+    approved?: boolean
+}
+
+export function getUploadMeta(path: string): Promise<UploadMeta | undefined> {
     return loadFileAttr(path, ATTR_UPLOADER)
 }
 
-function setUploadMeta(path: string, ctx: Koa.Context) {
-    return storeFileAttr(path, ATTR_UPLOADER, {
+export function saveUploadMeta(path: string, meta: UploadMeta) {
+    return storeFileAttr(path, ATTR_UPLOADER, meta)
+}
+
+export async function setUploadApproved(path: string, approved: boolean) {
+    const meta = await getUploadMeta(path)
+    return Boolean(meta && await saveUploadMeta(path, { ...meta, approved }))
+}
+
+function fillUploadMeta(path: string, ctx: Koa.Context) {
+    return saveUploadMeta(path, {
         username: getCurrentUsername(ctx) || undefined,
         ip: ctx.ip,
+        approved: ctxAdminAccess(ctx) || undefined,
     })
 }
 
@@ -74,6 +91,23 @@ export function getUploadTempFor(fullPath: string) {
 
 const diskSpaceCache = expiringCache<ReturnType<typeof getDiskSpaceSync>>(3_000) // invalidate shortly
 const uploadingFiles = new Map<string, { ctx: Koa.Context, size: number, got: number }>()
+const uploadMetaPending = new Set<string>()
+
+export function isUploading(path: string) {
+    const key = normalizeFilename(path)
+    return basename(path).startsWith(UPLOAD_TEMP_PREFIX)
+        || uploadingFiles.has(key)
+        || uploadMetaPending.has(key)
+        || Array.from(uploadingFiles.keys()).some(dest => getUploadTempFor(dest) === key)
+}
+
+export async function whileUploadMetaPending<T>(path: string, cb: () => Promise<T>) {
+    const key = normalizeFilename(path)
+    uploadMetaPending.add(key)
+    try { return await cb() }
+    finally { uploadMetaPending.delete(key) }
+}
+
 // initially sync for formidable; still sync to avoid async races and PUT piping gaps
 export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: string, ctx: Koa.Context) {
     if (!filename || !isValidFileName(filename) || !filename)
@@ -129,7 +163,7 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
         const createdFolders: { uri: string, source: string }[] = []
         const firstCreated = !dir.endsWith(':\\') && fs.mkdirSync(dir, { recursive: true })
         if (firstCreated) {
-            setUploadMeta(dir, ctx)
+            fillUploadMeta(dir, ctx)
             // recursive mkdir returns the first created directory; existing ancestors must not receive ownership
             const firstCreatedPath = toNamespacedPath(resolve(firstCreated)) // Node 24 mkdir can return a namespace-prefixed Windows path
             let source = resolve(dir)
@@ -224,10 +258,14 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
                 await new Promise(res => fileStream.close(res)) // this only seems necessary on Windows
                 for (const { uri, source } of createdFolders)
                     await setUploadOwner(uri, ctx, source)
-                if (errored)
-                    return
                 if (simulate)
                     return rm(tempName).catch(() => {})
+                if (!await fillUploadMeta(tempName, ctx)) {
+                    await rm(tempName).catch(() => {})
+                    return fail(HTTP_SERVER_ERROR)
+                }
+                if (errored)
+                    return
                 if (ctx.isAborted()) { // in the very unlikely case the connection is interrupted between last-byte and here, we still consider it unfinished, as the client had no way to know, and will resume, but it would get an error if we finish the process
                     const sec = deleteUnfinishedUploadsAfter.get()
                     await setUploadOwner(tempOwnerUri, ctx, tempName, _.isNumber(sec) ? Date.now() + sec * 1000 : null)
@@ -259,11 +297,16 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
                         { timeout: 10_000 })
                     if (!done)
                         throw 'EBUSY'
+                    await moveStoredFileAttrs(tempName, dest)
                     deleteUploadOwner(tempOwnerUri) // the temp URI no longer exists after rename; final ownership is recorded below
                     if (mtime) // so we use it to touch the file
                         await utimes(dest, Date.now() / 1000, mtime / 1000)
                     obj.fullPath = ctx.state.uploadDestinationPath = dest
-                    void setUploadMeta(dest, ctx)
+                    if (!await fillUploadMeta(dest, ctx)) {
+                        await rename(dest, tempName)
+                        await moveStoredFileAttrs(dest, tempName)
+                        throw Error("couldn't store upload metadata")
+                    }
                     if (ctx.query.comment)
                         void setCommentFor(dest, String(ctx.query.comment))
                     obj.uri = enforceFinal('/', baseUri) + pathEncode(basename(dest))
@@ -276,8 +319,9 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
                             cb(obj)
                 }
                 catch (err: any) {
-                    void setUploadMeta(tempName, ctx)
+                    void fillUploadMeta(tempName, ctx)
                     console.error("Couldn't rename temp to", dest, String(err))
+                    fail(HTTP_SERVER_ERROR)
                 }
             }
             finally {
