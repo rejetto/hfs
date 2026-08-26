@@ -1059,6 +1059,8 @@
         "Icon Type": "Tip ikone",
         "Id": "Id",
         "Ignore limits": "Ignorišite ograničenja",
+        "Unlimited rows": "Neograničen broj redova",
+        "log_memory_limit_hint": "Trenutno se u memoriji čuva poslednjih {limit} redova.",
         "Installed version": "Instalirana verzija",
         "License": "Licenca",
         "Name": "Ime",

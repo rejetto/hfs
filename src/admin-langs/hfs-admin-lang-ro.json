@@ -1059,6 +1059,8 @@
         "Icon Type": "Tip pictogramă",
         "Id": "Id",
         "Ignore limits": "Ignora limitele",
+        "Unlimited rows": "Rânduri nelimitate",
+        "log_memory_limit_hint": "În prezent, ultimele {limit} rânduri sunt păstrate în memorie.",
         "Installed version": "Versiune instalată",
         "License": "Licenţă",
         "Name": "Nume",

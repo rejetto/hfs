@@ -1059,6 +1059,8 @@
         "Icon Type": "ประเภทไอคอน",
         "Id": "รหัส",
         "Ignore limits": "ละเว้นขีดจำกัด",
+        "Unlimited rows": "แถวไม่จำกัด",
+        "log_memory_limit_hint": "ขณะนี้เก็บ {limit} แถวล่าสุดไว้ในหน่วยความจำ",
         "Installed version": "เวอร์ชันที่ติดตั้ง",
         "License": "ใบอนุญาต",
         "Name": "ชื่อ",

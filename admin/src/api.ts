@@ -49,6 +49,8 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
     const [initializing, setInitializing] = useStateMounted(true)
     const [reloader, setReloader] = useState(0)
     const idGenerator = useRef(0)
+    const limitRef = useRef(limit)
+    limitRef.current = limit // changing the temporary UI limit must not reconnect and clear the list
     const [pausedList, setPausedList] = useState<typeof list | undefined>()
     useEffect(() => setPausedList(pause ? list : undefined), [pause])
     useEffect(() => {
@@ -62,11 +64,11 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
             setList(list => {
                 if (invert) {
                     const ret = [...chunk, ...list]
-                    ret.splice(limit ?? Infinity, Infinity)
+                    ret.splice(limitRef.current || Infinity, Infinity)
                     return ret
                 }
                 const ret = [...list, ...chunk]
-                ret.splice(0, ret.length - (limit ?? Infinity))
+                ret.splice(0, ret.length - (limitRef.current || Infinity))
                 return ret
             })
         }, 1000, { maxWait: 1000 })

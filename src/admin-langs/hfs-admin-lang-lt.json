@@ -1059,6 +1059,8 @@
         "Icon Type": "Piktogramos tipas",
         "Id": "Id",
         "Ignore limits": "Ignoruoti ribas",
+        "Unlimited rows": "Neribotas eilučių skaičius",
+        "log_memory_limit_hint": "Šiuo metu atmintyje laikoma {limit} naujausių eilučių.",
         "Installed version": "Įdiegta versija",
         "License": "Licencija",
         "Name": "Vardas",

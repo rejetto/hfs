@@ -1059,6 +1059,8 @@
         "Icon Type": "Tipo de icono",
         "Id": "Identificación",
         "Ignore limits": "Ignorar límites",
+        "Unlimited rows": "Filas ilimitadas",
+        "log_memory_limit_hint": "Actualmente se mantienen en memoria las últimas {limit} filas.",
         "Installed version": "Versión instalada",
         "License": "Licencia",
         "Name": "Nombre",

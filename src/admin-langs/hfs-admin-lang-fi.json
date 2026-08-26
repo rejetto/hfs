@@ -1059,6 +1059,8 @@
         "Icon Type": "Kuvakkeen tyyppi",
         "Id": "Id",
         "Ignore limits": "Ohita rajoja",
+        "Unlimited rows": "Rajoittamaton määrä rivejä",
+        "log_memory_limit_hint": "Muistissa säilytetään tällä hetkellä uusimmat {limit} riviä.",
         "Installed version": "Asennettu versio",
         "License": "Lisenssi",
         "Name": "Nimi",

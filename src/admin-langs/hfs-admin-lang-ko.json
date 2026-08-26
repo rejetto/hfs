@@ -1059,6 +1059,8 @@
         "Icon Type": "아이콘 유형",
         "Id": "ID",
         "Ignore limits": "한계를 무시하다",
+        "Unlimited rows": "행 수 제한 없음",
+        "log_memory_limit_hint": "현재 최근 {limit}개 행을 메모리에 유지합니다.",
         "Installed version": "설치된 버전",
         "License": "특허",
         "Name": "이름",

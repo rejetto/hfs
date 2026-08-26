@@ -38,12 +38,13 @@ export interface DataTableProps<R extends GridValidRowModel=any> extends Omit<Da
     error?: ReactNode
     compact?: boolean
     footerSide?: (width: number) => ReactNode
+    footerExtra?: (width: number) => ReactNode
     fillFlex?: boolean
     persist?: string
     details?: boolean
 }
 export function DataTable({
-    columns, initialState={}, actions, actionsHeader, actionsProps, initializing, noRows, error, compact, footerSide, fillFlex,
+    columns, initialState={}, actions, actionsHeader, actionsProps, initializing, noRows, error, compact, footerSide, footerExtra, fillFlex,
     persist, details, quickFilter, slots, slotProps, filterModel, onFilterModelChange, ...rest
 }: DataTableProps) {
     const theme = useTheme()
@@ -253,7 +254,7 @@ export function DataTable({
             slotProps: {
                 ...effectiveSlotProps,
                 ...quickFilterOpen && { toolbar: { ...(effectiveSlotProps as any)?.toolbar, onExpandedChange: setQuickFilterOpen } },
-                footer: { ...(effectiveSlotProps as any)?.footer, add: wrappedFooterSide },
+                footer: { ...(effectiveSlotProps as any)?.footer, add: wrappedFooterSide, extra: footerExtra?.(width), width },
                 noRowsOverlay: { ...(effectiveSlotProps as any)?.noRowsOverlay, initializing, noRows },
                 pagination: {
                     ...!causingScrolling && {
@@ -535,8 +536,17 @@ function DataTableQuickFilterToolbar({ onExpandedChange }: {
             h(QuickFilterControl as ElementType, { fullWidth: true, inputRef, size: 'small', placeholder: t`Search` })))
 }
 
-function CustomFooter({ add, ...props }: { add?: ReactNode }) {
-    return h(GridFooterContainer, props, h(Box, { sx: { ml: { sm: 1 } } }, add), h(GridFooter, { sx: { border: 'none' } }))
+function CustomFooter({ add, extra, width, ...props }: { add?: ReactNode, extra?: ReactNode, width: number }) {
+    const separateRowForExtra = width < 850 // 850 conservative, to consider extra elements in the footer
+    return h(GridFooterContainer, { ...props, sx: { flexWrap: extra && separateRowForExtra ? 'wrap' : undefined } },
+        h(Box, { sx: { ml: { sm: 1 }, order: 1 } }, add),
+        extra && h(Box, { sx: {
+            order: separateRowForExtra ? 3 : 2,
+            width: separateRowForExtra ? '100%' : 'auto',
+            px: separateRowForExtra ? 1 : 0,
+            pb: separateRowForExtra ? 1 : 0,
+        } }, extra),
+        h(GridFooter, { sx: { border: 'none', order: separateRowForExtra ? 2 : 3 } }))
 }
 
 function NoRowsOverlay({ initializing, noRows }: { initializing?: boolean, noRows?: ReactNode }) {

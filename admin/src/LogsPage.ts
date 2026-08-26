@@ -120,9 +120,10 @@ export default function LogsPage({ setTitleSide }: PageProps) {
 }
 
 const LOGS_ON_FILE: string[] = [CFG.log, CFG.error_log]
+const DEFAULT_MEMORY_LIMIT = 1_000_000
 
 type LogFileProps = { filter?: (row:any) => boolean, limit?: number, hidden?: boolean, file: string, footerSide?: ReactNode } & Partial<DataTableProps>
-export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: LogFileProps) {
+export function LogFile({ file, footerSide, hidden, limit=DEFAULT_MEMORY_LIMIT, filter, ...rest }: LogFileProps) {
     const [showCountry, setShowCountry] = useState(false)
     const [showAgent, setShowAgent] = useState(false)
     const [showHost, setShowHost] = useState(false)
@@ -135,6 +136,8 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
     const [totalSize, setTotalSize] = useState(NaN)
     const [limited, setLimited] = useState(true)
     const [skipped, setSkipped] = useState(0)
+    const [memoryLimit, setLimit] = useState(limit)
+    limit = memoryLimit
     const MAX = 2**20 // 1MB
     const invert = true
     const [firstSight, setFirstSight] = useState(!hidden)
@@ -242,9 +245,21 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 labelIf: width > 700,
                 title: t('partial_log_loaded', { loadedSize: formatBytes(MAX), totalSize: formatBytes(totalSize) }),
                 loading: !limited,
-                onClick: () => setLimited(false)
+                onClick() {
+                    setLimit(0)
+                    setLimited(false)
+                }
             }, t`Load whole log`),
             footerSide,
+        ),
+        footerExtra: () => limit > 0 && list.length >= limit * .8 && h(Flex, { justifyContent: 'flex-end' },
+            h(Btn, {
+                size: 'small',
+                variant: 'outlined',
+                title: t('log_memory_limit_hint', { limit: limit.toLocaleString(language) },
+                    'Currently keeping the latest {limit} rows in memory.'),
+                onClick: () => setLimit(limit < DEFAULT_MEMORY_LIMIT ? DEFAULT_MEMORY_LIMIT : 0),
+            }, limit < DEFAULT_MEMORY_LIMIT ? t`Show more` : t`Unlimited rows`),
         ),
         columns: isConsole ? [
             tsColumn,

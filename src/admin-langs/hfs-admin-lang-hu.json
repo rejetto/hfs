@@ -1059,6 +1059,8 @@
         "Icon Type": "Ikon típusa",
         "Id": "Id",
         "Ignore limits": "Figyelmen kívül hagyja a korlátokat",
+        "Unlimited rows": "Korlátlan számú sor",
+        "log_memory_limit_hint": "Jelenleg a legutóbbi {limit} sor van a memóriában.",
         "Installed version": "Telepített verzió",
         "License": "Engedély",
         "Name": "Név",
