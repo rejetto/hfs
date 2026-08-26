@@ -1061,6 +1061,8 @@
         "Icon Type": "アイコンの種類",
         "Id": "ID",
         "Ignore limits": "制限を無視する",
+        "Unlimited rows": "行数無制限",
+        "log_memory_limit_hint": "現在、最新の{limit}行をメモリに保持しています。",
         "Installed version": "インストールされているバージョン",
         "License": "ライセンス",
         "Name": "名前",

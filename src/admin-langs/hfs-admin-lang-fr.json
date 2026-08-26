@@ -1061,6 +1061,8 @@
         "Icon Type": "Type d'icône",
         "Id": "Identifiant",
         "Ignore limits": "Ignorer les limites",
+        "Unlimited rows": "Lignes illimitées",
+        "log_memory_limit_hint": "Les {limit} dernières lignes sont actuellement conservées en mémoire.",
         "Installed version": "Version installée",
         "License": "Licence",
         "Name": "Nom",

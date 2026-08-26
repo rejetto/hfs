@@ -1061,6 +1061,8 @@
         "Icon Type": "Tipo de ícone",
         "Id": "Eu ia",
         "Ignore limits": "Ignorar limites",
+        "Unlimited rows": "Linhas ilimitadas",
+        "log_memory_limit_hint": "No momento, as últimas {limit} linhas são mantidas na memória.",
         "Installed version": "Versão instalada",
         "License": "Licença",
         "Name": "Nome",

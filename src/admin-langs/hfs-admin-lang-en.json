@@ -1061,6 +1061,8 @@
         "Icon Type": "Icon Type",
         "Id": "Id",
         "Ignore limits": "Ignore limits",
+        "Unlimited rows": "Unlimited rows",
+        "log_memory_limit_hint": "Currently keeping the latest {limit} rows in memory.",
         "Installed version": "Installed version",
         "License": "License",
         "Name": "Name",

@@ -1061,6 +1061,8 @@
         "Icon Type": "Simge Türü",
         "Id": "İD",
         "Ignore limits": "Sınırları göz ardı et",
+        "Unlimited rows": "Sınırsız satır",
+        "log_memory_limit_hint": "Şu anda son {limit} satır bellekte tutuluyor.",
         "Installed version": "Yüklü sürüm",
         "License": "Lisans",
         "Name": "İsim",

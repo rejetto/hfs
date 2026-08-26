@@ -1061,6 +1061,8 @@
         "Icon Type": "图标类型",
         "Id": "ID",
         "Ignore limits": "忽略限制",
+        "Unlimited rows": "不限行数",
+        "log_memory_limit_hint": "目前在内存中保留最新的 {limit} 行。",
         "Installed version": "安装版本",
         "License": "执照",
         "Name": "名称",

@@ -1061,6 +1061,8 @@
         "Icon Type": "Тип значка",
         "Id": "ID",
         "Ignore limits": "Ігнорувати обмеження",
+        "Unlimited rows": "Необмежена кількість рядків",
+        "log_memory_limit_hint": "Наразі в пам’яті зберігаються останні {limit} рядків.",
         "Installed version": "Встановлена ​​версія",
         "License": "Ліцензія",
         "Name": "Ім'я",

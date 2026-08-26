@@ -1061,6 +1061,8 @@
         "Icon Type": "نوع الأيقونة",
         "Id": "بطاقة تعريف",
         "Ignore limits": "تجاهل الحدود",
+        "Unlimited rows": "صفوف غير محدودة",
+        "log_memory_limit_hint": "يتم حاليًا الاحتفاظ بآخر {limit} صفوف في الذاكرة.",
         "Installed version": "النسخة المثبتة",
         "License": "رخصة",
         "Name": "اسم",

@@ -1061,6 +1061,8 @@
         "Icon Type": "Jenis Ikon",
         "Id": "Id",
         "Ignore limits": "Abaikan had",
+        "Unlimited rows": "Baris tanpa had",
+        "log_memory_limit_hint": "Pada masa ini, {limit} baris terkini disimpan dalam memori.",
         "Installed version": "Versi yang dipasang",
         "License": "Lesen",
         "Name": "Nama",

@@ -1061,6 +1061,8 @@
         "Icon Type": "Pictogramtype",
         "Id": "Identiteitskaart",
         "Ignore limits": "Negeer grenzen",
+        "Unlimited rows": "Onbeperkt aantal rijen",
+        "log_memory_limit_hint": "Momenteel worden de laatste {limit} rijen in het geheugen bewaard.",
         "Installed version": "Geïnstalleerde versie",
         "License": "Licentie",
         "Name": "Naam",

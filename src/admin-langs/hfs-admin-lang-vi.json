@@ -1061,6 +1061,8 @@
         "Icon Type": "Loại biểu tượng",
         "Id": "Nhận dạng",
         "Ignore limits": "Bỏ qua giới hạn",
+        "Unlimited rows": "Không giới hạn số hàng",
+        "log_memory_limit_hint": "Hiện đang giữ {limit} hàng gần nhất trong bộ nhớ.",
         "Installed version": "Phiên bản đã cài đặt",
         "License": "Giấy phép",
         "Name": "Tên",

@@ -1061,6 +1061,8 @@
         "Icon Type": "Тип икона",
         "Id": "Id",
         "Ignore limits": "Игнорирайте ограниченията",
+        "Unlimited rows": "Неограничени редове",
+        "log_memory_limit_hint": "В момента в паметта се пазят последните {limit} реда.",
         "Installed version": "Инсталирана версия",
         "License": "Лиценз",
         "Name": "Име",

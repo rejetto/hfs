@@ -1061,6 +1061,8 @@
         "Icon Type": "Typ ikony",
         "Id": "Id",
         "Ignore limits": "Ignoruj ​​ograniczenia",
+        "Unlimited rows": "Nieograniczona liczba wierszy",
+        "log_memory_limit_hint": "Obecnie w pamięci przechowywane jest ostatnie {limit} wierszy.",
         "Installed version": "Zainstalowana wersja",
         "License": "Licencja",
         "Name": "Nazwa",

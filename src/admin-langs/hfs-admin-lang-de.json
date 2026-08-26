@@ -1061,6 +1061,8 @@
         "Icon Type": "Symboltyp",
         "Id": "Ausweis",
         "Ignore limits": "Grenzen ignorieren",
+        "Unlimited rows": "Unbegrenzte Zeilen",
+        "log_memory_limit_hint": "Derzeit werden die letzten {limit} Zeilen im Speicher gehalten.",
         "Installed version": "Installierte Version",
         "License": "Lizenz",
         "Name": "Name",
