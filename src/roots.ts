@@ -17,6 +17,25 @@ export const roots = defineConfig(CFG.roots, {} as { [hostMask: string]: string 
 })
 const forceAddress = defineConfig(CFG.force_address, false)
 
+export const rootsHostGuard: Koa.Middleware = (ctx, next) => {
+    if (!ctx.path || _.isEmpty(roots.get()))
+        return next()
+    if (ctx.path.startsWith(SPECIAL_URI)) {
+        if (!ctx.path.startsWith(API_URI)) return next()
+        const { referer } = ctx.headers
+        const fromAdmin = referer && try_(() => new URL(referer).pathname.startsWith(ctx.state.revProxyPath + ADMIN_URI))
+        // authentication must remain reachable before ctxAdminAccess can succeed
+        if (fromAdmin && (ctxAdminAccess(ctx)
+        || ['login', 'loginSrp1', 'loginSrp2'].some(x => ctx.path === API_URI + x)))
+            return next()
+    }
+    const root = ctx.state.root = roots.compiled()(ctx.host)
+    return !ctx.state.skipFilters && forceAddress.get()
+        && root === undefined && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled()
+        ? disconnect(ctx, forceAddress.key())
+        : next()
+}
+
 export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
     (() => {
         if (!ctx.path) // it was once reported "Cannot read properties of null (reading 'startsWith')" but I can't reproduce it, and it shouldn't happen anyway
@@ -27,17 +46,8 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
             if (!ctx.path.startsWith(API_URI)) return // ...unless it's an api
             params = ctx.state.params || ctx.query // for api we'll translate params
             changeUriParams(v => removeStarting(ctx.state.revProxyPath, v))  // this removal must be done before adding the root; this operation doesn't conceptually belong to "roots", and it may be placed in different middleware, but it's convenient to do it here
-            const { referer } = ctx.headers
-            const fromAdmin = referer && try_(() => new URL(referer).pathname.startsWith(ctx.state.revProxyPath + ADMIN_URI))
-            // authentication must remain reachable before ctxAdminAccess can succeed
-            if (fromAdmin && (ctxAdminAccess(ctx)
-            || ['login', 'loginSrp1', 'loginSrp2'].some(x => ctx.path === API_URI + x))) return
         }
-        if (_.isEmpty(roots.get())) return
-        const root = ctx.state.root = roots.compiled()(ctx.host)
-        if (!ctx.state.skipFilters && forceAddress.get()
-        && root === undefined && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled())
-            return disconnect(ctx, forceAddress.key()) // returning truthy will not call next
+        const { root } = ctx.state
         if (!root || root === '/') return // no transformation is required
         changeUriParams(v => join(root, v))
         if (!params)

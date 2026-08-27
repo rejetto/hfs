@@ -25,7 +25,7 @@ import { selfCheckMiddleware } from './selfCheck'
 import { acmeMiddleware } from './acme'
 import './geo'
 import { geoFilter } from './geo'
-import { rootsMiddleware } from './roots'
+import { rootsHostGuard, rootsMiddleware } from './roots'
 import events from './events'
 import { trackIpsMw } from './ips'
 import './outboundProxy'
@@ -50,11 +50,12 @@ app.use(sessionMiddleware)
     .use(geoFilter)
     .use(trackIpsMw)
     .use(gzipper)
+    .use(rootsHostGuard)
+    .use(logMw)
+    .use(someSecurity)
     .use(paramsDecoder) // must be done before plugins, so they can manipulate params
     .use(headRequests)
     .use(rootsMiddleware)
-    .use(logMw)
-    .use(someSecurity)
     .use(throttler)
     .use(pluginsMiddleware)
     .use(mount(API_URI, apiMiddleware({ ...frontEndApis, ...adminApis })))

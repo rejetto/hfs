@@ -3,7 +3,7 @@
 import compress from 'koa-compress'
 import Koa from 'koa'
 import { API_URI, DEV, HTTP_UNAUTHORIZED } from './const'
-import { ALLOW_SESSION_IP_CHANGE, CFG, DAY, hasDirTraversal, isLocalHost, netMatches, splitAt, stream2string, try_, tryJson } from './misc'
+import { ALLOW_SESSION_IP_CHANGE, CFG, DAY, hasDirTraversal, isLocalHost, netMatches, readRequestBodyLimited, splitAt, try_, tryJson } from './misc'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, accounts, getAccount, getFromAccount, normalizeUsername } from './perm'
@@ -193,8 +193,11 @@ declare module "koa" {
     }
 }
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
-    ctx.state.params = ctx.method === 'POST' && ctx.originalUrl.startsWith(API_URI)
-        && (tryJson(await stream2string(ctx.req)) || {})
+    if (ctx.method !== 'POST' || !ctx.originalUrl.startsWith(API_URI))
+        return next()
+    const body = await readRequestBodyLimited(ctx, 10 * 1024 * 1024)
+    if (!body) return
+    ctx.state.params = tryJson(body.text) || {}
     await next()
 }
 
