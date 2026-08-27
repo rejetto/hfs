@@ -1977,6 +1977,25 @@ exports.init = api => {
 })
 
 describe('logging', () => {
+    test('url login password is not written to the access log', async () => {
+        const logPath = resolve(__dirname, 'work/logs/access.log')
+        const safeUri = `/url-login-log-${randomId(8)}`
+        const uri = `${safeUri}?keep=1&%6cogin=${encodeURIComponent(auth)}&after=2`
+        const adminJar = {}
+        await reqApi('set_config', { values: { dont_log_net: '' } }, 200, { auth, jar: adminJar })()
+        try {
+            await req(uri, 302, { baseUrl: BASE_URL_127, jar: {}, noRedirect: true })()
+            const line = await waitFor(() => existsSync(logPath)
+                && readFileSync(logPath, 'utf8').split('\n').find(line => line.includes(safeUri)))
+            if (!line)
+                throw Error('url login request was not written to the access log')
+            if (!line.includes(`${safeUri}?keep=1&login=...&after=2`) || line.includes(password))
+                throw Error(`url login was not safely logged: ${line}`)
+        }
+        finally {
+            await reqApi('set_config', { values: { dont_log_net: '127.0.0.1|::1' } }, 200, { auth, jar: adminJar })()
+        }
+    })
     test('security-filtered traversal reaches the error log', async () => {
         const logPath = resolve(__dirname, 'work/logs/access-error.log')
         const uri = `/f1/page/.%2e/.%2e/README.md?log-test=${randomId(8)}`

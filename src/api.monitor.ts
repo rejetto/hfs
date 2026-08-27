@@ -112,7 +112,7 @@ export function inferOperation(ctx: Koa.Context) {
             : s.uploadPath ? { op: 'upload', path: safeDecodeURIComponent(s.uploadPath) }
                 : {
                     op: !s.considerAsGui && (ctx.state.archive || ctx.state.vfsNode) ? 'download' : undefined,
-                    path: safeDecodeURIComponent(ctx.originalUrl),
+                    path: safeDecodeURIComponent(s.safeUrl),
                 },
         opProgress: _.isNumber(s.opProgress) ? _.round(s.opProgress, 3) : undefined,
         opTotal: s.opTotal,

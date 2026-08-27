@@ -135,7 +135,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         const date = `${a[2]}/${a[1]}/${a[3]}:${a[4]} ${a[5]?.slice(3)}`
         const user = getCurrentUsername(ctx) || userAtStart
         const length = ctx.state.length ?? ctx.length
-        const uri = ctx.originalUrl
+        const uri = ctx.state.safeUrl
         const duration = (Number(reqEnd) - Number(reqStart)) / 1000
         ctx.logExtra(ctx.vfsNode && {
             speed: Math.round(length / duration),

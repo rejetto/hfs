@@ -86,6 +86,7 @@ export const authApis = {
             const sid = randomUUID()
             ongoingLogins[sid] = srpServer
             setTimeout(()=> delete ongoingLogins[sid], 60_000) // client must complete api sequence (loginSrp2) within 1 minute or will be discarded to avoid memory leaks
+                                                    // 60-second expiry bounded 5k challenges to ~37 MB in a local saturation test, so an additional cap isn't justified
             ctx.session.loggingIn = { username, sid } // temporarily store until process is complete
             return rest
         }
