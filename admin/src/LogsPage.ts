@@ -17,7 +17,7 @@ import {
 } from './mui'
 import _ from 'lodash'
 import {
-    AutoDelete, LinkOff, ClearAll, Delete, Download, Settings, SmartToy, Terminal, ContentCopy
+    AutoDelete, LinkOff, AllInclusive, Delete, Download, Settings, SmartToy, Terminal, ContentCopy
 } from '@mui/icons-material'
 import { ConfigForm } from './ConfigForm'
 import { BoolField, SelectField } from '@hfs/mui-grid-form'
@@ -56,7 +56,7 @@ export default function LogsPage({ setTitleSide }: PageProps) {
 
     return h(Fragment, {},
         h(Flex, { gap: 0  },
-            h(Tabs, { value: tab, onChange(ev,i){ setTab(i) } },
+            h(Tabs, { value: tab, onChange(_ev,i){ setTab(i) } },
                 files.map(f => h(Tab, {
                     label: _.get(shorterLabels, f) || logLabels[f],
                     key: f,
@@ -211,7 +211,8 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             hasFile && h(Btn, {
                 icon: ContentCopy,
                 title: "Copy request",
-                onClick() { copyTextToClipboard(JSON.stringify(_.omit(row, 'id'), undefined, 2)) }
+                doneAnimation: true,
+                onClick: () => copyTextToClipboard(JSON.stringify(_.omit(row, 'id'), undefined, 2))
             })
         ])),
         initialState: isIps ? { sorting: { sortModel: [{ field: 'ts', sort: 'desc' }] } } : undefined,
@@ -220,7 +221,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             pauseButton,
             file.endsWith('log') && showApiButton,
             !connecting && skipped > 0 && h(Btn, {
-                icon: ClearAll,
+                icon: AllInclusive,
                 variant: 'outlined',
                 sx: { ml: { sm: 1 } },
                 labelIf: width > 700,
