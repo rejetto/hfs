@@ -11,6 +11,7 @@ import unzipper from 'unzipper'
 import { findDefined, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, UPLOAD_TEMP_PREFIX, wait, waitFor } from '../src/cross'
 import { httpStream, httpWithBody, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
+import { makeQ } from '../src/makeQ'
 import { mkdir, rm, rename, writeFile, access, mkdtemp, symlink } from 'fs/promises'
 import { Readable } from 'stream'
 import { XMLValidator } from 'fast-xml-parser'
@@ -1970,6 +1971,74 @@ exports.init = api => {
             if (first.delay !== 0) throw `valid srp step1 was delayed: ${first.delay}`
             if (second.status !== 401) throw "wrong login was not rejected"
             if (second.delay !== 0) throw `valid srp step1 was counted as failed login: ${second.delay}`
+        })
+    })
+    test('antibrute.prototype-key username does not pollute Object prototype', async () => {
+        const antibrute = require('../plugins/antibrute/plugin.js')
+        const handlers: any = {}
+        const proto: any = Object.prototype
+        const hadTimer = Object.hasOwn(proto, 'timer')
+        const previousTimer = proto.timer
+        let failure = ''
+        try {
+            delete proto.timer
+            antibrute.init({
+                misc: { HOUR: 0, isLocalHost: () => true, netMatches: () => false },
+                require: () => ({ makeQ }),
+                events: { stop: Symbol('stop'), multi: (x: any) => Object.assign(handlers, x) },
+                getConfig: (k: keyof typeof antibruteCfg) => antibruteCfg[k] ?? 0,
+                getAccount: (username: string) => ({ username }),
+                log() {},
+                addBlock() {},
+            })
+            await handlers.attemptingLogin({ ctx: { ip: '127.0.0.1', set() {} }, username: '__proto__' })
+            if (Object.hasOwn(proto, 'timer')) {
+                let yamlError = ''
+                try { yaml.stringify({ accounts: { victim: {} } }) }
+                catch (e: any) { yamlError = e.message }
+                failure = `magic username __proto__ polluted Object.prototype.timer${yamlError ? ` and broke YAML serialization: ${yamlError}` : ''}`
+            }
+        }
+        finally {
+            if (Object.hasOwn(proto, 'timer') && proto.timer !== previousTimer)
+                clearTimeout(proto.timer)
+            if (hadTimer) proto.timer = previousTimer
+            else delete proto.timer
+            delete proto.waiting
+        }
+        if (failure) throw failure
+    })
+    test('antibrute.prototype-key usernames do not corrupt state', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            const self = `prototype-self-${randomId(6)}`
+            const selfPassword = randomId(12)
+            const victim = `prototype-victim-${randomId(6)}`
+            const selfJar = {}
+            await reqApi('add_account', { username: self, password: selfPassword, admin: true }, 200, { auth })()
+            await reqApi('add_account', { username: victim, password: randomId(12) }, 200, { auth })()
+            try {
+                await srpClientSequence(srp, self, selfPassword, (cmd: string, params: any) =>
+                    reqApi(cmd, params, (_x,res) => res.statusCode < 400, { jar: selfJar })())
+                for (const user of ['__proto__', 'constructor']) {
+                    await reqApi('add_account', { username: user }, 400, { auth })()
+                    const response = await reqLoginSrp1(user)
+                    const victimResponse = await reqLoginSrp1(victim)
+                    if (victimResponse.status !== 200)
+                        throw `magic username ${user} corrupted unrelated loginSrp1: ${victimResponse.status}`
+                    if (response.status !== 200) throw `magic username ${user} returned ${response.status}`
+                    await reqApi('set_account', { username: self, changes: { username: user } },
+                        res => res?.username === self, { jar: selfJar })()
+                    await reqApi('refresh_session', {}, res => res?.username === self, { jar: selfJar })()
+                }
+                await reqApi('set_account', { username: self, changes: { username: self.toUpperCase() } },
+                    res => res?.username === self, { jar: selfJar })()
+                await reqApi('refresh_session', {}, res => res?.username === self, { jar: selfJar })()
+                const normal = await reqBasicAuth('/for-admins/', auth)
+                if (normal.status !== 200) throw `normal login returned ${normal.status}`
+            }
+            finally {
+                await reqApi('del_account', { username: [self, victim] }, 200, { auth })()
+            }
         })
     })
     test('antibrute.successful login resets penalty', async () => {

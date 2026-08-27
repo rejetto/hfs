@@ -67,7 +67,7 @@ export default  {
             return new ApiError(HTTP_BAD_REQUEST)
         await updateAccount(acc, pickProps(changes, ALLOWED_KEYS))
         if (changes.username && ctx.session?.username === normalizeUsername(username)) // update session if necessary
-            ctx.session!.username = normalizeUsername(changes.username)
+            ctx.session!.username = acc.username
         return _.pick(acc, 'username')
     },
 

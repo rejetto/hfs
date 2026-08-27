@@ -56,7 +56,8 @@ export function getUsernames() {
 export function getAccount(username:string, normalize=true) : Account | undefined {
     if (normalize)
         username = normalizeUsername(username)
-    return username ? accounts.get()[username] : undefined
+    const all = accounts.get()
+    return username && Object.hasOwn(all, username) ? all[username] : undefined
 }
 
 export function saveSrpInfo(account:Account, salt:string | bigint, verifier: string | bigint) {
@@ -86,10 +87,13 @@ export async function updateAccount(account: Account, change: Partial<Account> |
         await change?.(account)
     else {
         const u = normalizeUsername(change.username || '')
-        if (!u)
+        if (!u || isPrototypeKey(u))
             delete change.username
-        else if (u !== usernameWas && getAccount(u))
-            throw "username already exists"
+        else {
+            if (u !== usernameWas && getAccount(u))
+                throw "username already exists"
+            change.username = u
+        }
         Object.assign(account, _.mapValues(change, x => x || undefined))
     }
     for (const [k,v] of typedEntries(account))
@@ -104,7 +108,7 @@ export async function updateAccount(account: Account, change: Partial<Account> |
     if (account.belongs) {
         account.belongs = wantArray(account.belongs)
         _.remove(account.belongs, b => {
-            if (accounts.get().hasOwnProperty(b)) return
+            if (Object.hasOwn(accounts.get(), b)) return
             console.error(`Account ${username} belongs to non-existing ${b}`)
             return true
         })
@@ -125,6 +129,11 @@ accounts.sub(_.debounce(obj => {
     // consider some validation here, in case of manual edit of the config
     _.each(obj, (rec,k) => {
         const norm = normalizeUsername(k)
+        if (isPrototypeKey(norm)) {
+            delete obj[k]
+            saveAccountsAsap()
+            return
+        }
         if (rec?.username !== norm) {
             if (!rec) // an empty object in yaml is parsed as null
                 rec = obj[norm] = { username: norm }
@@ -164,11 +173,15 @@ export function normalizeUsername(username: string) {
     return username.toLocaleLowerCase()
 }
 
+function isPrototypeKey(username: string) {
+    return username === '__proto__' || username === 'constructor'
+}
+
 export function renameAccount(from: string, to: string) {
     from = normalizeUsername(from)
     const as = accounts.get()
     to = normalizeUsername(to)
-    if (!to || !as[from] || as[to])
+    if (!to || isPrototypeKey(to) || !Object.hasOwn(as, from) || Object.hasOwn(as, to))
         return false
     if (to === from)
         return true
@@ -188,7 +201,7 @@ export function renameAccount(from: string, to: string) {
 
 export function addAccount(username: string, props: Partial<Account>, updateExisting=false) {
     username = normalizeUsername(username)
-    if (!username) return
+    if (!username || isPrototypeKey(username)) return
     let account = getAccount(username, false)
     if (account && !updateExisting) return
     account = setHidden(account || {}, { username })  // hidden so that stringification won't include it

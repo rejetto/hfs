@@ -16,10 +16,10 @@ exports.configDialog = {
     maxWidth: 'xs',
 }
 
-const byIp = {}
-const byAccount = {}
-const laneByIp = {}
-const laneByAccount = {}
+const byIp = new Map()
+const byAccount = new Map()
+const laneByIp = new Map()
+const laneByAccount = new Map()
 const UNKNOWN_ACCOUNT = 'unknown\t'
 
 exports.init = api => {
@@ -107,7 +107,12 @@ exports.init = api => {
     })
 
     function getRecord(container, key) {
-        return container[key] ||= { failures: 0, next: 0, waiting: 0 }
+        let rec = container.get(key)
+        if (!rec) {
+            rec = { failures: 0, next: 0, waiting: 0 }
+            container.set(key, rec)
+        }
+        return rec
     }
 
     function increasePenalty(rec, now) {
@@ -124,7 +129,7 @@ exports.init = api => {
             // keep records while there are in-flight admissions, otherwise later releases may touch deleted state
             if (rec.waiting)
                 return armCleanup(records, key, rec)
-            delete records[key]
+            records.delete(key)
         }, 24 * HOUR) // no memory leak
     }
 
@@ -138,7 +143,12 @@ exports.init = api => {
     }
 
     function getLane(container, key) {
-        return container[key] ||= makeQ(1)
+        let lane = container.get(key)
+        if (!lane) {
+            lane = makeQ(1)
+            container.set(key, lane)
+        }
+        return lane
     }
 
     function runInLane(q, job) {
@@ -151,13 +161,13 @@ exports.init = api => {
     }
 
     function dropLaneIfIdle(container, key) {
-        const q = container[key]
+        const q = container.get(key)
         if (q?.isWorking() || q?.queueSize()) return
-        delete container[key]
+        container.delete(key)
     }
 
     function resetRecord(container, key) {
-        const rec = container[key]
+        const rec = container.get(key)
         if (!rec) return
         if (rec.waiting) {
             // successful login must clear penalties without dropping admission counters still needed by concurrent requests
@@ -165,14 +175,13 @@ exports.init = api => {
             rec.next = 0
             return
         }
-        delete container[key]
+        container.delete(key)
     }
 
     function getAccountKey(username) {
         // fold unknown usernames together to avoid unbounded memory growth from random names
-        if (!username || !api.getAccount(String(username)))
-            return UNKNOWN_ACCOUNT
-        return String(username).toLowerCase()
+        const account = username && api.getAccount(String(username))
+        return account ? account.username : UNKNOWN_ACCOUNT
     }
 
     function isExcluded(ip) {

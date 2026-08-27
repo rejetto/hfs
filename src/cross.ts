@@ -336,7 +336,7 @@ export function randomId(len = 10): string {
 }
 
 export function objRenameKey(o: Dict | undefined, from: string, to: string) {
-    if (!o || !o.hasOwnProperty(from) || from === to) return
+    if (!o || !Object.hasOwn(o, from) || from === to) return
     o[to] = o[from]
     delete o[from]
     return true
