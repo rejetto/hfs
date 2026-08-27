@@ -63,8 +63,12 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
             : GUI_ASSET_MIME.test(mimeString || mimetypes.lookup(source||'') || ''))
     await serveFile(ctx, source||'', mimeString)
 
-    if (await maxDownloadsPerAccount(ctx) === undefined) // returning false will not execute other limits
-        await maxDownloads(ctx) || await maxDownloadsPerIp(ctx)
+    await enforceDownloadLimits(ctx)
+}
+
+export async function enforceDownloadLimits(ctx: Koa.Context) {
+    return await maxDownloadsPerAccount(ctx)
+        ?? (await maxDownloads(ctx) || await maxDownloadsPerIp(ctx)) // a configured account limit overrides the global and IP limits
 }
 
 const mimeCfg = defineConfig<Dict<string>, (name: string) => string | undefined>(CFG.mime, {}, obj => {

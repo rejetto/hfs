@@ -941,6 +941,7 @@ describe('limits', () => {
     const fn = ROOT + 'big'
     before(() => writeFile(fn, BIG_CONTENT))
     test('max_dl', () => testMaxDl('/' + fn, 1, 2, { jar: {} }))
+    test('max_dl.zip', () => testMaxDl('/tests/?get=zip&list=big', 1, 2, { jar: {} }))
     after(() => rm(fn))
 })
 
@@ -2002,7 +2003,7 @@ function uploadUriToPath(uri: string) {
 
 async function testMaxDl(uri: string, good: number, bad: number, reqOptions: ReqOptions={}) {
     // make good+bad requests, and check results
-    await Promise.all(_.range(good + bad).map(i => req(uri + '?' + i, (_data, res) => {
+    await Promise.all(_.range(good + bad).map(i => req(uri + (uri.includes('?') ? '&' : '?') + i, (_data, res) => {
         if (res.statusCode === 429) {
             if (!bad--)
                 throw "too many refused"

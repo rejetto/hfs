@@ -7,7 +7,7 @@ import { QuickZipStream } from './QuickZipStream'
 import { createReadStream } from 'fs'
 import { defineConfig } from './config'
 import { basename, dirname } from 'path'
-import { applyRange, forceDownload, monitorAsDownload } from './serveFile'
+import { applyRange, enforceDownloadLimits, forceDownload, monitorAsDownload } from './serveFile'
 import { HTTP_OK, IS_WINDOWS } from './const'
 import { paramsToFilter } from './api.get_file_list'
 import { getCommentFor } from './comments'
@@ -75,6 +75,8 @@ export async function zipStreamFromFolder(node: VfsNodeWithPath, ctx: Koa.Contex
         catch {}
     })
     const zip = new QuickZipStream(mappedWalker)
+    ctx.body = zip
+    if (await enforceDownloadLimits(ctx)) return
     const time = 1000 * zipSeconds.get()
     const size = await zip.calculateSize(time)
     const range = applyRange(ctx, size) // keep var size as ctx.response.length won't preserve a NaN
@@ -82,7 +84,6 @@ export async function zipStreamFromFolder(node: VfsNodeWithPath, ctx: Koa.Contex
         return
     if (range)
         zip.applyRange(range.start, range.end)
-    ctx.body = zip
     ctx.req.on('close', ()=> zip.destroy())
     ctx.state.archive = 'zip'
     monitorAsDownload(ctx, size, range?.start)
