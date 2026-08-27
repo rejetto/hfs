@@ -130,7 +130,7 @@ export async function urlToNode(
     url: string,
     ctx?: Koa.Context,
     parent: VfsNodeWithPath=vfs.compiled(),
-    allowMissing?: boolean // true means missing path segments still resolve to temporary nodes with a computed source path
+    options: { allowMissing?: boolean, includeHidden?: boolean }={}
 ) : Promise<VfsNodeWithPath | undefined> {
     let initialSlashes = 0
     while (url[initialSlashes] === '/')
@@ -144,16 +144,16 @@ export async function urlToNode(
         return
     const hasTrailingSlash = url.endsWith('/')
     const rest = nextSlash < 0 ? '' : url.slice(nextSlash+1, hasTrailingSlash ? -1 : undefined)
-    const assumeFolder = allowMissing && (rest > '' || hasTrailingSlash)
+    const assumeFolder = options.allowMissing && (rest > '' || hasTrailingSlash)
     const ret = await getNodeByName(name, parent, assumeFolder)
     if (!ret)
         return
     setVfsPath(ret, name, parent)
     if (rest || ret?.original)
-        return urlToNode(rest, ctx, ret, allowMissing)
+        return urlToNode(rest, ctx, ret, options)
     if (ret.source)
-        if (!showHiddenFiles.get() && await isHiddenFile(ret.source)
-        || !allowMissing && await setIsFolder(ret) === undefined)  // undefined = not found on disk
+        if (!options.includeHidden && !showHiddenFiles.get() && await isHiddenFile(ret.source)
+        || !options.allowMissing && await setIsFolder(ret) === undefined)  // undefined = not found on disk
             return
     return ret
 }

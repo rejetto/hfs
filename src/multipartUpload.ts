@@ -75,7 +75,7 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithP
         const prefix = dirname(fn.replaceAll('\\', '/'))
         if (prefix === '.') // no subdir
             return false
-        const subfolderNode = await urlToNode(prefix + '/', ctx, node, true) // final slash = explicitly a folder even if it doesn't exist on disk
+        const subfolderNode = await urlToNode(prefix + '/', ctx, node, { allowMissing: true }) // final slash = explicitly a folder even if it doesn't exist on disk
         return subfolderNode && !hasPermission(subfolderNode, 'can_upload', ctx)
     }
 }

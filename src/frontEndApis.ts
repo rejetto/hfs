@@ -215,7 +215,7 @@ export async function requestedRename(node: VfsNodeWithPath | undefined, newName
     else {
         if (!node.source)
             throw new ApiError(HTTP_FAILED_DEPENDENCY)
-        const destNode = await urlToNode(pathEncode(newName), ctx, node.parent)
+        const destNode = await urlToNode(pathEncode(newName), ctx, node.parent, { includeHidden: true })
         if (destNode && statusCodeForMissingPerm(destNode, 'can_delete', ctx)) // if destination exists, you need delete permission
             throw new ApiError(ctx.status)
         try {

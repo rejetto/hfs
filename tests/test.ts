@@ -1074,6 +1074,35 @@ describe('after-login', () => {
             await rmAny(baseDir)
         }
     })
+    test('rename.hidden destination requires delete ownership', { skip: process.platform === 'win32' }, async () => {
+        const id = randomId(6)
+        const dir = await ensureCantOverwriteDir()
+        const source = `source-${id}.txt`
+        const replacement = `replacement-${id}.txt`
+        const protectedName = `.protected-${id}`
+        const ownedName = `.owned-${id}`
+        const protectedContent = 'protected'
+        const upload = (name: string, body: string) => reqUpload(CANT_OVERWRITE_URI + name,
+            (_data, res) => res.statusCode === 200, body)
+        await writeFile(resolve(dir, protectedName), protectedContent)
+        try {
+            await req(CANT_OVERWRITE_URI + protectedName, 404)()
+            await upload(source, 'source')()
+            await reqApi('rename', { uri: CANT_OVERWRITE_URI + source, dest: protectedName }, 403)()
+            if (readFileSync(resolve(dir, protectedName), 'utf8') !== protectedContent)
+                throw "protected hidden file overwritten"
+
+            await upload(ownedName, 'old')()
+            await upload(replacement, 'replacement')()
+            await reqApi('rename', { uri: CANT_OVERWRITE_URI + replacement, dest: ownedName }, 200)()
+            if (readFileSync(resolve(dir, ownedName), 'utf8') !== 'replacement')
+                throw "owned hidden file not overwritten"
+        }
+        finally {
+            await Promise.all([source, replacement, protectedName, ownedName]
+                .map(name => rmAny(resolve(dir, name))))
+        }
+    })
     test('upload.never', reqUpload('/random', 403))
     test('upload.ok', reqUpload(UPLOAD_DEST, 200))
     test('move.dest is file', reqApi('move_files', { uri_from: [UPLOAD_DEST], uri_to: UPLOAD_DEST }, 405))
