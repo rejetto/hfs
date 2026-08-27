@@ -1,5 +1,5 @@
 import Koa from 'koa'
-import { text as stream2string } from 'node:stream/consumers'
+import { readRequestBodyLimited } from './util-http'
 import {
     getNodeName, getVirtualName, nodeIsFolder, nodeIsLink, nodeStats, normalizeFilename, statusCodeForMissingPerm, urlToNode, VfsNode, VfsNodeWithPath, walkNode
 } from './vfs'
@@ -343,12 +343,14 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
                 setWebdavHeaders(true)
             return
         }
-        const body = ctx.length || ctx.get('content-length') || ctx.get('transfer-encoding') ? await stream2string(ctx.req) : ''
+        const body = await readRequestBodyLimited(ctx, 1024 * 1024)
+        if (!body) return
+        const bodyText = body.text
         const token = getProvidedLockToken()
         let seconds = Number(ctx.get('timeout').split(',').find(x => /^Second-\d+$/i.test(x.trim()))?.trim().split('-', 2)[1])
         seconds = _.clamp(seconds || LOCK_DEFAULT_SECONDS, 1, LOCK_MAX_SECONDS)
 
-        if (!body) {
+        if (!bodyText) {
             // Finder and similar clients refresh an existing lock by sending LOCK without a body
             if (!token)
                 return ctx.status = HTTP_BAD_REQUEST
@@ -368,7 +370,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
             ctx.body = renderLockResponse(lock.token, lock.seconds)
             return
         }
-        const lockinfo = try_(() => xmlParser.parse(body).lockinfo)
+        const lockinfo = try_(() => xmlParser.parse(bodyText).lockinfo)
         const scope = _.keys(lockinfo?.lockscope)[0]
         const type = _.keys(lockinfo?.locktype)[0]
         if (!scope || !type)
@@ -445,8 +447,10 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
                 setWebdavHeaders(true)
             return
         }
-        const body = ctx.length || ctx.get('content-length') || ctx.get('transfer-encoding') ? await stream2string(ctx.req) : ''
-        const props = try_(() => parseProppatchProps(body)) || []
+        const body = await readRequestBodyLimited(ctx, 1024 * 1024)
+        if (!body) return
+        const bodyText = body.text
+        const props = try_(() => parseProppatchProps(bodyText)) || []
         if (!props.length)
             return ctx.status = HTTP_BAD_REQUEST
         const statuses = []

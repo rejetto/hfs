@@ -431,6 +431,64 @@ describe('basics', () => {
         headers: { 'x-hfs-anti-csrf': '1', 'content-type': 'application/json' },
         body: '{'
     }))
+    test('api rejects oversized declared body', req(`${API}refresh_session`, (_data, res) => {
+        if (res.statusCode !== 413 || res.headers.connection !== 'close')
+            throw Error(`expected 413 with Connection: close, got ${res.statusCode} with ${res.headers.connection}`)
+    }, {
+        method: 'POST',
+        headers: { 'content-length': String(10 * 1024 * 1024 + 1) },
+    }))
+    test('api rejects oversized chunked body', req(`${API}refresh_session`, 413, {
+        method: 'POST',
+        body: sizedStream(10 * 1024 * 1024 + 1),
+    }))
+    test('api accepts body at limit', req(`${API}refresh_session`, 200, {
+        method: 'POST',
+        headers: { 'x-hfs-anti-csrf': '1' },
+        body: '{"padding":"' + 'x'.repeat(10 * 1024 * 1024 - 14) + '"}',
+    }))
+    test('api accepts utf-8 bom', req(`${API}get_file_details`, data => Array.isArray(data?.details), {
+        method: 'POST',
+        body: Buffer.concat([Buffer.from([0xEF, 0xBB, 0xBF]), Buffer.from('{"uris":["/missing"]}')]),
+    }))
+    test('force_address rejects invalid host before reading body', async () => {
+        const old = await reqApi('get_config', { only: ['force_address', 'proxies', 'roots'] }, 200, { auth, jar: {} })()
+        const allowedHost = `roots-guard-${randomId(6)}.example.com`
+        const forwardedFor = '198.51.100.1'
+        try {
+            await reqApi('set_config', { values: {
+                force_address: true,
+                proxies: 1,
+                roots: { ...old.roots, [allowedHost]: '/' },
+            } }, 200, { auth, jar: {} })()
+            await new Promise<void>((resolve, reject) => {
+                const timeout = setTimeout(() => reject(Error('invalid host was not rejected before its body')), 1000)
+                const request = httpRequest(defaultBaseUrl + API + 'refresh_session', {
+                    method: 'POST',
+                    headers: {
+                        host: 'invalid.example.com',
+                        'content-length': 10 * 1024 * 1024,
+                        'x-forwarded-for': forwardedFor,
+                    },
+                }, response => {
+                    clearTimeout(timeout)
+                    response.resume()
+                    reject(Error(`invalid host returned HTTP ${response.statusCode}`))
+                })
+                request.on('error', error => {
+                    clearTimeout(timeout)
+                    if ((error as NodeJS.ErrnoException).code === 'ECONNRESET')
+                        resolve()
+                    else
+                        reject(error)
+                })
+                request.end()
+            })
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, { auth, jar: {} })().catch(() => {})
+        }
+    })
     test('file_details.missing', reqApi('get_file_details', { uris: ['/missing'] }, noVisibleDetails))
     test('file_details.hidden', reqApi('get_file_details', { uris: ['/tests/config.yaml'] }, noVisibleDetails))
     test('file_details.for-admins', reqApi('get_file_details', { uris: ['/for-admins/alfa.txt'] }, noVisibleDetails))
@@ -1124,6 +1182,33 @@ describe('webdav', () => {
             await rmAny(destPath)
         }
     })
+    test('webdav.lock rejects oversized chunked body', req(`${UPLOAD_ROOT}oversized-lock.txt`, 413, {
+        method: 'LOCK',
+        auth,
+        jar,
+        headers: { 'content-type': 'text/xml', 'user-agent': WEBDAV_UA },
+        body: sizedStream(1024 * 1024 + 1),
+    }))
+    test('webdav.lock rejects oversized declared body', req(`${UPLOAD_ROOT}oversized-lock.txt`, (_data, res) => {
+        if (res.statusCode !== 413 || res.headers.connection !== 'close')
+            throw Error(`expected 413 with Connection: close, got ${res.statusCode} with ${res.headers.connection}`)
+    }, {
+        method: 'LOCK',
+        auth,
+        jar,
+        headers: {
+            'content-length': String(1024 * 1024 + 1),
+            'content-type': 'text/xml',
+            'user-agent': WEBDAV_UA,
+        },
+    }))
+    test('webdav.proppatch rejects oversized chunked body', req('/f1/f2/alfa.txt', 413, {
+        method: 'PROPPATCH',
+        auth,
+        jar,
+        headers: { 'content-type': 'text/xml', 'user-agent': WEBDAV_UA },
+        body: sizedStream(1024 * 1024 + 1),
+    }))
     test('webdav.stale lock on missing resource is pruned', async () => {
         const name = `wd-stale-lock-${randomId(6)}.txt`
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
@@ -3895,6 +3980,16 @@ function reqApi(api: string, params: object, test:Tester, options?: ReqOptions) 
         headers: isGet ? undefined : { 'x-hfs-anti-csrf': '1'},
         ...options,
     })
+}
+
+function sizedStream(size: number) {
+    return Readable.from(function*() {
+        while (size) {
+            const chunkSize = Math.min(size, 64 * 1024)
+            size -= chunkSize
+            yield Buffer.alloc(chunkSize)
+        }
+    }())
 }
 
 function reqList(uri:string, tester:Tester, params?: object, options?: ReqOptions) {

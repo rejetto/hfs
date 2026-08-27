@@ -8,7 +8,33 @@ import _ from 'lodash'
 import { text as stream2string, buffer } from 'node:stream/consumers'
 import * as tls from 'node:tls'
 import { enforceStarting, MB } from './cross'
+import type Koa from 'koa'
+import { HTTP_PAYLOAD_TOO_LARGE } from './cross-const'
 export { stream2string }
+
+export async function readTextLimited(stream: IncomingMessage, maxBytes: number) {
+    if (Number(stream.headers['content-length']) > maxBytes)
+        return { error: 'too_large' as const }
+    const chunks: Buffer[] = []
+    let size = 0
+    // keep the socket alive so callers can send the rejection before closing an undrained request
+    for await (const chunk of stream.iterator({ destroyOnReturn: false })) {
+        const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+        size += buffer.length
+        if (size > maxBytes)
+            return { error: 'too_large' as const }
+        chunks.push(buffer)
+    }
+    return { text: new TextDecoder().decode(Buffer.concat(chunks, size)) }
+}
+
+export async function readRequestBodyLimited(ctx: Koa.Context, maxBytes: number) {
+    const body = await readTextLimited(ctx.req, maxBytes)
+    if (!('error' in body))
+        return body
+    ctx.set('Connection', 'close') // an unread rejected body makes this connection unsafe to reuse
+    ctx.status = HTTP_PAYLOAD_TOO_LARGE
+}
 
 export async function httpString(url: string, { maxBytes=10*MB, ...options }: XStringRequestOptions ={}): Promise<string> {
     const stream = await httpStream(url, options)
