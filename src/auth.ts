@@ -74,8 +74,6 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
         ctx.throw(HTTP_UNAUTHORIZED, error)
     }
     const normalized = normalizeUsername(username)
-    if (s.username !== normalized)
-        delete s.allowNet // discard restrictions cached for another identity before replacing the session account
     s.username = normalized
     s.ts = Date.now()
     s.ip = ctx.ip

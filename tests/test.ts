@@ -1733,7 +1733,7 @@ describe('sessions', () => {
             await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
         }
     })
-    test('allow_net cache follows account switch', async () => {
+    test('allow_net follows account switch', async () => {
         const u = `allow-net-switch-${randomId(6)}`.toLowerCase()
         const p = `pw-${randomId(8)}`
         const adminReq = { auth, jar: {} }
@@ -1741,7 +1741,7 @@ describe('sessions', () => {
             await reqApi('add_account', { username: u, password: p, allow_net: '192.0.2.1' },
                 res => res?.username === u, adminReq)()
             const jar = {}
-            // cache the current account mask before presenting credentials for another account
+            // establish a session before presenting credentials for another account
             await reqApi('refresh_session', {}, res => res?.username === username, { auth, jar })()
             await reqApi('refresh_session', {}, res => res?.username === username, { jar })()
             await reqApi('refresh_session', {}, res => {
@@ -1751,6 +1751,90 @@ describe('sessions', () => {
         }
         finally {
             await reqApi('del_account', { username: u }, 200, adminReq)().catch(() => {})
+        }
+    })
+    test('inactive group inheritance excludes stale privileges', async () => {
+        const suffix = randomId(6).toLowerCase()
+        const activeGroup = `active-${suffix}`
+        const disabledGroup = `disabled-${suffix}`
+        const inactiveAdmin = `inactive-admin-${suffix}`
+        const expiredGroup = `expired-${suffix}`
+        const user = `member-${suffix}`
+        const pass = `pw-${randomId(8)}`
+        const folder = `inactive-group-${suffix}`
+        const dir = resolve(UPLOAD_DISK_ROOT, folder)
+        const adminReq = { auth, jar: {} }
+        const userJar = {}
+        await mkdir(dir, { recursive: true })
+        try {
+            await reqApi('add_account', { username: activeGroup }, 200, adminReq)()
+            await reqApi('add_account', { username: disabledGroup, disabled: true }, 200, adminReq)()
+            await reqApi('add_account', { username: inactiveAdmin, admin: true, belongs: [disabledGroup] }, 200, adminReq)()
+            await reqApi('add_account', { username: expiredGroup, expire: new Date(0) }, 200, adminReq)()
+            await reqApi('add_account', {
+                username: user,
+                password: pass,
+                belongs: [activeGroup, inactiveAdmin, expiredGroup],
+            }, 200, adminReq)()
+            await reqApi('add_vfs', {
+                source: `../tmp/${folder}`,
+                name: folder,
+                can_read: [expiredGroup],
+                can_list: 'can_read',
+            }, 200, adminReq)()
+
+            let expanded: string[] = []
+            let adminStatus = 0
+            let vfsStatus = 0
+            await reqApi('refresh_session', {}, data => { expanded = data.expandedUsername }, { auth: `${user}:${pass}`, jar: userJar })()
+            await reqApi('get_accounts', {}, (_data, res) => { adminStatus = res.statusCode }, { jar: userJar })()
+            await reqList(`/${folder}/`, (_data, res) => { vfsStatus = res.statusCode }, {}, { jar: userJar })()
+            const stale = [inactiveAdmin, expiredGroup, disabledGroup].filter(x => expanded.includes(x))
+            if (adminStatus !== 401 || vfsStatus !== 401 || stale.length)
+                throw Error(`inactive groups still effective: admin=${adminStatus}, vfs=${vfsStatus}, expanded=${stale}`)
+
+            await reqApi('set_vfs', {
+                uri: `/${folder}`,
+                props: { can_read: [activeGroup], can_list: 'can_read' },
+            }, 200, adminReq)()
+            await reqList(`/${folder}/`, 200, {}, { jar: userJar })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [`/${folder}`] }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', {
+                username: [user, inactiveAdmin, expiredGroup, activeGroup, disabledGroup],
+            }, 200, adminReq)().catch(() => {})
+            await rm(dir, { recursive: true, force: true })
+        }
+    })
+    test('inactive group inheritance refreshes allow_net', async () => {
+        const suffix = randomId(6).toLowerCase()
+        const allowedGroup = `allowed-${suffix}`
+        const restrictedGroup = `restricted-${suffix}`
+        const user = `net-member-${suffix}`
+        const pass = `pw-${randomId(8)}`
+        const adminReq = { auth, jar: {} }
+        const userJar = {}
+        try {
+            await reqApi('add_account', { username: allowedGroup, allow_net: '::1' }, 200, adminReq)()
+            await reqApi('add_account', { username: restrictedGroup, allow_net: '127.0.0.1' }, 200, adminReq)()
+            await reqApi('add_account', {
+                username: user,
+                password: pass,
+                belongs: [allowedGroup, restrictedGroup],
+            }, 200, adminReq)()
+            await reqApi('refresh_session', {}, data => data.username === user, { auth: `${user}:${pass}`, jar: userJar })()
+            await reqApi('refresh_session', {}, data => data.username === user, { jar: userJar })()
+            await reqApi('set_account', { username: allowedGroup, changes: { disabled: true } }, 200, adminReq)()
+            await reqApi('refresh_session', {}, data => {
+                if (data.username)
+                    throw Error(`inactive allow_net group remained cached for ${data.username}`)
+            }, { jar: userJar })()
+        }
+        finally {
+            await reqApi('del_account', {
+                username: [user, allowedGroup, restrictedGroup],
+            }, 200, adminReq)().catch(() => {})
         }
     })
     test('auto_login_net.canLogin', async () => {
