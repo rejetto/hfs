@@ -31,16 +31,7 @@ interface Accounts { [username:string]: Account }
 
 // provides the username and all other usernames it inherits based on the 'belongs' attribute. Useful to check permissions
 export function expandUsername(who: string) {
-    const ret = new Set<string>()
-    const q = [who]
-    for (const u of q) {
-        const a = getAccount(u)
-        if (!a || a.disabled) continue
-        ret.add(u)
-        if (a.belongs)
-            q.push(...a.belongs)
-    }
-    return ret
+    return new Set(Array.from(walkActiveAccounts([who]), a => a.username))
 }
 
 // check if current username or any ancestor match the provided usernames
@@ -226,13 +217,27 @@ export function delAccount(username: string) {
 
 // get some property from account, searching in its groups if necessary. Search is breadth-first, and this determines priority of inheritance.
 export function getFromAccount<T=any>(account: Account | string, getter:(a:Account) => T) {
-    const search = [account]
-    for (const accountOrUsername of search) {
-        const a = typeof accountOrUsername === 'string' ? getAccount(accountOrUsername) : accountOrUsername
-        if (!a) continue
-        const res = getter(a)
+    const root = typeof account === 'string' ? getAccount(account) : account
+    if (!root) return
+    let res = getter(root) // always consider direct properties; only inherited groups are filtered by active status
+    if (res !== undefined)
+        return res
+    for (const a of walkActiveAccounts(root.belongs || [])) {
+        res = getter(a)
         if (res !== undefined)
             return res
+    }
+}
+
+function* walkActiveAccounts(roots: (Account | string)[]) {
+    const search = [...roots]
+    const visited = new Set<string>()
+    for (const accountOrUsername of search) {
+        const a = typeof accountOrUsername === 'string' ? getAccount(accountOrUsername) : accountOrUsername
+        if (!a || visited.has(a.username)) continue
+        visited.add(a.username)
+        if (accountIsDisabled(a)) continue
+        yield a
         if (a.belongs)
             search.push(...a.belongs)
     }
@@ -251,10 +256,24 @@ export function accountCanLogin(account: Account) {
 }
 
 export function accountIsDisabled(account: Account): boolean {
-    return Boolean(account.disabled
-        || account.expire as any < Date.now()
-        || account.belongs?.length // don't every() on empty array, as it returns true
-        && account.belongs.map(u => getAccount(u, false)).every(a => a && accountIsDisabled(a)) )
+    return check(account, new Set())
+
+    function check(account: Account, visiting: Set<string>): boolean {
+        if (account.disabled || account.expire as any < Date.now())
+            return true
+        if (!account.belongs?.length)
+            return false
+        // consider invalid membership cycles disabled so they cannot grant privileges
+        if (visiting.has(account.username))
+            return true
+        visiting.add(account.username)
+        const ret = account.belongs.every(u => {
+            const a = getAccount(u, false)
+            return Boolean(a && check(a, visiting))
+        })
+        visiting.delete(account.username)
+        return ret
+    }
 }
 
 export function accountCanLoginAdmin(account: Account) {
