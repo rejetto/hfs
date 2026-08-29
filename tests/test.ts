@@ -784,6 +784,32 @@ describe('basics', () => {
         if (!headers.location && !headers['set-cookie'])
             throw "failed"
     })
+    test('basic login redirects only locally', async () => {
+        const external = await redirectLocation('https://attacker.test/return')
+        if (external !== '/')
+            throw Error(`basic login redirected externally to ${external}`)
+
+        const referer = `${BASE_URL}/for-admins/?get=basic`
+        const local = await redirectLocation(referer)
+        if (new URL(local, BASE_URL).href !== referer)
+            throw Error(`basic login did not return to ${referer}`)
+
+        const doubleSlash = await redirectLocation(`${BASE_URL}//attacker.test`)
+        if (new URL(doubleSlash, BASE_URL).origin !== new URL(BASE_URL).origin)
+            throw Error(`basic login treated a local double-slash path as an external URL`)
+
+        async function redirectLocation(referer: string) {
+            let location = ''
+            await req('/?get=login', { status: 302, cb(_body, res) {
+                location = String(res.headers.location || '')
+            } }, {
+                auth,
+                headers: { referer, 'x-forwarded-prefix': 'https://attacker.test' },
+                noRedirect: true,
+            })()
+            return location
+        }
+    })
     test('url login confirms browser account changes', async () => {
         const target = `url-login-${randomId(6)}`.toLowerCase()
         const targetPassword = randomId(12)
