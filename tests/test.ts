@@ -678,6 +678,50 @@ describe('basics', () => {
         if (stats?.size !== statSync(SAMPLE_FILE_PATH).size)
             throw "unexpected size for " + fn
     })
+    test('upload.post.csrf', async () => {
+        const sessionJar = {}
+        const adminReq = { auth, jar: {} }
+        const oldConfig = await reqApi('get_config', { only: ['allowed_upload_origin'] }, 200, adminReq)()
+        const names = ['fetch-site', 'origin', 'same-origin', 'allowed-origin', 'wrong-scheme', 'wrong-suffix']
+            .map(x => `csrf-${x}-${randomId(6)}.txt`)
+        const paths = names.map(x => resolve(UPLOAD_DISK_ROOT, x))
+        await reqApi('refresh_session', {}, res => res?.username === username, { auth, jar: sessionJar })()
+        try {
+            await upload(names[0]!, 418, { origin: 'http://attacker.example.com', 'sec-fetch-site': 'same-site' })
+            await upload(names[1]!, 418, { origin: 'http://attacker.example.com' })
+            if (paths.slice(0, 2).some(existsSync))
+                throw Error('cross-origin multipart upload created a file')
+            await upload(names[2]!, 200, { origin: BASE_URL, 'sec-fetch-site': 'same-origin' })
+            if (!existsSync(paths[2]!))
+                throw Error('same-origin multipart upload did not create a file')
+            await reqApi('set_config', { values: { allowed_upload_origin: 'https://unused.example|https://*.example' } }, 200, adminReq)()
+            await upload(names[3]!, 200, { origin: 'https://forms.example', 'sec-fetch-site': 'cross-site' })
+            await upload(names[4]!, 418, { origin: 'http://forms.example', 'sec-fetch-site': 'cross-site' })
+            await upload(names[5]!, 418, { origin: 'https://forms.example.evil', 'sec-fetch-site': 'cross-site' })
+            if (!existsSync(paths[3]!) || paths.slice(4).some(existsSync))
+                throw Error('multipart upload origin wildcard escaped its boundary')
+        }
+        finally {
+            await reqApi('set_config', { values: {
+                allowed_upload_origin: oldConfig.allowed_upload_origin,
+            } }, 200, adminReq)().catch(() => {})
+            await Promise.all(paths.map(rmAny))
+        }
+
+        async function upload(filename: string, status: number, headers: Record<string, string>) {
+            const boundary = `----hfs-${randomId(8)}`
+            const body = `--${boundary}\r\nContent-Disposition: form-data; name="upload"; filename="${filename}"\r\nContent-Type: text/plain\r\n\r\ntest\r\n--${boundary}--\r\n`
+            await req(UPLOAD_ROOT, status === 418 ? { status, cb(_data, res) {
+                if (res.headers.connection !== 'close')
+                    throw Error('rejected multipart connection was reusable')
+            } } : status, {
+                method: 'POST',
+                jar: sessionJar,
+                headers: { ...headers, 'content-type': `multipart/form-data; boundary=${boundary}` },
+                body,
+            })()
+        }
+    })
     test('upload.post.virtual folder', async () => {
         const { status } = await curlWithStatus(`curl -s -u ${auth} -F upload=@${SAMPLE_FILE_PATH} ${BASE_URL}${VIRTUAL_UPLOAD_ROOT}`)
         if (status !== 403)

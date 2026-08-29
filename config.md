@@ -81,6 +81,8 @@ Some properties use a `Who` descriptor, with one of these values:
 - `cert` use this file for https certificate. Minimum to start https is to give a cert and a private_key. Default is none.
 - `private_key` use this file for https private key. Default is none.
 - `allowed_referer` you can decide what domains can link to your files. Wildcards supported. Default is any.
+- `allowed_upload_origin` browser origin mask allowed to submit cross-origin multipart uploads.
+  Wildcards and `|` alternatives are supported, for example `https://*.example.com|https://forms.example.net`. Default is none. No UI.
 - `block` a list of rules that will block connections. E.g.:
     ```
     block:
