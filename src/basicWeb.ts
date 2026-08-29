@@ -3,7 +3,7 @@ import { BASIC_AUTHENTICATE_HEADER, HTTP_UNAUTHORIZED } from './cross-const'
 import Koa from 'koa'
 import { defineConfig } from './config'
 import { getNodeName, getDefaultFile, nodeIsFolder, VfsNodeWithPath, walkNode } from './vfs'
-import { asyncGeneratorToReadable, CFG, Dict, escapeHTML, filterMapGenerator, pathEncode } from './misc'
+import { asyncGeneratorToReadable, CFG, Dict, escapeHTML, filterMapGenerator, pathEncode, try_ } from './misc'
 import _ from 'lodash'
 import { title } from './adminApis'
 import { getSection } from './customHtml'
@@ -13,8 +13,12 @@ const autoBasic = defineConfig<boolean|string, null|RegExp>(CFG.auto_basic, true
 export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
     const { get } = ctx.query
     if (get === 'login') {
-        if (getCurrentUsername(ctx))
-            ctx.redirect(ctx.get('referer'))
+        if (getCurrentUsername(ctx)) {
+            const referer = ctx.get('referer')
+            const url = referer && try_(() => new URL(referer, ctx.URL))
+            // keep the origin in Location because a same-origin path starting with // would redirect externally
+            ctx.redirect(url && url.origin === ctx.URL.origin ? url.origin + url.pathname + url.search + url.hash : '/')
+        }
         else {
             ctx.set('WWW-Authenticate', BASIC_AUTHENTICATE_HEADER)
             ctx.status = HTTP_UNAUTHORIZED
