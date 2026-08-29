@@ -41,6 +41,7 @@
         "Continue": "Настави", 
         "login_untrusted": "Пријава је прекинута",
         "login_bad_credentials": "Неважеће корисничко име или лозинка", 
+        "confirm_url_login": "Ова веза покушава да вас пријави као „{username}“",
         "login_bad_cookies": "Пријава је прекинута. Колачићи су онемогућени", 
         "User panel": "Кориснички панел", 
         "Change password": "Промени лозинку", 

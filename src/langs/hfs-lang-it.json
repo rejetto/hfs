@@ -35,9 +35,10 @@
 
         "Login": "Entra",
         "Username": "Nome utente",
-        "Continue": "Avanti",
+        "Continue": "Continua",
         "login_untrusted": "Login interrotto: server non affidabile",
         "login_bad_credentials": "Nome utente o password non validi",
+        "confirm_url_login": "Questo link sta tentando di farti accedere come \"{username}\"",
         "login_bad_cookies": "Login interrotto: non funzionano i cookies",
         "User panel": "Pannello utente",
         "Change password": "Cambia password",

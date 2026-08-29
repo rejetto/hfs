@@ -40,6 +40,7 @@
 		"Password": "Mot de Passe",
 		"login_untrusted": "Connexion annulée: problème de certificat du serveur",
 		"login_bad_credentials": "Identifiant ou mot de passe invalide",
+		"confirm_url_login": "Ce lien essaie de vous connecter en tant que « {username} »",
 		"login_bad_cookies": "Problème de cookies : échec de la connexion",
 		"User panel": "Connexion Utilisateur",
 		"Change password": "Changer le mot de passe",

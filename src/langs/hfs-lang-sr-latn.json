@@ -41,6 +41,7 @@
         "Password": "Lozinka",
         "login_untrusted": "Prijava prekinuta: identitet servera se ne može smatrati pouzdanim",
         "login_bad_credentials": "Nevažeći podaci za pristup",
+        "confirm_url_login": "Ova veza pokušava da vas prijavi kao „{username}“",
         "login_bad_cookies": "Kolačići ne rade - prijava nije uspela",
         "User panel": "Korisnički panel",
         "Change password": "Promeni lozinku",

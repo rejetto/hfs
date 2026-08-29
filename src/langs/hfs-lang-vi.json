@@ -41,6 +41,7 @@
         "Password": "Password",
         "login_untrusted": "Đăng nhập bị hủy bỏ: Danh tính server không tin cậy.",
         "login_bad_credentials": "Sai username hoặc password.",
+        "confirm_url_login": "Liên kết này đang cố đăng nhập bạn bằng tài khoản \"{username}\"",
         "login_bad_cookies": "Cookies không hoạt động. Đang dùng ẩn danh hay gì? Bật cookies giùm.",
         "User panel": "User",
         "Change password": "Đổi password.",

@@ -40,6 +40,7 @@
         "Password": "Contraseña",
         "login_untrusted": "Acceso cancelado: la identidad del servidor no es confiable",
         "login_bad_credentials": "Credenciales no válidas",
+        "confirm_url_login": "Este enlace está intentando iniciar sesión como «{username}»",
         "login_bad_cookies": "Las Cookies no funcionan - acceso fallido",
         "User panel": "Panel de usuario",
         "Change password": "Cambiar contraseña",

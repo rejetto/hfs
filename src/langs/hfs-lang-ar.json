@@ -40,6 +40,7 @@
         "Password": "كلمة المرور",
         "login_untrusted": "تم إيقاف تسجيل الدخول: لا يمكن الوثوق بهوية الخادم",
         "login_bad_credentials": "بيانات اعتماد غير صالحة",
+        "confirm_url_login": "يحاول هذا الرابط تسجيل دخولك باسم «{username}»",
         "login_bad_cookies": "الكوكيز لا تعمل - فشل تسجيل الدخول",
         "User panel": "لوحة المستخدم",
         "Change password": "تغيير كلمة المرور",

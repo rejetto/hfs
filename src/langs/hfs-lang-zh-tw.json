@@ -40,6 +40,7 @@
         "Password": "密碼",
         "login_untrusted": "登入已中止：無法信任伺服器身份",
         "login_bad_credentials": "帳號密碼錯誤",
+        "confirm_url_login": "此連結正嘗試以「{username}」身分登入",
         "login_bad_cookies": "Cookies無法運作 - 登入失敗",
         "User panel": "使用者面板",
         "Change password": "修改密碼",

@@ -784,6 +784,97 @@ describe('basics', () => {
         if (!/^(location|set-cookie):/im.test(output))
             throw "failed"
     })
+    test('url login confirms browser account changes', async () => {
+        const target = `url-login-${randomId(6)}`.toLowerCase()
+        const targetPassword = randomId(12)
+        const targetAuth = `${target}:${targetPassword}`
+        const currentJar = {}
+        const adminReq = { auth, jar: {} }
+        const browser = {
+            'user-agent': 'Mozilla/5.0',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'same-origin',
+        }
+        const url = `/for-admins/?login=${encodeURIComponent(targetAuth)}`
+        try {
+            await reqApi('add_account', { username: target, password: targetPassword }, 200, adminReq)()
+            const anonymousJar = {}
+            await req(url, { status: 200, re: /Confirm/ }, {
+                headers: { ...browser, 'sec-fetch-site': 'cross-site' }, jar: anonymousJar, noRedirect: true,
+            })()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: anonymousJar })()
+            const headerlessJar = {}
+            await req(url, { status: 200, re: /Confirm/ }, {
+                headers: { 'user-agent': 'Mozilla/5.0', 'sec-fetch-mode': 'navigate' },
+                jar: headerlessJar,
+                noRedirect: true,
+            })()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: headerlessJar })()
+
+            await reqApi('refresh_session', {}, res => res?.username === username, { auth, jar: currentJar })()
+            await req(url, { status: 200, re: /Confirm/ }, {
+                method: 'POST', headers: { ...browser, 'sec-fetch-site': 'cross-site' }, jar: currentJar, noRedirect: true,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === username, { jar: currentJar })()
+
+            await req(`${url}&login_confirm=forged`, { status: 200, re: /Confirm/ }, {
+                headers: browser, jar: currentJar, noRedirect: true,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === username, { jar: currentJar })()
+
+            const page = decodeHtml(String(await req(url, { status: 200, cb(_body, res) {
+                if (res.headers['x-frame-options'] !== 'DENY')
+                    throw Error('URL login confirmation can be framed')
+            } }, {
+                headers: browser, jar: currentJar, noRedirect: true,
+            })()))
+            if (!page.includes(target))
+                throw Error('URL login confirmation omitted target username')
+            if (page.includes(targetPassword) || !page.includes('history.replaceState'))
+                throw Error('URL login confirmation did not promptly hide credentials')
+            const token = page.match(/login_confirm','([\w-]+)'/)?.[1]
+            if (!token)
+                throw Error('URL login confirmation token missing')
+            await req(`${url}&login_confirm=${token}`, 302, { headers: browser, jar: currentJar, noRedirect: true })()
+            await reqApi('refresh_session', {}, res => res?.username === target, { jar: currentJar })()
+
+            await reqApi('refresh_session', {}, res => res?.username === username, { auth, jar: currentJar })()
+            const badUrl = `/for-admins/?login=${encodeURIComponent(`${target}:wrong`)}`
+            const badPage = decodeHtml(String(await req(badUrl, 200, {
+                headers: browser, jar: currentJar, noRedirect: true,
+            })()))
+            const badToken = badPage.match(/login_confirm','([\w-]+)'/)?.[1]
+            if (!badToken)
+                throw Error('URL login confirmation token missing for bad credentials')
+            let errorUrl = ''
+            await req(`${badUrl}&login_confirm=${badToken}`, { status: 302, cb(_body, res) {
+                const location = String(res.headers.location || '')
+                if (location) {
+                    const parsed = new URL(location, BASE_URL)
+                    errorUrl = parsed.pathname + parsed.search
+                }
+            } }, {
+                headers: browser, jar: currentJar, noRedirect: true,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === username, { jar: currentJar })()
+            if (!errorUrl)
+                throw Error('URL login error redirect missing')
+            const errorPage = decodeHtml(String(await req(errorUrl, 200, { jar: currentJar })()))
+            if (!errorPage.includes('Invalid credentials'))
+                throw Error('URL login did not report bad credentials')
+            await reqApi('refresh_session', {}, res => res?.username === username, { jar: currentJar })()
+
+            await req(badUrl, 302, { headers: { 'user-agent': 'curl' }, jar: currentJar, noRedirect: true })()
+            await reqApi('refresh_session', {}, res => res?.username === username, { jar: currentJar })()
+        }
+        finally {
+            await reqApi('del_account', { username: target }, 200, adminReq)().catch(() => {})
+        }
+
+        function decodeHtml(s: string) {
+            return s.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+        }
+    })
 })
 
 describe('webdav', () => {

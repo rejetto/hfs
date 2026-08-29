@@ -39,6 +39,7 @@
         "Password": "Passwort",
         "login_untrusted": "Anmeldung abgebrochen: Der Serveridentität kann nicht vertraut werden.",
         "login_bad_credentials": "Ungültige Anmeldedaten",
+        "confirm_url_login": "Dieser Link versucht, Sie als „{username}“ anzumelden",
         "login_bad_cookies": "Cookies funktionieren nicht - Anmeldung fehlgeschlagen",
         "User panel": "Benutzer-Panel",
         "Change password": "Das Passwort ändern.",

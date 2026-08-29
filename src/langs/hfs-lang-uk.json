@@ -39,6 +39,7 @@
         "Password": "Пароль",
         "login_untrusted": "Вхід скасовано: особистість сервера не має довіри",
         "login_bad_credentials": "Неправильне ім'я користувача або пароль",
+        "confirm_url_login": "Це посилання намагається ввійти як «{username}»",
         "login_bad_cookies": "Не вдалося увійти - відключені cookies",
         "User panel": "Панель користувача",
         "Change password": "Змінити пароль",
