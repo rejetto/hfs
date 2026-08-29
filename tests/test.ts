@@ -26,6 +26,8 @@ import { QuickZipStream } from '../src/QuickZipStream'
 import { XMLValidator } from 'fast-xml-parser'
 import { BASIC_AUTHENTICATE_HEADER } from '../src/cross'
 import { createServer, request as httpRequest } from 'http'
+import fswin from 'fswin'
+import { tmpdir } from 'os'
 /*
 import { PORT, srv } from '../src'
 
@@ -3573,6 +3575,73 @@ describe('admin', () => {
         }
         finally {
             await reqApi('del_vfs', { uris: ['/'+name] }, data => data?.errors?.[0] === 0, { auth })() // remove
+        }
+    })
+    test('windows short names preserve VFS permissions', { skip: process.platform !== 'win32' }, async t => {
+        const parentName = `short-name-${randomId(6)}`
+        const childName = `Very Secret Directory ${randomId(6)}`
+        const virtualName = `Private ${randomId(6)}`
+        const collisionName = `Collision Secret ${randomId(6)}`
+        const publicName = `Public Directory ${randomId(6)}`
+        const renamedName = `Renamed Secret ${randomId(6)}`
+        const renamedDisplay = `Private ${randomId(6)}`
+        const parentUri = `/${parentName}/`
+        const parentPath = resolve(tmpdir(), parentName)
+        const childPath = join(parentPath, childName)
+        const collisionPath = join(parentPath, collisionName)
+        const publicPath = join(parentPath, publicName)
+        const renamedPath = join(parentPath, renamedName)
+        await Promise.all([childPath, collisionPath, publicPath, renamedPath].map(path => mkdir(path, { recursive: true })))
+        await writeFile(join(childPath, 'secret.txt'), 'secret')
+        await writeFile(join(collisionPath, 'marker.txt'), 'secret')
+        await writeFile(join(publicPath, 'marker.txt'), 'public')
+        await writeFile(join(renamedPath, 'marker.txt'), 'renamed')
+        try {
+            const shortPath = fswin.convertPathSync(childPath)
+            const shortName = shortPath && basename(shortPath)
+            const collisionShortPath = fswin.convertPathSync(collisionPath)
+            const collisionShortName = collisionShortPath && basename(collisionShortPath)
+            const renamedShortPath = fswin.convertPathSync(renamedPath)
+            const renamedShortName = renamedShortPath && basename(renamedShortPath)
+            const parentShortPath = fswin.convertPathSync(parentPath)
+            if (!shortName || shortName === childName || !collisionShortName || collisionShortName === collisionName
+            || !renamedShortName || renamedShortName === renamedName || !parentShortPath || parentShortPath === parentPath)
+                return t.skip('volume does not provide an 8.3 alias')
+            const resolvedShortPath = fswin.convertPathSync(join(parentPath, shortName), true)
+            if (!resolvedShortPath || resolve(resolvedShortPath).toLowerCase() !== resolve(childPath).toLowerCase())
+                throw Error('8.3 alias did not resolve to the protected folder')
+            await reqApi('add_vfs', {
+                source: parentShortPath,
+                name: parentName,
+                can_read: true,
+                rename: { [publicName]: collisionShortName, [renamedName]: renamedDisplay },
+                masks: { [renamedDisplay]: { can_read: false } },
+            }, 200, { auth })()
+            await reqApi('add_vfs', {
+                parent: parentUri,
+                source: shortPath,
+                name: virtualName,
+                can_read: ['admins'],
+            }, 200, { auth })()
+            await reqApi('add_vfs', {
+                parent: parentUri,
+                source: collisionPath,
+                can_read: ['admins'],
+            }, 200, { auth })()
+            await req(`${parentUri}${pathEncode(virtualName)}/secret.txt`, 401, { jar: {} })()
+            await req(`${parentUri}${pathEncode(childName)}/secret.txt`, 401, { jar: {} })()
+            await req(`${parentUri}${pathEncode(shortName)}/secret.txt`, 401, { jar: {} })()
+            await req(`${parentUri}${pathEncode(renamedDisplay)}/marker.txt`, 403, { jar: {} })()
+            await req(`${parentUri}${pathEncode(renamedShortName)}/marker.txt`, 404, { jar: {} })()
+            await reqList(parentUri, {
+                inList: [virtualName + '/', collisionName + '/', collisionShortName + '/'],
+                outList: [childName + '/'],
+            }, undefined, { auth })()
+            await req(`${parentUri}${pathEncode(collisionShortName)}/marker.txt`, { status: 200, re: /public/ }, { jar: {} })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [parentUri] }, 200, { auth })().catch(() => {})
+            await rmAny(parentPath)
         }
     })
     test('add_vfs source without name', async () => {

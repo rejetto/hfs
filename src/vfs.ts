@@ -22,6 +22,7 @@ import { Readable } from 'node:stream'
 import { ctxAdminAccess } from './adminApis'
 
 const showHiddenFiles = defineConfig(CFG.show_hidden_files, false)
+const sourceNames = new Map<string, string[]>()
 
 type Masks = Record<string, VfsNode>
 
@@ -215,6 +216,25 @@ export async function getNodeByName(name: string, parent: VfsNodeWithPath, assum
     // does the tree node have a child that goes by this name, otherwise attempt disk
     let virtualName = name
     let child = parent.children?.find(isSameFilenameAs(name))
+    const sameName = isSameFilenameAs(name)
+    const sourceName = Object.entries(parent.rename || {}).find(([, to]) => sameName(to))?.[0] || name
+    if (!child) {
+        child = findSourceChild()
+        if (!child && IS_WINDOWS && parent.source) {
+            const aliases = await windowsPathNames(join(parent.source, sourceName), parent.source)
+            if (!aliases) return
+            child = findSourceChild(aliases)
+            if (!child) {
+                const normalized = new Set(aliases.map(normalizeFilename))
+                const candidates = parent.children?.filter(candidate => candidate.source
+                    && normalized.has(normalizeFilename(basename(candidate.source)))) || []
+                if (candidates.length > 1) return // an unverified physical alias must identify one VFS child
+                const [candidate] = candidates
+                if (candidate?.source && await isSameFilePath(dirname(candidate.source), parent.source))
+                    child = candidate
+            }
+        }
+    }
     if (child) { // found as vfs node
         virtualName = getNodeName(child)
         await setIsFolder(child) // in case it's pointing to a folder that didn't exist at loading time
@@ -228,7 +248,6 @@ export async function getNodeByName(name: string, parent: VfsNodeWithPath, assum
         const ret: VfsNode = {}
         let onDisk = name
         if (parent.rename) { // reverse the mapping
-            const sameName = isSameFilenameAs(name)
             const entries = Object.entries(parent.rename)
             // search display names first: with { A: B, C: A }, A must resolve to C rather than be hidden
             const asDisplayName = entries.find(([, to]) => sameName(to))
@@ -237,11 +256,14 @@ export async function getNodeByName(name: string, parent: VfsNodeWithPath, assum
                 virtualName = asDisplayName[1]
             }
             else {
-                const asPhysicalName = entries.find(([from]) => sameName(from))
+                if (!await canonicalizeWindowsAlias()) return
+                const sameSourceName = isSameFilenameAs(onDisk)
+                const asPhysicalName = entries.find(([from]) => sameSourceName(from))
                 if (asPhysicalName) return // a VFS rename replaces the original public name
             }
             ret.rename = renameUnderPath(parent.rename, onDisk)
         }
+        else if (!await canonicalizeWindowsAlias()) return
         if (!isValidFileName(onDisk)) return
         ret.source = join(parent.source, onDisk)
         ret.original = undefined // this will overwrite the 'original' set in applyParentToChild, so we know this is not part of the vfs
@@ -249,6 +271,21 @@ export async function getNodeByName(name: string, parent: VfsNodeWithPath, assum
         if (assumeMissingToBeFolder)
             ret.isFolder ??= true
         return ret
+
+        async function canonicalizeWindowsAlias() {
+            if (!IS_WINDOWS || !name.includes('~')) return true
+            // Windows exposes 8.3 aliases that must keep the long name's VFS identity
+            const longPath = await convertWindowsPath(join(parent.source!, name), true)
+            if (!longPath) return true // new names containing '~' are still valid
+            if (!await isSameFilePath(dirname(longPath), parent.source!)) return false
+            onDisk = virtualName = basename(longPath)
+            return true
+        }
+    }
+
+    function findSourceChild(names=[sourceName]) {
+        const normalized = new Set(names.map(normalizeFilename))
+        return parent.children?.find(x => getSourceNames(x, parent).some(source => normalized.has(normalizeFilename(source))))
     }
 }
 
@@ -289,7 +326,44 @@ async function reviewVfs() {
         }
 
         await Promise.allSettled(node.children.map(recur))
+        await Promise.allSettled(node.children.map(child => setSourceNames(child, node)))
     })(vfs.compiled())
+
+}
+
+async function setSourceNames(node: VfsNode, parent: VfsNode) {
+    if (!node.source || !parent.source) return
+    const sameParent = normalizeFilename(dirname(resolve(node.source))) === normalizeFilename(resolve(parent.source))
+    if (!sameParent && (!IS_WINDOWS || !await isSameFilePath(dirname(node.source), parent.source))) return
+    const names = [basename(node.source)]
+    const key = sourceNamesKey(node, parent)
+    if (IS_WINDOWS) {
+        const converted = await Promise.all([convertWindowsPath(node.source), convertWindowsPath(node.source, true)])
+        names.push(...converted.map(x => x && basename(x)).filter(Boolean) as string[])
+    }
+    sourceNames.set(key, _.uniq(names))
+}
+
+function convertWindowsPath(path: string, isLong=false) {
+    return new Promise<string | undefined>(resolvePromise => {
+        if (!fswin.convertPath(path, resolvePromise, isLong))
+            resolvePromise(undefined)
+    })
+}
+
+async function windowsPathNames(path: string, parent: string) {
+    const converted = await Promise.all([convertWindowsPath(path), convertWindowsPath(path, true)])
+    const existing = converted.find(Boolean)
+    if (existing && !await isSameFilePath(dirname(existing), parent)) return
+    return _.uniq([basename(path), ...converted.map(x => x && basename(x)).filter(Boolean) as string[]])
+}
+
+function getSourceNames(node: VfsNode, parent: VfsNode) {
+    return node.source && parent.source ? sourceNames.get(sourceNamesKey(node, parent)) || [] : []
+}
+
+function sourceNamesKey(node: VfsNode, parent: VfsNode) {
+    return normalizeFilename(resolve(parent.source!)) + '\0' + normalizeFilename(resolve(node.source!))
 }
 
 export const saveVfs = debounceAsync(async () => {
@@ -442,13 +516,16 @@ export async function* walkNode(parent: VfsNodeWithPath, {
             started = true
             const { source } = parent
             const taken = new Set()
+            const takenSources = new Set()
             const maskApplier = parentMaskApplier(parent)
             const visitLater: [VfsNodeWithPath, string][] = []
             const childrenWorking = parent.children?.length && Promise.all(parent.children.map(async child => {
                 if (ctx?.isAborted()) return
                 const nodeName = getNodeName(child)
                 const name = prefixPath + nodeName
-                taken?.add(normalizeFilename(name))
+                taken.add(normalizeFilename(name))
+                for (const sourceName of getSourceNames(child, parent))
+                    takenSources.add(normalizeFilename(prefixPath + sourceName))
                 const item = setVfsPath({ ...child, original: child, name, parent }, name, parent)
                 if (await cantSee(item)) return
                 if (item.source && !item.children?.length && !item.see_without_probing) // real items must be accessible, unless probing was explicitly disabled
@@ -486,7 +563,8 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                                 renamed = dir + '/' + renamed
                         }
                         const name = prefixPath + (renamed || path)
-                        if (taken?.has(normalizeFilename(name))) // taken by vfs node above
+                        if (taken.has(normalizeFilename(name))
+                        || takenSources.has(normalizeFilename(prefixPath + path))) // taken by vfs node above
                             return false // false just in case it's a folder
                         const item = setVfsPath({ name, isFolder, source: join(source, path), parent, stats: entry.stats }, name, parent)
                         // masks containing '/' must be matched against the relative path while keeping walkDir recursion enabled
