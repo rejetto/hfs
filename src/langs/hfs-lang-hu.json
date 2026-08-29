@@ -40,6 +40,7 @@
         "Password": "Jelszó",
         "login_untrusted": "A bejelentkezés megszakadt: a kiszolgáló identitása nem megbízható",
         "login_bad_credentials": "Érvénytelen hitelesítő adatok",
+        "confirm_url_login": "Ez a hivatkozás „{username}” néven próbál bejelentkeztetni",
         "login_bad_cookies": "A cookie-k nem működnek - a bejelentkezés sikertelen",
         "User panel": "Felhasználói panel",
         "Change password": "Jelszó módosítása",

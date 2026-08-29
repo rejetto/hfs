@@ -40,6 +40,7 @@
         "Password": "密码",
         "login_untrusted": "登录中止：服务器标识不可信！",
         "login_bad_credentials": "凭证信息有误",
+        "confirm_url_login": "此链接正尝试以“{username}”身份登录",
         "login_bad_cookies": "Cookie错误 - 登录失败",
         "User panel": "用户面板",
         "Change password": "更改密码",

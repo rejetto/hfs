@@ -40,6 +40,7 @@
     "Password": "Парола",
     "login_untrusted": "Вход отказан: самоличността на сървъра не е надеждна",
     "login_bad_credentials": "Невалидни данни за вход",
+    "confirm_url_login": "Тази връзка се опитва да ви впише като „{username}“",
     "login_bad_cookies": "Бисквитките не работят - вход неуспешен",
     "User panel": "Панел на потребителя",
     "Change password": "Смяна на парола",

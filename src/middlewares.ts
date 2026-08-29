@@ -3,7 +3,10 @@
 import compress from 'koa-compress'
 import Koa from 'koa'
 import { API_URI, DEV, HTTP_UNAUTHORIZED } from './const'
-import { ALLOW_SESSION_IP_CHANGE, CFG, DAY, hasDirTraversal, isLocalHost, netMatches, readRequestBodyLimited, splitAt, try_, tryJson } from './misc'
+import { ALLOW_SESSION_IP_CHANGE, CFG, DAY, escapeHTML, hasDirTraversal, isLocalHost, netMatches, readRequestBodyLimited, splitAt, try_, tryJson } from './misc'
+import { randomUUID } from 'node:crypto'
+import { getLangData } from './lang'
+import { i18nFromTranslations } from './i18n'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, accounts, getAccount, getFromAccount } from './perm'
@@ -67,7 +70,48 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
         ctx.status = 307 // this ensures the client doesn't switch to a simpler GET request
         return ctx.redirect(URL.href)
     }
+    const page = ctx.state.urlLoginPage
+    if (page) return sendUrlLoginPage(page.cleanUrl, page.username)
     return next()
+
+    function sendUrlLoginPage(cleanUrl: string, username?: string) {
+        return sendPage(ctx, username === undefined ? 'login_bad_credentials' : 'Confirm', t => {
+            if (username === undefined)
+                return `<script>history.replaceState(null,'',location.pathname)</script>
+                    <p><a href="${escapeHTML(cleanUrl)}">${escapeHTML(t('Continue'))}</a></p>`
+            const token = randomUUID()
+            ;(ctx.session ??= {}).urlLoginConfirmation = { // account validation may have cleared the previous session before rendering this page
+                token,
+                username,
+                expires: Date.now() + 5 * 60_000,
+            }
+            return `<p>${escapeHTML(t('confirm_url_login', { username }))}</p>
+                <p><strong><a class="confirm" href="${escapeHTML(cleanUrl)}">${escapeHTML(t('Continue'))}</a></strong>
+                <a href="${escapeHTML(cleanUrl)}">${escapeHTML(t('Cancel'))}</a></p>
+                <script>
+                    const loginUrl=new URL(location.href);
+                    history.replaceState(null,'',loginUrl.pathname);
+                    document.querySelector('.confirm').onclick=ev=>{ev.preventDefault();loginUrl.searchParams.set('login_confirm','${token}');location.replace(loginUrl)}
+                </script>`
+        })
+    }
+}
+
+type Translator = ReturnType<typeof i18nFromTranslations>['t']
+
+async function sendPage(ctx: Koa.Context, titleKey: string, content: (t: Translator) => string) {
+    const { t } = i18nFromTranslations(await getLangData(ctx))
+    const title = t(titleKey)
+    ctx.status = 200
+    ctx.type = 'html'
+    ctx.set('cache-control', 'no-store')
+    ctx.set('referrer-policy', 'no-referrer')
+    ctx.set('content-security-policy', "frame-ancestors 'none'")
+    ctx.set('x-frame-options', 'DENY')
+    ctx.body = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>${escapeHTML(title)}</title><style>
+        body{margin-top:30vh;text-align:center;font-family:sans-serif}a{margin:1em}
+        </style></head><body><h1>${escapeHTML(title)}</h1>${content(t)}</body></html>`
 }
 
 function enforceSessionIp(ctx: Koa.Context) {
@@ -116,7 +160,9 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     ctx.state.connection = socket2connection(ctx.socket)!
     // explicit credentials and existing sessions must take precedence, so a matching IP cannot override a chosen account
     let via: 'url' | 'header' | 'net' | undefined
-    let a = await urlLogin() || await getHttpAccount() || !s?.username && autoLogin()
+    const urlAccount = await urlLogin()
+    let a = ctx.state.urlLoginPage ? undefined
+        : urlAccount || await getHttpAccount() || !s?.username && autoLogin()
     const loggedInNotBySession = a
     ctx.state.account = a ||= getAccount(s?.username, false) // with least precedence, we consider session
     if (a)
@@ -140,13 +186,43 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     updateConnectionForCtx(ctx)
     await next()
 
-    function urlLogin() {
+    async function urlLogin() {
         via = 'url'
         const { login }  = ctx.query
         if (!login) return
         const [u, p] = splitAt(':', String(login))
-        ctx.redirect(ctx.originalUrl.slice(0, -ctx.querystring.length-1)) // redirect to hide credentials
-        return u && clearTextLogin(ctx, u, p, 'url')
+        const cleanUrl = ctx.originalUrl.slice(0, -ctx.querystring.length-1)
+        const token = String(ctx.query.login_confirm || '')
+        const pending = s?.urlLoginConfirmation
+        const confirmed = Boolean(token && pending?.token === token && pending.username === u
+            && pending.expires > Date.now())
+        if (token && s)
+            delete s.urlLoginConfirmation // confirmation tokens are single-use, including failed attempts
+        if (!confirmed && needsConfirmation(u)) {
+            ctx.state.urlLoginPage = { username: u, cleanUrl }
+            return
+        }
+        if (s)
+            delete s.urlLoginConfirmation
+        const account = u && await clearTextLogin(ctx, u, p, 'url')
+        if (!account && confirmed)
+            ctx.state.urlLoginPage = { cleanUrl }
+        else
+            ctx.redirect(cleanUrl) // redirect to hide credentials
+        return account
+
+        function needsConfirmation(username: string) {
+            if (ctx.get('sec-fetch-mode') !== 'navigate' && !/^Mozilla\//.test(ctx.get('user-agent')))
+                return false
+            const current = s?.username
+            if (current)
+                return getAccount(username)?.username !== getAccount(current)?.username
+            const fetchSite = ctx.get('sec-fetch-site')
+            if (fetchSite)
+                return fetchSite === 'same-site' || fetchSite === 'cross-site'
+            const referer = ctx.get('referer')
+            return !referer || try_(() => new URL(referer).host.toLowerCase() !== ctx.host.toLowerCase(), () => true)
+        }
     }
 
     function getHttpAccount() {
@@ -185,6 +261,13 @@ declare module "koa" {
         safeUrl: string // url with credentials removed
         connection: Connection
         whenProxyDetected?: Date
+        urlLoginPage?: { cleanUrl: string, username?: string }
+    }
+}
+
+declare module "koa-session" {
+    interface Session {
+        urlLoginConfirmation?: { token: string, username: string, expires: number }
     }
 }
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {

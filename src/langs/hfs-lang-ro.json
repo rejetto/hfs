@@ -40,6 +40,7 @@
         "Password": "Parolă",
         "login_untrusted": "Autentificare anulată: identitatea serverului nu poate fi de încredere",
         "login_bad_credentials": "Numele de utilizator sau parola sunt incorecte. Te rog să re-efectuezi logarea.",
+        "confirm_url_login": "Acest link încearcă să te autentifice ca „{username}”",
         "login_bad_cookies": "Cookie-uri nefuncționale - autentificare eșuată",
         "User panel": "Panoul utilizatorului",
         "Change password": "Schimbă parola",

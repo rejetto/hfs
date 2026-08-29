@@ -39,6 +39,7 @@
         "Password": "Kata laluan",
         "login_untrusted": "Log masuk dibatalkan: identiti pelayan tidak boleh dipercayai",
         "login_bad_credentials": "Kelayakan tidak sah",
+        "confirm_url_login": "Pautan ini cuba melog masuk anda sebagai \"{username}\"",
         "login_bad_cookies": "Kuki tidak berfungsi - log masuk gagal",
         "User panel": "Panel pengguna",
         "Change password": "Tukar kata laluan",

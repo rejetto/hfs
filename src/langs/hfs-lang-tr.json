@@ -40,6 +40,7 @@
         "Password": "Şifre",
         "login_untrusted": "Oturum Açma iptal: Sunucu kimliğine güvenilmedi",
         "login_bad_credentials": "Hatalı oturum bilgileri",
+        "confirm_url_login": "Bu bağlantı \"{username}\" olarak oturum açmanızı sağlamaya çalışıyor",
         "login_bad_cookies": "Çerezler (Cookies) çalışmıyor - Oturum Açma başarısız",
         "User panel": "Kullanıcı Paneli",
         "Change password": "Şifre Değiştir",

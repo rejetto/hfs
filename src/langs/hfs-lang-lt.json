@@ -40,6 +40,7 @@
         "Password": "Slaptažodis",
         "login_untrusted": "Prisijungimas nutrauktas: serverio tapatybe negalima pasitikėti",
         "login_bad_credentials": "Neteisingi prisijungimo duomenys",
+        "confirm_url_login": "Ši nuoroda bando jus prijungti kaip „{username}“",
         "login_bad_cookies": "Slapukai neveikia - prisijungti nepavyko",
         "User panel": "Vartotojo skydelis",
         "Change password": "Keisti slaptažodį",

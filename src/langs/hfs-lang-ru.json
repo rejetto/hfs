@@ -40,6 +40,7 @@
         "Password": "Пароль",
         "login_untrusted": "Вход отменён: личности сервера нельзя доверять",
         "login_bad_credentials": "Неверное имя пользователя или пароль",
+        "confirm_url_login": "Эта ссылка пытается войти в систему под именем «{username}»",
         "login_bad_cookies": "Не удалось войти - отключены cookies",
         "User panel": "Панель пользователя",
         "Change password": "Изменить пароль",

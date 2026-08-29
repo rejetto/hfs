@@ -40,6 +40,7 @@
         "Password": "Senha",
         "login_untrusted": "Login abortado: a identidade do servidor não é confiável",
         "login_bad_credentials": "Credenciais Inválidas",
+        "confirm_url_login": "Este link está tentando fazer login como \"{username}\"",
         "login_bad_cookies": "Cookies não funcionam - falha no login",
         "User panel": "Painel do Usuário",
         "Change password": "Mudar senha",

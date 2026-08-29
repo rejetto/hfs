@@ -40,6 +40,7 @@
         "Password": "Salasana",
         "login_untrusted": "Kirjautuminen keskeytetty:: palvelimen identiteettiin ei voida luottaa",
         "login_bad_credentials": "Käyttäjätunnus tai salasana virheellinen.",
+        "confirm_url_login": "Tämä linkki yrittää kirjata sinut sisään käyttäjänä ”{username}”",
         "login_bad_cookies": "Evästeet eivät toimi - kirjautuminen epäonnistui",
         "User panel": "Hallintapaneeli",
         "Change password": "Vaihda salasana",

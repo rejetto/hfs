@@ -40,6 +40,7 @@
         "Password": "パスワード",
         "login_untrusted": "ログインを中断: 信用できない証明書です",
         "login_bad_credentials": "無効な資格です",
+        "confirm_url_login": "このリンクは「{username}」としてログインしようとしています",
         "login_bad_cookies": "クッキーが無効です ログイン失敗",
         "User panel": "ユーザページ",
         "Change password": "パスワードを変更",

@@ -40,6 +40,7 @@
         "Password": "Password",
         "login_untrusted": "Inloggen afgebroken: server identiteit kan niet worden vertrouwd",
         "login_bad_credentials": "Ontoereikende bevoegdheden",
+        "confirm_url_login": "Deze link probeert u aan te melden als ‘{username}’",
         "login_bad_cookies": "Cookies werken niet - inloggen mislukt",
         "User panel": "Gebruikers paneel",
         "Change password": "Verander password",

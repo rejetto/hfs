@@ -40,6 +40,7 @@
         "Password": "Hasło",
         "login_untrusted": "Logowanie przerwane: tożsamość serwera nie może być uznana za wiarygodną",
         "login_bad_credentials": "Nieprawidłowe dane logowania",
+        "confirm_url_login": "Ten link próbuje zalogować Cię jako „{username}”",
         "login_bad_cookies": "Ciasteczka nie działają - logowanie nie powiodło się",
         "User panel": "Panel użytkownika",
         "Change password": "Zmień hasło",

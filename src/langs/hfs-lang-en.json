@@ -42,6 +42,7 @@
         "Password": "Password",
         "login_untrusted": "Login aborted: server identity cannot be trusted",
         "login_bad_credentials": "Invalid credentials",
+        "confirm_url_login": "This link is trying to log you in as \"{username}\"",
         "login_bad_cookies": "Cookies are not working - login failed",
         "User panel": "User panel",
         "Change password": "Change password",
