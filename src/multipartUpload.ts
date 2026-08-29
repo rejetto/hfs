@@ -3,13 +3,19 @@ import Busboy from 'busboy'
 import { hasPermission, urlToNode, VfsNodeWithPath } from './vfs'
 import { dirname } from 'path'
 import { uploadWriter } from './upload'
-import { HTTP_BAD_REQUEST } from './cross-const'
+import { HTTP_BAD_REQUEST, HTTP_FOOL } from './cross-const'
 import { onFirstEvent } from './first'
-import { try_ } from './cross'
+import { makeMatcher, try_ } from './cross'
+import { defineConfig } from './config'
 
 export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithPath) {
     if (ctx.request.type !== 'multipart/form-data')
         return ctx.status = HTTP_BAD_REQUEST
+    if (isCrossOriginBrowserRequest()) {
+        ctx.set('Connection', 'close') // the rejected multipart body is intentionally left unread
+        ctx.body = "Cross-origin multipart upload blocked"
+        return ctx.status = HTTP_FOOL
+    }
     ctx.state.uploads = []
     const locks: Promise<string>[] = []
     const fileJobs: Promise<any>[] = []
@@ -71,6 +77,22 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithP
         return new Promise(res => onFirstEvent(stream, ['end','close','error'], res))
     }
 
+    function isCrossOriginBrowserRequest() {
+        if (ctx.get('x-hfs-anti-csrf'))
+            return false
+        const origin = ctx.get('origin')
+        if (origin && origin !== 'null' && allowedUploadOrigin.compiled()(origin))
+            return false
+        const fetchSite = ctx.get('sec-fetch-site')
+        if (fetchSite)
+            return fetchSite !== 'same-origin' && fetchSite !== 'none'
+        if (!origin)
+            return false // missing browser metadata preserves non-browser and legacy upload clients
+        // compare hosts because TLS termination can make the public and internal protocols differ
+        return try_(() => new URL(origin).host.toLowerCase() !== ctx.host.toLowerCase(),
+            () => true)
+    }
+
     async function subfolderBlocksUpload(fn: string) {
         const prefix = dirname(fn.replaceAll('\\', '/'))
         if (prefix === '.') // no subdir
@@ -79,3 +101,5 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithP
         return subfolderNode && !hasPermission(subfolderNode, 'can_upload', ctx)
     }
 }
+
+const allowedUploadOrigin = defineConfig('allowed_upload_origin', '', mask => makeMatcher(mask, false, false))
