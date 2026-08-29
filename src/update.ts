@@ -5,7 +5,7 @@ import { ARGS_FILE, HFS_REPO, IS_BINARY, IS_WINDOWS, IS_MAC, PREVIOUS_TAG, RUNNI
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
 import {
-    CFG, DAY, exists, unzip, prefix, xlate, HOUR, httpStream, statWithTimeout, repeat, debounceAsync, formatPerc, retrySync
+    CFG, DAY, exists, unzip, prefix, xlate, HOUR, httpStream, httpString, statWithTimeout, repeat, debounceAsync, formatPerc, retrySync
 } from './misc'
 import { createReadStream, createWriteStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { pluginsWatcher } from './plugins'
@@ -19,6 +19,7 @@ import _ from 'lodash'
 import { argv } from './argv'
 import { pipeline } from 'stream/promises'
 import { updateChangelog } from './updateChangelog'
+import { XMLParser } from 'fast-xml-parser'
 
 const updateToBeta = defineConfig(CFG.update_to_beta, false)
 const autoCheckUpdate = defineConfig(CFG.auto_check_update, true)
@@ -62,16 +63,17 @@ export type Release = { // not using interface, as it will not work with kvstora
     isNewer: boolean
     versionScalar: number
 }
-const ReleaseKeys = ['prerelease', 'tag_name', 'name', 'body', 'assets', 'isNewer', 'versionScalar'] satisfies (keyof Release)[]
-const ReleaseAssetKeys = ['name', 'browser_download_url'] satisfies (keyof Release['assets'][0])[]
+const releaseKeys = ['prerelease', 'tag_name', 'name', 'body', 'assets', 'isNewer', 'versionScalar'] satisfies (keyof Release)[]
+const releaseAssetKeys = ['name', 'browser_download_url'] satisfies (keyof Release['assets'][0])[]
+const assetPrefix = `hfs-${xlate(process.platform, { win32: 'windows', darwin: 'mac' })}-${process.arch}`
 
 const curV = currentVersion.scalar
 function prepareRelease(r: Release) {
     const v = versionToScalar(r.name)
-    return Object.assign(_.pick(r, ReleaseKeys), { // prune a bit, as it will be serialized, and it has a lot of unused data
+    return Object.assign(_.pick(r, releaseKeys), { // prune a bit, as it will be serialized, and it has a lot of unused data
         versionScalar: v,
         isNewer: v > curV, // make easy to know what's newer
-        assets: r.assets.map((a: any) => _.pick(a, ReleaseAssetKeys))
+        assets: r.assets.map((a: any) => _.pick(a, releaseAssetKeys))
     })
 }
 
@@ -94,10 +96,19 @@ export async function getVersions(filter?: (r: Release) => boolean, max=30, stop
 export async function getUpdates(strict=false) {
     console.log("Checking for updates")
     void getProjectInfo() // also check for alerts and print them asap in the console
-    const stable: Release = prepareRelease(await getRepoInfo(HFS_REPO + '/releases/latest'))
     const includeBetas = updateToBeta.get() || RUNNING_BETA
-    // we don't consider betas before stable
+    const latest = await httpStream(`https://github.com/${HFS_REPO}/releases/latest`, { method: 'HEAD', noRedirect: true })
+    const stableTag = latest.headers.location?.split('/').at(-1)
+    if (!stableTag)
+        throw Error('Cannot determine latest stable version')
+    if (versionToScalar(stableTag) === curV && !includeBetas)
+        return []
+    let stable = prepareRelease({ prerelease: false, tag_name: stableTag, name: stableTag, body: '', assets: [probableAsset(stableTag)], isNewer: false, versionScalar: 0 })
+    if (stable.isNewer || RUNNING_BETA && !strict)
+        stable = await getRepoInfo(HFS_REPO + '/releases/tags/' + stableTag).then(prepareRelease).catch(() => stable)
     const betas = !includeBetas ? [] : await getVersions(x => x.prerelease && x.versionScalar > stable.versionScalar && (!strict || x.isNewer))
+        // preserve update detection when GitHub's REST quota is exhausted
+        .catch(() => getVersionsFromAtom(x => x.prerelease && x.versionScalar > stable.versionScalar && (!strict || x.isNewer)))
     if (stable.isNewer || RUNNING_BETA && !strict)
         betas.push(stable)
     if (stable.isNewer && stable.body) {
@@ -105,7 +116,30 @@ export async function getUpdates(strict=false) {
             .catch(() => []) // missing history must not prevent installing an available update
         stable.body = updateChangelog(stable, history, curV)
     }
-    return betas
+    return _.sortBy(betas, x => -x.versionScalar)
+
+    async function getVersionsFromAtom(filter: (release: Release) => boolean) {
+        const feed = new XMLParser({ ignoreAttributes: false })
+            .parse(await httpString(`https://github.com/${HFS_REPO}/releases.atom`))?.feed
+        return _.sortBy(_.castArray(feed?.entry)
+            .map((x: any) => prepareRelease({
+                prerelease: /^v?\d+\.\d+\.\d+-/.test(x.title),
+                tag_name: x.id.split('/').at(-1),
+                name: x.title,
+                body: x.content?.['#text'] || '',
+                assets: [probableAsset(x.id.split('/').at(-1))],
+                isNewer: false,
+                versionScalar: 0,
+            }))
+            .filter(x => Number.isFinite(x.versionScalar) && !x.name.endsWith('-ignore')
+                && x.versionScalar !== curV && filter(x)), x => -x.versionScalar)
+    }
+
+    function probableAsset(tag: string) {
+        const name = `${assetPrefix}-${tag.replace(/^v/, '')}.zip`
+        // release-assets.yml uses this predictable name, keeping degraded checks installable
+        return { name, browser_download_url: `https://github.com/${HFS_REPO}/releases/download/${tag}/${name}` }
+    }
 }
 
 const LOCAL_UPDATE = 'hfs-update.zip' // update from file takes precedence over net
@@ -141,11 +175,9 @@ export async function update(tagOrUrl: string='') {
             }) as Release | undefined
         if (!update)
             throw "No update has been found"
-        const plat = '-' + xlate(process.platform, { win32: 'windows', darwin: 'mac' })
-        const assetSearch = `${plat}-${process.arch}`
-        const asset = update.assets.find((x: any) => x.name.includes(assetSearch) && x.name.endsWith('.zip'))
+        const asset = update.assets.find((x: any) => x.name.includes(assetPrefix) && x.name.endsWith('.zip'))
         if (!asset)
-            throw `Asset not found: ${assetSearch}`
+            throw `Asset not found: ${assetPrefix}`
         url = asset.browser_download_url
     }
     if (url) {

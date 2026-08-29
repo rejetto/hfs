@@ -40,7 +40,7 @@ test('update changelog selects major/minor releases and deduplicates patch entri
 test('update history stops at the installed release without stopping at a newer maintenance release', async () => {
     const source = ts.createSourceFile('update.ts', readFileSync(resolve(__dirname, '../src/update.ts'), 'utf8'), ts.ScriptTarget.Latest)
     // isolate the actual update lookup from startup timers and network calls
-    const names = ['prepareRelease', 'getVersions', 'getUpdates', 'ReleaseKeys', 'ReleaseAssetKeys']
+    const names = ['prepareRelease', 'getVersions', 'getUpdates', 'releaseKeys', 'releaseAssetKeys']
     const code = source.statements.filter(s => ts.isFunctionDeclaration(s) ? names.includes(s.name!.text)
         : ts.isVariableStatement(s) && s.declarationList.declarations.some(d => names.includes(d.name.getText(source))))
         .map(s => s.getText(source)).join('\n')
@@ -55,7 +55,9 @@ test('update history stops at the installed release without stopping at a newer 
         exports: exported, _, curV: 3_004_001, HFS_REPO: 'rejetto/hfs', RUNNING_BETA: false,
         updateToBeta: { get: () => false }, getProjectInfo() {}, console: { log() {} }, updateChangelog,
         getRepoInfo: async () => releases[0],
-        versionToScalar: (v: string) => v.split('.').reduce((total, n) => total * 1000 + Number(n), 0),
+        httpStream: async () => ({ headers: { location: 'https://github.com/rejetto/hfs/releases/tag/v3.4.4' } }),
+        assetPrefix: 'hfs-windows-x64',
+        versionToScalar: (v: string) => v.replace(/^v/, '').split('.').reduce((total, n) => total * 1000 + Number(n), 0),
         apiGithubPaginated: async function* () {
             try {
                 for (const release of releases) {
