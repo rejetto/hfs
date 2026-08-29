@@ -532,10 +532,14 @@ describe('webdav', () => {
     test('webdav.put grants grace after successful encoded empty upload', async () => {
         const name = `wd-grace-${randomId(6)} %#.txt`
         const uri = `${CANT_OVERWRITE_URI}${pathEncode(name)}`
+        const equivalentUri = uri.replace('wd-grace-', '%77d-grace-')
         const dir = await ensureCantOverwriteDir()
         const destPath = resolve(dir, name)
+        const adminReq = { auth, jar: {} }
+        const oldConfig = await reqApi('get_config', { only: ['own_upload_delete_hours'] }, 200, adminReq)()
+        await reqApi('set_config', { values: { own_upload_delete_hours: 0 } }, 200, adminReq)()
         try {
-            await req(uri, (x, res) => {
+            await req(equivalentUri, (x, res) => {
                 if (res.statusCode !== 200)
                     throw `expected first PUT 200, got ${res.statusCode}`
                 if (x?.uri !== uri)
@@ -563,6 +567,7 @@ describe('webdav', () => {
                 throw "destination not overwritten"
         }
         finally {
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)().catch(() => {})
             await rmAny(destPath)
         }
     })
@@ -640,9 +645,10 @@ describe('webdav', () => {
                 await webdavUnlock(uri, token)().catch(() => {})
         }
     })
-    test('webdav.lock refresh keeps token', async () => {
+    test('webdav.lock applies to equivalent path and refresh keeps token', async () => {
         const name = `wd-lock-${randomId(6)}.txt`
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        const equivalentUri = `${UPLOAD_ROOT}${UPLOAD_DIR}%2F%77${name.slice(1)}`
         let destPath = ''
         let token = ''
         try {
@@ -650,12 +656,15 @@ describe('webdav', () => {
             await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
             if (!token)
                 throw "missing lock token"
-            await webdavLock(uri, (_data, res) =>
+            await webdavUpload(equivalentUri, 423, 'replacement')()
+            if (readFileSync(destPath, 'utf8') !== 'test')
+                throw "locked file was overwritten"
+            await webdavLock(equivalentUri, (_data, res) =>
                 res.statusCode === 200 && res.headers?.[TOKEN_HEADER] === token, '', { If: `(<${token}>)` })()
         }
         finally {
             if (token)
-                await webdavUnlock(uri, token)().catch(() => {})
+                await webdavUnlock(equivalentUri, token)().catch(() => {})
             await rmAny(destPath)
         }
     })
@@ -737,6 +746,42 @@ describe('webdav', () => {
         finally {
             await rmAny(renamedPath)
             await rmAny(destPath)
+        }
+    })
+    test('webdav.move checks lock on actual cross-directory target', async () => {
+        const name = `wd-move-target-lock-${randomId(6)}.txt`
+        const sourceUri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        const targetUri = `${UPLOAD_ROOT}${name}`
+        const destination = `${BASE_URL}${UPLOAD_ROOT}ignored-${randomId(6)}.txt`
+        let sourcePath = ''
+        let targetPath = ''
+        let token = ''
+        try {
+            sourcePath = await webdavUpload(sourceUri, x => x?.uri === sourceUri, 'source')()
+            targetPath = await webdavUpload(targetUri, x => x?.uri === targetUri, 'target')()
+            await webdavLock(targetUri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            if (!token)
+                throw "missing lock token"
+            await req(sourceUri, 423, {
+                method: 'MOVE',
+                auth,
+                jar,
+                headers: {
+                    destination,
+                    overwrite: 'T',
+                    'user-agent': WEBDAV_UA,
+                },
+            })()
+            if (readFileSync(sourcePath, 'utf8') !== 'source')
+                throw "source file was moved"
+            if (readFileSync(targetPath, 'utf8') !== 'target')
+                throw "locked target was overwritten"
+        }
+        finally {
+            if (token)
+                await webdavUnlock(targetUri, token)().catch(() => {})
+            await rmAny(sourcePath)
+            await rmAny(targetPath)
         }
     })
     test('webdav.move rename decodes escaped segment chars', async () => {
@@ -1212,6 +1257,8 @@ describe('after-login', () => {
         const otherPass = `pw-${randomId(8)}`
         const dir = resolve(UPLOAD_DISK_ROOT, name)
         const dest = `${UPLOAD_ROOT}${name}/owned.txt`
+        const equivalentDest = `${UPLOAD_ROOT}${name}/%6Fwned.txt`
+        const destPath = resolve(dir, 'owned.txt')
         const adminReq = { auth, jar: {} }
         await mkdir(dir, { recursive: true })
         await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
@@ -1219,7 +1266,9 @@ describe('after-login', () => {
             await reqApi('add_account', { username: otherUser, overwrite: true, password: otherPass, belongs: ['admins'] }, res => res?.username === otherUser, adminReq)()
             await reqUpload(dest, 200)()
             await req(dest, 403, { method: 'delete', auth: `${otherUser}:${otherPass}`, jar: {} })()
-            await req(dest, 200, { method: 'delete' })()
+            await req(equivalentDest, 200, { method: 'delete' })()
+            await writeFile(destPath, 'external')
+            await req(dest, 403, { method: 'delete' })()
         }
         finally {
             await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})

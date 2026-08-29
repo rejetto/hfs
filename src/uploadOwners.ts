@@ -1,6 +1,6 @@
 import { KvStorage } from '@rejetto/kvstorage'
 import Koa from 'koa'
-import { CFG, randomId, HOUR, MINUTE } from './misc'
+import { pathDecodeSegments, pathEncode, CFG, randomId, HOUR, MINUTE } from './misc'
 import { onProcessExit } from './first'
 import { defineConfig } from './config'
 import { getCurrentUsername } from './auth'
@@ -98,7 +98,7 @@ export function getSessionId(ctx: Koa.Context) {
 }
 
 function cleanVfsPath(path: string) {
-    return '/' + path.replace(/^\/+|\/+$/g, '')
+    return pathDecodeSegments('/' + path.replace(/^\/+|\/+$/g, ''), pathEncode)
 }
 
 function isSameOrInside(parent: string, path: string) {
