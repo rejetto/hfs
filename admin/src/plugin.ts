@@ -7,6 +7,7 @@ import { HFS_REPO, HTTP_FAILED_DEPENDENCY, NBSP, with_ } from './misc'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import { Flex, hTooltip } from './mui'
 import _ from 'lodash'
+import { parsePluginConfig, showPluginOptions } from './pluginOptions'
 
 const HFS_GITHUB_ACCOUNT = HFS_REPO.replace(/\/.+/, `/`)
 export const PLUGIN_ERRORS = { ENOTFOUND: "Cannot reach github.com", ECONNREFUSED: "Cannot reach github.com" }
@@ -31,9 +32,9 @@ export function renderPluginName({ row, value }: any) {
 
 export async function startPlugin(id: string) {
     try {
-        await apiCall('start_plugin', { id })
+        const row = parsePluginConfig(await apiCall('start_plugin', { id }))
         toast(t`Plugin started`, h(PlayCircle, { color: 'success' }))
-        return true
+        return row
     }
     catch(e: any) {
         alertDialog(t('plugin_start_error', { id, error: String(e?.message || e) }), 'error')
@@ -66,8 +67,11 @@ export function pluginName(name: string) {
 async function installPlugin(id: string, branch?: string): Promise<any> {
     try {
         const res = await apiCall('download_plugin', { id, branch, stop: true }, { timeout: false })
-        if (await confirmDialog(t("Plugin {id} downloaded", { id: id }), { trueText: t`Start` }))
-            await startPlugin(res.id)
+        if (await confirmDialog(t("Plugin {id} downloaded", { id: id }), { trueText: t`Start` })) {
+            const plugin = await startPlugin(res.id)
+            if (plugin?.config)
+                await showPluginOptions(plugin)
+        }
     }
     catch(e:any) {
         let done = false

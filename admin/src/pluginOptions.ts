@@ -1,8 +1,9 @@
 import { apiCall } from '@hfs/shared/api'
 import { createElement as h, Fragment, useMemo } from 'react'
 import { t } from './i18n'
-import { Box, Link, Paper } from '@mui/material'
-import { callable, formatDate, formatTime, md, newObj } from './misc'
+import { Box, createTheme, Link, Paper } from '@mui/material'
+import type { Breakpoint } from '@mui/material/styles'
+import { callable, formatDate, formatTime, md, newObj, tryJson, xlate } from './misc'
 import { Btn, Flex, iconTooltip, NetmaskField } from './mui'
 import { MilitaryTech, Clear, Group } from '@mui/icons-material'
 import { Html, replaceStringToReact, useAutoScroll } from '@hfs/shared'
@@ -19,8 +20,21 @@ import { useApiEx, useApiList } from './api'
 import { adminApis } from '../../src/adminApis'
 import { type Account } from './AccountsPage'
 
-export async function showPluginOptions(row: any, maxWidth: string) {
+const breakpointValues = createTheme().breakpoints.values
+
+export function parsePluginConfig(row: any) {
+    if (row.config)
+        try { row.config = tryJson(row.config, s => evalWrapper('()=>('+s+')')()) }
+        catch { row.config = undefined }
+    return row
+}
+
+export async function showPluginOptions(row: any) {
     const {id} = row
+    const cd = row.configDialog
+    let maxWidth: string | number = breakpointValues[cd?.maxWidth as Breakpoint] || cd?.sx?.maxWidth || xlate(cd?.maxWidth, { xs: 0 }) || 432
+    if (typeof maxWidth === 'number')
+        maxWidth = maxWidth + 'px'
     const { config: lastSaved } = await apiCall('get_plugin', { id })
     // array fields contain a DataGrid whose intrinsic width settles in steps, so give the form a stable preferred width
     const workaround = _.some(callable(row.config, lastSaved), { type: 'array' }) ? `min(100%, ${maxWidth})` : undefined

@@ -3772,7 +3772,9 @@ describe('admin', () => {
     test('plugins.start_stop', async () => {
         const id = 'download-counter'
         await reqApi('stop_plugin', { id }, 200, { auth })()
-        await reqApi('start_plugin', { id }, 200, { auth })()
+        await reqApi('start_plugin', { id }, res => res?.id === id && typeof res.config === 'string'
+            && res.configDialog?.sx?.maxWidth === '20em', { auth })()
+        await reqApi('start_plugin', { id }, res => res?.id === id && typeof res.config === 'string', { auth })()
         await reqApi('stop_plugin', { id }, res => {
             if (res?.msg === 'already stopped')
                 throw "plugin didn't start"
