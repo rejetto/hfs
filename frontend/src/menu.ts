@@ -246,11 +246,11 @@ function searchDialog() {
         }
     }).then(res => {
         if (!res) return
-        state.remoteSearch = !res.name && !res.comment ? undefined : {
+        state.remoteSearch = !res.name && !res.comment ? undefined : _.pickBy({
             search: res.name || undefined,
             searchComment: res.comment || undefined,
             wild: res.wild ? undefined : 'no'
-        }
+        })
         state.stopSearch?.()
     })
 }
