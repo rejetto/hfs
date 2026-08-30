@@ -143,6 +143,7 @@ test('search1', async ({ page }) => {
     await page.getByRole('button', { name: 'Search' }).click()
     await page.locator('input[name="name"]').fill('a')
     await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.locator('#menu-panel')).toHaveCSS('flex-direction', 'column-reverse')
     await page.getByText('12 folders').click()
     await page.getByRole('link', { name: 'cantListPage/ alfa.txt' }).click()
     await page.getByRole('button', { name: 'Close' }).click()

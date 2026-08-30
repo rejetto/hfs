@@ -409,6 +409,10 @@ ul.dir {
         padding: min(1vh, 0.5em) 0; // avoid wasting too much vertical space, and no need for horizontal padding as we are using flex to grow
     }
 }
+.bottom-bar-stack-positioner #menu-panel {
+    display: flex;
+    flex-direction: column-reverse;
+}
 .bottom-bar-stack-positioner {
     @extend .hide-back;
     padding: .1em 0;
