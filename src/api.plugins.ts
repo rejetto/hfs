@@ -4,6 +4,7 @@ import {
     InactivePlugin, enablePlugins, getInactivePlugins, getPluginConfigFields, mapPlugins, Plugin, pluginsConfig,
     PATH as PLUGINS_PATH, enablePlugin, getPluginInfo, setPluginConfig, isPluginRunning, pluginsScanned,
     stopPlugin, startPlugin, CommonPluginInterface, getMissingDependencies, findPluginByRepo, suspendPlugins,
+    firstPlugin,
 } from './plugins'
 import _ from 'lodash'
 import { apiAssertTypes, HTTP_CONFLICT, HTTP_PRECONDITION_FAILED, newObj, waitFor } from './misc'
@@ -73,11 +74,13 @@ const apis: ApiHandlers = {
     async start_plugin({ id }) {
         assertPluginId(id)
         if (isPluginRunning(id))
-            return { msg: 'already running' }
+            return serializeRunningPlugin(id)
         if (suspendPlugins.get())
             return new ApiError(HTTP_PRECONDITION_FAILED, 'all plugins suspended')
         await stopPlugin(id)
-        return startPlugin(id).then(() => ({}), e => new ApiError(HTTP_SERVER_ERROR, e.message))
+        try { await startPlugin(id) }
+        catch(e: any) { return new ApiError(HTTP_SERVER_ERROR, e.message) }
+        return serializeRunningPlugin(id)
     },
 
     async stop_plugin({ id }) {
@@ -209,6 +212,11 @@ function serialize(p: Readonly<Plugin> | InactivePlugin) {
     o.config &&= _.isFunction(o.config) ? String(o.config)
         : JSON.stringify(o.config, (_k, v) => _.isFunction(v) ? String(v) : v) // allow simple functions
     return _.defaults(o, { started: null, badApi: null }) // nulls should be used to be sure to overwrite previous values,
+}
+
+function serializeRunningPlugin(id: string) {
+    const plugin = firstPlugin((plugin, pluginId) => pluginId === id ? plugin : undefined)
+    return plugin ? serialize(plugin) : new ApiError(HTTP_SERVER_ERROR)
 }
 
 export async function checkDependencies(plugin: CommonPluginInterface) {

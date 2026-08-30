@@ -3,25 +3,24 @@
 import { apiCall, useApiList } from './api'
 import { createElement as h, useEffect, useState } from 'react'
 import { language, t } from './i18n'
-import { Box, Table, TableBody, TableCell, TableRow, useTheme } from '@mui/material'
-import type { Breakpoint } from '@mui/material/styles'
+import { Box, Table, TableBody, TableCell, TableRow } from '@mui/material'
 import { DataTable, DataTableColumn } from './DataTable'
 import {
     Delete, FormatPaint as ThemeIcon, ListAlt, PlayCircle, Settings, StopCircle, Upgrade
 } from '@mui/icons-material'
 import {
-    CFG, HTTP_FAILED_DEPENDENCY, md, xlate, tryJson, isPrimitive, HIDE_IN_TESTS, wait
+    CFG, HTTP_FAILED_DEPENDENCY, md, xlate, isPrimitive, HIDE_IN_TESTS, wait
 } from './misc'
 import { confirmDialog, toast } from './dialog'
 import _ from 'lodash'
 import { PLUGIN_ERRORS, pluginName, renderPluginName, startPlugin } from './plugin'
 import { Btn, IconBtn, iconTooltip, usePauseButton } from './mui'
-import { showPluginOptions, evalWrapper } from './pluginOptions'
+import { parsePluginConfig, showPluginOptions } from './pluginOptions'
 
 // updates=true will show the "check updates" version of the page
 export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, error, setList, initializing } = useApiList<any>(updates ? 'get_plugin_updates' : 'get_plugins', {}, {
-        map(x: any) { x.config &&= tryJson(x.config, s => evalWrapper('()=>('+s+')')()) }
+        map: parsePluginConfig,
     })
     const [sortAgain, setSortAgain] = useState(0)
     useEffect(() => {
@@ -37,7 +36,6 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             setSortAgain(Date.now())
         }
     })
-    const theme = useTheme()
     return h(DataTable, {
         error: isPrimitive(error) ? xlate(error, PLUGIN_ERRORS)
             : _.map(error, (v, k) => `Error ${k} for: ${v.join(', ')}`).join('; '), // complex error for updates
@@ -137,12 +135,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 disabled: !row.started && t`Start plugin to access options`
                     || !row.config && !row.log && t`No options and no log for this plugin`,
                 onClick() {
-                    const cd = row.configDialog
-                    // support css values for maxWidth without having to wrap in sx, as in DialogProps it only supports breakpoints
-                    let maxWidth = theme.breakpoints.values[cd?.maxWidth as Breakpoint] || cd?.sx?.maxWidth || xlate(cd?.maxWidth, { xs: 0 }) || 432
-                    if (typeof maxWidth === 'number')  // @ts-ignore
-                        maxWidth += 'px'
-                    return showPluginOptions(row, maxWidth)
+                    return showPluginOptions(row)
                 }
             }),
             h(IconBtn, {
