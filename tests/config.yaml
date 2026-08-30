@@ -32,7 +32,7 @@ vfs:
         - name: pic
           mime: png
           source: ../page/gpl.png
-        - source: ../page
+        - source: ../page/
           default: index.html
         - name: protected
           source: ../page/gpl.png
@@ -78,7 +78,7 @@ vfs:
     - name: renameChild
       can_upload: true
       children:
-        - source: ..
+        - source: ../
           can_upload: false
           rename:
             alfa.txt: renamed1
@@ -98,18 +98,18 @@ vfs:
             - name: C
               order: -3
     - name: cantListBut
-      source: ..
+      source: ../
       can_list: false
       masks:
         "*":
           can_list: true
     - name: zipNoList
-      source: ../page
+      source: ../page/
       can_see: false
       can_list: false
       can_archive: true
     - name: cantSearchForMasks
-      source: ..
+      source: ../
     - name: onlyFilesDeep
       can_see:
         this: false
@@ -120,7 +120,7 @@ vfs:
               children:
                 - source: ../alfa.txt
     - name: cantSearchForMasksDeep
-      source: ..
+      source: ../
       can_see:
         this: false
       rename:
@@ -129,7 +129,7 @@ vfs:
         page/gpl.png:
           can_see: false
     - name: maskOverlap
-      source: ..
+      source: ../
       can_see:
         this: false
       rename:
@@ -151,14 +151,14 @@ vfs:
           can_see: false
       children:
         - name: nested
-          source: ..
+          source: ../
           rename:
             page/gpl.png: renamed-gpl-nested.png
           masks:
             page/renamed*:
               can_see: false
     - name: cantReadBut
-      source: ..
+      source: ../
       can_read: false
       masks:
         "*":
@@ -171,13 +171,13 @@ vfs:
           can_read:
             - rejetto
     - name: cantListPage
-      source: ..
+      source: ../
       masks:
         page:
           can_see: false
           can_list: false
     - name: cantListPageAlt
-      source: ..
+      source: ../
       masks:
         page:
           can_see: false
@@ -187,13 +187,13 @@ vfs:
           can_read:
             - rejetto
     - name: cantReadPage
-      source: ..
+      source: ../
       masks:
         page|*.ts|*.yaml*:
           can_read: false
           can_list: false
     - name: cantReadRealFolder
-      source: ..
+      source: ../
       can_read: false
       can_list: false
     - name: cantSeeThis
@@ -207,7 +207,7 @@ vfs:
         this: false
       children:
         - name: hi
-          source: ..
+          source: ../
       masks:
         "*/page":
           can_list: false
