@@ -8,7 +8,7 @@ import { exec } from 'child_process'
 import _ from 'lodash'
 import yaml from 'yaml'
 import unzipper from 'unzipper'
-import { findDefined, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, UPLOAD_TEMP_PREFIX, wait, waitFor } from '../src/cross'
+import { findDefined, FRONTEND_OPTIONS, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, UPLOAD_TEMP_PREFIX, wait, waitFor } from '../src/cross'
 import { httpStream, httpWithBody, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { makeQ } from '../src/makeQ'
@@ -107,6 +107,8 @@ describe('basics', () => {
     })
     //before(async () => appStarted)
     test('frontend', req('/', /<body>/, { headers: { accept: '*/*' } })) // workaround: 'accept' is necessary when running server-for-test-dev, still don't know why
+    test('frontend config defaults', reqApi('get_config', { only: Object.keys(FRONTEND_OPTIONS) },
+        res => _.isEqual(res, FRONTEND_OPTIONS), { auth, jar: {} }))
     test('force slash', req('/f1', 302, { noRedirect: true }))
     test('list', reqList('/f1/', { inList:['f2/', 'page/'] }))
     test('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
