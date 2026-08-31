@@ -183,7 +183,8 @@ async function rename(entry: DirEntry) {
     const { n, uri } = entry
     await apiCall('rename', { uri, dest }, { modal: working })
     const MSG = t`Operation successful`
-    if (uri === location.pathname) //current folder
+    // location is fully encoded, while entry.uri uses pathEncode
+    if (decodeURI(uri) === decodeURI(location.pathname)) //current folder
         return alertDialog(MSG)?.then(() =>
             getHFS().navigate(uri + '../' + pathEncode(dest) + '/') )
     // update state instead of re-getting the list

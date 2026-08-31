@@ -504,3 +504,48 @@ test('order field', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'alfa.txt' })).toBeVisible()
     await expect(page.getByText('Not found')).not.toBeVisible()
 })
+
+test('renaming the current Unicode folder navigates to the new path', async ({ page, browserName }) => {
+    if (browserName !== 'chromium') return
+    const sourceName = 'rename-current-é'
+    const destName = 'rename-current-done'
+    const sourcePath = `tests/tmp/${sourceName}`
+    const destPath = `tests/tmp/${destName}`
+    cleanup()
+    fs.mkdirSync(sourcePath, { recursive: true })
+    fs.writeFileSync(`${sourcePath}/inside.txt`, 'inside')
+    try {
+        await page.goto(FRONTEND_URL)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        await page.goto(`${FRONTEND_URL}for-admins/upload/${encodeURIComponent(sourceName)}/`)
+        await expect(page.getByRole('link', { name: 'inside.txt' })).toBeVisible()
+
+        await page.locator('.breadcrumb').last().click()
+        const folderDialog = page.getByRole('dialog')
+        await expect(folderDialog.getByRole('heading', { name: 'Folder menu' })).toBeVisible()
+        await folderDialog.getByRole('link', { name: 'Rename' }).click()
+        const renameDialog = page.locator('.dialog-prompt')
+        const renameInput = renameDialog.getByRole('textbox')
+        await expect(renameInput).toHaveValue(sourceName)
+        await renameInput.fill(destName)
+        await renameDialog.getByRole('button', { name: 'Continue' }).click()
+
+        const successDialog = page.getByRole('alertdialog')
+        await expect(successDialog.getByText('Operation successful')).toBeVisible()
+        await successDialog.getByRole('button', { name: 'Close' }).click()
+        await expect(page).toHaveURL(`${FRONTEND_URL}for-admins/upload/${destName}/`)
+        await expect(page.getByRole('link', { name: 'inside.txt' })).toBeVisible()
+    }
+    finally {
+        cleanup()
+    }
+
+    function cleanup() {
+        fs.rmSync(sourcePath, { recursive: true, force: true })
+        fs.rmSync(destPath, { recursive: true, force: true })
+    }
+})
