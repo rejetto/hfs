@@ -1,8 +1,179 @@
 import { expect, test, type ConsoleMessage, type Page, type Request, type Response, type TestInfo } from '@playwright/test'
+import fs from 'fs'
 import { ADMIN_URL, clearUploads, clickAdminMenu, clickIconBtn, gotoFrontend, loginAdmin, password, uploadName, FRONTEND_URL, username } from './common'
 
 // this test is separated to run serially, as it will modify folder timestamp for a few seconds, during which other tests may fail
 test.describe.configure({ mode: 'serial' }) // to disconnect the upload consistently, i need only 1 upload at a time
+
+test('cancelled internal drag does not affect a later external drop', async ({ page, browserName }, testInfo) => {
+    if (browserName !== 'chromium') return
+    const fixtureName = `cancelled-drag-${testInfo.workerIndex}`
+    const sourceName = 'cancelled-drag-source.txt'
+    const targetName = 'cancelled-drag-target'
+    const fixturePath = `tests/tmp/${fixtureName}`
+    const sourcePath = `${fixturePath}/${sourceName}`
+    const targetPath = `${fixturePath}/${targetName}`
+    let addedName: string | undefined
+    cleanup()
+    try {
+        await page.route('**/~/api/move_files', route => route.fulfill({ json: { errors: [null] } }))
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        addedName = await addDragFixture(page, fixtureName, `../tmp/${fixtureName}/`)
+        fs.mkdirSync(targetPath, { recursive: true })
+        fs.writeFileSync(sourcePath, 'source')
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/${addedName}/`)
+
+        const source = page.getByRole('link', { name: sourceName })
+        const target = page.getByRole('link', { name: `${targetName}, Folder` })
+        const internalDrag = await page.evaluateHandle(() => new DataTransfer())
+        await source.dispatchEvent('dragstart', { dataTransfer: internalDrag })
+        await target.dispatchEvent('dragenter', { dataTransfer: internalDrag })
+        await source.dispatchEvent('dragend', { dataTransfer: internalDrag })
+
+        const moveRequest = page.waitForRequest('**/~/api/move_files', { timeout: 500 })
+            .then(() => true, () => false)
+        const externalDrop = await page.evaluateHandle(() => {
+            const data = new DataTransfer()
+            data.items.add(new File(['external'], 'external.txt'))
+            return data
+        })
+        await target.dispatchEvent('dragenter', { dataTransfer: externalDrop })
+        await target.dispatchEvent('dragover', { dataTransfer: externalDrop })
+        await target.dispatchEvent('drop', { dataTransfer: externalDrop })
+
+        expect(await moveRequest).toBe(false)
+        await expect(target).not.toHaveClass(/drop-over/)
+    }
+    finally {
+        cleanup()
+        if (addedName)
+            await deleteDragFixture(page, addedName)
+    }
+
+    function cleanup() {
+        fs.rmSync(fixturePath, { recursive: true, force: true })
+    }
+})
+
+test('uploadable folder accepts drops even when it cannot be deleted', async ({ page, browserName }, testInfo) => {
+    if (browserName !== 'chromium') return
+    const fixtureName = `upload-only-fixture-${testInfo.workerIndex}`
+    const sourceName = `upload-only-source-${testInfo.workerIndex}.txt`
+    const targetName = `upload-only-${testInfo.workerIndex}`
+    const fixturePath = `tests/tmp/${fixtureName}`
+    const sourcePath = `${fixturePath}/${sourceName}`
+    const targetPath = `${fixturePath}/${targetName}`
+    let fixtureVfsName: string | undefined
+    try {
+        await page.route('**/~/api/move_files', route => route.fulfill({ json: { errors: [null] } }))
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        fixtureVfsName = await addDragFixture(page, fixtureName, `../tmp/${fixtureName}/`)
+        fs.mkdirSync(targetPath, { recursive: true })
+        fs.writeFileSync(sourcePath, 'source')
+        const added = await page.request.post(`${FRONTEND_URL}~/api/add_vfs`, {
+            headers: { 'x-hfs-anti-csrf': '1' },
+            data: {
+                parent: `/for-admins/upload/${fixtureVfsName}/`,
+                source: `../tmp/${fixtureName}/${targetName}/`,
+                name: targetName,
+                can_delete: false,
+                skip_source_check: true,
+            },
+        })
+        expect(added.ok()).toBe(true)
+        const addedName = (await added.json()).name
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/${fixtureVfsName}/`)
+
+        const source = page.getByRole('link', { name: sourceName })
+        const target = page.getByRole('link', { name: `${addedName}, Folder` })
+        await expect(source).toHaveAttribute('draggable', 'true')
+        await expect(target).not.toHaveAttribute('draggable', 'true')
+        const data = await page.evaluateHandle(() => new DataTransfer())
+        const moveRequest = page.waitForRequest('**/~/api/move_files', { timeout: 500 })
+            .then(() => true, () => false)
+        await source.dispatchEvent('dragstart', { dataTransfer: data })
+        await target.dispatchEvent('dragenter', { dataTransfer: data })
+        await target.dispatchEvent('dragover', { dataTransfer: data })
+        await target.dispatchEvent('drop', { dataTransfer: data })
+
+        expect(await moveRequest).toBe(true)
+    }
+    finally {
+        fs.rmSync(fixturePath, { recursive: true, force: true })
+        if (fixtureVfsName)
+            await deleteDragFixture(page, fixtureVfsName)
+    }
+})
+
+test('dropping on the parent breadcrumb sends its absolute path', async ({ page, browserName }, testInfo) => {
+    if (browserName !== 'chromium') return
+    const folderName = `parent-drop-current-${testInfo.workerIndex}`
+    const sourceName = 'parent-drop-source.txt'
+    const folderPath = `tests/tmp/${folderName}`
+    let addedName: string | undefined
+    fs.rmSync(folderPath, { recursive: true, force: true })
+    try {
+        await page.route('**/~/api/move_files', route => route.fulfill({ json: { errors: [null] } }))
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        addedName = await addDragFixture(page, folderName, `../tmp/${folderName}/`)
+        fs.mkdirSync(folderPath, { recursive: true })
+        fs.writeFileSync(`${folderPath}/${sourceName}`, 'source')
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/${addedName}/`)
+
+        const source = page.getByRole('link', { name: sourceName })
+        const parent = page.locator('#breadcrumb-parent')
+        const data = await page.evaluateHandle(() => new DataTransfer())
+        const moveRequest = page.waitForRequest('**/~/api/move_files')
+        await source.dispatchEvent('dragstart', { dataTransfer: data })
+        await parent.dispatchEvent('dragenter', { dataTransfer: data })
+        await parent.dispatchEvent('dragover', { dataTransfer: data })
+        await parent.dispatchEvent('drop', { dataTransfer: data })
+
+        expect((await moveRequest).postDataJSON().uri_to).toBe('/for-admins/upload/')
+    }
+    finally {
+        fs.rmSync(folderPath, { recursive: true, force: true })
+        if (addedName)
+            await deleteDragFixture(page, addedName)
+    }
+})
+
+async function addDragFixture(page: Page, name: string, source: string) {
+    const response = await page.request.post(`${FRONTEND_URL}~/api/add_vfs`, {
+        headers: { 'x-hfs-anti-csrf': '1' },
+        data: {
+            parent: '/for-admins/upload/',
+            source,
+            name,
+            can_see: { this: false, children: true },
+            skip_source_check: true,
+        },
+    })
+    expect(response.ok()).toBe(true)
+    return (await response.json()).name as string
+}
+
+async function deleteDragFixture(page: Page, name: string) {
+    await page.request.post(`${FRONTEND_URL}~/api/del_vfs`, {
+        headers: { 'x-hfs-anti-csrf': '1' },
+        data: { uris: [`/for-admins/upload/${encodeURIComponent(name)}`] },
+    })
+}
 
 export const fileToUpload = {
     name: 'upload-test.bin',

@@ -7,13 +7,21 @@ let accept = false
 let classedEl: HTMLElement | undefined
 const className = 'drop-over'
 
-export const dragFilesSource = (de: DirEntry) => de.canDelete() ? {
-    draggable: true,
-    onDragStart(ev: DragEvent) {
-        entry = (ev.target as HTMLElement).getAttribute('href') || ''
+export const dragFilesSource = (de: DirEntry) => ({
+    ...de.canDelete() && {
+        draggable: true,
+        onDragStart(ev: DragEvent) {
+            entry = (ev.target as HTMLElement).getAttribute('href') || ''
+        },
+        onDragEnd() {
+            entry = ''
+            accept = false
+            classedEl?.classList.remove(className)
+            classedEl = undefined
+        },
     },
     ...de.canUpload() && dragFilesDestination,
-} : null
+})
 
 export const dragFilesDestination = {
     onDragOver(ev: DragEvent) {
@@ -27,8 +35,8 @@ export const dragFilesDestination = {
         const el = ev.currentTarget as HTMLElement
         const src = entry
         if (!src) return
-        const dst = el.getAttribute('href') || '/'
-        if (src === dst) return
+        const dst = (el as HTMLAnchorElement).pathname || '/'
+        if (decodeURI(src) === decodeURI(dst)) return
         ev.preventDefault()
         void moveFiles([src], dst)
     },
@@ -36,8 +44,8 @@ export const dragFilesDestination = {
         accept = false
         const src = entry
         if (!src) return
-        const dst = (ev.currentTarget as HTMLElement).getAttribute('href') || '/'
-        if (src === dst) return
+        const dst = (ev.currentTarget as HTMLAnchorElement).pathname || '/'
+        if (decodeURI(src) === decodeURI(dst)) return
         accept = true
         const el = ev.currentTarget as HTMLElement
         if (el.tagName !== 'A') return
