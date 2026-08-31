@@ -230,6 +230,19 @@ test('select all resets when the list reloads', async ({ page }) => {
     expect(await page.evaluate(() => (window as any).selectionChecks)).toBe(0)
 })
 
+test('filter resets paging when the first entry stays the same', async ({ page }) => {
+    await page.goto(FRONTEND_URL)
+    await expect(page.getByRole('link', { name: 'cantListBut, Folder' })).toBeVisible()
+    await page.evaluate(() => (window as any).HFS.state.page_size = 3)
+    await page.locator('#paging > button').last().click()
+    await expect(page.getByRole('link', { name: 'tests, Folder' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Select' }).click()
+    await page.locator('#filter').fill('cant')
+    await expect(page.getByText('5 filtered')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'cantListBut, Folder' })).toBeVisible()
+})
+
 test('frontend-admin', async ({ page }) => {
     await page.goto(FRONTEND_URL, { waitUntil: 'networkidle' })
     await page.evaluate(() => document.fonts.ready) // aspetta i font
