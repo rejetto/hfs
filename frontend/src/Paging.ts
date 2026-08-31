@@ -108,18 +108,19 @@ function AlphabetPaging({ groups, open, toggleOpen, close, changePage }: Alphabe
         })
     }, [open, close])
     return h('div', { ref, id: 'alphabet-paging', className: open ? 'open' : undefined },
+        h('button', {
+            id: 'alphabet-paging-toggle',
+            title: t('alpha_idx', "Alphabetical index"),
+            'aria-expanded': open,
+            onClick: toggleOpen,
+        }, t('alpha_idx_button', "AZ")),
         open && h('div', { id: 'alphabet-paging-bar' },
             groups.map(({ label, index }) =>
                 h('button', {
                     key: label,
                     onClick: () => changePage(index),
                 }, label))
-        ),
-        h('button', {
-            id: 'alphabet-paging-toggle',
-            title: t('alpha_idx', "Alphabetical index"),
-            onClick: toggleOpen,
-        }, t('alpha_idx_button', "AZ"))
+        )
     )
 }
 

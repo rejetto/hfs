@@ -286,6 +286,16 @@ test('filter resets paging when the first entry stays the same', async ({ page }
     await gotoFrontend(page)
     await expect(page.getByRole('link', { name: 'cantListBut, Folder' })).toBeVisible()
     await page.evaluate(() => (window as any).HFS.state.page_size = 3)
+
+    const toggle = page.locator('#alphabet-paging-toggle')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await toggle.focus()
+    await toggle.press('Enter')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await toggle.press('Tab')
+    await expect(page.locator('#alphabet-paging-bar button').first()).toBeFocused()
+    await toggle.click()
+
     await page.locator('#paging > button').last().click()
     await expect(page.getByRole('link', { name: 'tests, Folder' })).toBeVisible()
 
