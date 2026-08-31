@@ -582,3 +582,76 @@ test('plugin resolves a Unicode file element to its entry', async ({ page, brows
         fs.rmSync(path, { force: true })
     }
 })
+
+test('file show does not advance ended media while auto-play is off', async ({ page, browserName }) => {
+    if (browserName !== 'chromium') return
+    const names = ['show-ended-a.wav', 'show-ended-b.wav']
+    const wav = Buffer.from('UklGRiUAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQEAAACA', 'base64')
+    fs.mkdirSync('tests/tmp', { recursive: true })
+    names.forEach(name => fs.writeFileSync(`tests/tmp/${name}`, wav))
+    await page.addInitScript(() => { HTMLMediaElement.prototype.play = async () => {} })
+    try {
+        await page.goto(FRONTEND_URL)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        await page.goto(`${FRONTEND_URL}for-admins/upload/`)
+        await page.getByRole('link', { name: names[0], exact: true }).click()
+        await page.getByRole('link', { name: 'Show' }).click()
+        await expect(page.getByRole('button', { name: 'Auto-play' })).toHaveAttribute('aria-pressed', 'false')
+
+        await page.locator('.file-show audio').dispatchEvent('ended')
+        await expect(page.locator('.file-show .filename')).toContainText(names[0])
+    }
+    finally {
+        names.forEach(name => fs.rmSync(`tests/tmp/${name}`, { force: true }))
+    }
+})
+
+test('file show keeps direction when skipping a broken image', async ({ page, browserName }) => {
+    if (browserName !== 'chromium') return
+    const names = ['show-prev-a.png', 'show-prev-b.png', 'show-prev-c.png']
+    fs.copyFileSync('tests/page/gpl.png', `tests/page/${names[0]}`)
+    fs.writeFileSync(`tests/page/${names[1]}`, 'broken image')
+    fs.copyFileSync('tests/page/gpl.png', `tests/page/${names[2]}`)
+    try {
+        await page.goto(`${FRONTEND_URL}tests/page/`)
+        await page.getByRole('link', { name: names[2], exact: true }).click()
+        await page.getByRole('link', { name: 'Show' }).click()
+        await expect.poll(() => page.locator('.file-show img').evaluate(el => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
+
+        await page.keyboard.press('ArrowLeft')
+        await expect(page.locator('.file-show .filename')).toContainText(names[0])
+    }
+    finally {
+        names.forEach(name => fs.rmSync(`tests/page/${name}`, { force: true }))
+    }
+})
+test('file show stops auto-play after a broken last image', async ({ page, browserName }) => {
+    if (browserName !== 'chromium') return
+    const names = ['show-forward-a.png', 'show-forward-b.png']
+    fs.copyFileSync('tests/page/gpl.png', `tests/page/${names[0]}`)
+    fs.writeFileSync(`tests/page/${names[1]}`, 'broken image')
+    try {
+        await page.goto(`${FRONTEND_URL}tests/page/`)
+        await expect(page.getByRole('link', { name: names[1], exact: true })).toBeVisible()
+        await page.evaluate(names => {
+            const HFS = (window as any).HFS
+            const entries = Object.fromEntries(HFS.state.list.map((entry: any) => [entry.name, entry]))
+            HFS.state.list = names.map(name => entries[name])
+        }, names)
+        await page.getByRole('link', { name: names[0], exact: true }).click()
+        await page.getByRole('link', { name: 'Show' }).click()
+        const autoPlay = page.getByRole('button', { name: 'Auto-play' })
+        await autoPlay.click()
+        await expect(autoPlay).toHaveAttribute('aria-pressed', 'true')
+
+        await page.locator('.file-show .nav').last().click()
+        await expect(autoPlay).toHaveAttribute('aria-pressed', 'false')
+    }
+    finally {
+        names.forEach(name => fs.rmSync(`tests/page/${name}`, { force: true }))
+    }
+})

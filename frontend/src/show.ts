@@ -116,7 +116,9 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                 }
                 if (showElement instanceof HTMLMediaElement) {
                     showElement.play().catch(playFailed)
-                    return domOn('ended', goNext, { target: showElement })
+                    if (autoPlaying)
+                        return domOn('ended', goNext, { target: showElement })
+                    return
                 }
                 if (!autoPlaying) return // we reached here because of the justOpen, but we are not interested in images
                 // we are supposedly showing an image
@@ -246,7 +248,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                 const mediaError = (document.querySelector('.showing-container .showing') as any)?.error?.code // only present in video/audio elements
                 if (mediaError === 2) return // happens when chrome fails to fetch cover for videos. We don't skip the file for this reason. Tested on chrome129/windows
                 if (cur !== lastGood.current)
-                    return go()
+                    return go(moving.current || 1)
                 setLoading(false)
                 setFailed(cur.n)
             }
