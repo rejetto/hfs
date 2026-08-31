@@ -337,6 +337,74 @@ test('async custom entry content ignores stale results', async ({ page }) => {
     await expect(page.getByText('current custom content')).toBeVisible()
 })
 
+test('a cut folder keeps its parent as clipboard source', async ({ page }) => {
+    await page.goto(FRONTEND_URL)
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        HFS.state.clip = [new HFS.DirEntry('f1/')]
+    })
+    await expect(page.getByRole('button', { name: 'Back to source folder' })).toBeDisabled()
+})
+
+test('paste is disabled inside any cut folder', async ({ page }) => {
+    await page.goto(FRONTEND_URL + 'f1/f2/')
+    await page.waitForFunction(() => !(window as any).HFS.state.loading)
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        HFS.state.props = { ...HFS.state.props, can_upload: true }
+        HFS.state.clip = [new HFS.DirEntry('/f1/pic'), new HFS.DirEntry('/f1/other/')]
+    })
+    await expect(page.getByRole('button', { name: 'Paste' })).toBeEnabled()
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        HFS.state.clip = [new HFS.DirEntry('/f1/pic'), new HFS.DirEntry('/f1/f2/')]
+    })
+    await expect(page.getByRole('button', { name: 'Paste' })).toBeDisabled()
+})
+
+test('paste recognizes encoded cut folder paths', async ({ page }) => {
+    await page.goto(FRONTEND_URL)
+    await page.evaluate(() => (window as any).HFS.navigate('/no-such-città/'))
+    await page.waitForFunction(() => !(window as any).HFS.state.loading)
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        HFS.state.props = { ...HFS.state.props, can_upload: true }
+        HFS.state.clip = [new HFS.DirEntry('/no-such-città/')]
+    })
+    await expect(page).toHaveURL(FRONTEND_URL + 'no-such-citt%C3%A0/')
+    await expect(page.getByRole('button', { name: 'Paste' })).toBeDisabled()
+})
+
+test('malformed clipboard paths do not break the clipboard', async ({ page }) => {
+    await page.goto(FRONTEND_URL)
+    await page.waitForFunction(() => !(window as any).HFS.state.loading)
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        HFS.state.props = { ...HFS.state.props, can_upload: true }
+        HFS.state.clip = [{ uri: '/bad%zz/file', name: 'file' }]
+    })
+    await expect(page.getByRole('button', { name: 'Paste' })).toBeEnabled()
+})
+
+test('failed paste keeps the clipboard for retry', async ({ page }) => {
+    await page.route('**/~/api/move_files', route => route.fulfill({ json: { errors: [null, 404] } }))
+    await page.goto(FRONTEND_URL + 'renameChild/')
+    await page.waitForFunction(() => !(window as any).HFS.state.loading)
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        HFS.state.props = { ...HFS.state.props, can_upload: true }
+        HFS.state.clip = [new HFS.DirEntry('/f1/alfa.txt'), new HFS.DirEntry('/f1/pic')]
+    })
+    await page.getByRole('button', { name: 'Paste' }).click()
+    const warning = page.getByRole('alertdialog')
+    await expect(warning).toBeVisible()
+    await expect(page.getByText(/Your selection is now in the clipboard/)).toHaveCount(0)
+    await warning.getByRole('button', { name: 'Close' }).click()
+    await expect(page.locator('#clipBar')).toBeVisible()
+    await expect.poll(() => page.evaluate(() => (window as any).HFS.state.clip.map((x: any) => x.uri)))
+        .toEqual(['/f1/pic'])
+})
+
 test('frontend-admin', async ({ page }) => {
     await gotoFrontend(page, FRONTEND_URL, { waitUntil: 'networkidle' })
     await page.evaluate(() => document.fonts.ready) // aspetta i font
