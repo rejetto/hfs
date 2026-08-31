@@ -13,7 +13,7 @@ import { UploadStatus } from './upload'
 import i18n from './i18n'
 const { t } = i18n
 
-export interface ToUpload { file: File, comment?: string, path: string, to?: string, error?: string }
+export interface ToUpload { file: File, comment?: string, path: string, error?: string }
 export const uploadState = proxy<{
     done: (ToUpload & { response?: any })[] // res will contain the response from the server,
     doneByte: number

@@ -10,6 +10,41 @@ export const fileToUpload = {
     buffer: Buffer.alloc(100_000),
 }
 
+test('dropped folder keeps its path while staged', async ({ page }) => {
+    await page.goto(FRONTEND_URL)
+    await page.getByRole('button', { name: 'Login' }).click()
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('link', { name: 'for-admins, Folder' }).click()
+    await page.getByRole('link', { name: 'upload, Folder' }).click()
+    await page.getByRole('button', { name: 'Upload' }).click()
+
+    await page.locator('#root > div').evaluate(root => {
+        const file = new File(['test'], 'file.txt')
+        const entry = {
+            isFile: true,
+            file(callback: (file: File) => void) {
+                callback(file)
+            },
+        }
+        const directory = {
+            isFile: false,
+            name: 'nested',
+            createReader() {
+                return { readEntries: (callback: (entries: typeof entry[]) => void) => callback([entry]) }
+            },
+        }
+        const event = new Event('drop', { bubbles: true, cancelable: true })
+        Object.defineProperty(event, 'dataTransfer', {
+            value: { items: [{ webkitGetAsEntry: () => directory }] },
+        })
+        root.dispatchEvent(event)
+    })
+
+    await expect(page.locator('.upload-list').getByText('nested/file.txt', { exact: true })).toBeVisible()
+})
+
 test('upload1', async ({ page, context, browserName }, testInfo) => {
     if (browserName !== 'chromium') return // only chromium has cdpSession
     const diagnostics = await startUpload1Diagnostics(page)
