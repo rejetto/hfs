@@ -303,6 +303,37 @@ test('text buttons support keyboard activation', async ({ page }) => {
     await expect(calculate).toHaveCount(0)
 })
 
+test('async custom entry content ignores stale results', async ({ page }) => {
+    await page.goto(FRONTEND_URL)
+    await page.waitForFunction(() => !(window as any).HFS.state.loading)
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        const resolvers = (window as any).customCodeResolvers = {} as Record<string, (value: string) => void>
+        document.addEventListener('hfs.additionalEntryDetails', (event: any) => {
+            const name = event.detail.params.entry.name
+            if (name !== 'old-f1' && name !== 'renamed-f1') return
+            event.detail.output.push(new Promise(resolve => resolvers[name] = resolve))
+        })
+        const i = HFS.state.list.findIndex((entry: any) => entry.name === 'f1')
+        const entry = HFS.state.list[i]
+        HFS.state.list[i] = new HFS.DirEntry('old-f1/', { ...entry, key: entry.n })
+    })
+    await page.waitForFunction(() => (window as any).customCodeResolvers['old-f1'])
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        const i = HFS.state.list.findIndex((entry: any) => entry.name === 'old-f1')
+        const entry = HFS.state.list[i]
+        HFS.state.list[i] = new HFS.DirEntry('renamed-f1/', { ...entry })
+    })
+    await page.waitForFunction(() => (window as any).customCodeResolvers['renamed-f1'])
+
+    await page.evaluate(() => (window as any).customCodeResolvers['renamed-f1']('current custom content'))
+    await expect(page.getByText('current custom content')).toBeVisible()
+    await page.evaluate(() => (window as any).customCodeResolvers['old-f1']('stale custom content'))
+    await expect(page.getByText('stale custom content')).toHaveCount(0)
+    await expect(page.getByText('current custom content')).toBeVisible()
+})
+
 test('frontend-admin', async ({ page }) => {
     await page.goto(FRONTEND_URL, { waitUntil: 'networkidle' })
     await page.evaluate(() => document.fonts.ready) // aspetta i font

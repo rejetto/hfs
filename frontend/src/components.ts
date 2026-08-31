@@ -88,12 +88,14 @@ export function CustomCode({ name, children, render, ...props }: {
         [name, children, ...props ? Object.values(props) : []])
     const [out, setOut] = useStateMounted<null | ReactNode[]>([])
     useEffect(() => {
+        let active = true
         if (raw.isDefaultPrevented() || raw.some(x => x === null)) // null means skip this
             return setOut(null)
         const worked: ReactNode[] = raw.map(toElement)
         raw.forEach((x, i) => {
             if (typeof x?.then === 'function') // then-able
                 x.then((resolved: any) => {
+                    if (!active) return // old promises must not overwrite content for newer props
                     worked[i] = toElement(resolved, i)
                     setOut(onlyTruthy(worked))
                 }, () => {})
@@ -109,6 +111,7 @@ export function CustomCode({ name, children, render, ...props }: {
                     : _.isArray(x) ? h(Fragment, { key }, ...x)
                         : null
         }
+        return () => { active = false }
     }, [raw])
     render ??= _.identity
     return h(Fragment, {}, render(out && (out?.length || !children ? out : children)) )
