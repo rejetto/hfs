@@ -1,21 +1,21 @@
 import { state, useSnapState } from './state'
-import { createElement as h, useEffect, useState } from 'react'
+import { createElement as h, useMemo, useState } from 'react'
 import { useDebounce } from 'usehooks-ts'
 import { Checkbox, CustomCode } from './components'
-import { usePath } from './useFetchList'
-import { onHfsEvent, with_ } from './misc'
+import { with_ } from './misc'
 import i18n from './i18n'
 const { useI18N } = i18n
 
 export function FilterBar() {
     const { list, filteredList, selected, patternFilter, showFilter } = useSnapState()
-    const [all, setAll] = useState(false)
     const [filter, setFilter] = useState(patternFilter)
-    useEffect(() => setAll(false), [patternFilter, usePath()]) // reset on change
     const {t} = useI18N()
 
     state.patternFilter = useDebounce(showFilter ? filter : '', 300)
-    useEffect(() => onHfsEvent('', 'entryToggleSelection', () => setAll(false)), [])
+    const entries = filteredList || list
+    const all = useMemo(() => showFilter
+        && entries.some(x => x.canSelect())
+        && entries.every(x => !x.canSelect() || selected[x.uri]), [showFilter, entries, selected])
 
     const tabIndex = showFilter ? undefined : -1
     return h('div', { id: 'filter-bar', style: { display: showFilter ? undefined : 'none' } },
@@ -62,7 +62,5 @@ export function FilterBar() {
             else if (e.canSelect())
                 sel[uri] = true
         }
-        if (will !== undefined)
-            setAll(will)
     }
 }

@@ -195,6 +195,41 @@ test('search1', async ({ page }) => {
     await page.getByRole('textbox', { name: 'Type here to filter the list' }).click()
 })
 
+test('select all resets when the list reloads', async ({ page }) => {
+    await page.goto(FRONTEND_URL + 'for-admins/upload/')
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.getByText('alfa.txt')).toBeVisible()
+    await page.getByRole('button', { name: 'Select' }).click()
+
+    const selectAll = page.getByRole('checkbox', { name: 'Select all' })
+    await selectAll.check()
+    await expect(page.getByText('1 selected')).toBeVisible()
+    await page.evaluate(() => (window as any).HFS.reloadList())
+    await expect(page.getByText('1 selected')).toHaveCount(0)
+    await expect(selectAll).not.toBeChecked()
+    await expect.poll(() => page.evaluate(() => Boolean((window as any).HFS.state.props))).toBe(true)
+
+    await page.evaluate(() => {
+        ;(window as any).HFS.state.props.can_archive = false
+        ;(window as any).HFS.state.props.can_delete_children = false
+        ;(window as any).HFS.state.showFilter = false
+    })
+    await expect(page.getByRole('textbox', { name: 'Type here to filter the list below' })).toBeHidden()
+    await page.evaluate(() => {
+        ;(window as any).selectionChecks = 0
+        document.addEventListener('hfs.enableEntrySelection', () => ++(window as any).selectionChecks)
+    })
+    await page.evaluate(() => new Promise<void>(resolve => {
+        const { state } = (window as any).HFS
+        state.list = [...state.list]
+        requestAnimationFrame(() => requestAnimationFrame(resolve))
+    }))
+    expect(await page.evaluate(() => (window as any).selectionChecks)).toBe(0)
+})
+
 test('frontend-admin', async ({ page }) => {
     await page.goto(FRONTEND_URL, { waitUntil: 'networkidle' })
     await page.evaluate(() => document.fonts.ready) // aspetta i font
