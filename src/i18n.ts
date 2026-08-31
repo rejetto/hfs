@@ -120,7 +120,7 @@ export function i18nFromTranslations(translations: Record<string, any>, embedded
         t,
         state,
         getLangs,
-        i18nWrapperProps: () => ({ lang: getLangs()[0] || state.embedded }),
+        i18nWrapperProps: () => ({ lang: state.disabled ? state.embedded : getLangs()[0] || state.embedded }),
         useI18N() { // the hook ensures translation is refreshed when language changes
             useSnapshot(state)
             return { t }

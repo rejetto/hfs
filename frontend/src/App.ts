@@ -21,6 +21,7 @@ const { i18nWrapperProps } = i18n
 
 export default function App() {
     useTheme()
+    i18n.useI18N()
     const go = useLocation()[1] // expose navigate function for programmatic usage
     getHFS().navigate = (uri: string) => go(getPrefixUrl() + enforceStarting('/', uri))
 

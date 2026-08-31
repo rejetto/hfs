@@ -659,3 +659,15 @@ test('file show stops auto-play after a broken last image', async ({ page, brows
         names.forEach(name => fs.rmSync(`tests/page/${name}`, { force: true }))
     }
 })
+
+test('English option updates the page language', async ({ page }) => {
+    await page.goto(FRONTEND_URL + '?lang=it')
+    const content = page.locator('#root > [lang]')
+    await expect(content).toHaveAttribute('lang', 'it')
+    await expect(page.locator('#options-button')).toHaveAttribute('aria-label', 'Opzioni')
+
+    await page.locator('#options-button').click()
+    await page.locator('#option-english input').check()
+    await expect(page.locator('#options-button')).toHaveAttribute('aria-label', 'Options')
+    await expect(content).toHaveAttribute('lang', 'en')
+})
