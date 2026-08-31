@@ -267,6 +267,14 @@ test('mobile timestamps keep updating after the first refresh', async ({ page })
     await expect(timestamp).toHaveText(expectedDate)
 })
 
+test('stopping a regular listing is not labeled as a search', async ({ page }) => {
+    await page.goto(FRONTEND_URL)
+    await page.evaluate(() => (window as any).HFS.state.searchManuallyInterrupted = true)
+    const icon = page.locator('#folder-stats [title="Interrupted"]')
+    await expect(icon).toBeVisible()
+    await expect.poll(() => icon.evaluate(el => getComputedStyle(el, '::before').content)).toMatch(/^".+"$/)
+})
+
 test('frontend-admin', async ({ page }) => {
     await page.goto(FRONTEND_URL, { waitUntil: 'networkidle' })
     await page.evaluate(() => document.fonts.ready) // aspetta i font

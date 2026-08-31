@@ -435,6 +435,8 @@ ul.dir {
 }
 #search-clear-button { margin-right: .5em }
 #searched {
+    display: flex;
+    align-items: center;
     margin-bottom: 0.2em;
     margin-top: 0.3em;
 }

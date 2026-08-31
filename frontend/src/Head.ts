@@ -35,7 +35,7 @@ function FolderStats() {
     const { t } = useI18N()
     return h(Fragment, {},
         h('div', { id:'folder-stats' },
-            searchManuallyInterrupted ? hIcon('interrupted', { title: t`Search was interrupted` })
+            searchManuallyInterrupted ? hIcon('error', { title: t`Interrupted` })
                 : list.length>0 && loading && h(Spinner),
             [
                 files && t('n_files', { n: files }, '{n,plural,one{# file} other{# files}}'),
