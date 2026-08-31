@@ -278,6 +278,31 @@ test('stopping a regular listing is not labeled as a search', async ({ page }) =
     await expect.poll(() => icon.evaluate(el => getComputedStyle(el, '::before').content)).toMatch(/^".+"$/)
 })
 
+test('text buttons support keyboard activation', async ({ page }) => {
+    await page.goto(FRONTEND_URL)
+    const folder = page.getByRole('listitem').filter({ has: page.getByRole('link', { name: 'f1, Folder' }) })
+    await folder.getByRole('button', { name: 'Menu' }).click()
+    const calculate = page.getByRole('button', { name: 'Calculate' })
+
+    const [buttonFont, parentFont] = await calculate.evaluate(el => [
+        getComputedStyle(el).font,
+        getComputedStyle(el.parentElement!).font,
+    ])
+    await calculate.hover()
+    const { outlineStyle, textDecorationLine } = await calculate.evaluate(el => {
+        const { outlineStyle, textDecorationLine } = getComputedStyle(el)
+        return { outlineStyle, textDecorationLine }
+    })
+    expect.soft(buttonFont).toBe(parentFont)
+    expect.soft(outlineStyle).toBe('none')
+    expect.soft(textDecorationLine).toContain('underline')
+
+    await calculate.focus()
+    await expect(calculate).toBeFocused()
+    await page.keyboard.press('Space')
+    await expect(calculate).toHaveCount(0)
+})
+
 test('frontend-admin', async ({ page }) => {
     await page.goto(FRONTEND_URL, { waitUntil: 'networkidle' })
     await page.evaluate(() => document.fonts.ready) // aspetta i font

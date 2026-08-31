@@ -140,13 +140,11 @@ export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, 
     const [working, setWorking] = useState(false)
     const [success, setSuccess] = useState(false)
     const t = useRef<any>()
-    return h(asText ? 'a' : 'button', {
+    return h('button', {
         title: label + prefix(' - ', tooltip),
         'aria-label': label,
         'aria-pressed': toggled,
-        onClick(ev) {
-            if (asText)
-                ev.preventDefault()
+        onClick() {
             if (!onClick) return
             if (onClickAnimation !== false)
                 setWorking(true)
@@ -159,8 +157,8 @@ export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, 
                 }, e => alertDialog(e, 'error'))
         },
         ...rest,
-        ...asText ? { role: 'button', style: { cursor: 'pointer', ...rest.style } } : undefined,
-        className: [rest.className, toggled && 'toggled', working && 'ani-working', success && 'success'].filter(Boolean).join(' '),
+        ...asText ? { type: 'button' } : undefined,
+        className: [rest.className, asText && 'as-text', toggled && 'toggled', working && 'ani-working', success && 'success'].filter(Boolean).join(' '),
     }, icon && (isValidElement(icon) ? icon : hIcon(icon)),
         h('span', { className: 'label' }, label) ) // don't use <label> as VoiceOver will get redundant
 }

@@ -108,7 +108,7 @@ img.file-icon { height: 1em; }
     vertical-align: text-bottom;
 }
 
-[role=button] .icon {
+button.as-text .icon {
     margin-right: 0.5em;
 }
 .icon.mirror:before { transform: scaleX(-1); }
@@ -145,7 +145,17 @@ button.success {
     background-color: var(--success);
     @extend .highlightedText;
 }
-a[role=button].success {
+button.as-text {
+    padding: 0;
+    background: none;
+    color: var(--link);
+    font: inherit;
+    &:hover {
+        text-decoration: underline;
+        &:not(:focus-visible) { outline: none; }
+    }
+}
+button.as-text.success {
     transition:  all .3s;
     color: var(--success);
     text-shadow: 0 0 3px var(--text-high-contrast);
