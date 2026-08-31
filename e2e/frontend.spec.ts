@@ -171,7 +171,7 @@ test('search1', async ({ page }) => {
     await page.getByRole('dialog').locator('div').nth(2).click()
     await page.locator('#option-sort-by').selectOption('size')
     await page.getByRole('checkbox', { name: 'Invert order' }).check()
-    await page.getByRole('slider').fill('6')
+    await page.getByRole('slider', { name: 'Tiles mode' }).fill('6')
     await page.locator('#option-theme').selectOption('dark')
     await page.getByRole('button', { name: 'Close' }).click()
     await page.getByRole('link', { name: 'cantListPageAlt, Folder' }).click()

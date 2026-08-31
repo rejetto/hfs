@@ -58,6 +58,7 @@ export function showOptions (){
                 h('div', {}, t`Tiles mode:`, ' ', state.tile_size || t`off`),
                 h('input', {
                     type: 'range',
+                    'aria-label': t`Tiles mode`,
                     min: 0, max: MAX_TILE_SIZE,
                     value: snap.tile_size,
                     onChange(ev: any) {
