@@ -45,6 +45,46 @@ test('dropped folder keeps its path while staged', async ({ page }) => {
     await expect(page.locator('.upload-list').getByText('nested/file.txt', { exact: true })).toBeVisible()
 })
 
+test('dropped folder encodes its destination when uploaded immediately', async ({ page }) => {
+    await page.route('**/*', route => route.request().method() === 'PUT'
+        ? route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+        : route.continue())
+    await page.goto(FRONTEND_URL)
+    await page.getByRole('button', { name: 'Login' }).click()
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('link', { name: 'for-admins, Folder' }).click()
+    await page.getByRole('link', { name: 'upload, Folder' }).click()
+    await expect(page.getByRole('button', { name: 'Upload' })).toBeEnabled()
+
+    const uploadRequest = page.waitForRequest(request => request.method() === 'PUT')
+    await page.locator('#root > div').evaluate(root => {
+        const file = new File(['test'], 'file.txt')
+        const entry = {
+            isFile: true,
+            file(callback: (file: File) => void) {
+                callback(file)
+            },
+        }
+        const directory = {
+            isFile: false,
+            name: 'unsafe #?%',
+            createReader() {
+                return { readEntries: (callback: (entries: typeof entry[]) => void) => callback([entry]) }
+            },
+        }
+        const event = new Event('drop', { bubbles: true, cancelable: true })
+        Object.defineProperty(event, 'dataTransfer', {
+            value: { items: [{ webkitGetAsEntry: () => directory }] },
+        })
+        root.dispatchEvent(event)
+    })
+
+    expect(new URL((await uploadRequest).url()).pathname)
+        .toBe('/for-admins/upload/unsafe%20%23%3F%25/file.txt')
+})
+
 test('upload1', async ({ page, context, browserName }, testInfo) => {
     if (browserName !== 'chromium') return // only chromium has cdpSession
     const diagnostics = await startUpload1Diagnostics(page)

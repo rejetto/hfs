@@ -38,7 +38,7 @@ export default function App() {
             if (uploadState.uploadDialogIsOpen) // in this case the upload is not started until confirmed
                 uploadState.adding.push(...files.map(f => ({ file: ref(f), path: to + getFilePath(f) })))
             else
-                state.props?.can_upload ? enqueueUpload(files.map(file => ({ file, path: getFilePath(file) })), location.pathname + to)
+                state.props?.can_upload ? enqueueUpload(files.map(file => ({ file, path: to + getFilePath(file) })))
                     : alertDialog(t("Upload not available"), 'warning')
         })
     },
