@@ -549,3 +549,36 @@ test('renaming the current Unicode folder navigates to the new path', async ({ p
         fs.rmSync(destPath, { recursive: true, force: true })
     }
 })
+
+test('plugin resolves a Unicode file element to its entry', async ({ page, browserName }) => {
+    if (browserName !== 'chromium') return
+    const name = 'element-entry-é.txt'
+    const path = `tests/tmp/${name}`
+    fs.rmSync(path, { force: true })
+    fs.mkdirSync('tests/tmp', { recursive: true })
+    fs.writeFileSync(path, 'entry')
+    try {
+        await page.goto(FRONTEND_URL)
+        const initial = await page.evaluate(() => {
+            let value: unknown = 'callback not called'
+            const unwatch = (window as any).HFS.watchState('upload.progress', (next: unknown) => value = next, true)
+            unwatch()
+            return value
+        })
+        expect(initial).toBe(0)
+
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        await page.goto(`${FRONTEND_URL}for-admins/upload/`)
+
+        const found = await page.getByRole('link', { name }).evaluate(el =>
+            Boolean((window as any).HFS.elementToEntry(el)))
+        expect(found).toBe(true)
+    }
+    finally {
+        fs.rmSync(path, { force: true })
+    }
+})

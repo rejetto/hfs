@@ -127,7 +127,7 @@ Object.assign(getHFS(), {
         const up = k.split('upload.')[1]
         const thisState = up ? uploadState : state as any
         if (callNow)
-            cb(thisState[k])
+            cb(thisState[up || k])
         return subscribeKey(thisState, up || k, cb, true)
     },
     customRestCall(name: string, ...rest: any[]) {
@@ -138,7 +138,7 @@ Object.assign(getHFS(), {
         if (!(el instanceof HTMLElement)) return
         const a = el.closest('li')?.querySelector('.link-wrapper a')
         if (!(a instanceof HTMLAnchorElement)) return
-        try { return _.find(state.list, { uri: new URL(a.href).pathname }) }
+        try { return _.find(state.list, entry => decodeURI(entry.uri) === decodeURI(a.pathname)) }
         catch {}
     },
     customizeText(mods: Dict<string>, lang=ANY_LANGUAGE) {
