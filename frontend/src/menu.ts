@@ -87,6 +87,7 @@ export function MenuPanel() {
                 id: 'cut-button',
                 icon: 'cut',
                 label: t`Cut`,
+                disabled: !list,
                 onClick() {
                     cut(onlyTruthy(Object.keys(selected).map(uri => _.find(state.list, { uri }))))
                 }

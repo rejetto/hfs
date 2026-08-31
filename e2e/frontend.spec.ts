@@ -695,3 +695,23 @@ test('frontend polyfills are installed before shared code runs', async ({ page }
 
     await expect(page.locator('#options-button')).toBeVisible()
 })
+
+test('cut is disabled without a selection', async ({ page }) => {
+    await page.goto(FRONTEND_URL + 'for-admins/upload/')
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.getByRole('link', { name: 'alfa.txt' })).toBeVisible()
+    await page.getByRole('button', { name: 'Select' }).click()
+
+    const selection = page.getByRole('checkbox', { name: 'alfa.txt' })
+    const cut = page.getByRole('button', { name: 'Cut' })
+    const clipboard = page.getByRole('button', { name: /Clipboard/ })
+    await selection.check()
+    await cut.click()
+    await expect(clipboard).toBeVisible()
+
+    await selection.uncheck()
+    await expect(cut).toBeDisabled()
+    await expect(clipboard).toBeVisible()
+})
