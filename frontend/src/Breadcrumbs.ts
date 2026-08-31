@@ -38,7 +38,7 @@ function Breadcrumb({ path, label, current, id, disabled }: { disabled?: boolean
         label = PAD + label + PAD
     const {t} = useI18N()
     const { props } = useSnapState()
-    const p = props?.can_archive ? '' : 'a'
+    const p = (props?.can_archive ? '' : 'a') + (props?.can_delete ? 'D' : 'd')
     return h(Link, {
         className: 'breadcrumb' + (disabled ? ' disabled' : ''),
         href: path || '/',

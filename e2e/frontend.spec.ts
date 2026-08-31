@@ -306,6 +306,29 @@ test('frontend-admin', async ({ page }) => {
     await expect(page1).toHaveTitle(/HFS Admin-panel/)
 })
 
+test('current breadcrumb uses current folder delete permission', async ({ page }) => {
+    await page.goto(FRONTEND_URL + 'f1/')
+    await expect(page.getByRole('link', { name: 'f2, Folder' })).toBeVisible()
+    const breadcrumb = page.locator('.breadcrumb').last()
+
+    await page.evaluate(() => Object.assign((window as any).HFS.state.props, {
+        can_delete: false,
+        can_delete_children: true,
+    }))
+    await breadcrumb.click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByRole('heading', { name: 'Folder menu' })).toBeVisible()
+    await expect(dialog.locator('#menu-entry-rename')).toHaveCount(0)
+    await dialog.getByRole('button', { name: 'Close' }).click()
+
+    await page.evaluate(() => Object.assign((window as any).HFS.state.props, {
+        can_delete: true,
+        can_delete_children: false,
+    }))
+    await breadcrumb.click()
+    await expect(page.locator('#menu-entry-rename')).toBeVisible()
+})
+
 test('admin1', async ({ page }) => {
     await fs.promises.rm('tests/work/logs', { force: true, recursive: true }) // clear logs to have consistent screenshots
     const isPhone = await loginAdmin(page)
