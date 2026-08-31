@@ -49,6 +49,9 @@ test('around1', async ({ page }) => {
     await page.getByRole('link', { name: 'cantListBut, Folder' }).click()
     await page.getByText('x!WarningForbidden').click()
     await page.getByRole('button', { name: 'Close' }).click()
+    await page.getByRole('link', { name: 'cantListBut, Folder' }).click()
+    await expect(page.getByRole('alertdialog').getByText('Forbidden')).toBeVisible()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Close' }).click()
     await page.getByRole('link', { name: 'cantListPage, Folder' }).click()
     await page.getByRole('link', { name: 'alfa.txt' }).click()
     await expect(page.getByRole('dialog')).toMatchAriaSnapshot(`
@@ -629,6 +632,7 @@ test('file show keeps direction when skipping a broken image', async ({ page, br
         names.forEach(name => fs.rmSync(`tests/page/${name}`, { force: true }))
     }
 })
+
 test('file show stops auto-play after a broken last image', async ({ page, browserName }) => {
     if (browserName !== 'chromium') return
     const names = ['show-forward-a.png', 'show-forward-b.png']
