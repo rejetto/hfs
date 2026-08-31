@@ -5,7 +5,7 @@ import { navigate } from './App'
 import {
     createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState, useId
 } from 'react'
-import { useEventListener, useMediaQuery, useWindowSize } from 'usehooks-ts'
+import { useEventListener, useInterval, useMediaQuery, useWindowSize } from 'usehooks-ts'
 import {
     domOn, ErrorMsg, hIcon, onlyTruthy, prefix, isMac, isCtrlKey, hfsEvent, formatTimestamp, restartAnimation,
     anyDialogOpen, getHFS, useOnResize
@@ -280,9 +280,7 @@ function usePagedFilesList() {
 
 export function useMidnight() {
     const [midnight, setMidnight] = useState(calcMidnight)
-    useEffect(() => {
-        setTimeout(()=> setMidnight(calcMidnight()), 10 * 60_000) // refresh every 10 minutes
-    }, [])
+    useInterval(()=> setMidnight(calcMidnight()), 10 * 60_000) // refresh every 10 minutes
     return midnight
 
     function calcMidnight() {
