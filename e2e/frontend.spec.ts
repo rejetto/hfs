@@ -671,3 +671,18 @@ test('English option updates the page language', async ({ page }) => {
     await expect(page.locator('#options-button')).toHaveAttribute('aria-label', 'Options')
     await expect(content).toHaveAttribute('lang', 'en')
 })
+
+test('plugin icons render keycap emoji', async ({ page }) => {
+    await page.addInitScript(() => {
+        document.addEventListener('hfs.entryIcon', (event: Event) => {
+            const hfs = (window as any).HFS
+            ;(event as CustomEvent).detail.output.push(hfs.h(hfs.Icon, {
+                name: '1️⃣',
+                alt: 'plugin keycap icon',
+            }))
+        })
+    })
+    await page.goto(FRONTEND_URL)
+
+    await expect(page.getByRole('img', { name: 'plugin keycap icon' }).first()).toHaveText('1️⃣')
+})
