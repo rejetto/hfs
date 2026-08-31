@@ -686,3 +686,12 @@ test('plugin icons render keycap emoji', async ({ page }) => {
 
     await expect(page.getByRole('img', { name: 'plugin keycap icon' }).first()).toHaveText('1️⃣')
 })
+
+test('frontend polyfills are installed before shared code runs', async ({ page }) => {
+    await page.addInitScript(() => {
+        delete (Object as any).fromEntries
+    })
+    await page.goto(FRONTEND_URL)
+
+    await expect(page.locator('#options-button')).toBeVisible()
+})
