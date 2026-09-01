@@ -116,11 +116,9 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             }
             useEffect(() => {
                 const showElement = getShowElement()
-                try {
-                    if (!autoPlaying && !justOpen || !showElement) return
-                } finally {
-                    justOpen = false
-                }
+                const playOnOpen = justOpen
+                justOpen = false
+                if (!showElement || !autoPlaying && !playOnOpen) return
                 if (showElement instanceof HTMLMediaElement) {
                     showElement.play().catch(playFailed)
                     if (autoPlaying)
