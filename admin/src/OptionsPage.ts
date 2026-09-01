@@ -165,7 +165,7 @@ export default function OptionsPage() {
                     comp: SelectField,
                     sm: 4,
                     afterList: listenInterfaceOptions.some(x => x.disabled)
-                        && h(Box, { sx: { p: '8px 16px 0', borderTop: '1px solid', fontSize: 'small' } }, "Disabled addresses depend on the address you used to connect"),
+                        && h(Box, { sx: { p: '8px 16px 0', borderTop: '1px solid', fontSize: 'small' } }, "If an address is disabled, connect through it to select it" ),
                     options: listenInterfaceOptions,
                 },
                 { k: CFG.max_kbps,        ...maxSpeedDefaults, sm: 4, label: "Limit output", helperText: "Doesn't apply to localhost" },
