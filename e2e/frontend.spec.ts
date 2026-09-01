@@ -29,6 +29,7 @@ test('around1', async ({ page }) => {
     resetTimestamp()
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.getByRole('status')).toContainText('Logged in')
     await page.locator('div').filter({ hasText: 'Logged in' }).nth(3).click()
     await screenshot(page)
 

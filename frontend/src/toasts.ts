@@ -48,7 +48,7 @@ const toasts = proxy<ToastRecord[]>([])
 
 export function Toasts() {
     const snap = useSnapshot(toasts)
-    return h('div', { className: 'toasts' },
+    return h('div', { className: 'toasts', role: 'status' },
         snap.map(d =>
             h(Toast, { key: d.id, ...(d as any) }))
     )
