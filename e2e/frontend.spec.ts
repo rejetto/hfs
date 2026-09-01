@@ -144,15 +144,29 @@ test('around1', async ({ page }) => {
 
 test('search1', async ({ page }) => {
     resetTimestamp()
-    await gotoFrontend(page)
+    let listRequests = 0
+    page.on('request', request => {
+        if (request.url().includes('/api/get_file_list'))
+            ++listRequests
+    })
+    await gotoFrontend(page, FRONTEND_URL + '?lang=en')
     await page.getByRole('button', { name: 'Search' }).click()
     await page.locator('input[name="name"]').fill('a')
     await page.getByRole('button', { name: 'Continue' }).click()
     await expect(page.locator('#menu-panel')).toHaveCSS('flex-direction', 'column-reverse')
     await page.getByText('12 folders').click()
+    await expect.poll(() => page.evaluate(() => Object.fromEntries(new URL(location.href).searchParams)))
+        .toEqual({ lang: 'en', search: 'a' })
+    await expect(page.getByRole('link', { name: 'cantListPage/ alfa.txt' })).toBeVisible()
+    await page.waitForFunction(() => !(window as any).HFS.state.loading)
+    const beforeDialog = listRequests
     await page.getByRole('link', { name: 'cantListPage/ alfa.txt' }).click()
     await page.getByRole('button', { name: 'Close' }).click()
+    await page.waitForTimeout(500) // allow popstate to restart the list if state normalization is unstable
+    expect(listRequests).toBe(beforeDialog)
     await page.getByRole('button', { name: 'Clear search' }).click()
+    await expect.poll(() => page.evaluate(() => Object.fromEntries(new URL(location.href).searchParams)))
+        .toEqual({ lang: 'en' })
     await page.waitForFunction(() => !(window as any).HFS.state.loading)
 
     await page.getByRole('button', { name: 'Search' }).click()
@@ -202,6 +216,35 @@ test('search1', async ({ page }) => {
     await page.getByText('Use checkboxes to select the').click()
     await page.getByRole('button', { name: 'Close' }).click()
     await page.getByRole('textbox', { name: 'Type here to filter the list' }).click()
+})
+
+test('browser history restores search from the URL', async ({ page }) => {
+    await page.goto(FRONTEND_URL + '?search=a&lang=en')
+    await expect(page.getByRole('button', { name: 'Clear search' })).toBeVisible()
+    await page.evaluate(() => history.pushState(history.state, '', '/f1/?lang=en'))
+    await expect(page.getByRole('button', { name: 'Clear search' })).toHaveCount(0)
+
+    await page.goBack()
+    await expect(page.getByRole('button', { name: 'Clear search' })).toBeVisible()
+})
+
+test('numeric name sorting ignores prefix case', async ({ page }) => {
+    const names = ['numeric-case-2.txt', 'NUMERIC-CASE-10.txt']
+    await page.goto(FRONTEND_URL)
+    await expect.poll(() => page.evaluate(() => (window as any).HFS.state.loading)).toBe(false)
+    await page.evaluate(names => {
+        const HFS = (window as any).HFS
+        Object.assign(HFS.state, {
+            sort_by: 'name',
+            sort_numerics: false,
+            invert_order: false,
+        })
+        HFS.state.list = names.slice().reverse().map(name => new HFS.DirEntry('/' + name))
+        HFS.state.sort_numerics = true
+    }, names)
+
+    await expect.poll(() => page.locator('.entry-name').allTextContents()
+        .then(items => items.filter(name => names.includes(name)))).toEqual(names)
 })
 
 test('select all resets when the list reloads', async ({ page }) => {
