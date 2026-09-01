@@ -27,8 +27,13 @@ interface AlphabetGroup {
 export const Paging = memo(({ nPages, current, pageSize, list, changePage, changePageToIndex, atBottom }: PagingProps) => {
     const [alphabetOpen, setAlphabetOpen] = useState(false)
     useEffect(() => {
-        document.body.style.overflowY = 'scroll'
-        return () => { document.body.style.overflowY = '' }
+        const { style } = document.body
+        if (style.overflowY) return
+        // keep an existing scroll lock and only clean up the style this component still owns
+        style.overflowY = 'scroll'
+        return () => {
+            if (style.overflowY === 'scroll') style.overflowY = ''
+        }
     }, [])
     const lastScrollTimeRef = useRef(0)
     useEffect(() => domOn('scroll', () => lastScrollTimeRef.current = Date.now()), [])

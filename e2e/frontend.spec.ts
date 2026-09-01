@@ -1,5 +1,6 @@
 import { test, expect, Page } from '@playwright/test'
 import fs from 'fs'
+import { createServer, ServerResponse } from 'node:http'
 import { wait } from '../src/cross'
 import {
     clickAdminMenu, clickIconBtn, forwardConsole, gotoFrontend, loginAdmin, password, resetTimestamp, FRONTEND_URL, username, TEST_PORT
@@ -248,6 +249,66 @@ test('filter resets paging when the first entry stays the same', async ({ page }
     await page.locator('#filter').fill('cant')
     await expect(page.getByText('5 filtered')).toBeVisible()
     await expect(page.getByRole('link', { name: 'cantListBut, Folder' })).toBeVisible()
+})
+
+test('paging preserves the Options scroll lock when a folder finishes loading', async ({ page }) => {
+    const folder = fs.mkdtempSync('tests/tmp/paging-dialog-')
+    const uri = '/for-admins/upload/' + folder.split('/').pop() + '/'
+    let stream: ServerResponse | undefined
+    let firstBatch = ''
+    let lastBatch = ''
+    // relay the real listing in two batches so Paging mounts while Options owns the scroll lock
+    const server = createServer((_, response) => {
+        stream = response
+        response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Access-Control-Allow-Origin': '*' })
+        response.write(firstBatch)
+    })
+    try {
+        for (let i = 0; i < 101; i++)
+            fs.writeFileSync(`${folder}/file-${i}.txt`, '')
+        await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
+        const address = server.address()
+        if (!address || typeof address === 'string') throw Error('Missing listing relay address')
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login', exact: true }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue', exact: true }).click()
+        await expect(page.getByRole('button', { name: username, exact: true })).toBeVisible()
+        // fetch in the browser to preserve its authenticated cookies, including WebKit on IPv6
+        const listing = await page.evaluate(async uri => (await fetch('/~/api/get_file_list?uri=' + encodeURIComponent(uri), {
+            headers: { Accept: 'text/event-stream' },
+        })).text(), uri)
+        const records = listing.split('\n\n')
+            .filter(line => line.startsWith('data: ') && line.slice(6).trim())
+            .flatMap(line => JSON.parse(line.slice(6)))
+        expect(records.filter(([op]: [string]) => op === '+')).toHaveLength(101)
+        const last = records.findLastIndex(([op]: [string]) => op === '+')
+        firstBatch = `data: ${JSON.stringify(records.slice(0, last))}\n\n`
+        lastBatch = `data: ${JSON.stringify(records.slice(last))}\n\ndata:\n\n`
+        await page.route(url => url.pathname === '/~/api/get_file_list' && url.searchParams.get('uri') === uri,
+            route => route.continue({ url: `http://127.0.0.1:${address.port}/` }))
+        await page.goto(new URL(uri, FRONTEND_URL).href)
+        await expect(page.locator('.dir .entry-name')).toHaveCount(100)
+        await expect(page.locator('#paging')).toHaveCount(0)
+        await page.getByRole('button', { name: 'Options', exact: true }).click()
+        const options = page.getByRole('dialog')
+        await expect(options.getByRole('heading', { name: 'Options', exact: true })).toBeVisible()
+        await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).overflowY)).toBe('hidden')
+        stream!.end(lastBatch)
+        await expect(page.locator('#paging')).toBeAttached()
+        await expect(options).toBeVisible()
+        await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).overflowY)).toBe('hidden')
+        await options.getByRole('button', { name: 'Close', exact: true }).click()
+        await expect(options).toHaveCount(0)
+        await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).overflowY)).not.toBe('hidden')
+    }
+    finally {
+        stream?.end()
+        server.closeAllConnections()
+        await new Promise<void>(resolve => server.close(() => resolve()))
+        fs.rmSync(folder, { recursive: true, force: true })
+    }
 })
 
 test('mobile timestamps keep updating after the first refresh', async ({ page }) => {
