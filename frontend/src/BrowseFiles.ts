@@ -98,7 +98,7 @@ function usePagedFilesList() {
     const pageEnd = offset + pageSize * (1+extraPages) - 1
     const thisPage = theList.slice(offset, pageEnd + 1)
 
-    useEffect(() => setOffset(0), [theList[0], snap.patternFilter]) // reset page if the list or filter changes
+    useEffect(() => setOffset(0), [theList[0], snap.patternFilter, pageSize]) // reset page if the list, filter or page size changes
     // reset scrolling if the page changes
     useEffect(() => {
         document.scrollingElement?.scrollTo(0, 0)
