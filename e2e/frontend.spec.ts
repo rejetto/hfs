@@ -823,8 +823,14 @@ test('frontend polyfills are installed before shared code runs', async ({ page }
     await expect(page.locator('#options-button')).toBeVisible()
 })
 
-test('cut is disabled without a selection', async ({ page }) => {
+test('cut is disabled without a selection', async ({ page, browserName }) => {
     await gotoFrontend(page, FRONTEND_URL + 'for-admins/upload/')
+    if (browserName === 'chromium') {
+        const dialog = page.getByRole('dialog')
+        await expect(dialog).toBeVisible()
+        await page.getByRole('textbox', { name: 'Username' }).press('Escape')
+        await expect(dialog).toBeVisible()
+    }
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('textbox', { name: 'Password' }).fill(password)
     await page.getByRole('button', { name: 'Continue' }).click()

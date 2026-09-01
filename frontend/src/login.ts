@@ -53,11 +53,11 @@ export function logout() {
 export let closeLoginDialog: undefined | (() => void)
 let lastPromise: Promise<any>
 export async function loginDialog(closable=true, reloadAfter=true) {
+    if (fallbackToBasicAuth())
+        return location.href = '/?get=login'
+    if (closeLoginDialog)
+        return lastPromise
     return lastPromise = new Promise(resolve => {
-        if (fallbackToBasicAuth())
-            return location.href = '/?get=login'
-        if (closeLoginDialog)
-            return lastPromise // this refers to the previous promise, as lastPromise wille be updated only after this function ends
         let going = false
         const { close } = newDialog({
             closable,
@@ -132,7 +132,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
 
                 function onKeyDown(ev: KeyboardEvent) {
                     const { key } = ev
-                    if (key === 'Escape')
+                    if (key === 'Escape' && closable)
                         return close(null)
                     if (key === 'Enter')
                         return go(ev)
