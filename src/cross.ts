@@ -367,7 +367,7 @@ export function isAsyncIterable<T>(iterable: AsyncIterable<T> | Iterable<T>): it
     return Symbol.asyncIterator in iterable
 }
 
-export async function* filterMapGenerator<IN,OUT>(generator: AsyncIterableIterator<IN>, filterMap: (el: IN) => Promise<OUT>) {
+export async function* filterMapGenerator<IN,OUT>(generator: Iterable<IN> | AsyncIterable<IN>, filterMap: (el: IN) => OUT | Promise<OUT>) {
     for await (const x of generator) {
         const res:OUT = await filterMap(x)
         if (res !== undefined)
