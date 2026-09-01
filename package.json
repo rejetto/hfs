@@ -26,6 +26,7 @@
     "port-is-free": "node -e \"const port=process.argv[1]||8081;process.exit(await fetch('http://localhost:'+port).then(() => console.log('BUSY')||1, () => 0))\" --",
     "test-ui": "npm run port-is-free -- 8081 && rm -rf tests/work tests/work2 tests/tmp && npx playwright test frontend && npx playwright test serial && npx playwright test admin-vfs",
     "test-with-ui": "sh -c 'npm run port-is-free -- 3005 && npm run start-frontend & npm run port-is-free -- 3006 && npm run start-admin & cross-env TEST_WITH_UI=1 npx playwright test --ui \"$@\"' --",
+    "prepublishOnly": "node -e \"const p=require('./package.json'); if (p.devDependencies || p.workspaces || p.scripts?.postinstall) throw Error('run npm run dist-modules before publishing')\"",
     "pub": "cd dist && npm publish",
     "dist": "STASHED=; STASH_BEFORE=$(git rev-parse -q --verify refs/stash || true); git update-index -q --refresh; if ! git diff-index --quiet HEAD --; then git stash push -m 'dist' || exit $?; STASH_AFTER=$(git rev-parse -q --verify refs/stash || true); [ \"$STASH_AFTER\" != \"$STASH_BEFORE\" ] && STASHED=1; fi; npm audit --omit=dev --audit-level=moderate && CI=1 FORCE_COLOR=1 npm run dist-uncommitted; EXIT_CODE=$?; if [ -n \"$STASHED\" ]; then git stash pop || exit $?; fi; exit $EXIT_CODE",
     "dist-uncommitted": "npm audit --omit=dev --audit-level=moderate && rm -rf dist && npm run build-server && npm run test-with-server && (npm run build-frontend & fe=$!; npm run build-admin & ad=$!; wait $fe && wait $ad) && npm run test-ui && npm run dist-bin",
