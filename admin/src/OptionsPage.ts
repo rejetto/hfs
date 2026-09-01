@@ -65,15 +65,15 @@ export default function OptionsPage() {
 
     const admins = useApiEx('get_admins').data?.list
 
-    const hn = window.location.hostname
-    const isLH = hn === 'localhost'
-    const isV6 = hn.includes(':')
+    const connectionAddress = status?.connectionAddress
+    const isLH = window.location.hostname === 'localhost'
+    const isV6 = connectionAddress?.includes(':')
     const listenInterfaceOptions = [
         { label: "any", value: '', disabled: false },
-        { label: "any IPv4", value: '0.0.0.0', disabled: !isLH && isV6 },
-        { label: "any IPv6", value: '::', disabled: !isLH && !isV6 },
-        ...['127.0.0.1', '::1'].map(x => ({ label: x, value: x, disabled: !isLH && hn !== x })),
-        ...status?.ips?.map(x => ({ value: x, disabled: hn !== x })) || [],
+        { label: "any IPv4", value: '0.0.0.0', disabled: !isLH && (!connectionAddress || isV6) },
+        { label: "any IPv6", value: '::', disabled: !isLH && (!connectionAddress || !isV6) },
+        ...['127.0.0.1', '::1'].map(x => ({ label: x, value: x, disabled: !isLH && connectionAddress !== x })),
+        ...status?.ips?.map(x => ({ value: x, disabled: connectionAddress !== x })) || [],
     ]
 
     if (element)

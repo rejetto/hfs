@@ -15,7 +15,7 @@ import langApis from './api.lang'
 import netApis from './api.net'
 import logApis from './api.log'
 import certApis from './api.cert'
-import { getConnections } from './connections'
+import { getConnections, normalizeIp } from './connections'
 import { apiAssertTypes, CFG, debounceAsync, isLocalHost, makeNetMatcher, try_, typedEntries, waitFor } from './misc'
 import { accountCanLoginAdmin, accounts } from './perm'
 import Koa from 'koa'
@@ -141,7 +141,7 @@ export const adminApis = {
         return {}
     },
 
-    async get_status() {
+    async get_status(_params, ctx) {
         return {
             started: HFS_STARTED,
             build: BUILD_TIMESTAMP,
@@ -154,6 +154,7 @@ export const adminApis = {
             configFile: configFile.getPath(),
             urls: await getUrls(),
             ips: await getIps(false),
+            connectionAddress: normalizeIp(ctx.socket.localAddress || ''),
             baseUrl: await getBaseUrlOrDefault(),
             roots: roots.get(),
             anyAccountCanLoginAdmin: anyAccountCanLoginAdmin(),

@@ -109,6 +109,11 @@ describe('basics', () => {
     test('frontend', req('/', /<body>/, { headers: { accept: '*/*' } })) // workaround: 'accept' is necessary when running server-for-test-dev, still don't know why
     test('frontend config defaults', reqApi('get_config', { only: Object.keys(FRONTEND_OPTIONS) },
         res => _.isEqual(res, FRONTEND_OPTIONS), { auth, jar: {} }))
+    test('status reports HFS connection address', reqApi('get_status', {},
+        res => res.connectionAddress === '::1', { auth, jar: {}, headers: {
+            'x-hfs-anti-csrf': '1',
+            host: 'proxy.example',
+        } }))
     test('force slash', req('/f1', 302, { noRedirect: true }))
     test('list', reqList('/f1/', { inList:['f2/', 'page/'] }))
     test('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
