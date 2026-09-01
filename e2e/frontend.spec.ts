@@ -909,8 +909,10 @@ test('English option updates the page language', async ({ page }) => {
     await expect(page.locator('#options-button')).toHaveAttribute('aria-label', 'Opzioni')
 
     await page.locator('#options-button').click()
+    await expect(page.getByRole('heading', { name: 'Opzioni' })).toBeVisible()
     await page.locator('#option-english input').check()
     await expect(page.locator('#options-button')).toHaveAttribute('aria-label', 'Options')
+    await expect(page.getByRole('heading', { name: 'Options' })).toBeVisible()
     await expect(content).toHaveAttribute('lang', 'en')
 })
 

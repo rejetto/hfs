@@ -2,17 +2,17 @@
 
 import { newDialog } from './dialog'
 import { state, useSnapState } from './state'
-import { createElement as h } from 'react'
+import { createElement as h, Fragment } from 'react'
 import { Checkbox, FlexV, Select } from './components'
 import { getHFS, hIcon, MAX_TILE_SIZE, SORT_BY_OPTIONS, THEME_OPTIONS } from './misc'
 import { MenuLink } from './menu'
 import _ from 'lodash'
 import i18n from './i18n'
-const { t, useI18N } = i18n
+const { useI18N } = i18n
 
 export function showOptions (){
     newDialog({
-        title: t`Options`,
+        title: () => h(Fragment, {}, useI18N().t(`Options`)),
         className: 'options-dialog',
         icon: () => hIcon('options'),
         Content
