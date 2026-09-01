@@ -7,7 +7,7 @@ import { alertDialog, Dialogs } from './dialog'
 import useTheme from "./useTheme"
 import { state, useSnapState } from './state'
 import { acceptDropFiles } from './upload'
-import { enqueueUpload, getFilePath, uploadState } from './uploadQueue'
+import { enqueueUpload, uploadState } from './uploadQueue'
 import { proxy, ref, useSnapshot } from "valtio"
 import _ from 'lodash'
 import { CustomCode, Spinner } from "./components"
@@ -35,12 +35,13 @@ export default function App() {
     installScript() // do this only after React has started working
     return h('div', {
         ...i18nWrapperProps(),
-        ...acceptDropFiles((files, to) => {
+        ...acceptDropFiles(() => {
             if (uploadState.uploadDialogIsOpen) // in this case the upload is not started until confirmed
-                uploadState.adding.push(...files.map(f => ({ file: ref(f), path: to + getFilePath(f) })))
-            else
-                state.props?.can_upload ? enqueueUpload(files.map(file => ({ file, path: to + getFilePath(file) })))
-                    : alertDialog(t("Upload not available"), 'warning')
+                return files => uploadState.adding.push(...files.map(x => ({ ...x, file: ref(x.file) })))
+            const { can_upload, accept='' } = state.props || {}
+            const destination = location.pathname
+            return can_upload ? files => enqueueUpload(files, destination, accept)
+                : () => alertDialog(t("Upload not available"), 'warning')
         })
     },
         h(Toasts),

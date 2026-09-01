@@ -1,10 +1,10 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, DragEvent, Fragment, useMemo, useState, useEffect, CSSProperties } from 'react'
+import { createElement as h, DragEvent, Fragment, useMemo, useState, useEffect, useRef, CSSProperties } from 'react'
 import { Btn, Flex, FlexV, iconBtn, Select } from './components'
 import {
     basename, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, selectFiles, working, copyTextToClipboard,
-    HTTP_CONFLICT, formatSpeed, getHFS, onlyTruthy, cpuSpeedIndex, closeDialog, prefix, operationSuccessful, pathEncode,
+    HTTP_CONFLICT, formatSpeed, getHFS, onlyTruthy, closeDialog, prefix, operationSuccessful, pathEncode,
     getPrefixUrl, HTTP_NOT_FOUND, dirname, UPLOAD_TEMP_PREFIX,
 } from './misc'
 import _ from 'lodash'
@@ -185,7 +185,7 @@ export function showUpload() {
 
         function pickFiles(options: Parameters<typeof selectFiles>[1]) {
             selectFiles(list => {
-                uploadState.adding.push( ...Array.from(list || []).filter(simulateBrowserAccept)
+                uploadState.adding.push( ...Array.from(list || []).filter(x => simulateBrowserAccept(x))
                     .map(f => ({ file: ref(f), path: getFilePath(f) })) )
             }, options)
         }
@@ -196,14 +196,21 @@ export function showUpload() {
 function FileList({ entries, actions }: { entries: ToUpload[], actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
     const { uploading, progress, partial, hashing }  = useSnapshot(uploadState)
     const snapEntries = useSnapshot(entries)
+    const firstBatch = useRef(0)
     const [all, setAll] = useState(false)
-    useEffect(() => setAll(false), [entries.length])
-    const MAX = all ? Infinity : _.round(_.clamp(100 * cpuSpeedIndex, 10, 100))
-    const rest = Math.max(0, snapEntries.length - MAX)
+    // freeze the first render budget so later scan batches only update the lightweight "more" row
+    firstBatch.current ||= Math.min(snapEntries.length, 100)
+    useEffect(() => {
+        setAll(false)
+        if (!entries.length)
+            firstBatch.current = 0
+    }, [entries.length])
+    const max = all ? Infinity : firstBatch.current
+    const rest = Math.max(0, snapEntries.length - max)
     const title = formatPerc(progress)
     return !snapEntries.length ? null : h('table', { className: 'upload-list', width: '100%' },
         h('tbody', {},
-            snapEntries.slice(0, MAX).map((e, i) => {
+            snapEntries.slice(0, max).map((e, i) => {
                 const working = e.file === uploading?.file // e is a proxy, so we check 'file' as it's a ref
                 return h(Fragment, { key: i },
                     h('tr', {},
@@ -223,7 +230,7 @@ function FileList({ entries, actions }: { entries: ToUpload[], actions: { [icon:
                     e.comment && h('tr', {}, h('td', { colSpan: 3 }, h('div', { className: 'entry-comment' }, e.comment)) )
                 )
             }),
-            rest > 0 && h('tr', {}, h('td', { colSpan: 99 }, h('a', { href: '#', onClick: () => setAll(true) }, t('more_items', { n: rest }, "{n} more item(s)"))))
+            rest > 0 && h('tr', {}, h('td', { colSpan: 99 }, h(Btn, { asText: true, label: t('more_items', { n: rest }, "{n} more item(s)"), onClick: () => setAll(true) })))
         )
     )
 }
@@ -316,27 +323,43 @@ export function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snaps
     }
 }
 
-export function acceptDropFiles(cb: false | undefined | ((files:File[], to: string) => void)) {
+export function acceptDropFiles(makeConsumer: false | undefined | (() => (files: ToUpload[]) => void)) {
     return {
         onDragOver(ev: DragEvent) {
             ev.preventDefault()
-            ev.dataTransfer!.dropEffect = cb && ev.dataTransfer.types.includes('Files') ? 'copy' : 'none'
+            ev.dataTransfer!.dropEffect = makeConsumer && ev.dataTransfer.types.includes('Files') ? 'copy' : 'none'
         },
         onDrop(ev: DragEvent) {
             ev.preventDefault()
-            if (!cb) return
+            if (!makeConsumer) return
+            const acceptFiles = makeConsumer() // preserve staging, destination and filters while the asynchronous scan runs
+            const files: ToUpload[] = []
+            // per-file Valtio updates freeze large drops; report progress at most once per second and flush on completion
+            const flush = _.throttle(() => acceptFiles(files.splice(0)), 1_000, { leading: false })
+            const pending: Promise<void>[] = []
             for (const it of ev.dataTransfer.items) {
                 const entry = it.webkitGetAsEntry()
                 if (entry)
-                    (function recur(entry: FileSystemEntry, to = '') {
-                        if (entry.isFile)
-                            (entry as FileSystemFileEntry).file(x => cb([x], x.webkitRelativePath ? '' : to)) // ff130 fills webkitRelativePath when dropping a folder, while chrome128 doesn't and we pass 'to' to preserve the structure
-                        else (entry as FileSystemDirectoryEntry).createReader?.().readEntries(entries => {
-                            const newTo = to + entry.name + '/'
-                            for (const e of entries)
-                                recur(e, newTo)
-                        })
-                    })(entry)
+                    pending.push(readEntry(entry))
+            }
+            void Promise.all(pending).then(flush.flush)
+
+            async function readEntry(entry: FileSystemEntry, to = ''): Promise<void> {
+                if (entry.isFile)
+                    return new Promise(resolve => (entry as FileSystemFileEntry).file(file => {
+                        files.push({ file, path: (file.webkitRelativePath ? '' : to) + getFilePath(file) }) // Firefox supplies the path itself; Chromium needs `to`
+                        flush()
+                        resolve()
+                    }))
+
+                const reader = (entry as FileSystemDirectoryEntry).createReader?.()
+                const entries: FileSystemEntry[] = []
+                while (reader) {
+                    const batch = await new Promise<FileSystemEntry[]>(resolve => reader.readEntries(resolve))
+                    if (!batch.length) break // directory readers signal completion with an empty batch
+                    entries.push(...batch)
+                }
+                await Promise.all(entries.map(x => readEntry(x, to + entry.name + '/')))
             }
         },
     }

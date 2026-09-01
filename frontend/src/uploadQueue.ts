@@ -248,8 +248,8 @@ subscribe(uploadState, () => {
         void startUpload(cur.entries[0], cur.to)
 })
 
-export async function enqueueUpload(entries: ToUpload[], to=location.pathname) {
-    if (_.remove(entries, x => !simulateBrowserAccept(x.file)).length)
+export async function enqueueUpload(entries: ToUpload[], to=location.pathname, accept=state.props?.accept) {
+    if (_.remove(entries, x => !simulateBrowserAccept(x.file, accept)).length)
         await alertDialog(t('upload_file_rejected', "Some files were not accepted"), 'warning')
 
     entries = _.uniqBy(entries, x => x.path)
@@ -262,10 +262,9 @@ export async function enqueueUpload(entries: ToUpload[], to=location.pathname) {
     q.entries.push(...missing.map(ref))
 }
 
-export function simulateBrowserAccept(f: File) {
-    const { props } = state
-    if (!props?.accept) return true
-    return normalizeAccept(props?.accept)!.split(/ *[|,] */).some(pattern =>
+export function simulateBrowserAccept(f: File, accept=state.props?.accept) {
+    if (!accept) return true
+    return normalizeAccept(accept)!.split(/ *[|,] */).some(pattern =>
         pattern.startsWith('.') ? f.name.endsWith(pattern)
             : f.type.match(pattern.replace('.','\\.').replace('*', '.*')) // '.' for .ext and '*' for 'image/*'
     )

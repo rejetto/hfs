@@ -1,5 +1,6 @@
 import { expect, test, type ConsoleMessage, type Page, type Request, type Response, type TestInfo } from '@playwright/test'
 import fs from 'fs'
+import { randomUUID } from 'node:crypto'
 import { ADMIN_URL, clearUploads, clickAdminMenu, clickIconBtn, gotoFrontend, loginAdmin, password, uploadName, FRONTEND_URL, username } from './common'
 
 // this test is separated to run serially, as it will modify folder timestamp for a few seconds, during which other tests may fail
@@ -181,7 +182,7 @@ export const fileToUpload = {
     buffer: Buffer.alloc(100_000),
 }
 
-test('dropped folder keeps its path while staged', async ({ page }) => {
+test('dropped folder reads all entry batches while staged', async ({ page }) => {
     await gotoFrontend(page)
     await page.getByRole('button', { name: 'Login' }).click()
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
@@ -192,18 +193,18 @@ test('dropped folder keeps its path while staged', async ({ page }) => {
     await page.getByRole('button', { name: 'Upload' }).click()
 
     await page.locator('#root > div').evaluate(root => {
-        const file = new File(['test'], 'file.txt')
-        const entry = {
+        const entries = ['first.txt', 'second.txt'].map(name => ({
             isFile: true,
             file(callback: (file: File) => void) {
-                callback(file)
+                callback(new File(['test'], name))
             },
-        }
+        }))
         const directory = {
             isFile: false,
             name: 'nested',
             createReader() {
-                return { readEntries: (callback: (entries: typeof entry[]) => void) => callback([entry]) }
+                let batch = 0
+                return { readEntries: (callback: (batchEntries: typeof entries) => void) => callback(entries.slice(batch, ++batch)) }
             },
         }
         const event = new Event('drop', { bubbles: true, cancelable: true })
@@ -213,10 +214,123 @@ test('dropped folder keeps its path while staged', async ({ page }) => {
         root.dispatchEvent(event)
     })
 
-    await expect(page.locator('.upload-list').getByText('nested/file.txt', { exact: true })).toBeVisible()
+    await expect(page.locator('.upload-list').getByText('nested/first.txt', { exact: true })).toBeVisible()
+    await expect(page.locator('.upload-list').getByText('nested/second.txt', { exact: true })).toBeVisible()
+})
+
+test('file picker keeps the initial upload list capped at 100 items', async ({ page }) => {
+    await gotoFrontend(page)
+    await page.getByRole('button', { name: 'Login' }).click()
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('link', { name: 'for-admins, Folder' }).click()
+    await page.getByRole('link', { name: 'upload, Folder' }).click()
+    await page.getByRole('button', { name: 'Upload' }).click()
+    const chooser = page.waitForEvent('filechooser')
+    await page.getByRole('button', { name: 'Pick files' }).click()
+    await (await chooser).setFiles(Array.from({ length: 101 }, (_, i) => ({
+        name: `picked-${i}.txt`,
+        mimeType: 'text/plain',
+        buffer: Buffer.from('test'),
+    })))
+
+    const stagedFiles = page.locator('.upload-list')
+    await expect(stagedFiles.getByText(/^picked-\d+\.txt$/)).toHaveCount(100)
+    await expect(stagedFiles.getByText('picked-100.txt', { exact: true })).toHaveCount(0)
+    await stagedFiles.getByRole('button', { name: '1 more item(s)' }).click()
+    await expect(stagedFiles.getByText('picked-100.txt', { exact: true })).toBeVisible()
+
+    const nextChooser = page.waitForEvent('filechooser')
+    await page.getByRole('button', { name: 'Pick files' }).click()
+    await (await nextChooser).setFiles({ name: 'picked-101.txt', mimeType: 'text/plain', buffer: Buffer.from('test') })
+    await expect(stagedFiles.getByText('picked-100.txt', { exact: true })).toHaveCount(0)
+    await expect(stagedFiles.getByRole('button', { name: '2 more item(s)' })).toBeVisible()
+})
+
+test('dropped folder keeps staging mode while batching updates', async ({ page }) => {
+    // each execution owns its upload directory, including concurrent browser projects
+    const folderName = 'nested-' + randomUUID()
+    const folderPath = `tests/tmp/${folderName}`
+    try {
+        let putRequests = 0
+        page.on('response', response => {
+            if (response.request().method() === 'PUT' && response.ok())
+                putRequests++
+        })
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await page.getByRole('link', { name: 'for-admins, Folder' }).click()
+        await page.getByRole('link', { name: 'upload, Folder' }).click()
+        await page.getByRole('button', { name: 'Upload' }).click()
+        const uploadDialog = page.locator('#upload-dialog')
+
+        await page.clock.install()
+        await page.locator('#root > div').evaluate((root, folderName) => {
+            const entries = ['first.txt', 'second.txt'].map((name, i) => ({
+                isFile: true,
+                file(callback: (file: File) => void) {
+                    const done = () => callback(new File(['test'], name))
+                    if (i) (window as any).finishDrop = done
+                    else done()
+                },
+            }))
+            const directory = {
+                isFile: false,
+                name: folderName,
+                createReader() {
+                    let done = false
+                    return { readEntries(callback: (entries: typeof entries) => void) {
+                        callback(done ? [] : (done = true, entries))
+                    } }
+                },
+            }
+            const event = new Event('drop', { bubbles: true, cancelable: true })
+            Object.defineProperty(event, 'dataTransfer', { value: {
+                items: [{ webkitGetAsEntry: () => directory }],
+            } })
+            root.dispatchEvent(event)
+        }, folderName)
+
+        await expect.poll(() => page.evaluate(() => typeof (window as any).finishDrop)).toBe('function')
+        await page.clock.runFor(32)
+        await expect(page.getByText(/1 file, .*ready to upload/)).toHaveCount(0)
+        await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click()
+        await page.clock.runFor(968)
+        await page.getByRole('button', { name: 'Upload' }).click()
+        await expect(page.getByText(/1 file, .*ready to upload/)).toBeVisible()
+        const stagedFiles = page.locator('.upload-list')
+        await expect(stagedFiles.getByText(`${folderName}/first.txt`, { exact: true })).toBeVisible()
+        await expect(stagedFiles.getByText(`${folderName}/second.txt`, { exact: true })).toHaveCount(0)
+        await page.evaluate(() => (window as any).finishDrop())
+        await page.clock.resume()
+        await expect(page.getByText(/2 files, .*ready to upload/)).toBeVisible()
+        await expect(stagedFiles.getByText(`${folderName}/second.txt`, { exact: true })).toHaveCount(0)
+        const uploadUrl = page.url()
+        await stagedFiles.getByRole('button', { name: '1 more item(s)' }).click()
+        await expect(stagedFiles.getByText(`${folderName}/second.txt`, { exact: true })).toBeVisible()
+        await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+        await expect(uploadDialog).toBeVisible()
+        expect(page.url()).toBe(uploadUrl)
+        expect(putRequests).toBe(0)
+        await uploadDialog.locator('button.upload-send').click()
+        await expect.poll(() => putRequests).toBe(2)
+        await uploadDialog.getByRole('button', { name: 'Close' }).click()
+        await page.getByRole('link', { name: `${folderName}, Folder` }).click()
+        await expect(page.getByRole('link', { name: 'first.txt' })).toBeVisible()
+        await expect(page.getByRole('link', { name: 'second.txt' })).toBeVisible()
+    }
+    finally {
+        fs.rmSync(folderPath, { recursive: true, force: true })
+    }
 })
 
 test('dropped folder encodes its destination when uploaded immediately', async ({ page }) => {
+    const pageErrors: Error[] = []
+    page.on('pageerror', error => pageErrors.push(error))
     await page.route('**/*', route => route.request().method() === 'PUT'
         ? route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
         : route.continue())
@@ -242,7 +356,12 @@ test('dropped folder encodes its destination when uploaded immediately', async (
             isFile: false,
             name: 'unsafe #?%',
             createReader() {
-                return { readEntries: (callback: (entries: typeof entry[]) => void) => callback([entry]) }
+                let done = false
+                return { readEntries(callback: (entries: typeof entry[]) => void) {
+                    const entries = done ? [] : [entry]
+                    done = true
+                    callback(entries)
+                } }
             },
         }
         const event = new Event('drop', { bubbles: true, cancelable: true })
@@ -254,6 +373,7 @@ test('dropped folder encodes its destination when uploaded immediately', async (
 
     expect(new URL((await uploadRequest).url()).pathname)
         .toBe('/for-admins/upload/unsafe%20%23%3F%25/file.txt')
+    expect(pageErrors).toEqual([])
 })
 
 test('upload1', async ({ page, context, browserName }, testInfo) => {
