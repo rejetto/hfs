@@ -2,7 +2,7 @@ import { test, expect, Page } from '@playwright/test'
 import fs from 'fs'
 import { wait } from '../src/cross'
 import {
-    clickAdminMenu, clickIconBtn, forwardConsole, loginAdmin, password, resetTimestamp, FRONTEND_URL, username, TEST_PORT
+    clickAdminMenu, clickIconBtn, forwardConsole, gotoFrontend, loginAdmin, password, resetTimestamp, FRONTEND_URL, username, TEST_PORT
 } from './common'
 
 const screenshotStyle = fs.readFileSync('e2e/screenshot.css', 'utf8')
@@ -12,7 +12,7 @@ const screenshotCounters = new WeakMap<object, number>()
 test('around1', async ({ page }) => {
     forwardConsole(page)
     resetTimestamp()
-    await page.goto(FRONTEND_URL)
+    await gotoFrontend(page)
     await expect(page).toHaveTitle(/File server/)
     await screenshot(page)
     await page.getByRole('button', { name: 'Login' }).click()
@@ -142,7 +142,7 @@ test('around1', async ({ page }) => {
 
 test('search1', async ({ page }) => {
     resetTimestamp()
-    await page.goto(FRONTEND_URL)
+    await gotoFrontend(page)
     await page.getByRole('button', { name: 'Search' }).click()
     await page.locator('input[name="name"]').fill('a')
     await page.getByRole('button', { name: 'Continue' }).click()
@@ -200,7 +200,7 @@ test('search1', async ({ page }) => {
 })
 
 test('select all resets when the list reloads', async ({ page }) => {
-    await page.goto(FRONTEND_URL + 'for-admins/upload/')
+    await gotoFrontend(page, FRONTEND_URL + 'for-admins/upload/')
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('textbox', { name: 'Password' }).fill(password)
@@ -235,7 +235,7 @@ test('select all resets when the list reloads', async ({ page }) => {
 })
 
 test('filter resets paging when the first entry stays the same', async ({ page }) => {
-    await page.goto(FRONTEND_URL)
+    await gotoFrontend(page)
     await expect(page.getByRole('link', { name: 'cantListBut, Folder' })).toBeVisible()
     await page.evaluate(() => (window as any).HFS.state.page_size = 3)
     await page.locator('#paging > button').last().click()
@@ -250,7 +250,7 @@ test('filter resets paging when the first entry stays the same', async ({ page }
 test('mobile timestamps keep updating after the first refresh', async ({ page }) => {
     await page.setViewportSize({ width: 600, height: 700 })
     await page.clock.install({ time: new Date('2026-08-31T23:55:00+02:00') })
-    await page.goto(FRONTEND_URL)
+    await page.goto(FRONTEND_URL) // this test takes control of the initial listing with the mocked clock
     await page.clock.runFor(2_000)
     await page.evaluate(() => {
         const hfs = (window as any).HFS
@@ -272,7 +272,7 @@ test('mobile timestamps keep updating after the first refresh', async ({ page })
 })
 
 test('stopping a regular listing is not labeled as a search', async ({ page }) => {
-    await page.goto(FRONTEND_URL)
+    await page.goto(FRONTEND_URL) // this test intentionally changes state while the initial listing is active
     await page.evaluate(() => (window as any).HFS.state.searchManuallyInterrupted = true)
     const icon = page.locator('#folder-stats [title="Interrupted"]')
     await expect(icon).toBeVisible()
@@ -280,7 +280,7 @@ test('stopping a regular listing is not labeled as a search', async ({ page }) =
 })
 
 test('text buttons support keyboard activation', async ({ page }) => {
-    await page.goto(FRONTEND_URL)
+    await gotoFrontend(page)
     const folder = page.getByRole('listitem').filter({ has: page.getByRole('link', { name: 'f1, Folder' }) })
     await folder.getByRole('button', { name: 'Menu' }).click()
     const calculate = page.getByRole('button', { name: 'Calculate' })
@@ -305,8 +305,7 @@ test('text buttons support keyboard activation', async ({ page }) => {
 })
 
 test('async custom entry content ignores stale results', async ({ page }) => {
-    await page.goto(FRONTEND_URL)
-    await page.waitForFunction(() => !(window as any).HFS.state.loading)
+    await gotoFrontend(page)
     await page.evaluate(() => {
         const HFS = (window as any).HFS
         const resolvers = (window as any).customCodeResolvers = {} as Record<string, (value: string) => void>
@@ -336,7 +335,7 @@ test('async custom entry content ignores stale results', async ({ page }) => {
 })
 
 test('frontend-admin', async ({ page }) => {
-    await page.goto(FRONTEND_URL, { waitUntil: 'networkidle' })
+    await gotoFrontend(page, FRONTEND_URL, { waitUntil: 'networkidle' })
     await page.evaluate(() => document.fonts.ready) // aspetta i font
     await page.getByRole('button', { name: 'Options' }).click()
     // no admin button yet,
@@ -375,7 +374,7 @@ test('frontend-admin', async ({ page }) => {
 })
 
 test('current breadcrumb uses current folder delete permission', async ({ page }) => {
-    await page.goto(FRONTEND_URL + 'f1/')
+    await gotoFrontend(page, FRONTEND_URL + 'f1/')
     await expect(page.getByRole('link', { name: 'f2, Folder' })).toBeVisible()
     const breadcrumb = page.locator('.breadcrumb').last()
 
@@ -556,10 +555,10 @@ test('anew', async ({ page, browserName }) => {
 })
 
 test('order field', async ({ page }) => {
-    await page.goto(FRONTEND_URL + 'renameChild/orderTest/')
+    await gotoFrontend(page, FRONTEND_URL + 'renameChild/orderTest/')
     await expect(page.getByText('orderTest')).toBeVisible()
     await expect(page.locator('.entry-name')).toHaveText(['B', 'A', 'C'])
-    await page.goto(FRONTEND_URL + 'renameChild/')
+    await gotoFrontend(page, FRONTEND_URL + 'renameChild/')
     await page.getByRole('link', { name: 'gui#%2, Folder' }).click()
     await expect(page.getByRole('link', { name: 'alfa.txt' })).toBeVisible()
     await expect(page.getByText('Not found')).not.toBeVisible()
@@ -575,13 +574,13 @@ test('renaming the current Unicode folder navigates to the new path', async ({ p
     fs.mkdirSync(sourcePath, { recursive: true })
     fs.writeFileSync(`${sourcePath}/inside.txt`, 'inside')
     try {
-        await page.goto(FRONTEND_URL)
+        await gotoFrontend(page)
         await page.getByRole('button', { name: 'Login' }).click()
         await page.getByRole('textbox', { name: 'Username' }).fill(username)
         await page.getByRole('textbox', { name: 'Password' }).fill(password)
         await page.getByRole('button', { name: 'Continue' }).click()
         await expect(page.getByRole('button', { name: username })).toBeVisible()
-        await page.goto(`${FRONTEND_URL}for-admins/upload/${encodeURIComponent(sourceName)}/`)
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/${encodeURIComponent(sourceName)}/`)
         await expect(page.getByRole('link', { name: 'inside.txt' })).toBeVisible()
 
         await page.locator('.breadcrumb').last().click()
@@ -618,8 +617,7 @@ test('plugin resolves a Unicode file element to its entry', async ({ page, brows
     fs.mkdirSync('tests/tmp', { recursive: true })
     fs.writeFileSync(path, 'entry')
     try {
-        await page.goto(FRONTEND_URL)
-        await page.waitForFunction(() => !(window as any).HFS.state.loading)
+        await gotoFrontend(page)
         const initial = await page.evaluate(() => {
             let value: unknown = 'callback not called'
             const unwatch = (window as any).HFS.watchState('upload.progress', (next: unknown) => value = next, true)
@@ -633,7 +631,7 @@ test('plugin resolves a Unicode file element to its entry', async ({ page, brows
         await page.getByRole('textbox', { name: 'Password' }).fill(password)
         await page.getByRole('button', { name: 'Continue' }).click()
         await expect(page.getByRole('button', { name: username })).toBeVisible()
-        await page.goto(`${FRONTEND_URL}for-admins/upload/`)
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/`)
 
         const found = await page.getByRole('link', { name }).evaluate(el =>
             Boolean((window as any).HFS.elementToEntry(el)))
@@ -652,13 +650,13 @@ test('file show does not advance ended media while auto-play is off', async ({ p
     names.forEach(name => fs.writeFileSync(`tests/tmp/${name}`, wav))
     await page.addInitScript(() => { HTMLMediaElement.prototype.play = async () => {} })
     try {
-        await page.goto(FRONTEND_URL)
+        await gotoFrontend(page)
         await page.getByRole('button', { name: 'Login' }).click()
         await page.getByRole('textbox', { name: 'Username' }).fill(username)
         await page.getByRole('textbox', { name: 'Password' }).fill(password)
         await page.getByRole('button', { name: 'Continue' }).click()
         await expect(page.getByRole('button', { name: username })).toBeVisible()
-        await page.goto(`${FRONTEND_URL}for-admins/upload/`)
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/`)
         await page.getByRole('link', { name: names[0], exact: true }).click()
         await page.getByRole('link', { name: 'Show' }).click()
         await expect(page.getByRole('button', { name: 'Auto-play' })).toHaveAttribute('aria-pressed', 'false')
@@ -678,7 +676,7 @@ test('file show keeps direction when skipping a broken image', async ({ page, br
     fs.writeFileSync(`tests/page/${names[1]}`, 'broken image')
     fs.copyFileSync('tests/page/gpl.png', `tests/page/${names[2]}`)
     try {
-        await page.goto(`${FRONTEND_URL}tests/page/`)
+        await gotoFrontend(page, `${FRONTEND_URL}tests/page/`)
         await page.getByRole('link', { name: names[2], exact: true }).click()
         await page.getByRole('link', { name: 'Show' }).click()
         await expect.poll(() => page.locator('.file-show img').evaluate(el => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
@@ -697,7 +695,7 @@ test('file show stops auto-play after a broken last image', async ({ page, brows
     fs.copyFileSync('tests/page/gpl.png', `tests/page/${names[0]}`)
     fs.writeFileSync(`tests/page/${names[1]}`, 'broken image')
     try {
-        await page.goto(`${FRONTEND_URL}tests/page/`)
+        await gotoFrontend(page, `${FRONTEND_URL}tests/page/`)
         await expect(page.getByRole('link', { name: names[1], exact: true })).toBeVisible()
         await page.evaluate(names => {
             const HFS = (window as any).HFS
@@ -719,7 +717,7 @@ test('file show stops auto-play after a broken last image', async ({ page, brows
 })
 
 test('English option updates the page language', async ({ page }) => {
-    await page.goto(FRONTEND_URL + '?lang=it')
+    await gotoFrontend(page, FRONTEND_URL + '?lang=it')
     const content = page.locator('#root > [lang]')
     await expect(content).toHaveAttribute('lang', 'it')
     await expect(page.locator('#options-button')).toHaveAttribute('aria-label', 'Opzioni')
@@ -740,7 +738,7 @@ test('plugin icons render keycap emoji', async ({ page }) => {
             }))
         })
     })
-    await page.goto(FRONTEND_URL)
+    await gotoFrontend(page)
 
     await expect(page.getByRole('img', { name: 'plugin keycap icon' }).first()).toHaveText('1️⃣')
 })
@@ -755,7 +753,7 @@ test('frontend polyfills are installed before shared code runs', async ({ page }
 })
 
 test('cut is disabled without a selection', async ({ page }) => {
-    await page.goto(FRONTEND_URL + 'for-admins/upload/')
+    await gotoFrontend(page, FRONTEND_URL + 'for-admins/upload/')
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('textbox', { name: 'Password' }).fill(password)
     await page.getByRole('button', { name: 'Continue' }).click()

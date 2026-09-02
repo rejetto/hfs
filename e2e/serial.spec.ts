@@ -1,5 +1,5 @@
 import { expect, test, type ConsoleMessage, type Page, type Request, type Response, type TestInfo } from '@playwright/test'
-import { ADMIN_URL, clearUploads, clickAdminMenu, clickIconBtn, loginAdmin, password, uploadName, FRONTEND_URL, username } from './common'
+import { ADMIN_URL, clearUploads, clickAdminMenu, clickIconBtn, gotoFrontend, loginAdmin, password, uploadName, FRONTEND_URL, username } from './common'
 
 // this test is separated to run serially, as it will modify folder timestamp for a few seconds, during which other tests may fail
 test.describe.configure({ mode: 'serial' }) // to disconnect the upload consistently, i need only 1 upload at a time
@@ -11,7 +11,7 @@ export const fileToUpload = {
 }
 
 test('dropped folder keeps its path while staged', async ({ page }) => {
-    await page.goto(FRONTEND_URL)
+    await gotoFrontend(page)
     await page.getByRole('button', { name: 'Login' }).click()
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('textbox', { name: 'Password' }).fill(password)
@@ -49,7 +49,7 @@ test('dropped folder encodes its destination when uploaded immediately', async (
     await page.route('**/*', route => route.request().method() === 'PUT'
         ? route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
         : route.continue())
-    await page.goto(FRONTEND_URL)
+    await gotoFrontend(page)
     await page.getByRole('button', { name: 'Login' }).click()
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('textbox', { name: 'Password' }).fill(password)
@@ -89,7 +89,7 @@ test('upload1', async ({ page, context, browserName }, testInfo) => {
     if (browserName !== 'chromium') return // only chromium has cdpSession
     const diagnostics = await startUpload1Diagnostics(page)
     try {
-        await page.goto(FRONTEND_URL)
+        await gotoFrontend(page)
         await page.getByRole('button', { name: 'Login' }).click()
         await page.getByRole('textbox', { name: 'Username' }).fill(username)
         await page.getByRole('textbox', { name: 'Password' }).fill(password)
