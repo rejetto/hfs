@@ -301,8 +301,10 @@ test('admin2', async ({ page, browserName }) => {
     await expect(page).toHaveURL(/#\/options\/frontend$/)
     await page.getByRole('button', { name: 'Reload' }).click()
     await firstOptionsTab.click()
-    await page.getByRole('row', { name: /^Blocked/ }).getByRole('button', { name: /Add/ }).click()
+    const blockedRow = page.getByRole('row', { name: /^Blocked/ })
+    await blockedRow.getByRole('button', { name: /Add/ }).press('Enter')
     const addDialog = page.getByRole('dialog', { name: /Add/ })
+    await expect(addDialog).toBeVisible()
     await addDialog.getByRole('textbox', { name: 'Blocked IP' }).fill('5.6.7.8')
     if (!isPhone) {
         // This field uses a masked input: selecting from picker is more reliable than typing.
