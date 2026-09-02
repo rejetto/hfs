@@ -328,6 +328,52 @@ test('dropped folder keeps staging mode while batching updates', async ({ page }
     }
 })
 
+test('dropped folder keeps its upload policy while batching updates', async ({ page }) => {
+    await page.route('**/*', route => route.request().method() === 'PUT'
+        ? route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+        : route.continue())
+    await gotoFrontend(page)
+    await page.getByRole('button', { name: 'Login' }).click()
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('link', { name: 'for-admins, Folder' }).click()
+    await page.getByRole('link', { name: 'upload, Folder' }).click()
+    await expect(page.getByRole('button', { name: 'Upload' })).toBeEnabled()
+
+    await page.evaluate(() => (window as any).HFS.state.uploadOnExisting = 'overwrite')
+    await page.clock.install()
+    const uploadRequest = page.waitForRequest(request => request.method() === 'PUT')
+    await page.locator('#root > div').evaluate(root => {
+        const entries = ['first.txt', 'second.txt'].map((name, i) => ({
+            isFile: true,
+            file(callback: (file: File) => void) {
+                if (i) return
+                callback(new File(['test'], name))
+            },
+        }))
+        const directory = {
+            isFile: false,
+            name: 'nested',
+            createReader() {
+                let done = false
+                return { readEntries(callback: (entries: typeof entries) => void) {
+                    callback(done ? [] : (done = true, entries))
+                } }
+            },
+        }
+        const event = new Event('drop', { bubbles: true, cancelable: true })
+        Object.defineProperty(event, 'dataTransfer', { value: {
+            items: [{ webkitGetAsEntry: () => directory }],
+        } })
+        root.dispatchEvent(event)
+    })
+    await page.evaluate(() => (window as any).HFS.state.uploadOnExisting = 'skip')
+    await page.clock.runFor(1_000)
+
+    expect(new URL((await uploadRequest).url()).searchParams.get('existing')).toBe('overwrite')
+})
+
 test('dropped folder encodes its destination when uploaded immediately', async ({ page }) => {
     const pageErrors: Error[] = []
     page.on('pageerror', error => pageErrors.push(error))

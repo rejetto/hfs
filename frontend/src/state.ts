@@ -6,6 +6,8 @@ import { subscribeKey } from 'valtio/utils'
 import { FRONTEND_OPTIONS, getHFS, hfsEvent, hIcon, pathEncode, typedKeys } from './misc'
 import { DirEntry as ServerDirEntry } from '../../src/api.get_file_list'
 
+export type UploadOnExisting = 'skip' | 'overwrite' | 'rename'
+
 export const state = proxy<typeof FRONTEND_OPTIONS & {
     stopSearch?: ()=>void,
     searchManuallyInterrupted?: boolean,
@@ -38,7 +40,7 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
     }
     canChangePassword: boolean
     uri: string
-    uploadOnExisting: 'skip' | 'overwrite' | 'rename'
+    uploadOnExisting: UploadOnExisting
     autoPlay: boolean
     expandedUsername?: string[]
 }>({
@@ -62,6 +64,10 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
 
 export function useSnapState() {
     return useSnapshot(state)
+}
+
+export function getUploadOnExisting(value=state.uploadOnExisting, canOverwrite=state.props?.can_overwrite): UploadOnExisting {
+    return value === 'overwrite' && canOverwrite === false ? 'skip' : value
 }
 
 const SETTINGS_KEY = 'hfs_settings'

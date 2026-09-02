@@ -12,7 +12,7 @@ import { INTERNAL_Snapshot, ref, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog, promptDialog } from './dialog'
 import { reloadList } from './useFetchList'
 import { apiCall } from '@hfs/shared/api'
-import { state, useSnapState } from './state'
+import { getUploadOnExisting, state, useSnapState } from './state'
 import { Link } from 'wouter'
 import { LinkClosingDialog } from './fileMenu'
 import {
@@ -46,7 +46,8 @@ export function showUpload() {
 
     function Content(){
         const { qs, paused, eta, speed, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
-        const { props, uploadOnExisting } = useSnapState()
+        const { props, uploadOnExisting: selectedUploadOnExisting } = useSnapState()
+        const uploadOnExisting = getUploadOnExisting(selectedUploadOnExisting, props?.can_overwrite)
         const etaStr = useMemo(() => !eta || eta === Infinity ? '' : formatTime(eta*1000, 0, 2), [eta])
         const inQ = _.sumBy(qs, q => q.entries.length) - (uploadState.uploading ? 1 : 0)
         const queueStr = inQ && t('in_queue', { n: inQ })
@@ -67,6 +68,11 @@ export function showUpload() {
                                 onClick: () => pickFiles({ folder: true })
                             }, t`Pick folder`),
                             h('button', { className: 'create-folder', onClick: createFolder }, t`Create folder`),
+                        ),
+                        !isMobile && h(Flex, { gap: 4 }, hIcon('info'), t`upload_dd_hint`),
+                        h(UploadStatus, { margin: '.5em 0' }),
+                        adding.length > 0 && h(Flex, { center: true, flexWrap: 'wrap' },
+                            t('ready_to_upload', { n: adding.length, size }),
                             h(Select<typeof uploadOnExisting>, {
                                 style: { width: 'unset' },
                                 'aria-label': t`Overwrite policy`,
@@ -78,11 +84,6 @@ export function showUpload() {
                                     props?.can_overwrite && { value: 'overwrite', label: t`Overwrite existing files` },
                                 ])
                             }),
-                        ),
-                        !isMobile && h(Flex, { gap: 4 }, hIcon('info'), t`upload_dd_hint`),
-                        h(UploadStatus, { margin: '.5em 0' }),
-                        adding.length > 0 && h(Flex, { center: true, flexWrap: 'wrap' },
-                            t('ready_to_upload', { n: adding.length, size }),
                             h(Flex, {}, // avoid just one button to wrap
                                 h('button', {
                                     className: 'upload-send',
@@ -137,7 +138,7 @@ export function showUpload() {
                         if (uploadState.paused)
                             abortCurrentUpload()
                         else if (uploadState.uploading)
-                            startUpload(uploadState.uploading, uploadState.qs[0].to)
+                            startUpload(uploadState.uploading, uploadState.qs[0].to, 0, uploadState.qs[0].existing)
                     }),
                 ),
                 qs.map((q,idx) =>

@@ -282,6 +282,94 @@ test('select all resets when the list reloads', async ({ page }) => {
     expect(await page.evaluate(() => (window as any).selectionChecks)).toBe(0)
 })
 
+test('overwrite policy resets without overwrite permission', async ({ page }) => {
+    await page.goto(FRONTEND_URL + 'for-admins/upload/')
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('button', { name: 'Upload' }).click()
+    const policy = page.getByRole('combobox', { name: 'Overwrite policy' })
+    await expect(policy).toHaveCount(0)
+    await pickFile('first.txt')
+    await policy.selectOption('overwrite')
+
+    await page.goto(FRONTEND_URL + 'for-admins/cant-overwrite/')
+    await expect(page.getByRole('button', { name: 'Upload' })).toBeEnabled()
+    await page.getByRole('button', { name: 'Upload' }).click()
+
+    await expect(policy).toHaveCount(0)
+    await pickFile('second.txt')
+    await expect(policy).toHaveValue('skip')
+    await expect.poll(() => page.evaluate(() => (window as any).HFS.state.uploadOnExisting)).toBe('overwrite')
+
+    async function pickFile(name: string) {
+        const chooserPromise = page.waitForEvent('filechooser')
+        await page.getByRole('button', { name: 'Pick files' }).click()
+        await (await chooserPromise).setFiles({ name, mimeType: 'text/plain', buffer: Buffer.from(name) })
+    }
+})
+
+test('queued uploads keep their policies across option changes and navigation', async ({ page }) => {
+    const requests: URL[] = []
+    const consoleErrors: string[] = []
+    const policy = page.getByRole('combobox', { name: 'Overwrite policy' })
+    let releaseFirst!: () => void
+    const holdFirst = new Promise<void>(resolve => releaseFirst = resolve)
+    page.on('console', message => {
+        if (message.type() === 'error')
+            consoleErrors.push(message.text())
+    })
+    await page.route('**/*', async route => {
+        if (route.request().method() !== 'PUT')
+            return route.continue()
+        requests.push(new URL(route.request().url()))
+        if (requests.length === 1)
+            await holdFirst
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }).catch(() => {})
+    })
+
+    try {
+        await page.goto(FRONTEND_URL + 'for-admins/upload/')
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await page.getByRole('button', { name: 'Upload' }).click()
+        await expect(policy).toHaveCount(0)
+        await addFile('first.txt', 'overwrite')
+        await expect.poll(() => requests.length).toBe(1)
+
+        await addFile('second.txt', 'skip')
+        await expect(page.getByRole('dialog').getByRole('link', { name: /Destination/ })).toHaveCount(2)
+        expect.soft(consoleErrors.filter(message => /same key|unique.*key/i.test(message))).toEqual([])
+
+        await page.getByTitle('Pause').click()
+        await expect(page.getByTitle('Play')).toBeVisible()
+        await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click()
+        await page.getByRole('link', { name: 'for-admins' }).click()
+        await page.getByRole('link', { name: 'cant-overwrite, Folder' }).click()
+        await expect(page.getByRole('button', { name: 'Upload' })).toBeEnabled()
+        await page.getByRole('button', { name: 'Upload' }).click()
+        await page.getByTitle('Play').click()
+        await expect.poll(() => requests.length).toBe(3)
+
+        expect(requests.map(request => request.searchParams.get('existing')))
+            .toEqual(['overwrite', 'overwrite', 'skip'])
+    }
+    finally {
+        releaseFirst()
+    }
+
+    async function addFile(name: string, existing: 'overwrite' | 'skip') {
+        const chooserPromise = page.waitForEvent('filechooser')
+        await page.getByRole('button', { name: 'Pick files' }).click()
+        const chooser = await chooserPromise
+        await chooser.setFiles({ name, mimeType: 'text/plain', buffer: Buffer.from(name) })
+        await policy.selectOption(existing)
+        await page.getByRole('button', { name: 'Send' }).click()
+        await expect(policy).toHaveCount(0)
+    }
+})
+
 test('filter resets paging when the first entry stays the same', async ({ page }) => {
     await gotoFrontend(page)
     await expect(page.getByRole('link', { name: 'cantListBut, Folder' })).toBeVisible()
