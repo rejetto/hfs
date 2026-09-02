@@ -151,6 +151,7 @@ test('search1', async ({ page }) => {
     await page.getByRole('link', { name: 'cantListPage/ alfa.txt' }).click()
     await page.getByRole('button', { name: 'Close' }).click()
     await page.getByRole('button', { name: 'Clear search' }).click()
+    await page.waitForFunction(() => !(window as any).HFS.state.loading)
 
     await page.getByRole('button', { name: 'Search' }).click()
     await page.locator('input[name="name"]').fill('a*')
