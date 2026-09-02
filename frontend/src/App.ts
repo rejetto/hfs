@@ -5,7 +5,7 @@ import { createElement as h } from 'react'
 import { BrowseFiles } from "./BrowseFiles"
 import { alertDialog, Dialogs } from './dialog'
 import useTheme from "./useTheme"
-import { state, useSnapState } from './state'
+import { getUploadOnExisting, state, useSnapState } from './state'
 import { acceptDropFiles } from './upload'
 import { enqueueUpload, uploadState } from './uploadQueue'
 import { proxy, ref, useSnapshot } from "valtio"
@@ -40,7 +40,8 @@ export default function App() {
                 return files => uploadState.adding.push(...files.map(x => ({ ...x, file: ref(x.file) })))
             const { can_upload, accept='' } = state.props || {}
             const destination = location.pathname
-            return can_upload ? files => enqueueUpload(files, destination, accept)
+            const existing = getUploadOnExisting()
+            return can_upload ? files => enqueueUpload(files, destination, accept, existing)
                 : () => alertDialog(t`Upload not available`, 'warning')
         })
     },

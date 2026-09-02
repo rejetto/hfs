@@ -3,7 +3,7 @@ import {
     HTTP_PRECONDITION_FAILED, UPLOAD_TEMP_HASH, MTIME_CHECK,
     buildUrlQueryString, getHFS, pathEncode, pendingPromise, prefix, randomId, tryJson, wait, with_,
 } from '@hfs/shared'
-import { state } from './state'
+import { getUploadOnExisting, state, type UploadOnExisting } from './state'
 import { alertDialog, toast } from './dialog'
 import { reloadList } from './useFetchList'
 import { proxy, ref, snapshot, subscribe } from 'valtio'
@@ -20,7 +20,7 @@ export const uploadState = proxy<{
     errors: ToUpload[]
     interrupted: ToUpload[]
     adding: ToUpload[]
-    qs: { to: string, entries: ToUpload[] }[]
+    qs: { to: string, entries: ToUpload[], existing: UploadOnExisting }[]
     paused: boolean
     uploading?: ToUpload
     hashing?: number
@@ -94,7 +94,7 @@ export function resetReloadOnClose() {
     return true
 }
 
-export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
+export async function startUpload(toUpload: ToUpload, to: string, resume=0, existing=getUploadOnExisting()) {
     console.debug('start upload', toUpload.path, resume)
     uploadState.uploading = toUpload
     uploadState.progress = 0
@@ -189,7 +189,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
             resume: resume + (strictResume ? '!' : ''),
             partial: partial ? fullSize - resume : undefined, // how much space we need
             comment: toUpload.comment || undefined,
-            existing: with_(state.uploadOnExisting, x => x !== 'rename' ? x : undefined), // rename is the default
+            existing: with_(existing, x => x !== 'rename' ? x : undefined), // rename is the default
         })
         req.open('PUT', uriPath + queryString, true)
         const body = toUpload.file.slice(resume, splitSize ? resume + splitSize : undefined)
@@ -245,19 +245,21 @@ export function abortCurrentUpload(userAskedForIt=false) {
 subscribe(uploadState, () => {
     const [cur] = uploadState.qs
     if (cur?.entries.length && !uploadState.uploading && !uploadState.paused)
-        void startUpload(cur.entries[0], cur.to)
+        void startUpload(cur.entries[0], cur.to, 0, cur.existing)
 })
 
-export async function enqueueUpload(entries: ToUpload[], to=location.pathname, accept=state.props?.accept) {
+export async function enqueueUpload(entries: ToUpload[], to=location.pathname, accept=state.props?.accept,
+                                    existing=getUploadOnExisting()) {
+    // keep queued uploads independent from later navigation or option changes
     if (_.remove(entries, x => !simulateBrowserAccept(x.file, accept)).length)
         await alertDialog(t`upload_file_rejected`, 'warning')
 
     entries = _.uniqBy(entries, x => x.path)
     if (!entries.length) return
     entries = entries.map(x => ({ ...x, file: ref(x.file) })) // avoid valtio to mess with File object
-    const q = _.find(uploadState.qs, { to })
+    const q = _.find(uploadState.qs, { to, existing })
     if (!q)
-        return uploadState.qs.push({ to, entries })
+        return uploadState.qs.push({ to, entries, existing })
     const missing = _.differenceBy(entries, q.entries, x => x.path)
     q.entries.push(...missing.map(ref))
 }
