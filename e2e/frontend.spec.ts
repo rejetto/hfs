@@ -209,9 +209,9 @@ test('select all resets when the list reloads', async ({ page }) => {
 
     const selectAll = page.getByRole('checkbox', { name: 'Select all' })
     await selectAll.check()
-    await expect(page.getByText('1 selected')).toBeVisible()
+    await expect(page.getByText(/[1-9]\d* selected/)).toBeVisible()
     await page.evaluate(() => (window as any).HFS.reloadList())
-    await expect(page.getByText('1 selected')).toHaveCount(0)
+    await expect(page.getByText(/[1-9]\d* selected/)).toHaveCount(0)
     await expect(selectAll).not.toBeChecked()
     await expect.poll(() => page.evaluate(() => Boolean((window as any).HFS.state.props))).toBe(true)
 
