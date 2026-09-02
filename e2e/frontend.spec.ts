@@ -618,6 +618,7 @@ test('plugin resolves a Unicode file element to its entry', async ({ page, brows
     fs.writeFileSync(path, 'entry')
     try {
         await page.goto(FRONTEND_URL)
+        await page.waitForFunction(() => !(window as any).HFS.state.loading)
         const initial = await page.evaluate(() => {
             let value: unknown = 'callback not called'
             const unwatch = (window as any).HFS.watchState('upload.progress', (next: unknown) => value = next, true)
