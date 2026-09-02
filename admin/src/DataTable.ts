@@ -225,7 +225,6 @@ export function DataTable({
                 sx: { position: 'absolute', width: 'calc(100% - 2px)', borderRadius: 1, m: '1px 1px' }
             }) ),
         h(DataGrid, {
-            key: width,
             initialState: gridInitialState,
             density: compact ? 'compact' : 'standard',
             columns: manipulatedColumns,
