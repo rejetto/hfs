@@ -182,7 +182,7 @@ export const fileToUpload = {
     buffer: Buffer.alloc(100_000),
 }
 
-test('dropped folder reads all entry batches while staged', async ({ page }) => {
+async function loginAndOpenUpload(page: Page) {
     await gotoFrontend(page)
     await page.getByRole('button', { name: 'Login' }).click()
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
@@ -191,6 +191,10 @@ test('dropped folder reads all entry batches while staged', async ({ page }) => 
     await page.getByRole('link', { name: 'for-admins, Folder' }).click()
     await page.getByRole('link', { name: 'upload, Folder' }).click()
     await page.getByRole('button', { name: 'Upload' }).click()
+}
+
+test('dropped folder reads all entry batches while staged', async ({ page }) => {
+    await loginAndOpenUpload(page)
 
     await page.locator('#root > div').evaluate(root => {
         const entries = ['first.txt', 'second.txt'].map(name => ({
@@ -219,14 +223,7 @@ test('dropped folder reads all entry batches while staged', async ({ page }) => 
 })
 
 test('file picker keeps the initial upload list capped at 100 items', async ({ page }) => {
-    await gotoFrontend(page)
-    await page.getByRole('button', { name: 'Login' }).click()
-    await page.getByRole('textbox', { name: 'Username' }).fill(username)
-    await page.getByRole('textbox', { name: 'Password' }).fill(password)
-    await page.getByRole('button', { name: 'Continue' }).click()
-    await page.getByRole('link', { name: 'for-admins, Folder' }).click()
-    await page.getByRole('link', { name: 'upload, Folder' }).click()
-    await page.getByRole('button', { name: 'Upload' }).click()
+    await loginAndOpenUpload(page)
     const chooser = page.waitForEvent('filechooser')
     await page.getByRole('button', { name: 'Pick files' }).click()
     await (await chooser).setFiles(Array.from({ length: 101 }, (_, i) => ({
@@ -248,7 +245,7 @@ test('file picker keeps the initial upload list capped at 100 items', async ({ p
     await expect(stagedFiles.getByRole('button', { name: '2 more item(s)' })).toBeVisible()
 })
 
-test('dropped folder keeps staging mode while batching updates', async ({ page }) => {
+test('dropped folder scan blocks upload actions until staging completes', async ({ page }) => {
     // each execution owns its upload directory, including concurrent browser projects
     const folderName = 'nested-' + randomUUID()
     const folderPath = `tests/tmp/${folderName}`
@@ -258,15 +255,7 @@ test('dropped folder keeps staging mode while batching updates', async ({ page }
             if (response.request().method() === 'PUT' && response.ok())
                 putRequests++
         })
-        await gotoFrontend(page)
-        await page.getByRole('button', { name: 'Login' }).click()
-        await page.getByRole('textbox', { name: 'Username' }).fill(username)
-        await page.getByRole('textbox', { name: 'Password' }).fill(password)
-        await page.getByRole('button', { name: 'Continue' }).click()
-        await page.getByRole('link', { name: 'for-admins, Folder' }).click()
-        await page.getByRole('link', { name: 'upload, Folder' }).click()
-        await page.getByRole('button', { name: 'Upload' }).click()
-        const uploadDialog = page.locator('#upload-dialog')
+        await loginAndOpenUpload(page)
 
         await page.clock.install()
         await page.locator('#root > div').evaluate((root, folderName) => {
@@ -296,16 +285,40 @@ test('dropped folder keeps staging mode while batching updates', async ({ page }
         }, folderName)
 
         await expect.poll(() => page.evaluate(() => typeof (window as any).finishDrop)).toBe('function')
-        await page.clock.runFor(32)
-        await expect(page.getByText(/1 file, .*ready to upload/)).toHaveCount(0)
-        await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click()
-        await page.clock.runFor(968)
-        await page.getByRole('button', { name: 'Upload' }).click()
+        await page.clock.runFor(1_000)
+        const uploadDialog = page.locator('#upload-dialog')
+        const send = uploadDialog.locator('button.upload-send')
+        const clear = uploadDialog.locator('button').filter({ hasText: /^Clear$/ })
+        const scanDialog = page.getByRole('dialog').filter({ hasText: 'Scanning files: 1' })
+        await expect(scanDialog).toBeVisible()
+        await expect.poll(async () => {
+            const box = await scanDialog.boundingBox()
+            const viewport = page.viewportSize()
+            return box && viewport && box.x >= 0 && box.x + box.width <= viewport.width
+        }).toBe(true)
         await expect(page.getByText(/1 file, .*ready to upload/)).toBeVisible()
         const stagedFiles = page.locator('.upload-list')
         await expect(stagedFiles.getByText(`${folderName}/first.txt`, { exact: true })).toBeVisible()
         await expect(stagedFiles.getByText(`${folderName}/second.txt`, { exact: true })).toHaveCount(0)
+        await expect(send).toBeDisabled()
+        await expect(clear).toBeDisabled()
+        await page.keyboard.press('Escape')
+        await expect(uploadDialog).toBeVisible()
+        expect(putRequests).toBe(0)
+        await scanDialog.evaluate(target => {
+            const event = new Event('drop', { bubbles: true, cancelable: true })
+            Object.defineProperty(event, 'dataTransfer', { value: { items: [{
+                webkitGetAsEntry: () => ({
+                    isFile: true,
+                    file() { (window as any).secondDropStarted = true },
+                }),
+            }] } })
+            target.dispatchEvent(event)
+        })
+        expect(await page.evaluate(() => (window as any).secondDropStarted)).toBeUndefined()
+
         await page.evaluate(() => (window as any).finishDrop())
+        await expect(page.getByText(/Scanning files:/)).toHaveCount(0)
         await page.clock.resume()
         await expect(page.getByText(/2 files, .*ready to upload/)).toBeVisible()
         await expect(stagedFiles.getByText(`${folderName}/second.txt`, { exact: true })).toHaveCount(0)
@@ -316,7 +329,8 @@ test('dropped folder keeps staging mode while batching updates', async ({ page }
         await expect(uploadDialog).toBeVisible()
         expect(page.url()).toBe(uploadUrl)
         expect(putRequests).toBe(0)
-        await uploadDialog.locator('button.upload-send').click()
+        await expect(send).toBeEnabled()
+        await send.click()
         await expect.poll(() => putRequests).toBe(2)
         await uploadDialog.getByRole('button', { name: 'Close' }).click()
         await page.getByRole('link', { name: `${folderName}, Folder` }).click()
@@ -326,6 +340,78 @@ test('dropped folder keeps staging mode while batching updates', async ({ page }
     finally {
         fs.rmSync(folderPath, { recursive: true, force: true })
     }
+})
+
+test('failed folder entry releases the upload scan lock', async ({ page }) => {
+    await loginAndOpenUpload(page)
+
+    await page.locator('#root > div').evaluate(root => {
+        const entries = [{
+            isFile: true,
+            file(_callback: (file: File) => void, onError: (error: DOMException) => void) {
+                onError(new DOMException('File became unavailable'))
+            },
+        }, {
+            isFile: true,
+            file(callback: (file: File) => void) {
+                (window as any).finishRemainingDrop = () => callback(new File(['test'], 'remaining.txt'))
+            },
+        }]
+        const directory = {
+            isFile: false,
+            name: 'nested',
+            createReader() {
+                let done = false
+                return { readEntries(callback: (entries: typeof entries) => void) {
+                    callback(done ? [] : (done = true, entries))
+                } }
+            },
+        }
+        const event = new Event('drop', { bubbles: true, cancelable: true })
+        Object.defineProperty(event, 'dataTransfer', { value: {
+            items: [{ webkitGetAsEntry: () => directory }],
+        } })
+        root.dispatchEvent(event)
+    })
+
+    await expect.poll(() => page.evaluate(() => typeof (window as any).finishRemainingDrop)).toBe('function')
+    await expect(page.getByText(/Scanning files:/)).toBeVisible()
+    await page.evaluate(() => (window as any).finishRemainingDrop())
+    await expect(page.getByText(/Scanning files:/)).toHaveCount(0, { timeout: 1_000 })
+    await expect(page.getByText(/1 file, .*ready to upload/)).toBeVisible()
+    await expect(page.locator('#upload-dialog')).toBeVisible()
+})
+
+test('non-file drop does not break the next upload scan lock', async ({ page }) => {
+    await loginAndOpenUpload(page)
+
+    const root = page.locator('#root > div')
+    await root.evaluate(async target => {
+        const event = new Event('drop', { bubbles: true, cancelable: true })
+        Object.defineProperty(event, 'dataTransfer', { value: {
+            types: ['text/plain'],
+            items: [{ webkitGetAsEntry: () => null }],
+        } })
+        target.dispatchEvent(event)
+        await new Promise(requestAnimationFrame)
+    })
+    await root.evaluate(target => {
+        const event = new Event('drop', { bubbles: true, cancelable: true })
+        Object.defineProperty(event, 'dataTransfer', { value: { items: [{
+            webkitGetAsEntry: () => ({
+                isFile: true,
+                file(callback: (file: File) => void) {
+                    (window as any).finishValidDrop = () => callback(new File(['test'], 'valid.txt'))
+                },
+            }),
+        }] } })
+        target.dispatchEvent(event)
+    })
+
+    await expect(page.getByText('Scanning files: 0')).toBeVisible()
+    await page.evaluate(() => (window as any).finishValidDrop())
+    await expect(page.getByText(/Scanning files:/)).toHaveCount(0)
+    await expect(page.getByText(/1 file, .*ready to upload/)).toBeVisible()
 })
 
 test('dropped folder keeps its upload policy while batching updates', async ({ page }) => {
