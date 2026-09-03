@@ -38,20 +38,31 @@ export function ErrorMsg({ err }: { err: any }) {
 
 let isWorking = false // we want the 'working' thing to be singleton
 export function working() {
+    return openWorking()
+}
+
+export function workingWith(Content: React.FunctionComponent) {
+    return openWorking(Content)
+}
+
+function openWorking(Content?: React.FunctionComponent) {
     if (isWorking)
         return ()=>{} // noop
     isWorking = true
     const { close } = newDialog({
         closable: false,
-        noFrame: true,
-        Content: Spinner,
+        noFrame: !Content,
+        Content: Content || Spinner,
         reserveClosing: true,
-        className: 'working',
+        className: 'working' + (Content ? ' working-content' : ''),
         onClose(){
             isWorking = false
         }
     })
-    return close
+    return () => {
+        isWorking = false
+        close()
+    }
 }
 
 export function hfsEvent(name: string, params?:Dict) {

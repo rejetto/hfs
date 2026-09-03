@@ -1,5 +1,5 @@
 window.BigInt ||= Number; // avoid crash at boot for chrome66
-// wget -O poly.js 'https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?version=4.8.0&features=Object.fromEntries%2CArray.prototype.flat%2CPromise.prototype.finally%2CString.prototype.replaceAll%2CArray.prototype.findLast%2CArray.prototype.at'
+// wget -O poly.js 'https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?version=4.8.0&features=Object.fromEntries%2CArray.prototype.flat%2CPromise.prototype.finally%2CString.prototype.replaceAll%2CArray.prototype.findLast%2CArray.prototype.at%2CPromise.allSettled'
 
 /*
  * Polyfill service v4.8.0
@@ -29,5 +29,13 @@ window.BigInt ||= Number; // avoid crash at boot for chrome66
 )) {"Symbol"in self&&"iterator"in Symbol&&"function"==typeof Array.prototype[Symbol.iterator]?CreateMethodProperty(Array.prototype,"values",Array.prototype[Symbol.iterator]):CreateMethodProperty(Array.prototype,"values",function r(){var t=ToObject(this);return new ArrayIterator(t,"value")});}if (!("Symbol"in self&&"iterator"in self.Symbol&&!!Array.prototype[self.Symbol.iterator]
 )) {CreateMethodProperty(Array.prototype,Symbol.iterator,Array.prototype.values);}if (!("fromEntries"in Object
 )) {CreateMethodProperty(Object,"fromEntries",function r(e){RequireObjectCoercible(e);var t={},o=function(r,e){var t=this,o=ToPropertyKey(r);CreateDataPropertyOrThrow(t,o,e)};return AddEntriesFromIterable(t,e,o)});}})('object' === typeof window && window || 'object' === typeof self && self || 'object' === typeof global && global || {});
+// folder scanning uses allSettled, which is only native from Firefox 71
+if (!Promise.allSettled)
+    Object.defineProperty(Promise, 'allSettled', { configurable: true, writable: true, value(iterable) {
+        const cnstrctr = this
+        return cnstrctr.resolve().then(() => cnstrctr.all(Array.from(iterable,
+            value => cnstrctr.resolve(value).then(value => ({ status: 'fulfilled', value }), reason => ({ status: 'rejected', reason })) )))
+    } })
+
 // wouter emits Array#flatMap – only used with multiple route-s
 Array.prototype.flatMap || Object.defineProperty(Array.prototype, 'flatMap', { configurable: true, writable: true, value(callback, thisArg) { return this.map(callback, thisArg).flat() } });

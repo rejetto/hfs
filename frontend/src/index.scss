@@ -471,6 +471,9 @@ button .icon + .label {
     font-size: 5em;
     animation: 1s fade-in;
 }
+.dialog-backdrop.working-content {
+    font-size: inherit;
+}
 .dialog-content {
     padding: .2em; /* give space for focus outline */
 }

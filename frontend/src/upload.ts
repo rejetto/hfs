@@ -1,14 +1,14 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, DragEvent, Fragment, useMemo, useState, useEffect, useRef, CSSProperties } from 'react'
-import { Btn, Flex, FlexV, iconBtn, Select } from './components'
+import { Btn, Flex, FlexV, iconBtn, Select, Spinner } from './components'
 import {
-    basename, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, selectFiles, working, copyTextToClipboard,
+    basename, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, selectFiles, working, workingWith, copyTextToClipboard,
     HTTP_CONFLICT, formatSpeed, getHFS, onlyTruthy, closeDialog, prefix, operationSuccessful, pathEncode,
     getPrefixUrl, HTTP_NOT_FOUND, dirname, UPLOAD_TEMP_PREFIX,
 } from './misc'
 import _ from 'lodash'
-import { INTERNAL_Snapshot, ref, useSnapshot } from 'valtio'
+import { INTERNAL_Snapshot, proxy, ref, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog, promptDialog } from './dialog'
 import { reloadList } from './useFetchList'
 import { apiCall } from '@hfs/shared/api'
@@ -23,6 +23,7 @@ import i18n from './i18n'
 const { t } = i18n
 
 const renameEnabled = getHFS().dontOverwriteUploading
+const dropScan = proxy<{ count?: number }>({})
 
 export function showUpload() {
     if (!uploadState.qs.length)
@@ -46,6 +47,7 @@ export function showUpload() {
 
     function Content(){
         const { qs, paused, eta, speed, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
+        const scanning = useSnapshot(dropScan).count !== undefined
         const { props, uploadOnExisting: selectedUploadOnExisting } = useSnapState()
         const uploadOnExisting = getUploadOnExisting(selectedUploadOnExisting, props?.can_overwrite)
         const etaStr = useMemo(() => !eta || eta === Infinity ? '' : formatTime(eta*1000, 0, 2), [eta])
@@ -87,12 +89,13 @@ export function showUpload() {
                             h(Flex, {}, // avoid just one button to wrap
                                 h('button', {
                                     className: 'upload-send',
+                                    disabled: scanning,
                                     onClick() {
                                         void enqueueUpload(uploadState.adding)
                                         clear()
                                     }
                                 }, t`Send`),
-                                h('button', { onClick: clear }, t`Clear`),
+                                h('button', { disabled: scanning, onClick: clear }, t`Clear`),
                             ),
                         )
                     ),
@@ -328,42 +331,67 @@ export function acceptDropFiles(makeConsumer: false | undefined | (() => (files:
     return {
         onDragOver(ev: DragEvent) {
             ev.preventDefault()
-            ev.dataTransfer!.dropEffect = makeConsumer && ev.dataTransfer.types.includes('Files') ? 'copy' : 'none'
+            ev.dataTransfer!.dropEffect = makeConsumer && dropScan.count === undefined
+                && ev.dataTransfer.types.includes('Files') ? 'copy' : 'none'
         },
         onDrop(ev: DragEvent) {
             ev.preventDefault()
-            if (!makeConsumer) return
+            if (!makeConsumer || dropScan.count !== undefined) return
+            const staging = uploadState.uploadDialogIsOpen
+            const stopWorking = staging ? startDropScan() : undefined
             const acceptFiles = makeConsumer() // preserve staging, destination and filters while the asynchronous scan runs
             const files: ToUpload[] = []
             // per-file Valtio updates freeze large drops; report progress at most once per second and flush on completion
-            const flush = _.throttle(() => acceptFiles(files.splice(0)), 1_000, { leading: false })
+            const flush = _.throttle(() => {
+                const batch = files.splice(0)
+                if (staging)
+                    dropScan.count = (dropScan.count || 0) + batch.length
+                acceptFiles(batch)
+            }, 1_000, { leading: false })
             const pending: Promise<void>[] = []
             for (const it of ev.dataTransfer.items) {
                 const entry = it.webkitGetAsEntry()
                 if (entry)
                     pending.push(readEntry(entry))
             }
-            void Promise.all(pending).then(flush.flush)
+            void Promise.allSettled(pending).then(() => {
+                flush.flush()
+                if (staging) {
+                    dropScan.count = undefined
+                    stopWorking?.()
+                }
+            })
 
             async function readEntry(entry: FileSystemEntry, to = ''): Promise<void> {
                 if (entry.isFile)
-                    return new Promise(resolve => (entry as FileSystemFileEntry).file(file => {
+                    return new Promise((resolve, reject) => (entry as FileSystemFileEntry).file(file => {
                         files.push({ file, path: (file.webkitRelativePath ? '' : to) + getFilePath(file) }) // Firefox supplies the path itself; Chromium needs `to`
                         flush()
                         resolve()
-                    }))
+                    }, reject))
 
                 const reader = (entry as FileSystemDirectoryEntry).createReader?.()
                 const entries: FileSystemEntry[] = []
                 while (reader) {
-                    const batch = await new Promise<FileSystemEntry[]>(resolve => reader.readEntries(resolve))
+                    const batch = await new Promise<FileSystemEntry[]>((resolve, reject) => reader.readEntries(resolve, reject))
                     if (!batch.length) break // directory readers signal completion with an empty batch
                     entries.push(...batch)
                 }
-                await Promise.all(entries.map(x => readEntry(x, to + entry.name + '/')))
+                await Promise.allSettled(entries.map(x => readEntry(x, to + entry.name + '/')))
             }
         },
     }
+}
+
+function startDropScan() {
+    dropScan.count = 0
+    return workingWith(function DropScanProgress() {
+        const count = useSnapshot(dropScan).count || 0
+        return h(FlexV, { center: true, props: { role: 'status', tabIndex: 0 } },
+            h(Spinner),
+            t('scanning_files', { n: count }, "Scanning files: {n}"),
+        )
+    })
 }
 
 export async function createFolder() {
