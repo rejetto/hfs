@@ -86,7 +86,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                 ...!account.admin && account.adminActualAccess && { value: true, disabled: true, helperText: "This permission is inherited. To disable it, act on the groups." },
             },
 
-            !isGroup && { k: 'require_password_change', comp: BoolField, xs: 12, sm: 6, lg: 4, helperText: "At next login" },
+            !isGroup && { k: 'require_password_change', comp: BoolField, xs: 12, sm: 6, lg: 4, helperText: "At next login, but can be dismissed" },
             { k: 'disable_password_change', label: "Password change", comp: SelectField, xs: 12, sm: 6, lg: isGroup ? 4 : 4,
                 defaultValue: null,
                 options: { [`Default (${values.canChangePassword ? 'Allowed' : 'Disabled'})`]: null, "Allowed": false, "Disabled": true },
