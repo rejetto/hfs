@@ -175,6 +175,9 @@ test('search1', async ({ page }) => {
     await page.getByRole('slider', { name: 'Tiles mode' }).fill('6')
     await page.locator('#option-theme').selectOption('dark')
     await page.getByRole('button', { name: 'Close' }).click()
+    // wait for the debounced sort before clicking a folder that changes position
+    await expect(page.locator('.dir .entry-name').filter({ hasText: /^cantListPage(?:Alt)?$/ }))
+        .toHaveText(['cantListPageAlt', 'cantListPage'])
     await page.getByRole('link', { name: 'cantListPageAlt, Folder' }).click()
     await expect(page.getByText('alfa.txt')).toBeVisible() // be sure the folder is loaded
     await page.mouse.click(1, 1) // avoid focus inconsistencies
