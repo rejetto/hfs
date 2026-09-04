@@ -113,7 +113,7 @@ function MoreInfo() {
 }
 
 function Connections() {
-    const { list, error, props } = useApiList('get_connections')
+    const { list, error, props, initializing } = useApiList('get_connections')
     const config = useApiEx('get_config', { only: [CFG.geo_enable] })
     const { monitorOnlyFiles } = useSnapState()
     const { pause, pauseButton } = usePauseButton()
@@ -146,6 +146,7 @@ function Connections() {
                 h(DataTable, {
                     persist: 'connections',
                     error,
+                    initializing,
                     rows,
                     getRowId: (row: any) => row.ip + ':' + row.port,
                     fillFlex: true,

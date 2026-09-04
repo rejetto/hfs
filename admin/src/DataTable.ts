@@ -220,7 +220,7 @@ export function DataTable({
 
     return h(Fragment, {},
         error && h(Alert, { severity: 'error' }, error),
-        initializing && h(Box, { sx: { position: 'relative' } },
+        initializing && h(Box, { sx: { position: 'relative', zIndex: 1 } }, // keep progress above the grid headers
             h(LinearProgress, { // differently from "loading", this is not blocking user interaction
                 sx: { position: 'absolute', width: 'calc(100% - 2px)', borderRadius: 1, m: '1px 1px' }
             }) ),

@@ -13,7 +13,7 @@ import { alertDialog, toast } from './dialog'
 import { Field, SelectField } from '@hfs/mui-grid-form';
 
 export default function LangPage({ setTitleSide }: PageProps) {
-    const { list, error, connecting, reload } = useApiList('get_langs')
+    const { list, error, connecting, initializing, reload } = useApiList('get_langs')
     const langs = useMemo(() => ['en', ..._.uniq(list.map(x => x.code))], [list])
     setTitleSide(useMemo(() =>
         h(Alert, { severity: 'info', sx: { display: { xs: 'none', sm: 'inherit' }  } }, "Translation is limited to the Front-end and doesn't apply to the Admin-panel"),
@@ -28,6 +28,7 @@ export default function LangPage({ setTitleSide }: PageProps) {
             h(DataTable, {
                 error,
                 loading: connecting,
+                initializing,
                 rows: useMemo(() => _.sortBy(list, x => (x.embedded ? 2 : 1) + x.code), [list.length]), // multi-sorting is only in pro version of DataGrid
                 hideFooter: true,
                 fillFlex: true,

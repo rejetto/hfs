@@ -135,7 +135,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
     const [firstSight, setFirstSight] = useState(!hidden)
     useEffect(() => setFirstSight(x => x || !hidden), [hidden])
     const hasFile = LOGS_ON_FILE.includes(file)
-    useApi(firstSight && hasFile && 'get_log_file', { file, range: limited || !skipped ? String(-MAX) : `0-${skipped}` }, {
+    const { loading } = useApi(firstSight && hasFile && 'get_log_file', { file, range: limited || !skipped ? String(-MAX) : `0-${skipped}` }, {
         skipParse: true, skipLog: true,
         onResponse(res, body) {
             const lines = body.split('\n')
@@ -156,7 +156,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             setList(x => [...x, ...treated])
         }
     })
-    const { list, setList, error, connecting, reload } = useApiList(firstSight && 'get_log', { file }, { limit, invert, pause, map: enhanceLogLine })
+    const { list, setList, error, connecting, initializing, reload } = useApiList(firstSight && 'get_log', { file }, { limit, invert, pause, map: enhanceLogLine })
     const isIps = file === 'ips'
     if (isIps)
         reloadIps = reload
@@ -190,6 +190,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
         persist: 'log_' + file,
         error,
         loading: connecting,
+        initializing: initializing || Boolean(loading),
         rows,
         compact: true,
         actionsProps: { hideUnder: 'md' },
