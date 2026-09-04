@@ -255,6 +255,7 @@ Most common configurations:
 For a description of each configuration, please refer to https://rejetto.com/hfs-config
 Other options:
     --debug will print extra information
+    --no-trace-warnings will disable stack traces for Node.js warnings (enabled by default)
     `)
     process.exit(0)
 })
