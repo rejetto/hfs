@@ -1,4 +1,4 @@
-import { getNodeByName, normalizeFilename, statusCodeForMissingPerm, VfsNodeWithPath } from './vfs'
+import { getNodeByName, getVirtualName, normalizeFilename, statusCodeForMissingPerm, VfsNodeWithPath } from './vfs'
 import Koa from 'koa'
 import {
     HTTP_CONFLICT, HTTP_FOOL, HTTP_INSUFFICIENT_STORAGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_NO_CONTENT, HTTP_SERVER_ERROR,
@@ -290,7 +290,7 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
 
     async function overwriteAnyway() {
         if (ctx.query.existing !== 'overwrite') return false
-        const n = await getNodeByName(filename, base)
+        const n = await getNodeByName(getVirtualName(filename, base), base)
         if (n && !statusCodeForMissingPerm(n, 'can_delete', ctx)) return true
         overwriteRequestedButForbidden = true
         return false

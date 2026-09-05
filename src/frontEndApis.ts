@@ -11,7 +11,7 @@ import {
     HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED
 } from './const'
 import {
-    hasPermission, isRoot, nodeIsFolder, nodeStats,
+    getVirtualName, hasPermission, isRoot, nodeIsFolder, nodeStats,
     simpleWhoToError, statusCodeForMissingPerm, urlToNode, VfsNode, VfsNodeWithPath, walkNode
 } from './vfs'
 import fs from 'fs'
@@ -191,8 +191,8 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
             if (!src) return HTTP_NOT_FOUND
             if (!override && isWebdavLocked(from1, ctx)) return ctx.status
             const destName = basename(src)
-            const visibleName = destNode!.rename?.[destName] || destName
-            const destChild = await urlToNode(pathEncode(destName), ctx, destNode!, { includeHidden: true })
+            const visibleName = getVirtualName(destName, destNode!)
+            const destChild = await urlToNode(pathEncode(visibleName), ctx, destNode!, { includeHidden: true })
             if (destChild && statusCodeForMissingPerm(destChild, 'can_delete', ctx))
                 return ctx.status
             const dest = join(destNode!.source!, destName)
@@ -228,7 +228,8 @@ export async function requestedRename(node: VfsNodeWithPath | undefined, newName
     else {
         if (!node.source)
             throw new ApiError(HTTP_FAILED_DEPENDENCY)
-        const destNode = await urlToNode(pathEncode(newName), ctx, node.parent, { includeHidden: true })
+        const virtualDestName = getVirtualName(newName, node.parent!)
+        const destNode = await urlToNode(pathEncode(virtualDestName), ctx, node.parent, { includeHidden: true })
         if (destNode && statusCodeForMissingPerm(destNode, 'can_delete', ctx)) // if destination exists, you need delete permission
             throw new ApiError(ctx.status)
         try {

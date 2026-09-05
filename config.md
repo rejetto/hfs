@@ -181,6 +181,7 @@ Valid keys in a node are:
   Value is a list and its entries are nodes.
 - `rename`: when `source` is a folder, you can rename entries *virtually* as they are read from disk.
   Value is a map "original name" → "new name". No UI.
+  The original name stays unchanged on disk, but is no longer accessible through the VFS; clients must use the new name.
 - `mime`: specify what mime to use for this resource. Use "auto" for automatic detection.
 - `url`: when this value is present, the element is a link to the URL you specify.
 - `order`: a number that you can set if you want to force the position of this element to the top or the bottom of the list. 

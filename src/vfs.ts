@@ -104,6 +104,12 @@ export function normalizeFilename(x: string) {
     return IS_MAC ? cased.normalize() : cased
 }
 
+// security state follows the displayed VFS identity even when I/O uses its physical alias
+export function getVirtualName(name: string, parent: VfsNodeWithPath) {
+    const sameName = isSameFilenameAs(name)
+    return Object.entries(parent.rename || {}).find(([from]) => sameName(from))?.[1] || name
+}
+
 export function getFreeVfsName(siblings: VfsNode[] | undefined, name: string) {
     const ext = extname(name)
     const noExt = ext ? name.slice(0, -ext.length) : name
@@ -178,12 +184,13 @@ async function isHiddenFile(path: string) {
 
 export async function getNodeByName(name: string, parent: VfsNodeWithPath, assumeMissingToBeFolder=false) {
     // does the tree node have a child that goes by this name, otherwise attempt disk
+    let virtualName = name
     let child = parent.children?.find(isSameFilenameAs(name))
     if (child) // found as vfs node
         await setIsFolder(child) // in case it's pointing to a folder that didn't exist at loading time
     else
         child = await childFromDisk()
-    return child && applyParentToChild(child, parent, name)
+    return child && applyParentToChild(child, parent, virtualName)
 
     async function childFromDisk() {
         if (!parent.source) return
@@ -193,9 +200,13 @@ export async function getNodeByName(name: string, parent: VfsNodeWithPath, assum
             for (const [from, to] of Object.entries(parent.rename))
                 if (name === to) {
                     onDisk = from
+                    virtualName = to
                     break // found, search no more
                 }
-            ret.rename = renameUnderPath(parent.rename, name)
+                else if (name === from) {
+                    return // a VFS rename replaces the original public name
+                }
+            ret.rename = renameUnderPath(parent.rename, virtualName)
         }
         if (!isValidFileName(onDisk)) return
         ret.source = join(parent.source, onDisk)

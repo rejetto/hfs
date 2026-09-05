@@ -478,8 +478,11 @@ describe('basics', () => {
 
     test('renameChild', reqList('/renameChild/tests', { inList:['renamed1'] }))
     test('renameChild.get', req('/renameChild/tests/renamed1', /abc/))
+    test('renameChild.original is not an alias', req('/renameChild/tests/alfa.txt', 404))
+    test('renameChild.original cannot be deleted', req('/renameChild/tests/alfa.txt', 404, { method: 'DELETE' }))
     test('renameChild.deeper', reqList('/renameChild/tests/page', { inList:['renamed2'] }))
     test('renameChild.get deeper', req('/renameChild/tests/page/renamed2', /PNG/))
+    test('renameChild.original deeper is not an alias', req('/renameChild/tests/page/gpl.png', 404))
     test('renameChild.search', reqList('/renameChild/tests', { inList:['renamed1', 'page/renamed2'] }, { search: 'ren' }))
 
     test('cantSeeThis', reqList('/', { outList:['cantSeeThis/'] }))
@@ -1939,6 +1942,36 @@ describe('after-login', () => {
             await rmAny(resolve(destDir, movedName))
             await rmAny(victimPath)
             await rmAny(destDir)
+        }
+    })
+    test('VFS rename hides original physical names', async () => {
+        const id = randomId(6).toLowerCase()
+        const nodeName = `masked-alias-${id}`
+        const physicalName = `private-${id}.txt`
+        const displayName = `public-${id}.txt`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const path = resolve(dir, physicalName)
+        const folderUri = `/${nodeName}/`
+        await mkdir(dir, { recursive: true })
+        await writeFile(path, 'protected')
+        try {
+            await reqApi('add_vfs', {
+                source: dir,
+                name: nodeName,
+                can_read: true,
+                can_delete: true,
+                rename: { [physicalName]: displayName },
+                masks: { [displayName]: { can_read: false, can_delete: false } },
+            }, 200)()
+            await req(folderUri + displayName, 403)()
+            await req(folderUri + physicalName, 404)()
+            await req(folderUri + physicalName, 404, { method: 'delete' })()
+            if (readFileSync(path, 'utf8') !== 'protected')
+                throw Error('physical alias bypassed its VFS rename mask')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200)().catch(() => {})
+            await rmAny(dir)
         }
     })
     test('move keeps ownership aligned with destination VFS alias', async () => {
