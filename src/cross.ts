@@ -449,7 +449,7 @@ export function normalizeHost(host: string) {
 }
 
 export function isIpLocalHost(ip: string) {
-    return ip === '::1' || ip.endsWith('127.0.0.1')
+    return ip === '::1' || /^(?:::ffff:)?127\.0\.0\.1$/i.test(ip)
 }
 
 export function isIpLan(ip: string) {

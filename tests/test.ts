@@ -8,7 +8,7 @@ import { exec } from 'child_process'
 import _ from 'lodash'
 import yaml from 'yaml'
 import unzipper from 'unzipper'
-import { findDefined, FRONTEND_OPTIONS, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, UPLOAD_TEMP_PREFIX, wait, waitFor } from '../src/cross'
+import { findDefined, FRONTEND_OPTIONS, isIpLocalHost, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, UPLOAD_TEMP_PREFIX, wait, waitFor } from '../src/cross'
 import { httpStream, httpWithBody, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { makeQ } from '../src/makeQ'
@@ -116,6 +116,30 @@ describe('basics', () => {
             'x-hfs-anti-csrf': '1',
             host: 'proxy.example',
         } }))
+    test('loopback address classification rejects IPv6 suffixes', () => {
+        if (!isIpLocalHost('127.0.0.1') || !isIpLocalHost('::ffff:127.0.0.1')
+        || isIpLocalHost('2001:db8::127.0.0.1'))
+            throw Error('loopback address misclassified')
+    })
+    test('non-loopback IPv6 cannot bypass admin_net', async () => {
+        const adminReq = { auth, jar: {} }
+        const user = `admin-net-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const oldConfig = await reqApi('get_config', { only: ['proxies', 'admin_net'] }, 200, adminReq)()
+        try {
+            await reqApi('add_account', { username: user, password: pass, admin: true }, 200, adminReq)()
+            await reqApi('set_config', { values: { proxies: 1, admin_net: '192.0.2.1' } }, 200, adminReq)()
+            await reqApi('get_status', {}, 401, {
+                auth: `${user}:${pass}`,
+                jar: {},
+                headers: { 'x-forwarded-for': '2001:db8::127.0.0.1' },
+            })()
+        }
+        finally {
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
     test('force slash', req('/f1', 302, { noRedirect: true }))
     test('list', reqList('/f1/', { inList:['f2/', 'page/'] }))
     test('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
