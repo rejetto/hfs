@@ -18,6 +18,7 @@ import { once } from 'events'
 import { QuickZipStream } from '../src/QuickZipStream'
 import { XMLValidator } from 'fast-xml-parser'
 import { BASIC_AUTHENTICATE_HEADER } from '../src/cross'
+import { request as httpRequest } from 'http'
 /*
 import { PORT, srv } from '../src'
 
@@ -1171,6 +1172,51 @@ describe('limits', () => {
     before(() => writeFile(fn, BIG_CONTENT))
     test('max_dl', () => testMaxDl('/' + fn, 1, 2, { jar: {} }))
     test('max_dl.zip', () => testMaxDl('/tests/?get=zip&list=big', 1, 2, { jar: {} }))
+    test('aborted request before stat does not consume a download slot', async () => {
+        const adminReq = { auth, jar: {} }
+        const oldConfig = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
+        const script = `exports.init = () => {
+            const fs = require('fs')
+            const originalStat = fs.stat
+            let waiting = false
+            fs.stat = function(...args) {
+                if (!waiting && String(args[0]).endsWith('/big')) {
+                    waiting = true
+                    return setTimeout(() => originalStat(...args), 200)
+                }
+                return originalStat(...args)
+            }
+            exports.customRest = { download_stat_state: () => ({ waiting }) }
+            return () => { fs.stat = originalStat }
+        }`
+        let first: ReturnType<typeof httpRequest> | undefined
+        try {
+            await reqApi('set_config', { values: { server_code: script } }, 200, adminReq)()
+            const ready = await waitFor(async () => {
+                try {
+                    const x = await reqApi('_download_stat_state', {}, x => typeof x?.waiting === 'boolean', adminReq)()
+                    return x.waiting === false
+                }
+                catch {}
+            }, { interval: 50, timeout: 3000 })
+            if (!ready)
+                throw Error('stat-delay probe did not start')
+            first = httpRequest(BASE_URL + '/tests/big').on('error', () => {})
+            first.end()
+            const waiting = await waitFor(async () =>
+                reqApi('_download_stat_state', {}, x => typeof x?.waiting === 'boolean', adminReq)()
+                    .then(x => x.waiting, () => false), { interval: 50, timeout: 3000 })
+            if (!waiting)
+                throw Error('download did not reach delayed stat')
+            first.destroy()
+            await wait(250)
+            await req('/tests/big', 200, { jar: {} })()
+        }
+        finally {
+            first?.destroy()
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)().catch(() => {})
+        }
+    })
     after(() => rm(fn))
 })
 

@@ -200,7 +200,7 @@ export function applyRange(ctx: Koa.Context, totalSize=ctx.response.length): { s
 function downloadLimiter<T>(configMax: { get: () => number | undefined }, cbKey: (ctx: Koa.Context) => T | undefined) {
     const map = new Map<T, number>()
     return (ctx: Koa.Context) => {
-        if (!ctx.body || ctx.state.considerAsGui) return // !body = no file sent, cache hit
+        if (!ctx.body || ctx.state.considerAsGui || ctx.isAborted()) return // !body = no file sent, cache hit
         const k = cbKey(ctx)
         if (k === undefined) return // undefined = skip limit
         const max = configMax.get()
