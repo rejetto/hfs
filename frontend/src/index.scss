@@ -221,7 +221,7 @@ kbd {
 .upload-send { @extend .ani-attention }
 
 .sliding {
-    transition: flex .5s, flex-basis 0.5s ease, opacity 0.5s ease;
+    transition: flex-grow .5s ease;
     overflow: hidden !important;
 }
 .hide-sliding {

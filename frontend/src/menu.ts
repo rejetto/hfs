@@ -70,7 +70,6 @@ export function MenuPanel() {
                 id: 'delete-button',
                 icon: 'delete',
                 label: t`Delete`,
-                className: 'show-sliding',
                 disabled: !list,
                 tooltip: t`delete_select`,
                 onClick: () => deleteFiles(Object.keys(selected))
@@ -79,7 +78,7 @@ export function MenuPanel() {
                 icon: 'upload',
                 label: t`Upload`,
                 disabled: !changingButton,
-                tabIndex: changingButton ? undefined : -1,
+                'aria-hidden': !changingButton,
                 className: 'sliding ' + (changingButton ? '' : 'hide-sliding') + (uploading && !uploadDialogIsOpen ? '  ani-working' : ''),
                 onClick: showUpload,
             }),
