@@ -184,7 +184,7 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
             const src = srcNode?.source
             if (!src) return HTTP_NOT_FOUND
             const destName = basename(src)
-            const destChild = await urlToNode(destName, ctx, destNode!)
+            const destChild = await urlToNode(pathEncode(destName), ctx, destNode!, { includeHidden: true })
             if (destChild && statusCodeForMissingPerm(destChild, 'can_delete', ctx))
                 return ctx.status
             const dest = join(destNode!.source!, destName)

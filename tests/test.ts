@@ -1527,6 +1527,26 @@ describe('after-login', () => {
             await rmAny(destDir)
         }
     })
+    test('move encoded destination needs delete', async () => {
+        const destFile = `%61-${randomId(6)}.txt`
+        const destDir = await ensureCantOverwriteDir()
+        const destPath = resolve(destDir, destFile)
+        const sourceUri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${pathEncode(destFile)}`
+        await writeFile(destPath, 'protected')
+        try {
+            await reqUpload(sourceUri, 200, 'replacement')()
+            await reqApi('move_files', { uri_from: [sourceUri], uri_to: CANT_OVERWRITE_URI }, res => {
+                if (res?.errors?.[0] !== 403)
+                    throw Error('encoded destination was overwritten without delete permission')
+            })()
+            if (readFileSync(destPath, 'utf8') !== 'protected')
+                throw Error('encoded destination content was replaced')
+        }
+        finally {
+            await rmAny(resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR, destFile))
+            await rmAny(destDir)
+        }
+    })
     test('upload.path bypass', async () => {
         const name = 'no-upload'
         const targetDir = resolve(UPLOAD_DISK_ROOT, name)
