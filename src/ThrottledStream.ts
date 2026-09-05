@@ -30,6 +30,7 @@ export class ThrottledStream extends Transform {
                 return done()
             try {
                 await this.group.consume(n)
+                if (this.destroyed) return done() // an aborted download must stop consuming the shared quota
                 this.push(slice)
                 this.sent += n
                 this.totalSent += n

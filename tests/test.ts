@@ -285,6 +285,24 @@ describe('basics', () => {
             response.destroy()
         }
     })
+    test('aborted download stops consuming shared throttle quota', async () => {
+        const group = new ThrottleGroup(10)
+        const original = group.consume.bind(group)
+        let charged = 0
+        group.consume = n => {
+            charged += n
+            return original(n)
+        }
+        const stream = new ThrottledStream(group)
+        const transformed = new Promise<void>((resolve, reject) => {
+            stream._transform(Buffer.alloc(5000), 'buffer', error => error ? reject(error) : resolve())
+        })
+        stream.destroy()
+        await transformed
+        // only the slice already waiting for tokens may be charged after disconnection
+        if (charged > group.suggestChunkSize())
+            throw Error(`aborted download consumed ${charged} bytes of other clients' quota`)
+    })
     test('forbidden list', req('/cantListPage/page/', 403))
     test('forbidden list.api', reqList('/cantListPage/page/', 403))
     test('forbidden list.admin flag', reqApi('get_file_list', { uri: '/for-admins/', admin: true }, 401))
