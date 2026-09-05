@@ -55,7 +55,7 @@ const WINDOWS_FILE_ATTRIBUTE_FLAGS = {
 } as const
 
 const canOverwrite = new Set<string>()
-const locks = new Map<string, { token: string, timeout: NodeJS.Timeout, seconds: number, username: string }>()
+const locks = new Map<string, { token: string, timeout: NodeJS.Timeout, seconds: number, username: string, lockNull: boolean }>()
 
 export function releaseWebdavLock(path: string) {
     const key = webdavPathKey(path)
@@ -71,7 +71,7 @@ async function isLocked(path: string, ctx: Koa.Context) {
     const lock = locks.get(key)
     if (!lock) return false
     // if the resource is gone, keeping the lock only creates fake 423 responses
-    if (!await urlToNode(key, ctx)) {
+    if (!lock.lockNull && !await urlToNode(key, ctx)) {
         releaseWebdavLock(key)
         return false
     }
@@ -326,7 +326,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
             return ctx.status = HTTP_LOCKED
         const newToken = 'urn:uuid:' + randomUUID()
         const timeout = setTimeout(() => releaseWebdavLock(path), seconds * 1000)
-        locks.set(pathKey, { token: newToken, timeout, seconds, username: getWebdavUsername(ctx) })
+        locks.set(pathKey, { token: newToken, timeout, seconds, username: getWebdavUsername(ctx), lockNull: !node })
         ctx.set(TOKEN_HEADER, newToken)
         ctx.body = renderLockResponse(newToken, seconds)
     }

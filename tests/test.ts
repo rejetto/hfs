@@ -857,15 +857,29 @@ describe('webdav', () => {
     })
     test('webdav.lock allows a missing upload destination', async () => {
         const uri = `${UPLOAD_ROOT}wd-lock-missing-${randomId(6)}.txt`
+        const otherUser = `wd-lock-missing-${randomId(6)}`.toLowerCase()
+        const otherPass = randomId(10)
+        const adminReq = { auth, jar: {} }
         let token = ''
         try {
+            await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
             await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
             if (!token)
                 throw "missing lock token"
+            await req(uri, 423, {
+                method: 'PUT', auth: `${otherUser}:${otherPass}`, jar: {},
+                headers: { 'content-length': '5', 'user-agent': WEBDAV_UA }, body: 'other',
+            })()
+            await req(uri, 200, {
+                method: 'PUT', auth, jar,
+                headers: { 'content-length': '5', 'user-agent': WEBDAV_UA, If: `(<${token}>)` }, body: 'owner',
+            })()
         }
         finally {
             if (token)
                 await webdavUnlock(uri, token)().catch(() => {})
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await rmAny(uploadUriToPath(uri))
         }
     })
     test('webdav.lock applies to equivalent path and refresh keeps token', async () => {
