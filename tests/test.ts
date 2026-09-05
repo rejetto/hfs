@@ -1976,6 +1976,31 @@ describe('after-login', () => {
             await rmAny(dir)
         }
     })
+    test('VFS rename masks survive alias collisions and nesting', async () => {
+        const id = randomId(6)
+        const nodeName = `rename-chain-${id}`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const folderUri = `/${nodeName}/`
+        await mkdir(resolve(dir, 'phys'), { recursive: true })
+        await writeFile(resolve(dir, 'a.txt'), 'A')
+        await writeFile(resolve(dir, 'b.txt'), 'B')
+        await writeFile(resolve(dir, 'phys/x.txt'), 'nested')
+        try {
+            await reqApi('add_vfs', {
+                source: dir,
+                name: nodeName,
+                can_read: true,
+                rename: { 'a.txt': 'c.txt', 'b.txt': 'a.txt', phys: 'disp', 'phys/x.txt': 'y.txt' },
+                masks: { 'a.txt': { can_read: false }, 'disp/y.txt': { can_read: false } },
+            }, 200)()
+            await req(folderUri + 'a.txt', 403)()
+            await req(folderUri + 'disp/y.txt', 403)()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
     test('move keeps ownership aligned with destination VFS alias', async () => {
         const id = randomId(6).toLowerCase()
         const physicalName = `private-owner-${id}.txt`
