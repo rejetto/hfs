@@ -121,6 +121,13 @@ export async function isSameFilePath(a: string, b: string) {
 
 // security state follows the displayed VFS identity even when I/O uses its physical alias
 export function getVirtualName(name: string, parent: VfsNodeWithPath, source?: string) {
+    if (source) {
+        const normalizedSource = normalizeFilename(resolve(source))
+        const child = parent.children?.find(x => x.source
+            && normalizeFilename(resolve(x.source)) === normalizedSource)
+        if (child)
+            return getNodeName(child)
+    }
     const entries = Object.entries(parent.rename || {})
     const fromSource = source && entries.find(([from]) => isSameFilenameAs(basename(source))(from))
     if (fromSource)

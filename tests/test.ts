@@ -2071,6 +2071,53 @@ describe('after-login', () => {
             await rmAny(destDir)
         }
     })
+    test('move honors destination VFS aliases', async () => {
+        const adminReq = { auth, jar: {} }
+        const overwritten: string[] = []
+        for (const mode of ['rename', 'child', 'duplicate'] as const) {
+            const id = randomId(6)
+            const physicalName = `private-${id}.txt`
+            const displayName = `public-${id}.txt`
+            const movedName = process.platform === 'linux' ? physicalName : physicalName.toUpperCase()
+            const nodeName = `${mode}-destination-${id}`
+            const sourcePath = resolve(UPLOAD_DISK_ROOT, movedName)
+            const destDir = resolve(UPLOAD_DISK_ROOT, nodeName)
+            const destPath = resolve(destDir, physicalName)
+            await mkdir(destDir, { recursive: true })
+            await writeFile(sourcePath, 'replacement')
+            await writeFile(destPath, 'protected')
+            try {
+                const alias = mode === 'rename'
+                    ? { rename: { [physicalName]: displayName }, masks: { [displayName]: { can_delete: false } } }
+                    : mode === 'child'
+                        ? { children: [{ source: destPath, name: displayName, can_delete: false }] }
+                        : { rename: { missing: displayName, [physicalName]: displayName }, masks: { [displayName]: { can_delete: false } } }
+                await reqApi('add_vfs', {
+                    source: destDir,
+                    name: nodeName,
+                    can_upload: true,
+                    can_delete: true,
+                    ...alias,
+                }, 200, adminReq)()
+                await reqApi('move_files', {
+                    uri_from: [UPLOAD_ROOT + movedName],
+                    uri_to: `/${nodeName}/`,
+                }, res => {
+                    if (res?.errors?.[0] !== 403)
+                        overwritten.push(mode)
+                }, adminReq)()
+                if (readFileSync(destPath, 'utf8') !== 'protected')
+                    overwritten.push(`${mode}-content`)
+            }
+            finally {
+                await reqApi('del_vfs', { uris: [`/${nodeName}/`] }, 200, adminReq)().catch(() => {})
+                await rmAny(sourcePath)
+                await rmAny(destDir)
+            }
+        }
+        if (overwritten.length)
+            throw Error(`protected destinations overwritten: ${overwritten}`)
+    })
     test('VFS rename hides original physical names', async () => {
         const id = randomId(6).toLowerCase()
         const nodeName = `masked-alias-${id}`
