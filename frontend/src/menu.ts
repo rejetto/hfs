@@ -117,6 +117,8 @@ export function MenuPanel() {
                 icon: 'archive',
                 label: t`Zip`,
                 disabled: !can_archive,
+                'aria-hidden': !can_archive,
+                className: 'sliding ' + (can_archive ? '' : 'hide-sliding'),
                 tooltip: list ? t`zip_tooltip_selected`
                     : t`zip_tooltip_whole`,
                 href: buildUrlQueryString(_.pickBy({
@@ -163,12 +165,14 @@ function isAllSelected() {
     return state.list.every(x => state.selected[x.uri])
 }
 
-export function MenuLink({ href, target, confirm, confirmOptions, id, ...rest }: BtnProps & { href: string, target?: string, confirm?: string, confirmOptions?: ConfirmOptions }) {
+export function MenuLink({ href, target, confirm, confirmOptions, id, className, ...rest }: BtnProps & { href: string, target?: string, confirm?: string, confirmOptions?: ConfirmOptions }) {
     return h('a', {
         tabIndex: -1,
         href,
         target,
         id,
+        className,
+        'aria-hidden': rest['aria-hidden'],
         async onClick(ev) {
             if (!confirm) return
             ev.preventDefault()
