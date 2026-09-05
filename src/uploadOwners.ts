@@ -71,8 +71,10 @@ export async function moveUploadOwner(fromPath: string, toPath: string) {
     if (!uploadOwners.isOpen())
         return
     const from = cleanVfsPath(fromPath)
-    const affected = Array.from(uploadOwners.keys()).filter(k => isSameOrInside(from, k))
     const to = cleanVfsPath(toPath)
+    if (to === from)
+        return
+    const affected = Array.from(uploadOwners.keys()).filter(k => isSameOrInside(from, k))
     deleteUploadOwner(to) // overwriting with a non-uploaded file must not preserve the previous destination's delete grant
     if (!affected.length)
         return

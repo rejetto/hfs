@@ -1513,10 +1513,10 @@ describe('after-login', () => {
         const upperName = lowerName.toUpperCase()
         const lowerUri = CANT_OVERWRITE_URI + lowerName
         const upperUri = CANT_OVERWRITE_URI + upperName
+        const controlUri = CANT_OVERWRITE_URI + `control-${id}.txt`
         const otherUser = `owner-delete-${id}`
         const otherPass = randomId(12)
         const adminReq = { auth, jar: {} }
-        await mkdir(dir, { recursive: true })
         const probe = resolve(dir, `probe-${id}`)
         await writeFile(probe, '')
         if (!existsSync(probe.toUpperCase())) {
@@ -1528,14 +1528,42 @@ describe('after-login', () => {
             await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
             await reqApi('set_vfs', { uri: CANT_OVERWRITE_URI.slice(0, -1), props: { can_delete: [otherUser] } }, 200, adminReq)()
             await reqUpload(lowerUri, (_data, res) => res.statusCode === 200)()
+            await reqUpload(controlUri, (_data, res) => res.statusCode === 200)()
             await req(upperUri, 200, { method: 'delete', auth: `${otherUser}:${otherPass}`, jar: {} })()
             await reqApi('set_vfs', { uri: CANT_OVERWRITE_URI.slice(0, -1), props: { can_delete: false } }, 200, adminReq)()
             await writeFile(resolve(dir, lowerName), 'new owner')
             await req(lowerUri, 403, { method: 'delete' })()
+            await req(controlUri, 200, { method: 'delete' })()
         }
         finally {
             await reqApi('set_vfs', { uri: CANT_OVERWRITE_URI.slice(0, -1), props: { can_delete: false } }, 200, adminReq)().catch(() => {})
             await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('unicode-distinct files do not share upload ownership', async t => {
+        const id = randomId(6).toLowerCase()
+        const dir = await ensureCantOverwriteDir()
+        const composedName = `unicode-${id}-\u00e9.txt`
+        const decomposedName = `unicode-${id}-e\u0301.txt`
+        const composedPath = resolve(dir, composedName)
+        const decomposedPath = resolve(dir, decomposedName)
+        await writeFile(composedPath, 'victim')
+        await writeFile(decomposedPath, 'probe')
+        if (statSync(composedPath).ino === statSync(decomposedPath).ino) {
+            t.skip('normalization-insensitive filesystem')
+            await rmAny(dir)
+            return
+        }
+        await rmAny(decomposedPath)
+        try {
+            await reqUpload(CANT_OVERWRITE_URI + pathEncode(decomposedName),
+                (_data, res) => res.statusCode === 200, 'owned')()
+            await req(CANT_OVERWRITE_URI + pathEncode(composedName), 403, { method: 'delete' })()
+            if (readFileSync(composedPath, 'utf8') !== 'victim')
+                throw Error('unicode-distinct file was deleted through another upload owner')
+        }
+        finally {
             await rmAny(dir)
         }
     })
@@ -1592,6 +1620,7 @@ describe('after-login', () => {
         const name = `owner-move-${randomId(6)}`
         const dir = resolve(UPLOAD_DISK_ROOT, name)
         const start = `${UPLOAD_ROOT}${name}/start.txt`
+        const recased = `${UPLOAD_ROOT}${name}/START.txt`
         const renamed = `${UPLOAD_ROOT}${name}/renamed.txt`
         const folder = `${UPLOAD_ROOT}${name}/folder/`
         const moved = `${folder}renamed.txt`
@@ -1599,7 +1628,8 @@ describe('after-login', () => {
         await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
         try {
             await reqUpload(start, 200)()
-            await reqApi('rename', { uri: start, dest: 'renamed.txt' }, 200)()
+            await reqApi('rename', { uri: start, dest: 'START.txt' }, 200)()
+            await reqApi('rename', { uri: recased, dest: 'renamed.txt' }, 200)()
             await reqApi('create_folder', { uri: `${UPLOAD_ROOT}${name}/`, name: 'folder' }, 200)()
             await reqApi('move_files', { uri_from: [renamed], uri_to: folder }, res => !res?.errors?.[0])()
             await req(moved, 200, { method: 'delete' })()
@@ -1757,6 +1787,55 @@ describe('after-login', () => {
             await rmAny(resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR, movedName))
             await rmAny(resolve(destDir, movedName))
             await rmAny(victimPath)
+            await rmAny(destDir)
+        }
+    })
+    test('move keeps ownership aligned with destination VFS alias', async () => {
+        const id = randomId(6).toLowerCase()
+        const physicalName = `private-owner-${id}.txt`
+        const displayName = `public-owner-${id}.txt`
+        const nodeName = `owner-alias-${id}`
+        const sourcePath = resolve(UPLOAD_DISK_ROOT, physicalName)
+        const destDir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const destPath = resolve(destDir, physicalName)
+        const sourceUri = UPLOAD_ROOT + physicalName
+        const folderUri = `/${nodeName}/`
+        const displayUri = folderUri + displayName
+        const ownerUser = `alias-owner-${id}`
+        const ownerPass = randomId(12)
+        const otherUser = `alias-mover-${id}`
+        const otherPass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        const ownerReq = { auth: `${ownerUser}:${ownerPass}`, jar: {} }
+        await mkdir(destDir, { recursive: true })
+        try {
+            await reqApi('add_account', { username: ownerUser, password: ownerPass, belongs: ['admins'] }, 200, adminReq)()
+            await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
+            await reqApi('add_vfs', {
+                source: destDir,
+                name: nodeName,
+                can_upload: true,
+                can_delete: true,
+                rename: { [physicalName]: displayName },
+                masks: { [displayName]: { can_delete: [otherUser] } },
+            }, 200, adminReq)()
+            await reqUpload(sourceUri, 200, 'owned', undefined, 0, ownerReq)()
+            await reqApi('move_files', { uri_from: [sourceUri], uri_to: folderUri },
+                data => !data?.errors?.[0], ownerReq)()
+            await reqList(folderUri, { permInList: { [displayName]: 'D' } }, undefined, ownerReq)()
+
+            await writeFile(sourcePath, 'replacement')
+            await reqApi('move_files', { uri_from: [sourceUri], uri_to: folderUri },
+                data => !data?.errors?.[0], { auth: `${otherUser}:${otherPass}`, jar: {} })()
+            await req(displayUri, 401, { method: 'delete', ...ownerReq })()
+            if (readFileSync(destPath, 'utf8') !== 'replacement')
+                throw Error('previous uploader deleted an aliased replacement')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: ownerUser }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await rmAny(sourcePath)
             await rmAny(destDir)
         }
     })

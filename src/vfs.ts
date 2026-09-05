@@ -99,7 +99,9 @@ export function isSameFilenameAs(name: string) {
 }
 
 export function normalizeFilename(x: string) {
-    return (IS_WINDOWS || IS_MAC ? x.toLocaleLowerCase() : x).normalize()
+    const cased = IS_WINDOWS || IS_MAC ? x.toLocaleLowerCase() : x
+    // only macOS filesystems normalize Unicode names; elsewhere NFC and NFD may identify different files
+    return IS_MAC ? cased.normalize() : cased
 }
 
 export function getFreeVfsName(siblings: VfsNode[] | undefined, name: string) {

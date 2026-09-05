@@ -184,6 +184,7 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
             const src = srcNode?.source
             if (!src) return HTTP_NOT_FOUND
             const destName = basename(src)
+            const visibleName = destNode!.rename?.[destName] || destName
             const destChild = await urlToNode(pathEncode(destName), ctx, destNode!, { includeHidden: true })
             if (destChild && statusCodeForMissingPerm(destChild, 'can_delete', ctx))
                 return ctx.status
@@ -196,7 +197,7 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
                     await copyFile(src, dest)
                     await unlink(src)
                 }).then(() => moveStoredFileAttrs(src, dest))
-                    .then(() => moveUploadOwner(from1, joinVfs(uri_to, pathEncode(destName))))
+                    .then(() => moveUploadOwner(from1, joinVfs(uri_to, pathEncode(visibleName))))
                     .catch(e => e.code || String(e))
         }))
     }
