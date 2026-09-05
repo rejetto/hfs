@@ -65,12 +65,6 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
     if (!decodedPath || hasDirTraversal(decodedPath))
         return
 
-    if (ctx.get('X-Forwarded-For')
-    // we have some dev-proxies to ignore
-    && !(DEV && [process.env.FRONTEND_PROXY, process.env.ADMIN_PROXY].includes(ctx.get('X-Forwarded-port')))) {
-        proxyDetected = ctx
-        ctx.state.whenProxyDetected = new Date()
-    }
     if (ctx.get('cf-ray'))
         cloudflareDetected = new Date()
     if (!ctx.secure && forceHttps.get() && getHttpsWorkingPort() && !isLocalHost(ctx)) {
@@ -93,6 +87,13 @@ export function getProxyDetected() {
 export const prepareState: Koa.Middleware = async (ctx, next) => {
     // normalize once so auth, filters and logging agree on the same client address
     ctx.request.ip = normalizeIp(ctx.ip)
+    // rootsMiddleware consults proxy-aware admin access before someSecurity runs
+    if (ctx.get('X-Forwarded-For')
+    // we have some dev-proxies to ignore
+    && !(DEV && [process.env.FRONTEND_PROXY, process.env.ADMIN_PROXY].includes(ctx.get('X-Forwarded-port')))) {
+        proxyDetected = ctx
+        ctx.state.whenProxyDetected = new Date()
+    }
     ctx.state.safeUrl = ctx.originalUrl
     if (ctx.query.login) {
         const query = new URLSearchParams(ctx.querystring)

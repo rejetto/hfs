@@ -215,6 +215,69 @@ describe('basics', () => {
     test('bad range.inverted', req('/f1/f2/alfa.txt', 416, { headers: { Range: 'bytes=3-2' } }))
     test('bad range.malformed', req('/f1/f2/alfa.txt', 400, { headers: { Range: 'bytes=abc-def' } }))
     test('roots', req('/f2/alfa.txt', 200, { baseUrl: BASE_URL_127 })) // host 127.0.0.1 is rooted in /f1
+    test('roots API ignores forged admin referer', async () => {
+        const options = {
+            baseUrl: BASE_URL_127,
+            jar: {},
+            headers: { referer: BASE_URL_127 + '/~/admin/' },
+        }
+        await reqList('/', data => {
+            if (isInList(data, 'tests/'))
+                throw Error('forged admin referer exposed an outside-root listing')
+            if (!isInList(data, 'f2/'))
+                throw Error('host root was not applied')
+        }, undefined, options)()
+        await reqList('/', { inList: ['tests/'], outList: ['f2/'] }, undefined,
+            { baseUrl: BASE_URL, auth, jar: {}, headers: {
+                ...options.headers,
+                host: '127.0.0.1:8081',
+            } })() // an authenticated admin still manages the complete VFS
+
+        const adminReq = { auth, jar: {} }
+        const oldConfig = await reqApi('get_config', { only: ['localhost_admin', 'proxies'] }, 200, adminReq)()
+        try {
+            await reqApi('set_config', { values: { localhost_admin: true, proxies: 1 } }, 200, adminReq)()
+            await reqList('/', data => {
+                if (isInList(data, 'tests/'))
+                    throw Error('proxied localhost escaped the host root')
+            }, undefined, { ...options, headers: {
+                ...options.headers,
+                'x-forwarded-for': '127.0.0.1',
+            } })()
+        }
+        finally {
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)().catch(() => {})
+        }
+    })
+    test('force_address still permits login from the admin page', async () => {
+        const adminReq = { auth, jar: {} }
+        const loginUser = `force-login-${randomId(6)}`
+        const loginPass = randomId(12)
+        const oldConfig = await reqApi('get_config', { only: ['force_address', 'proxies', 'admin_net'] }, 200, adminReq)()
+        const options = {
+            baseUrl: BASE_URL_127,
+            jar: {},
+            headers: {
+                host: 'unmatched.example',
+                referer: 'http://unmatched.example/~/admin/',
+                'x-forwarded-for': '203.0.113.10',
+                'x-hfs-anti-csrf': '1',
+            },
+        }
+        try {
+            await reqApi('add_account', {
+                username: loginUser, password: loginPass, admin: true, allow_net: '203.0.113.10',
+            }, 200, adminReq)()
+            await reqApi('set_config', {
+                values: { force_address: true, proxies: 1, admin_net: '203.0.113.10' },
+            }, 200, adminReq)()
+            await reqApi('login', { username: loginUser, password: loginPass }, 200, options)()
+        }
+        finally {
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)()
+            await reqApi('del_account', { username: loginUser }, 200, adminReq)().catch(() => {})
+        }
+    })
     test('website', req('/f1/page/', { re:/This is a test/, mime:'text/html' }))
     test('traversal', req('/f1/page/.%2e/.%2e/README.md', 404))
     test('traversal.double-encoded', req('/f1/page/%252e%252e/%252e%252e/README.md', 404))

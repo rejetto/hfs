@@ -7,6 +7,7 @@ import Koa from 'koa'
 import { disconnect } from './connections'
 import { baseUrl } from './listen'
 import _ from 'lodash'
+import { ctxAdminAccess } from './adminApis'
 
 export const roots = defineConfig(CFG.roots, {} as { [hostMask: string]: string }, map => {
     const list = Object.keys(map)
@@ -27,7 +28,10 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
             params = ctx.state.params || ctx.query // for api we'll translate params
             changeUriParams(v => removeStarting(ctx.state.revProxyPath, v))  // this removal must be done before adding the root; this operation doesn't conceptually belong to "roots", and it may be placed in different middleware, but it's convenient to do it here
             const { referer } = ctx.headers
-            if (referer && try_(() => new URL(referer).pathname.startsWith(ctx.state.revProxyPath + ADMIN_URI))) return // exclude apis for admin-panel
+            const fromAdmin = referer && try_(() => new URL(referer).pathname.startsWith(ctx.state.revProxyPath + ADMIN_URI))
+            // authentication must remain reachable before ctxAdminAccess can succeed
+            if (fromAdmin && (ctxAdminAccess(ctx)
+            || ['login', 'loginSrp1', 'loginSrp2'].some(x => ctx.path === API_URI + x))) return
         }
         if (_.isEmpty(roots.get())) return
         const root = ctx.state.root = roots.compiled()(ctx.host)
