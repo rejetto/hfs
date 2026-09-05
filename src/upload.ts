@@ -22,6 +22,7 @@ import { rm, rename, utimes } from 'fs/promises'
 import { expiringCache } from './expiringCache'
 import { onProcessExit } from './first'
 import { deleteUploadOwner, setUploadOwner } from './uploadOwners'
+import { isWebdavLocked } from './webdav'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>(CFG.delete_unfinished_uploads_after, 86_400)
 export const minAvailableMb = defineConfig(CFG.min_available_mb, 100)
@@ -78,6 +79,8 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
     if (!filename || !isValidFileName(filename) || !filename)
         return fail(HTTP_FOOL)
     if (statusCodeForMissingPerm(base, 'can_upload', ctx))
+        return fail()
+    if (isWebdavLocked(enforceFinal('/', baseUri) + pathEncode(filename), ctx))
         return fail()
     const fullPath = join(base.source!, filename)
     const uploadKey = normalizeFilename(fullPath)

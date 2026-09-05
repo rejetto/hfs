@@ -971,6 +971,34 @@ describe('webdav', () => {
             await rmAny(path)
         }
     })
+    test('webdav.lock applies to frontend rename API', async () => {
+        const id = randomId(6).toLowerCase()
+        const name = `wd-lock-api-${id}.txt`
+        const renamedName = `wd-lock-api-${id}-renamed.txt`
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        const renamedUri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${renamedName}`
+        const otherUser = `wd-lock-api-${id}`
+        const otherPass = randomId(10)
+        const adminReq = { auth, jar: {} }
+        let destPath = ''
+        let token = ''
+        try {
+            destPath = await webdavUpload(uri, x => x?.uri === uri, 'original')()
+            await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
+            await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            await reqApi('rename', { uri, dest: renamedName }, 423,
+                { auth: `${otherUser}:${otherPass}`, jar: {} })()
+            await req(uri, 200, { auth })()
+            await req(renamedUri, 404, { auth })()
+        }
+        finally {
+            if (token)
+                await webdavUnlock(uri, token)().catch(() => {})
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await rmAny(destPath)
+            await rmAny(uploadUriToPath(renamedUri))
+        }
+    })
     test('webdav.lock rejects shared lock', async () => {
         const name = `wd-lock-shared-${randomId(6)}.txt`
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`

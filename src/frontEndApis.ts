@@ -25,6 +25,7 @@ import { getCommentFor, setCommentFor } from './comments'
 import { SendListReadable } from './SendList'
 import { ctxAdminAccess } from './adminApis'
 import _ from 'lodash'
+import { isWebdavLocked } from './webdav'
 
 const partialFolderSize: any = {}
 const showUploader = defineConfig<Who>(CFG.show_uploader, WHO_ADMIN)
@@ -77,9 +78,12 @@ export const frontEndApis: ApiHandlers = {
         const err = statusCodeForMissingPerm(parentNode, 'can_upload', ctx)
         if (err)
             return new ApiError(err)
+        const destUri = joinVfs(uri, pathEncode(name))
+        if (isWebdavLocked(destUri, ctx))
+            return new ApiError(ctx.status)
         try {
             await mkdir(join(parentNode.source!, name))
-            await setUploadOwner(joinVfs(uri, pathEncode(name)), ctx)
+            await setUploadOwner(destUri, ctx)
             return {}
         }
         catch(e:any) {
@@ -124,6 +128,8 @@ export const frontEndApis: ApiHandlers = {
             return new ApiError(HTTP_UNAUTHORIZED)
         if (!node.source)
             return new ApiError(HTTP_FAILED_DEPENDENCY)
+        if (isWebdavLocked(uri, ctx))
+            return new ApiError(ctx.status)
         if (!await setCommentFor(node.source, comment))
             return new ApiError(HTTP_SERVER_ERROR)
         return {}
@@ -183,12 +189,15 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
             const srcNode = await urlToNode(from1, ctx)
             const src = srcNode?.source
             if (!src) return HTTP_NOT_FOUND
+            if (!override && isWebdavLocked(from1, ctx)) return ctx.status
             const destName = basename(src)
             const visibleName = destNode!.rename?.[destName] || destName
             const destChild = await urlToNode(pathEncode(destName), ctx, destNode!, { includeHidden: true })
             if (destChild && statusCodeForMissingPerm(destChild, 'can_delete', ctx))
                 return ctx.status
             const dest = join(destNode!.source!, destName)
+            if (isWebdavLocked(joinVfs(uri_to, pathEncode(visibleName)), ctx))
+                return ctx.status
             if (_.isFunction(override))
                 return override?.(srcNode, dest)
             return statusCodeForMissingPerm(srcNode, 'can_delete', ctx)
@@ -210,6 +219,9 @@ export async function requestedRename(node: VfsNodeWithPath | undefined, newName
     if (!isValidFileName(newName))
         throw new ApiError(HTTP_BAD_REQUEST)
     if (statusCodeForMissingPerm(node, 'can_delete', ctx))
+        throw new ApiError(ctx.status)
+    if (isWebdavLocked(uri, ctx)
+    || isWebdavLocked(joinVfs(dirname(uri), pathEncode(newName)), ctx))
         throw new ApiError(ctx.status)
     if (node.name) // virtual name = virtual rename
         node.name = newName
