@@ -72,9 +72,10 @@ export async function moveUploadOwner(fromPath: string, toPath: string) {
         return
     const from = cleanVfsPath(fromPath)
     const affected = Array.from(uploadOwners.keys()).filter(k => isSameOrInside(from, k))
+    const to = cleanVfsPath(toPath)
+    deleteUploadOwner(to) // overwriting with a non-uploaded file must not preserve the previous destination's delete grant
     if (!affected.length)
         return
-    const to = cleanVfsPath(toPath)
     const owners = affected.map(k => ({ k, owner: uploadOwners.getSync(k) }))
     // ownership is keyed by VFS path, so HFS moves must carry descendant upload records too
     await Promise.all(owners.map(({ k, owner }) => owner && uploadOwners.put(to + k.slice(from.length), owner)))

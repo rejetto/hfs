@@ -1539,6 +1539,39 @@ describe('after-login', () => {
             await rmAny(dir)
         }
     })
+    test('move overwrite clears destination upload ownership', async () => {
+        const id = randomId(6).toLowerCase()
+        const name = `move-owner-${id}.txt`
+        const destDir = await ensureCantOverwriteDir()
+        const destUri = CANT_OVERWRITE_URI + name
+        const sourcePath = resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR, name)
+        const sourceUri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        const otherUser = `owner-move-${id}`
+        const otherPass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        await mkdir(dirname(sourcePath), { recursive: true })
+        try {
+            await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
+            await reqApi('set_vfs', { uri: CANT_OVERWRITE_URI.slice(0, -1), props: { can_delete: [otherUser] } }, 200, adminReq)()
+            await reqUpload(destUri, (_data, res) => res.statusCode === 200,
+                'old', undefined, 0, { auth, jar: {} })()
+            await writeFile(sourcePath, 'new')
+            await reqApi('move_files', { uri_from: [sourceUri], uri_to: CANT_OVERWRITE_URI },
+                data => !data?.errors?.[0], { auth: `${otherUser}:${otherPass}`, jar: {} })()
+            if (readFileSync(resolve(destDir, name), 'utf8') !== 'new')
+                throw Error('destination was not overwritten')
+            await reqApi('set_vfs', { uri: CANT_OVERWRITE_URI.slice(0, -1), props: { can_delete: false } }, 200, adminReq)()
+            await req(destUri, 403, { method: 'delete', auth, jar: {} })()
+            if (readFileSync(resolve(destDir, name), 'utf8') !== 'new')
+                throw Error('previous uploader deleted the replacement')
+        }
+        finally {
+            await reqApi('set_vfs', { uri: CANT_OVERWRITE_URI.slice(0, -1), props: { can_delete: false } }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await rmAny(sourcePath)
+            await rmAny(destDir)
+        }
+    })
     test('folder creator can delete without delete permission', async () => {
         const name = `owner-folder-${randomId(6)}`
         const dir = resolve(UPLOAD_DISK_ROOT, name)
