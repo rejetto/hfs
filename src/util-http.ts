@@ -7,11 +7,24 @@ import { Readable } from 'node:stream'
 import _ from 'lodash'
 import { text as stream2string, buffer } from 'node:stream/consumers'
 import * as tls from 'node:tls'
-import { enforceStarting } from './cross'
+import { enforceStarting, MB } from './cross'
 export { stream2string }
 
-export async function httpString(url: string, options?: XRequestOptions): Promise<string> {
-    return await stream2string(await httpStream(url, options))
+export async function httpString(url: string, { maxBytes=10*MB, ...options }: XStringRequestOptions ={}): Promise<string> {
+    const stream = await httpStream(url, options)
+    if (maxBytes === Infinity)
+        return await stream2string(stream)
+    const chunks: Buffer[] = []
+    let size = 0
+    for await (const chunk of stream) {
+        size += chunk.length
+        if (size > maxBytes) {
+            stream.destroy()
+            throw Object.assign(Error('response too large'), { code: 'ERR_HTTP_RESPONSE_TOO_LARGE' })
+        }
+        chunks.push(chunk)
+    }
+    return new TextDecoder().decode(Buffer.concat(chunks, size))
 }
 
 export async function httpWithBody(url: string, options?: XRequestOptions): Promise<IncomingMessage & { ok: boolean, body: Buffer | undefined }> {
@@ -30,6 +43,10 @@ export interface XRequestOptions extends https.RequestOptions {
     noRedirect?: boolean
     // throw for http-level errors. Default is true.
     httpThrow?: boolean
+}
+
+export interface XStringRequestOptions extends XRequestOptions {
+    maxBytes?: number
 }
 
 export declare namespace httpStream {

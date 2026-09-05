@@ -9,7 +9,7 @@ import _ from 'lodash'
 import yaml from 'yaml'
 import unzipper from 'unzipper'
 import { findDefined, FRONTEND_OPTIONS, isIpLocalHost, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, UPLOAD_TEMP_PREFIX, wait, waitFor } from '../src/cross'
-import { httpStream, httpWithBody, stream2string, XRequestOptions } from '../src/util-http'
+import { httpStream, httpString, httpWithBody, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { makeQ } from '../src/makeQ'
 import { mkdir, rm, rename, writeFile, access, mkdtemp, symlink } from 'fs/promises'
@@ -18,7 +18,7 @@ import { once } from 'events'
 import { QuickZipStream } from '../src/QuickZipStream'
 import { XMLValidator } from 'fast-xml-parser'
 import { BASIC_AUTHENTICATE_HEADER } from '../src/cross'
-import { request as httpRequest } from 'http'
+import { createServer, request as httpRequest } from 'http'
 /*
 import { PORT, srv } from '../src'
 
@@ -78,6 +78,31 @@ const execP = (cmd: string) => promisify(exec)(cmd).then(x => x.stdout)
 const srp6aNimbusRoutines = new srp.SRPRoutines(new srp.SRPParameters())
 
 describe('basics', () => {
+    test('httpString limits continuously streaming responses', async () => {
+        const server = createServer((_req, res) => {
+            let sent = 0
+            const timer = setInterval(() => {
+                if (++sent < 32)
+                    res.write(Buffer.alloc(64 * 1024))
+                else
+                    res.end()
+            }, 10)
+            res.on('close', () => clearInterval(timer))
+        })
+        await new Promise<void>((resolve, reject) => server.listen(0, '127.0.0.1', resolve).once('error', reject))
+        const address = server.address()
+        try {
+            if (!address || typeof address === 'string')
+                throw Error('missing test server address')
+            await httpString(`http://127.0.0.1:${address.port}`, { timeout: 500, maxBytes: 1024 * 1024 })
+                .then(() => { throw Error('oversized response accepted') }, e => {
+                    if (e.code !== 'ERR_HTTP_RESPONSE_TOO_LARGE') throw e
+                })
+        }
+        finally {
+            await new Promise<void>(resolve => server.close(() => resolve()))
+        }
+    })
     test('unwatch cancels pending language load', async () => {
         const marker = `watch-load-${randomId(6)}`
         const file = resolve(__dirname, 'work/hfs-lang-zz.json')

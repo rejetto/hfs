@@ -17,6 +17,8 @@ export const HIDE_IN_TESTS = 'hideInTests' // elements that have variable size, 
 export const MASK_IN_TESTS = 'maskInTests'
 export const EMBEDDED_LANGUAGE = 'en' // frontend includes this language in the code, and not need to import the translation-json
 export const BASIC_AUTHENTICATE_HEADER = 'Basic realm="HFS"'
+export const KB = 1024
+export const MB = KB * KB
 
 export const CFG = constMap([
     'accounts', 'acme_domain', 'acme_renew', 'admin_net', 'allowed_referer',
