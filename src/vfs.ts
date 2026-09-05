@@ -104,10 +104,31 @@ export function normalizeFilename(x: string) {
     return IS_MAC ? cased.normalize() : cased
 }
 
+export async function isSameFilePath(a: string, b: string) {
+    if (normalizeFilename(resolve(a)) === normalizeFilename(resolve(b)))
+        return true
+    try {
+        const stats = await Promise.all([fs.lstat(a), fs.lstat(b)])
+        if (stats.some(x => x.isSymbolicLink()))
+            return false
+        const [realA, realB] = await Promise.all([fs.realpath(a), fs.realpath(b)])
+        return normalizeFilename(realA) === normalizeFilename(realB)
+    }
+    catch {
+        return false
+    }
+}
+
 // security state follows the displayed VFS identity even when I/O uses its physical alias
-export function getVirtualName(name: string, parent: VfsNodeWithPath) {
+export function getVirtualName(name: string, parent: VfsNodeWithPath, source?: string) {
+    const entries = Object.entries(parent.rename || {})
+    const fromSource = source && entries.find(([from]) => isSameFilenameAs(basename(source))(from))
+    if (fromSource)
+        return fromSource[1]
     const sameName = isSameFilenameAs(name)
-    return Object.entries(parent.rename || {}).find(([from]) => sameName(from))?.[1] || name
+    return entries.find(([, to]) => sameName(to))?.[1]
+        || entries.find(([from]) => sameName(from))?.[1]
+        || name
 }
 
 export function getFreeVfsName(siblings: VfsNode[] | undefined, name: string) {
@@ -156,7 +177,6 @@ export async function urlToNode(
     const ret = await getNodeByName(name, parent, assumeFolder)
     if (!ret)
         return
-    setVfsPath(ret, name, parent)
     if (!ret.original && ret.source && !options.includeHidden && !showHiddenFiles.get() && await isHiddenFile(ret.source))
         return
     if (rest || ret?.original)
@@ -186,8 +206,10 @@ export async function getNodeByName(name: string, parent: VfsNodeWithPath, assum
     // does the tree node have a child that goes by this name, otherwise attempt disk
     let virtualName = name
     let child = parent.children?.find(isSameFilenameAs(name))
-    if (child) // found as vfs node
+    if (child) { // found as vfs node
+        virtualName = getNodeName(child)
         await setIsFolder(child) // in case it's pointing to a folder that didn't exist at loading time
+    }
     else
         child = await childFromDisk()
     return child && applyParentToChild(child, parent, virtualName)
@@ -571,9 +593,11 @@ function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename=getNodeNam
 
 function renameUnderPath(rename:undefined | Record<string,string>, path: string) {
     if (!rename) return rename
-    const match = path+'/'
-    rename = Object.fromEntries(Object.entries(rename).map(([k, v]) =>
-        [k.startsWith(match) ? k.slice(match.length) : '', v]))
+    const sameName = isSameFilenameAs(path)
+    rename = Object.fromEntries(Object.entries(rename).map(([k, v]) => {
+        const i = k.indexOf('/')
+        return [i >= 0 && sameName(k.slice(0, i)) ? k.slice(i + 1) : '', v]
+    }))
     delete rename['']
     return _.isEmpty(rename) ? undefined : rename
 }

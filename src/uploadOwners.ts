@@ -5,7 +5,7 @@ import { onProcessExit } from './first'
 import { defineConfig } from './config'
 import { getCurrentUsername } from './auth'
 import events from './events'
-import { normalizeFilename, VfsNode } from './vfs'
+import { isSameFilePath, normalizeFilename, urlToNode, VfsNode } from './vfs'
 
 export interface UploadOwner {
     username?: string
@@ -53,8 +53,10 @@ events.on('checkVfsPermission', ({ node, perm, ctx }: { node: VfsNode, perm: str
         return 0
 })
 
-export function setUploadOwner(vfsPath: string, ctx: Koa.Context) {
+export async function setUploadOwner(vfsPath: string, ctx: Koa.Context, expectedSource?: string) {
     if (!uploadOwners.isOpen() || !ownUploadDeleteHours.get())
+        return
+    if (expectedSource && !await getNodeMatchingSource(vfsPath, ctx, expectedSource))
         return
     const username = getCurrentUsername(ctx) || undefined
     return uploadOwners.put(cleanVfsPath(vfsPath), {
@@ -67,14 +69,18 @@ export function setUploadOwner(vfsPath: string, ctx: Koa.Context) {
     })
 }
 
-export async function moveUploadOwner(fromPath: string, toPath: string) {
+export async function moveUploadOwner(fromPath: string, toPath: string, expectedSource?: string) {
     if (!uploadOwners.isOpen())
         return
     const from = cleanVfsPath(fromPath)
     const to = cleanVfsPath(toPath)
+    const affected = Array.from(uploadOwners.keys()).filter(k => isSameOrInside(from, k))
+    if (expectedSource && !await getNodeMatchingSource(toPath, undefined, expectedSource)) {
+        await Promise.all(affected.map(k => uploadOwners.del(k)))
+        return
+    }
     if (to === from)
         return
-    const affected = Array.from(uploadOwners.keys()).filter(k => isSameOrInside(from, k))
     deleteUploadOwner(to) // overwriting with a non-uploaded file must not preserve the previous destination's delete grant
     if (!affected.length)
         return
@@ -82,6 +88,12 @@ export async function moveUploadOwner(fromPath: string, toPath: string) {
     // ownership is keyed by VFS path, so HFS moves must carry descendant upload records too
     await Promise.all(owners.map(({ k, owner }) => owner && uploadOwners.put(to + k.slice(from.length), owner)))
     await Promise.all(affected.map(k => uploadOwners.del(k)))
+}
+
+export async function getNodeMatchingSource(vfsPath: string, ctx: Koa.Context | undefined, source: string) {
+    const node = await urlToNode(vfsPath, ctx, undefined, { includeHidden: true })
+    if (node?.source && await isSameFilePath(node.source, source))
+        return node
 }
 
 export function deleteUploadOwner(vfsPath: string) {

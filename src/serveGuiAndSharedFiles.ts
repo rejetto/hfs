@@ -115,7 +115,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
                 return ctx.status = HTTP_FAILED_DEPENDENCY
             await rm(source, { recursive: true })
             await deleteStoredFileAttrs(source)
-            deleteUploadOwner(path)
+            deleteUploadOwner(node.vfsPath)
             void setCommentFor(source, '') // necessary only to clean a possible descript.ion or kvstorage
             return ctx.status = HTTP_OK
         } catch (e: any) {

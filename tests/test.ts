@@ -945,22 +945,29 @@ describe('webdav', () => {
         const id = randomId(6)
         const nodeName = `wd-lock-alias-${id}`
         const physicalName = `wd-lock-physical-${id}.txt`
+        const otherPhysicalName = `wd-lock-other-${id}.txt`
         const displayName = `WD-Lock-Alias-${id}.TXT`
         const dir = resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR)
         const path = resolve(dir, physicalName)
+        const otherPath = resolve(dir, otherPhysicalName)
         const uri = `/${nodeName}/${displayName}`
         const adminReq = { auth, jar: {} }
         let token = ''
         await mkdir(dir, { recursive: true })
         await writeFile(path, 'original')
+        await writeFile(otherPath, 'other')
         try {
             await reqApi('add_vfs', {
                 source: dir, name: nodeName, can_delete: true, can_upload: true,
-                rename: { [physicalName]: displayName },
+                rename: { [physicalName]: displayName, [otherPhysicalName]: physicalName },
             }, 200, adminReq)()
             await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
             const recasedUri = process.platform === 'linux' ? uri : `/${nodeName}/${displayName.toLowerCase()}`
             await req(recasedUri, 423, {
+                method: 'PUT', auth, jar: {}, body: 'replacement',
+                headers: { 'content-length': '11', 'user-agent': WEBDAV_UA },
+            })()
+            await req(`/${nodeName}/${physicalName}`, 423, {
                 method: 'PUT', auth, jar: {}, body: 'replacement',
                 headers: { 'content-length': '11', 'user-agent': WEBDAV_UA },
             })()
@@ -972,6 +979,70 @@ describe('webdav', () => {
                 await webdavUnlock(uri, token)().catch(() => {})
             await reqApi('del_vfs', { uris: [`/${nodeName}/`] }, 200, adminReq)().catch(() => {})
             await rmAny(path)
+            await rmAny(otherPath)
+        }
+    })
+    test('webdav.lock-null covers a physical VFS folder alias', async () => {
+        const id = randomId(6)
+        const nodeName = `wd-lock-null-alias-${id}`
+        const physicalName = `private-${id}`
+        const displayName = `public-${id}`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const displayUri = `/${nodeName}/${displayName}`
+        const physicalUri = `/${nodeName}/${physicalName}`
+        const adminReq = { auth, jar: {} }
+        let token = ''
+        await mkdir(dir, { recursive: true })
+        try {
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_upload: true,
+                rename: { [physicalName]: displayName },
+            }, 200, adminReq)()
+            await webdavLock(displayUri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            await req(physicalUri, 423, { method: 'MKCOL', auth, jar, headers: { 'user-agent': WEBDAV_UA } })()
+            if (existsSync(resolve(dir, physicalName)))
+                throw Error('locked folder was created through its physical alias')
+            await webdavUnlock(displayUri, token)()
+            token = ''
+            await webdavLock(physicalUri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            await req(displayUri, 423, { method: 'MKCOL', auth, jar, headers: { 'user-agent': WEBDAV_UA } })()
+        }
+        finally {
+            if (token)
+                await webdavUnlock(displayUri, token)().catch(() => {})
+            await reqApi('del_vfs', { uris: [`/${nodeName}/`] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('webdav.existing lock survives a missing duplicate alias', async () => {
+        const id = randomId(6)
+        const nodeName = `wd-lock-duplicate-${id}`
+        const physicalName = `physical-${id}.txt`
+        const missingName = `missing-${id}.txt`
+        const displayName = `display-${id}.txt`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const physicalPath = resolve(dir, physicalName)
+        const physicalUri = `/${nodeName}/${physicalName}`
+        const missingUri = `/${nodeName}/${missingName}`
+        const adminReq = { auth, jar: {} }
+        let token = ''
+        await mkdir(dir, { recursive: true })
+        await writeFile(physicalPath, 'protected')
+        try {
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_delete: true,
+                rename: { [missingName]: displayName, [physicalName]: displayName },
+            }, 200, adminReq)()
+            await webdavLock(physicalUri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            await req(missingUri, 423, { method: 'DELETE', auth, jar: {}, headers: { 'user-agent': WEBDAV_UA } })()
+            if (readFileSync(physicalPath, 'utf8') !== 'protected')
+                throw Error('missing duplicate alias destroyed an existing lock')
+        }
+        finally {
+            if (token)
+                await webdavUnlock(physicalUri, token)().catch(() => {})
+            await reqApi('del_vfs', { uris: [`/${nodeName}/`] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
         }
     })
     test('webdav.lock applies to frontend rename API', async () => {
@@ -1118,6 +1189,62 @@ describe('webdav', () => {
                 await webdavUnlock(targetUri, token)().catch(() => {})
             await rmAny(sourcePath)
             await rmAny(targetPath)
+        }
+    })
+    test('webdav.move requires the displayed parent name', async () => {
+        const id = randomId(6)
+        const nodeName = `wd-move-parent-${id}`
+        const physicalDir = `private-${id}`
+        const displayDir = `public-${id}`
+        const oldName = `old-${id}.txt`
+        const newName = `new-${id}.txt`
+        const caseDirName = `Case-${id}`
+        const root = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const dir = resolve(root, physicalDir)
+        const caseDir = resolve(root, caseDirName)
+        const oldPath = resolve(dir, oldName)
+        const newPath = resolve(dir, newName)
+        const sourceUri = `/${nodeName}/${displayDir}/${oldName}`
+        const destination = `${BASE_URL}/${nodeName}/${physicalDir}/${newName}`
+        const adminReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await mkdir(caseDir, { recursive: true })
+        await writeFile(oldPath, 'source')
+        try {
+            await reqApi('add_vfs', {
+                source: root, name: nodeName, can_delete: true, can_upload: true,
+                rename: { [physicalDir]: displayDir },
+            }, 200, adminReq)()
+            await req(sourceUri, 404, {
+                method: 'MOVE', auth, jar,
+                headers: { destination, overwrite: 'F', 'user-agent': WEBDAV_UA },
+            })()
+            if (!existsSync(oldPath) || existsSync(newPath))
+                throw Error('MOVE accepted the original parent name')
+            await req(sourceUri, 201, {
+                method: 'MOVE', auth, jar,
+                headers: { destination: `${BASE_URL}/${nodeName}/${displayDir}/${newName}`, overwrite: 'F', 'user-agent': WEBDAV_UA },
+            })()
+            if (existsSync(oldPath) || readFileSync(newPath, 'utf8') !== 'source')
+                throw Error('MOVE treated aliases of one parent as different folders')
+            if (process.platform !== 'linux') {
+                const caseOld = resolve(caseDir, oldName)
+                const caseNew = resolve(caseDir, newName)
+                await writeFile(caseOld, 'source')
+                await req(`/${nodeName}/${caseDirName}/${oldName}`, 201, {
+                    method: 'MOVE', auth, jar,
+                    headers: {
+                        destination: `${BASE_URL}/${nodeName}/${caseDirName.toUpperCase()}/${newName}`,
+                        overwrite: 'F', 'user-agent': WEBDAV_UA,
+                    },
+                })()
+                if (existsSync(caseOld) || readFileSync(caseNew, 'utf8') !== 'source')
+                    throw Error('MOVE treated casing variants of one parent as different folders')
+            }
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [`/${nodeName}/`] }, 200, adminReq)().catch(() => {})
+            await rmAny(root)
         }
     })
     test('webdav.move rename decodes escaped segment chars', async () => {
@@ -1984,17 +2111,35 @@ describe('after-login', () => {
         await mkdir(resolve(dir, 'phys'), { recursive: true })
         await writeFile(resolve(dir, 'a.txt'), 'A')
         await writeFile(resolve(dir, 'b.txt'), 'B')
+        await writeFile(resolve(dir, 'x.txt'), 'X')
         await writeFile(resolve(dir, 'phys/x.txt'), 'nested')
         try {
             await reqApi('add_vfs', {
                 source: dir,
                 name: nodeName,
-                can_read: true,
+                can_read: true, can_delete: true,
                 rename: { 'a.txt': 'c.txt', 'b.txt': 'a.txt', phys: 'disp', 'phys/x.txt': 'y.txt' },
-                masks: { 'a.txt': { can_read: false }, 'disp/y.txt': { can_read: false } },
+                masks: { 'a.txt': { can_read: false }, 'c.txt': { can_delete: false }, 'disp/y.txt': { can_read: false } },
             }, 200)()
             await req(folderUri + 'a.txt', 403)()
             await req(folderUri + 'disp/y.txt', 403)()
+            await req(folderUri + 'phys/y.txt', 404)()
+            if (process.platform !== 'linux')
+                await req(folderUri + 'PHYS/y.txt', 404)()
+            await reqApi('rename', { uri: folderUri + 'x.txt', dest: 'a.txt' }, 403)()
+            if (readFileSync(resolve(dir, 'a.txt'), 'utf8') !== 'A')
+                throw Error('rename collision overwrote a protected physical destination')
+            await rmAny(resolve(dir, 'a.txt'))
+            await reqApi('set_vfs', {
+                uri: folderUri.slice(0, -1),
+                props: {
+                    rename: { 'a.txt': 'same.txt', 'b.txt': 'same.txt' },
+                    masks: { 'same.txt': { can_delete: false } },
+                },
+            }, 200)()
+            await reqApi('rename', { uri: folderUri + 'x.txt', dest: 'b.txt' }, 403)()
+            if (readFileSync(resolve(dir, 'b.txt'), 'utf8') !== 'B')
+                throw Error('duplicate display alias hid a protected rename destination')
         }
         finally {
             await reqApi('del_vfs', { uris: [folderUri] }, 200)().catch(() => {})
@@ -2048,6 +2193,151 @@ describe('after-login', () => {
             await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
             await rmAny(sourcePath)
             await rmAny(destDir)
+        }
+    })
+    test('VFS aliases share upload ownership identity', async () => {
+        const id = randomId(6).toLowerCase()
+        const physicalName = `private-direct-${id}.txt`
+        const displayName = `public-direct-${id}.txt`
+        const nodeName = `owner-direct-${id}`
+        const sourcePath = resolve(UPLOAD_DISK_ROOT, physicalName)
+        const destDir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const destPath = resolve(destDir, physicalName)
+        const folderUri = `/${nodeName}/`
+        const physicalUri = folderUri + physicalName
+        const displayUri = folderUri + displayName
+        const ownerUser = `direct-owner-${id}`
+        const ownerPass = randomId(12)
+        const otherUser = `direct-mover-${id}`
+        const otherPass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        const ownerReq = { auth: `${ownerUser}:${ownerPass}`, jar: {} }
+        const otherReq = { auth: `${otherUser}:${otherPass}`, jar: {} }
+        await mkdir(destDir, { recursive: true })
+        try {
+            await reqApi('add_account', { username: ownerUser, password: ownerPass, belongs: ['admins'] }, 200, adminReq)()
+            await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
+            await reqApi('add_vfs', {
+                source: destDir, name: nodeName, can_upload: true,
+                rename: { [physicalName]: displayName },
+                masks: { [displayName]: { can_delete: [otherUser] } },
+            }, 200, adminReq)()
+            await reqUpload(physicalUri, x => x?.uri === physicalUri, 'owned', undefined, 0, ownerReq)()
+            await reqUpload(physicalUri + '?existing=overwrite', x => x?.uri === physicalUri, 'updated', undefined, 0, ownerReq)()
+            await req(displayUri, 200, { method: 'delete', ...otherReq })()
+            await writeFile(sourcePath, 'replacement')
+            await reqApi('move_files', { uri_from: [UPLOAD_ROOT + physicalName], uri_to: folderUri },
+                data => !data?.errors?.[0], otherReq)()
+            await req(physicalUri, 404, { method: 'delete', ...ownerReq })()
+            if (readFileSync(destPath, 'utf8') !== 'replacement')
+                throw Error('stale alias ownership deleted another uploader\'s file')
+            await req(displayUri, 200, {
+                method: 'PUT', body: 'shadow', ...ownerReq,
+                headers: { 'content-length': '6', 'user-agent': WEBDAV_UA },
+            })()
+            await req(displayUri, 401, {
+                method: 'PUT', body: 'attack', ...ownerReq,
+                headers: { 'content-length': '6', 'user-agent': WEBDAV_UA },
+            })()
+            await req(displayUri, 401, { method: 'delete', ...ownerReq })()
+            if (readFileSync(destPath, 'utf8') !== 'replacement')
+                throw Error('shadowed upload granted access to a protected alias')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: ownerUser }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await rmAny(sourcePath)
+            await rmAny(destDir)
+        }
+    })
+    test('aliased rename overwrite clears ambiguous upload ownership', async () => {
+        const id = randomId(6)
+        const nodeName = `owner-collision-${id}`
+        const firstName = `first-${id}.txt`
+        const secondName = `second-${id}.txt`
+        const displayName = `display-${id}.txt`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const firstPath = resolve(dir, firstName)
+        const secondPath = resolve(dir, secondName)
+        const folderUri = `/${nodeName}/`
+        const firstUri = folderUri + firstName
+        const secondUri = folderUri + secondName
+        const displayUri = folderUri + displayName
+        const ownerUser = `collision-owner-${id}`.toLocaleLowerCase()
+        const ownerPass = randomId(12)
+        const moverUser = `collision-mover-${id}`.toLocaleLowerCase()
+        const moverPass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        const ownerReq = { auth: `${ownerUser}:${ownerPass}`, jar: {} }
+        const moverReq = { auth: `${moverUser}:${moverPass}`, jar: {} }
+        await mkdir(dir, { recursive: true })
+        try {
+            await reqApi('add_account', { username: ownerUser, password: ownerPass }, 200, adminReq)()
+            await reqApi('add_account', { username: moverUser, password: moverPass }, 200, adminReq)()
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_upload: true,
+                rename: { [firstName]: displayName, [secondName]: displayName },
+                masks: { [displayName]: { can_delete: [moverUser] } },
+            }, 200, adminReq)()
+            await req(firstUri, 200, {
+                method: 'PUT', body: 'owned', ...ownerReq,
+                headers: { 'content-length': '5' },
+            })()
+            await writeFile(secondPath, 'replacement')
+            await reqApi('rename', { uri: secondUri, dest: firstName }, 404, moverReq)()
+            if (readFileSync(firstPath, 'utf8') !== 'owned' || readFileSync(secondPath, 'utf8') !== 'replacement')
+                throw Error('rename through an inaccessible physical name changed files')
+            await req(displayUri, 200, { method: 'delete', ...ownerReq })()
+            await rmAny(secondPath)
+            await req(firstUri, 200, {
+                method: 'PUT', body: 'owned', ...ownerReq,
+                headers: { 'content-length': '5' },
+            })()
+            await reqApi('rename', { uri: displayUri, dest: secondName }, 200, moverReq)()
+            await writeFile(firstPath, 'new entry')
+            await req(displayUri, 401, { method: 'delete', ...ownerReq })()
+            if (readFileSync(firstPath, 'utf8') !== 'new entry')
+                throw Error('ownership survived an ambiguous rename source')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: ownerUser }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: moverUser }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('VFS upload ownership does not follow symlinks', { skip: process.platform === 'win32' }, async () => {
+        const id = randomId(6)
+        const nodeName = `owner-symlink-${id}`
+        const linkName = `protected-${id}.txt`
+        const displayName = `public-${id}.txt`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const linkPath = resolve(dir, linkName)
+        const targetPath = resolve(dir, displayName)
+        const folderUri = `/${nodeName}/`
+        const displayUri = folderUri + displayName
+        const ownerReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await symlink(displayName, linkPath)
+        try {
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_upload: ['admins'], can_delete: false,
+                rename: { [linkName]: displayName },
+            }, 200, ownerReq)()
+            await req(displayUri, 200, {
+                method: 'PUT', body: 'uploaded', ...ownerReq,
+                headers: { 'content-length': '8', 'user-agent': WEBDAV_UA },
+            })()
+            await req(displayUri, (_data, res) => [401, 403].includes(res.statusCode!), {
+                method: 'delete', ...ownerReq,
+            })()
+            if (!existsSync(linkPath) || readFileSync(targetPath, 'utf8') !== 'uploaded')
+                throw Error('upload ownership removed a protected symlink alias')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, ownerReq)().catch(() => {})
+            await rmAny(dir)
         }
     })
     test('case variants cannot share an upload temporary file', async () => {
@@ -2259,6 +2549,40 @@ describe('after-login', () => {
             await r.catch(() => {})
             if (!existsSync(temp))
                 throw "missing temp file"
+        }
+    })
+    test('aborted upload ownership cannot attach to a shadowed VFS alias', async () => {
+        const id = randomId(6)
+        const nodeName = `unfinished-alias-${id}`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const filename = 'unfinished.txt'
+        const tempName = UPLOAD_TEMP_PREFIX + filename
+        const victimName = `victim-${id}.txt`
+        const victim = resolve(dir, victimName)
+        const temp = resolve(dir, tempName)
+        const folderUri = `/${nodeName}/`
+        const ownerReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await writeFile(victim, 'protected')
+        try {
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_upload: ['admins'], can_delete: false,
+                rename: { [victimName]: tempName },
+            }, 200, ownerReq)()
+            const upload = reqUpload(folderUri + filename, 0, makeReadableThatTakes(600), undefined, 0, ownerReq)()
+            setTimeout(upload.abort, 300)
+            await upload.catch(() => {})
+            if (!await waitFor(() => existsSync(temp), { timeout: 3000 }))
+                throw Error('missing aborted upload')
+            await req(folderUri + pathEncode(tempName), (_data, res) => [401, 403].includes(res.statusCode!), {
+                method: 'delete', ...ownerReq,
+            })()
+            if (readFileSync(victim, 'utf8') !== 'protected')
+                throw Error('aborted upload ownership deleted a shadowed VFS alias')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, ownerReq)().catch(() => {})
+            await rmAny(dir)
         }
     })
     test('anonymous upload can delete own unfinished upload', async () => {

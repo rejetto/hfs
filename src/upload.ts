@@ -80,9 +80,10 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
         return fail(HTTP_FOOL)
     if (statusCodeForMissingPerm(base, 'can_upload', ctx))
         return fail()
-    if (isWebdavLocked(enforceFinal('/', baseUri) + pathEncode(filename), ctx))
-        return fail()
     const fullPath = join(base.source!, filename)
+    const vfsUri = enforceFinal('/', base.vfsPath || baseUri) + pathEncode(getVirtualName(filename, base, fullPath))
+    if (isWebdavLocked(vfsUri, ctx))
+        return fail()
     const uploadKey = normalizeFilename(fullPath)
     const already = uploadingFiles.get(uploadKey) // this can be checked so early because this function is sync
     if (already) // if it's the same client, we tell to retry later
@@ -129,7 +130,8 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
             setUploadMeta(dir, ctx)
         // use temporary name while uploading
         const tempName = getUploadTempFor(fullPath)
-        const tempUri = enforceFinal('/', baseUri) + pathEncode(basename(tempName))
+        const tempOwnerUri = enforceFinal('/', base.vfsPath || baseUri)
+            + pathEncode(getVirtualName(basename(tempName), base, tempName))
         // try to catch errors early (sync): this is avoiding on chrome139 when uploading a big file (1GB) to get miss the error code and have to make a `simulate`
         try { fs.accessSync(tempName, fs.constants.W_OK) }
         catch {
@@ -155,7 +157,7 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
         if (!resume && stats) {
             cancelDeletion(tempName)
             // a new upload discards the old resumable temp, so its owner grant must not survive
-            deleteUploadOwner(tempUri)
+            deleteUploadOwner(tempOwnerUri)
             fs.unlinkSync(tempName)
         }
         const writeStream = createStreamLimiter(isNaN(contentLength) ? Infinity : contentLength)
@@ -202,7 +204,7 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
                 if (ctx.isAborted()) { // in the very unlikely case the connection is interrupted between last-byte and here, we still consider it unfinished, as the client had no way to know, and will resume, but it would get an error if we finish the process
                     const sec = deleteUnfinishedUploadsAfter.get()
                     setTempOwner()
-                    return _.isNumber(sec) && delayedDelete(tempName, sec, tempUri)
+                    return _.isNumber(sec) && delayedDelete(tempName, sec, tempOwnerUri)
                 }
                 if (isPartial) // we are supposed to leave the unfinished upload as it is, with its temp name
                     return ctx.status = HTTP_NO_CONTENT // lockMiddleware contains an empty string, so we must take care of the status
@@ -225,7 +227,7 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
                         { timeout: 10_000 })
                     if (!done)
                         throw 'EBUSY'
-                    deleteUploadOwner(tempUri) // the temp URI no longer exists after rename; final ownership is recorded below
+                    deleteUploadOwner(tempOwnerUri) // the temp URI no longer exists after rename; final ownership is recorded below
                     if (mtime) // so we use it to touch the file
                         await utimes(dest, Date.now() / 1000, mtime / 1000)
                     obj.fullPath = ctx.state.uploadDestinationPath = dest
@@ -233,7 +235,8 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
                     if (ctx.query.comment)
                         void setCommentFor(dest, String(ctx.query.comment))
                     obj.uri = enforceFinal('/', baseUri) + pathEncode(basename(dest))
-                    await setUploadOwner(obj.uri, ctx)
+                    await setUploadOwner(enforceFinal('/', base.vfsPath || baseUri)
+                        + pathEncode(getVirtualName(basename(dest), base, dest)), ctx, dest)
                     events.emit('uploadFinished', obj)
                     console.debug("Upload finished", dest)
                     if (resEvent) for (const cb of resEvent)
@@ -280,7 +283,7 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
         function setTempOwner() {
             if (tempOwnerSet) return
             tempOwnerSet = true
-            void setUploadOwner(tempUri, ctx)
+            void setUploadOwner(tempOwnerUri, ctx, tempName)
         }
     }
     catch (e: any) {
@@ -290,7 +293,7 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
 
     async function overwriteAnyway() {
         if (ctx.query.existing !== 'overwrite') return false
-        const n = await getNodeByName(getVirtualName(filename, base), base)
+        const n = await getNodeByName(getVirtualName(filename, base, fullPath), base)
         if (n && !statusCodeForMissingPerm(n, 'can_delete', ctx)) return true
         overwriteRequestedButForbidden = true
         return false
