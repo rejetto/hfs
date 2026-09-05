@@ -1760,27 +1760,51 @@ describe('after-login', () => {
             await rmAny(destDir)
         }
     })
-    test('case variants cannot share an upload temporary file', async t => {
+    test('case variants cannot share an upload temporary file', async () => {
         const dir = await ensureCantOverwriteDir()
         const id = randomId(6).toLowerCase()
         const lowerName = `case-${id}.txt`
         const upperName = lowerName.toUpperCase()
         const probe = resolve(dir, `probe-${id}`)
         await writeFile(probe, '')
-        if (!existsSync(probe.toUpperCase())) {
-            t.skip('case-sensitive filesystem')
-            await rmAny(probe)
-            return
-        }
+        const caseInsensitive = existsSync(probe.toUpperCase())
         const users = [`case-a-${id}`, `case-b-${id}`]
         const pass = randomId(12)
         const adminReq = { auth, jar: {} }
         const tempPath = resolve(dir, UPLOAD_TEMP_PREFIX + lowerName)
         const finalPath = resolve(dir, lowerName)
+        const upperTempPath = resolve(dir, UPLOAD_TEMP_PREFIX + upperName)
+        const upperFinalPath = resolve(dir, upperName)
         const requests: ReturnType<typeof httpRequest>[] = []
+        const oldConfig = await reqApi('get_config', {
+            only: ['delete_unfinished_uploads_after', 'min_available_mb'],
+        }, 200, adminReq)()
         try {
             for (const username of users)
                 await reqApi('add_account', { username, password: pass, belongs: ['admins'] }, 200, adminReq)()
+            if (!caseInsensitive) {
+                await reqApi('set_config', {
+                    values: { delete_unfinished_uploads_after: 1, min_available_mb: 0 },
+                }, 200, adminReq)()
+                const aborted = startUpload(lowerName, users[0])
+                aborted.request.write('AAAA')
+                if (!await waitFor(() => existsSync(tempPath), { timeout: 3000 })) {
+                    aborted.request.end('CCCC')
+                    throw Error(`aborted upload did not start: ${await aborted.response}`)
+                }
+                aborted.request.destroy()
+                await wait(300)
+                const replacement = startUpload(upperName, users[1])
+                replacement.request.end('ZZZZYYYY')
+                if (await replacement.response !== 200)
+                    throw Error('case-distinct replacement upload failed')
+                await wait(1500)
+                if (existsSync(tempPath))
+                    throw Error('case-distinct aborted upload lost its deletion timer')
+                if (readFileSync(upperFinalPath, 'utf8') !== 'ZZZZYYYY')
+                    throw Error('case-distinct replacement upload was corrupted')
+                return
+            }
             const first = startUpload(lowerName, users[0])
             first.request.write('AAAA')
             if (!await waitFor(() => existsSync(tempPath) && readFileSync(tempPath, 'utf8') === 'AAAA', { timeout: 3000 }))
@@ -1802,16 +1826,37 @@ describe('after-login', () => {
             first.request.end('CCCC')
             if (await first.response !== 200 || readFileSync(finalPath, 'utf8') !== 'AAAACCCC')
                 throw Error('first upload was corrupted')
+
+            await rmAny(finalPath)
+            await reqApi('set_config', { values: { delete_unfinished_uploads_after: 2 } }, 200, adminReq)()
+            const aborted = startUpload(lowerName, users[0])
+            aborted.request.write('AAAA')
+            if (!await waitFor(() => existsSync(tempPath) && readFileSync(tempPath, 'utf8') === 'AAAA', { timeout: 3000 }))
+                throw Error('aborted upload did not start')
+            aborted.request.destroy()
+            await wait(300)
+            const replacement = startUpload(upperName, users[1])
+            replacement.request.write('ZZZZ')
+            if (!await waitFor(() => existsSync(tempPath) && readFileSync(tempPath, 'utf8') === 'ZZZZ', { timeout: 3000 }))
+                throw Error('replacement upload did not start')
+            await wait(2000)
+            if (!existsSync(tempPath))
+                throw Error('case-variant stale timer deleted the replacement upload')
+            replacement.request.end('YYYY')
+            if (await replacement.response !== 200)
+                throw Error('replacement upload failed after stale deletion timer')
         }
         finally {
             for (const request of requests)
                 request.destroy()
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)()
             for (const username of users)
                 await reqApi('del_account', { username }, 200, adminReq)().catch(() => {})
             await rmAny(probe)
             await rmAny(tempPath)
             await rmAny(finalPath)
-            await rmAny(resolve(dir, upperName))
+            await rmAny(upperTempPath)
+            await rmAny(upperFinalPath)
             await rmAny(dir)
         }
 
