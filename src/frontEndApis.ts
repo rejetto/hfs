@@ -37,11 +37,11 @@ export const frontEndApis: ApiHandlers = {
         apiAssertTypes({ string: { channel } })
         const list = new SendListReadable()
         list.ready() // on chrome109 EventSource doesn't emit 'open' until something is sent
-        return list.events(ctx, {
-            [NOTIFICATION_PREFIX + channel](name, data) {
-                list.custom(name, data)
-            }
-        }, { warnAfter: 10_000 }) // we may have many clients on the same channel (eg: chat), and we don't want to be spammed with console warnings
+        // channel names are literal: events.multi would split spaces into subscriptions to unrelated internal events
+        ctx.res.once('close', events.on(NOTIFICATION_PREFIX + channel, (name, data) => {
+            list.custom(name, data)
+        }, { warnAfter: 10_000 })) // many clients may share a channel (eg: chat)
+        return list
     },
 
     async get_file_details({ uris }, ctx) {

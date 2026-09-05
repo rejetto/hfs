@@ -264,6 +264,27 @@ describe('basics', () => {
     test('file_list.traversal', reqApi('get_file_list', { uri: '/f1/%2e%2e/for-admins' }, 404))
     test('file_list.bad encoding', reqApi('get_file_list', { uri: '/f1/%E0%A4%A' }, 404))
     test('send-list api without SSE', reqApi('get_plugins', {}, data => Array.isArray(data.list), { auth, jar: {} })) // jar because we don't want to authenticate also next tests
+    test('notification channel cannot subscribe to internal login events', async () => {
+        const channel = 'security-probe clearTextLogin'
+        const response = await httpStream(BASE_URL + API + 'get_notifications?channel=' + encodeURIComponent(channel), {
+            headers: { accept: 'text/event-stream' },
+            jar: {},
+        })
+        let received = ''
+        response.on('data', chunk => { received += String(chunk) })
+        try {
+            // a different client logs in after the anonymous event subscription is active
+            await reqApi('login', { username, password }, 200, { jar: {} })()
+            await wait(400) // SendList batches events for 200 ms
+            if (received.includes('"password"'))
+                throw Error('anonymous notification subscriber received another client login credentials')
+            if (!received.includes('data:'))
+                throw Error('notification stream was not active')
+        }
+        finally {
+            response.destroy()
+        }
+    })
     test('forbidden list', req('/cantListPage/page/', 403))
     test('forbidden list.api', reqList('/cantListPage/page/', 403))
     test('forbidden list.admin flag', reqApi('get_file_list', { uri: '/for-admins/', admin: true }, 401))
