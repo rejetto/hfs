@@ -129,6 +129,16 @@ describe('basics', () => {
         try {
             await reqApi('add_account', { username: user, password: pass, admin: true }, 200, adminReq)()
             await reqApi('set_config', { values: { proxies: 1, admin_net: '192.0.2.1' } }, 200, adminReq)()
+            await reqApi('get_status', {}, 200, {
+                auth: `${user}:${pass}`,
+                jar: {},
+                headers: { 'x-forwarded-for': '192.0.2.1' },
+            })()
+            await reqApi('get_status', {}, 401, {
+                auth: `${user}:${pass}`,
+                jar: {},
+                headers: { 'x-forwarded-for': '127.0.0.1' },
+            })()
             await reqApi('get_status', {}, 401, {
                 auth: `${user}:${pass}`,
                 jar: {},

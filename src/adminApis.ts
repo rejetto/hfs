@@ -237,5 +237,6 @@ export function anyAccountCanLoginAdmin() {
 }
 
 export function preventAdminAccess(ctx: Koa.Context) {
-    return !isLocalHost(ctx) && !adminNet.compiled()(ctx.ip)
+    // only direct localhost requests are exempt from admin_net; reject proxy-reported loopback
+    return isLocalHost(ctx) ? Boolean(ctx.state.whenProxyDetected) : !adminNet.compiled()(ctx.ip)
 }
