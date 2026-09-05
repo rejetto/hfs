@@ -196,7 +196,7 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
                     await copyFile(src, dest)
                     await unlink(src)
                 }).then(() => moveStoredFileAttrs(src, dest))
-                    .then(() => moveUploadOwner(from1, joinVfs(uri_to, destName)))
+                    .then(() => moveUploadOwner(from1, joinVfs(uri_to, pathEncode(destName))))
                     .catch(e => e.code || String(e))
         }))
     }

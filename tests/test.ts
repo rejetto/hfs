@@ -1554,6 +1554,34 @@ describe('after-login', () => {
         }
         finally {
             await rmAny(resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR, destFile))
+            await rmAny(destPath)
+        }
+        await rmAny(destDir)
+    })
+    test('move keeps encoded upload ownership on the moved file', async () => {
+        const suffix = `${randomId(6)}.txt`
+        const movedName = `%61-owner-${suffix}`
+        const victimName = `a-owner-${suffix}`
+        const destDir = await ensureCantOverwriteDir()
+        const sourceUri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${pathEncode(movedName)}`
+        const movedUri = `${CANT_OVERWRITE_URI}${pathEncode(movedName)}`
+        const victimUri = `${CANT_OVERWRITE_URI}${victimName}`
+        const victimPath = resolve(destDir, victimName)
+        const ownerJar = {}
+        await writeFile(victimPath, 'protected')
+        try {
+            await reqUpload(sourceUri, 200, 'uploaded', undefined, 0, { auth, jar: ownerJar })()
+            await reqApi('move_files', { uri_from: [sourceUri], uri_to: CANT_OVERWRITE_URI },
+                res => !res?.errors?.[0], { auth, jar: ownerJar })()
+            await req(victimUri, 403, { method: 'delete', auth, jar: ownerJar })()
+            if (readFileSync(victimPath, 'utf8') !== 'protected')
+                throw Error('encoded move granted ownership of a different file')
+            await req(movedUri, 200, { method: 'delete', auth, jar: ownerJar })()
+        }
+        finally {
+            await rmAny(resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR, movedName))
+            await rmAny(resolve(destDir, movedName))
+            await rmAny(victimPath)
             await rmAny(destDir)
         }
     })
