@@ -326,6 +326,19 @@ describe('basics', () => {
     })
     test('traversal.overlong-utf8', req('/f1/page/%c0%ae%c0%ae/%c0%ae%c0%ae/README.md', 404))
     test('bad url encoding', req('/f1/%E0%A4%A', 404))
+    test('hidden folder descendants stay hidden', { skip: process.platform === 'win32' }, async () => {
+        const name = `.hidden-${randomId(6)}`
+        const dir = resolve(__dirname, name)
+        await mkdir(dir)
+        await writeFile(join(dir, 'proof.txt'), 'hidden-child-proof')
+        try {
+            await req(`/tests/${name}/`, 404)()
+            await req(`/tests/${name}/proof.txt`, 404)()
+        }
+        finally {
+            await rm(dir, { recursive: true, force: true })
+        }
+    })
     test('not-found.default page', req('/missing-default-404', /found<\/h1>/))
     test('not-found.custom page overrides default', () =>
         withCustomHtml({ 404: '<strong>custom 404 $MESSAGE</strong>' }, () =>

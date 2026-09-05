@@ -116,6 +116,11 @@ Some properties use a `Who` descriptor, with one of these values:
 - `sort_numerics` starting value for sort-numeric-names. Default is false.
 - `folders_first` starting value for sort-folders-first. Default is true.
 - `invert_order` starting value for invert-order. Default is false.
+- `show_hidden_files` includes hidden files and folders discovered inside shared folders. Default is `false`.
+  Hidden means the hidden attribute on Windows, or a name starting with `.` on macOS/Linux.
+  Despite the configuration key's name, disabling it also blocks direct access to hidden entries, not just their appearance in lists.
+  Entries explicitly added to the VFS are not handled by this option.
+  To hide an entry from listings while still allowing downloads, use `can_see: false` instead.
 - `show_uploader` who can see who uploaded files. Value is a `Who` descriptor. Default is `"admin"`.
 - `update_to_beta` includes beta versions searching for updates. Default is false.
 - `roots` maps hosts (or mask of hosts) to a root different from the home folder. Default is none. E.g.

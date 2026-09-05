@@ -151,11 +151,12 @@ export async function urlToNode(
     if (!ret)
         return
     setVfsPath(ret, name, parent)
+    if (!ret.original && ret.source && !options.includeHidden && !showHiddenFiles.get() && await isHiddenFile(ret.source))
+        return
     if (rest || ret?.original)
         return urlToNode(rest, ctx, ret, options)
     if (ret.source)
-        if (!options.includeHidden && !showHiddenFiles.get() && await isHiddenFile(ret.source)
-        || !options.allowMissing && await setIsFolder(ret) === undefined)  // undefined = not found on disk
+        if (!options.allowMissing && await setIsFolder(ret) === undefined)  // undefined = not found on disk
             return
     return ret
 }

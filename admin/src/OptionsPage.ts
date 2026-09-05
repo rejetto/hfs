@@ -253,7 +253,7 @@ export default function OptionsPage() {
                     label: "Uploaders can delete their files for", helperText: "Set to 0 to disable" },
             ],
             "Others": [
-                { k: CFG.show_hidden_files, comp: BoolField, sm: 3 },
+                { k: CFG.show_hidden_files, comp: BoolField, sm: 3, label: "Include hidden files" },
                 { k: CFG.descript_ion_encoding, sm: 3, label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values[CFG.descript_ion],
                     options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
                 { k: CFG.comments_storage, comp: SelectField, xs: 12, sm: 6, options: {
