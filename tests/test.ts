@@ -1506,6 +1506,39 @@ describe('after-login', () => {
             await rmAny(dir)
         }
     })
+    test('case-variant deletion clears upload ownership', async t => {
+        const id = randomId(6).toLowerCase()
+        const dir = await ensureCantOverwriteDir()
+        const lowerName = `owned-${id}.txt`
+        const upperName = lowerName.toUpperCase()
+        const lowerUri = CANT_OVERWRITE_URI + lowerName
+        const upperUri = CANT_OVERWRITE_URI + upperName
+        const otherUser = `owner-delete-${id}`
+        const otherPass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        const probe = resolve(dir, `probe-${id}`)
+        await writeFile(probe, '')
+        if (!existsSync(probe.toUpperCase())) {
+            t.skip('case-sensitive filesystem')
+            await rmAny(dir)
+            return
+        }
+        try {
+            await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
+            await reqApi('set_vfs', { uri: CANT_OVERWRITE_URI.slice(0, -1), props: { can_delete: [otherUser] } }, 200, adminReq)()
+            await reqUpload(lowerUri, (_data, res) => res.statusCode === 200)()
+            await req(upperUri, 200, { method: 'delete', auth: `${otherUser}:${otherPass}`, jar: {} })()
+            await reqApi('set_vfs', { uri: CANT_OVERWRITE_URI.slice(0, -1), props: { can_delete: false } }, 200, adminReq)()
+            await writeFile(resolve(dir, lowerName), 'new owner')
+            await req(lowerUri, 403, { method: 'delete' })()
+        }
+        finally {
+            await reqApi('set_vfs', { uri: CANT_OVERWRITE_URI.slice(0, -1), props: { can_delete: false } }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
     test('folder creator can delete without delete permission', async () => {
         const name = `owner-folder-${randomId(6)}`
         const dir = resolve(UPLOAD_DISK_ROOT, name)

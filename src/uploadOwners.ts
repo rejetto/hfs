@@ -5,7 +5,7 @@ import { onProcessExit } from './first'
 import { defineConfig } from './config'
 import { getCurrentUsername } from './auth'
 import events from './events'
-import { VfsNode } from './vfs'
+import { normalizeFilename, VfsNode } from './vfs'
 
 export interface UploadOwner {
     username?: string
@@ -44,7 +44,7 @@ events.on('checkVfsPermission', ({ node, perm, ctx }: { node: VfsNode, perm: str
     if (!owner)
         return
     if (isExpired(owner)) {
-        deleteUploadOwner(vfsPath)
+        void deleteUploadOwner(vfsPath)
         return
     }
     const username = getCurrentUsername(ctx)
@@ -82,9 +82,11 @@ export async function moveUploadOwner(fromPath: string, toPath: string) {
 }
 
 export function deleteUploadOwner(vfsPath: string) {
-    if (uploadOwners.isOpen())
-        // deleting a folder must clear ownership for uploaded files below it too
-        for (const k of Array.from(uploadOwners.keys()).filter(k => isSameOrInside(cleanVfsPath(vfsPath), k)))
+    if (!uploadOwners.isOpen())
+        return
+    const path = cleanVfsPath(vfsPath)
+    for (const k of uploadOwners.keys()) // deleting a folder must clear ownership for uploaded files below it too
+        if (isSameOrInside(path, k))
             void uploadOwners.del(k)
 }
 
@@ -98,7 +100,7 @@ export function getSessionId(ctx: Koa.Context) {
 }
 
 function cleanVfsPath(path: string) {
-    return pathDecodeSegments('/' + path.replace(/^\/+|\/+$/g, ''), pathEncode)
+    return normalizeFilename(pathDecodeSegments('/' + path.replace(/^\/+|\/+$/g, ''), pathEncode))
 }
 
 function isSameOrInside(parent: string, path: string) {
