@@ -41,6 +41,12 @@ export class QuickZipStream extends Readable {
         super({})
     }
 
+    _destroy(error: Error | null, callback: (error: Error | null) => void) {
+        // a paused source will not emit more data, so its data handler cannot clean up after an abort
+        this.workingFile?.destroy()
+        callback(error)
+    }
+
     getArchiveEntries() {
         return this.entries.map(x => String(x.pathAsBuffer))
     }
@@ -120,6 +126,7 @@ export class QuickZipStream extends Readable {
             return this.workingFile.resume()
         const file = this.consumedCalculating.shift()
             || (await this.walker.next()).value as ZipSource
+        if (this.destroyed) return // the client may disconnect while the next entry is being resolved
         if (!file)
             return this.closeArchive()
         let { path, sourcePath, getData, size=0, ts=this.now, mode=0o40775 } = file

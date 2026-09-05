@@ -14,6 +14,8 @@ import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { makeQ } from '../src/makeQ'
 import { mkdir, rm, rename, writeFile, access, mkdtemp, symlink } from 'fs/promises'
 import { Readable } from 'stream'
+import { once } from 'events'
+import { QuickZipStream } from '../src/QuickZipStream'
 import { XMLValidator } from 'fast-xml-parser'
 import { BASIC_AUTHENTICATE_HEADER } from '../src/cross'
 /*
@@ -325,6 +327,44 @@ describe('basics', () => {
     const zipSize = 13242
     const zipOfs = 0x194E
     const zipLength = 4
+    test('zip.abort releases paused source', async () => {
+        const source = createReadStream(__filename, { highWaterMark: 1024 })
+        const zip = new QuickZipStream((async function* () {
+            yield { path: 'test.ts', size: statSync(__filename).size, getData: () => source }
+        })())
+        try {
+            const paused = once(source, 'pause', { signal: AbortSignal.timeout(1000) })
+            zip.read(1) // leave the consumer stalled so backpressure pauses the open file
+            await paused
+            const closed = once(source, 'close', { signal: AbortSignal.timeout(1000) })
+            zip.destroy()
+            await closed
+            if (source.fd !== null)
+                throw Error('aborted ZIP retained an open file descriptor')
+        }
+        finally {
+            zip.destroy()
+            source.destroy()
+        }
+    })
+    test('zip.abort while finding next file', async () => {
+        let release!: () => void
+        const pending = new Promise<void>(resolve => { release = resolve })
+        let opened = false
+        const zip = new QuickZipStream((async function* () {
+            await pending
+            yield { path: 'late.txt', size: 4, getData() {
+                opened = true
+                return Readable.from('late')
+            } }
+        })())
+        const reading = zip._read()
+        zip.destroy()
+        release()
+        await reading
+        if (opened)
+            throw Error('aborted ZIP opened another source file')
+    })
     test('zip.head', req('/f1/?get=zip', { empty:true, length:zipSize }, { method:'HEAD' }) )
     test('zip.partial', req('/f1/?get=zip', { re:/^page$/, length: zipLength }, { headers: { Range: `bytes=${zipOfs}-${zipOfs+zipLength-1}` } }) )
     test('zip.partial.resume', req('/f1/?get=zip', { re:/^page/, length:zipSize-zipOfs }, { headers: { Range: `bytes=${zipOfs}-` } }) )
