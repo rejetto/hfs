@@ -1,7 +1,7 @@
 import Koa from 'koa'
 import { text as stream2string } from 'node:stream/consumers'
 import {
-    getNodeName, nodeIsFolder, nodeIsLink, nodeStats, statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
+    getNodeName, nodeIsFolder, nodeIsLink, nodeStats, normalizeFilename, statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
 } from './vfs'
 import {
     HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_CREATED, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_OK,
@@ -55,10 +55,37 @@ const WINDOWS_FILE_ATTRIBUTE_FLAGS = {
 } as const
 
 const canOverwrite = new Set<string>()
-const locks = new Map<string, { token: string, timeout: NodeJS.Timeout, seconds: number, username: string, lockNull: boolean }>()
+interface WebdavLock {
+    token: string
+    timeout: NodeJS.Timeout
+    seconds: number
+    username: string
+    lockNull: boolean
+}
+
+// WebDAV and frontend mutations share files, so both must observe the same exclusive locks
+const locks = new Map<string, WebdavLock>()
+
+function webdavPathKey(path: string) {
+    const key = pathEncode(safeDecodeURIComponent(path, ''))
+    return hasDirTraversal(key) ? '' : key
+}
+
+function webdavStateKey(path: string) {
+    const key = normalizeFilename(safeDecodeURIComponent(path, ''))
+    return hasDirTraversal(key) ? '' : key
+}
+
+function getWebdavLock(path: string) {
+    return locks.get(webdavStateKey(path))
+}
+
+function setWebdavLock(path: string, lock: WebdavLock) {
+    locks.set(webdavStateKey(path), lock)
+}
 
 export function releaseWebdavLock(path: string) {
-    const key = webdavPathKey(path)
+    const key = webdavStateKey(path)
     const lock = locks.get(key)
     if (!lock) return false
     clearTimeout(lock.timeout)
@@ -66,31 +93,28 @@ export function releaseWebdavLock(path: string) {
     return true
 }
 
+export function isWebdavLocked(path: string, ctx: Koa.Context) {
+    const lock = getWebdavLock(path)
+    if (!lock) return false
+    const validToken = lock.username === (getCurrentUsername(ctx) || '')
+        && [ctx.get('If'), ctx.get(TOKEN_HEADER)].some(header =>
+            header.includes(`<${lock.token}>`) || header.split(/[,;\s]+/).includes(lock.token))
+    if (validToken)
+        return false
+    ctx.status = HTTP_LOCKED
+    return true
+}
+
 async function isLocked(path: string, ctx: Koa.Context) {
     const key = webdavPathKey(path)
-    const lock = locks.get(key)
+    const lock = getWebdavLock(key)
     if (!lock) return false
     // if the resource is gone, keeping the lock only creates fake 423 responses
     if (!lock.lockNull && !await urlToNode(key, ctx)) {
         releaseWebdavLock(key)
         return false
     }
-    const ifHeader = ctx.get('If')
-    const tokenHeader = ctx.get(TOKEN_HEADER)
-    if (isSameLockUsername(lock, ctx) && (hasToken(ifHeader, lock.token) || hasToken(tokenHeader, lock.token)))
-        return false
-    ctx.status = HTTP_LOCKED
-    return true
-}
-
-function hasToken(header: string, token: string) {
-    if (!header) return false
-    return header.includes(`<${token}>`) || header.split(/[,;\s]+/).includes(token)
-}
-
-function webdavPathKey(path: string) {
-    const key = pathEncode(safeDecodeURIComponent(path, ''))
-    return hasDirTraversal(key) ? '' : key
+    return isWebdavLocked(key, ctx)
 }
 
 function getWebdavUsername(ctx: Koa.Context) {
@@ -165,7 +189,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
 
     async function handlePut() {
         if (await isLocked(path, ctx)) return
-        const overwriteGraceKey = pathKey + prefix('|', getCurrentUsername(ctx)) // bind temporary overwrite grace to the authenticated user so accounts cannot reuse each other's grace window
+        const overwriteGraceKey = webdavStateKey(pathKey) + prefix('|', getCurrentUsername(ctx)) // bind temporary overwrite grace to the authenticated user so accounts cannot reuse each other's grace window
         // Finder first creates an empty file (a test?) then wants to overwrite it, which requires deletion permission, but the user may not have it, causing a renamed upload. To solve, so we give it special permission for a few seconds.
         const x = ctx.get('x-expected-entity-length') // field used by Finder's webdav on actual upload, after
         if (isKnownWebdavAgent && canOverwrite.has(overwriteGraceKey)) {
@@ -183,7 +207,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         if (isKnownWebdavAgent)
             ctx.query.existing ??= 'overwrite' // with webdav this is our default
         await next()
-        if (isKnownWebdavAgent && ctx.body?.uri && webdavPathKey(ctx.body.uri) === pathKey) // the upload middleware reports the final uri that can be different from the initial request
+        if (isKnownWebdavAgent && ctx.body?.uri && webdavStateKey(ctx.body.uri) === webdavStateKey(pathKey)) // the upload middleware reports the final uri that can be different from the initial request
             allowWebdavOverwrite(overwriteGraceKey)
     }
 
@@ -228,7 +252,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         if (!dest)
             return ctx.status = HTTP_BAD_REQUEST
         if (await isLocked(dest, ctx)) return
-        if (dirname(pathKey) === dirname(dest))
+        if (webdavStateKey(dirname(pathKey)) === webdavStateKey(dirname(dest)))
             try {
                 // decode the single path segment so reserved chars like %2C become their real name on rename
                 await requestedRename(node, safeDecodeURIComponent(basename(dest), ''), ctx, pathKey)
@@ -261,7 +285,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
     async function handleUnlock() {
         setWebdavHeaders()
         const x = ctx.get(TOKEN_HEADER).slice(1,-1)
-        const lock = locks.get(pathKey)
+        const lock = getWebdavLock(pathKey)
         if (x !== lock?.token)
             return ctx.status = HTTP_BAD_REQUEST
         // with force_webdav_login disabled a client may silently fall back to anonymous; keep lock ownership on the original username
@@ -281,7 +305,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         const permissionNode = node || await urlToNode(dirname(path), ctx)
         if (!permissionNode)
             return ctx.status = HTTP_CONFLICT
-        const missingWritePerm = node && canOverwrite.has(pathKey + prefix('|', getCurrentUsername(ctx))) ? 0
+        const missingWritePerm = node && canOverwrite.has(webdavStateKey(pathKey) + prefix('|', getCurrentUsername(ctx))) ? 0
             : statusCodeForMissingPerm(permissionNode, node ? 'can_delete' : 'can_upload', ctx)
         if (missingWritePerm) {
             if (ctx.status === HTTP_UNAUTHORIZED)
@@ -297,7 +321,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
             // Finder and similar clients refresh an existing lock by sending LOCK without a body
             if (!token)
                 return ctx.status = HTTP_BAD_REQUEST
-            const lock = locks.get(pathKey)
+            const lock = getWebdavLock(pathKey)
             if (token !== lock?.token)
                 return ctx.status = HTTP_PRECONDITION_FAILED
             // same-token refresh from another username would make abandoned locks effectively persistent
@@ -307,7 +331,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
             clearTimeout(lock.timeout)
             lock.timeout = setTimeout(() => releaseWebdavLock(path), seconds * 1000)
             lock.seconds = seconds
-            locks.set(pathKey, lock)
+            setWebdavLock(pathKey, lock)
 
             ctx.set(TOKEN_HEADER, lock.token)
             ctx.body = renderLockResponse(lock.token, lock.seconds)
@@ -322,11 +346,11 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
             return ctx.status = HTTP_CONFLICT
         if (scope !== 'exclusive' || type !== 'write')
             return ctx.status = HTTP_CONFLICT
-        if (locks.has(pathKey))
+        if (getWebdavLock(pathKey))
             return ctx.status = HTTP_LOCKED
         const newToken = 'urn:uuid:' + randomUUID()
         const timeout = setTimeout(() => releaseWebdavLock(path), seconds * 1000)
-        locks.set(pathKey, { token: newToken, timeout, seconds, username: getWebdavUsername(ctx), lockNull: !node })
+        setWebdavLock(pathKey, { token: newToken, timeout, seconds, username: getWebdavUsername(ctx), lockNull: !node })
         ctx.set(TOKEN_HEADER, newToken)
         ctx.body = renderLockResponse(newToken, seconds)
     }
@@ -503,7 +527,7 @@ async function applyProppatchProp(prop: ProppatchProp, node: VfsNode, path: stri
     if (!source)
         return HTTP_FORBIDDEN
     // WebDAV clients patch metadata right after upload; outside that short same-username grace, metadata writes are file modifications
-    const missingWritePerm = canOverwrite.has(path + prefix('|', getCurrentUsername(ctx))) ? 0
+    const missingWritePerm = canOverwrite.has(webdavStateKey(path) + prefix('|', getCurrentUsername(ctx))) ? 0
         : statusCodeForMissingPerm(node, 'can_delete', ctx, false)
     if (missingWritePerm)
         return missingWritePerm

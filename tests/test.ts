@@ -12,7 +12,7 @@ import { findDefined, FRONTEND_OPTIONS, isIpLocalHost, pathEncode, randomId, try
 import { httpStream, httpString, httpWithBody, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { makeQ } from '../src/makeQ'
-import { mkdir, rm, rename, writeFile, access, mkdtemp, symlink } from 'fs/promises'
+import { mkdir, readdir, rm, rename, writeFile, access, mkdtemp, symlink } from 'fs/promises'
 import { Readable } from 'stream'
 import { once } from 'events'
 import { QuickZipStream } from '../src/QuickZipStream'
@@ -905,6 +905,72 @@ describe('webdav', () => {
             await rmAny(destPath)
         }
     })
+    test('webdav.lock applies to filesystem case aliases', async t => {
+        const id = randomId(6)
+        const name = `Case-Locked-${id}.txt`
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        const recasedUri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name.toLowerCase()}`
+        const otherUser = `wd-lock-case-${id}`.toLowerCase()
+        const otherPass = randomId(10)
+        const adminReq = { auth, jar: {} }
+        let destPath = ''
+        let token = ''
+        try {
+            destPath = await webdavUpload(uri, x => x?.uri === uri, 'original')()
+            const recasedPath = resolve(dirname(destPath), basename(destPath).toLowerCase())
+            if (!existsSync(recasedPath)) {
+                t.skip('case-sensitive filesystem')
+                return
+            }
+            await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
+            await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            await req(recasedUri, 423, {
+                method: 'PUT', auth: `${otherUser}:${otherPass}`, jar: {},
+                headers: { 'content-length': '11', 'user-agent': WEBDAV_UA }, body: 'replacement',
+            })()
+            if (readFileSync(destPath, 'utf8') !== 'original')
+                throw Error('locked file was overwritten through a case alias')
+        }
+        finally {
+            if (token)
+                await webdavUnlock(uri, token)().catch(() => {})
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await rmAny(destPath)
+        }
+    })
+    test('webdav.lock survives mixed-case VFS rename targets', async () => {
+        const id = randomId(6)
+        const nodeName = `wd-lock-alias-${id}`
+        const physicalName = `wd-lock-physical-${id}.txt`
+        const displayName = `WD-Lock-Alias-${id}.TXT`
+        const dir = resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR)
+        const path = resolve(dir, physicalName)
+        const uri = `/${nodeName}/${displayName}`
+        const adminReq = { auth, jar: {} }
+        let token = ''
+        await mkdir(dir, { recursive: true })
+        await writeFile(path, 'original')
+        try {
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_delete: true, can_upload: true,
+                rename: { [physicalName]: displayName },
+            }, 200, adminReq)()
+            await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            const recasedUri = process.platform === 'linux' ? uri : `/${nodeName}/${displayName.toLowerCase()}`
+            await req(recasedUri, 423, {
+                method: 'PUT', auth, jar: {}, body: 'replacement',
+                headers: { 'content-length': '11', 'user-agent': WEBDAV_UA },
+            })()
+            if (readFileSync(path, 'utf8') !== 'original')
+                throw Error('locked VFS alias was overwritten')
+        }
+        finally {
+            if (token)
+                await webdavUnlock(uri, token)().catch(() => {})
+            await reqApi('del_vfs', { uris: [`/${nodeName}/`] }, 200, adminReq)().catch(() => {})
+            await rmAny(path)
+        }
+    })
     test('webdav.lock rejects shared lock', async () => {
         const name = `wd-lock-shared-${randomId(6)}.txt`
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
@@ -954,8 +1020,8 @@ describe('webdav', () => {
     test('webdav.move success clears lock state', async () => {
         const name = `wd-move-clears-lock-${randomId(6)}.txt`
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
-        const renamedName = name.replace('.txt', '-renamed.txt')
-        const renamed = `${UPLOAD_ROOT}${UPLOAD_DIR}/${renamedName}`
+        const renamedName = `WD-Move-Renamed-${randomId(6)}.TXT`
+        const renamed = `${UPLOAD_ROOT}${process.platform === 'linux' ? UPLOAD_DIR : UPLOAD_DIR.toUpperCase()}/${renamedName}`
         let destPath = ''
         let renamedPath = ''
         let token = ''
@@ -976,6 +1042,8 @@ describe('webdav', () => {
                 },
             })()
             renamedPath = uploadUriToPath(renamed)
+            if (!(await readdir(dirname(renamedPath))).includes(renamedName))
+                throw Error('WebDAV MOVE changed the destination filename case')
             await req(renamed, 200, { method: 'DELETE', auth, jar, headers: { 'user-agent': WEBDAV_UA } })()
             destPath = await webdavUpload(uri, x => x?.uri === uri, 'test2')()
             await req(uri, 200, { method: 'DELETE', auth, jar, headers: { 'user-agent': WEBDAV_UA } })()
@@ -1156,7 +1224,8 @@ describe('webdav', () => {
                 },
                 body: WEBDAV_PROPPATCH_BODY,
             })()
-            freshPath = await webdavUpload(freshUri, x => x?.uri === freshUri, 'fresh')()
+            const uploadUri = process.platform === 'linux' ? freshUri : `${CANT_OVERWRITE_URI}${freshName.toUpperCase()}`
+            freshPath = await webdavUpload(uploadUri, x => x?.uri === uploadUri, 'fresh')()
             await req(freshUri, data => /<D:Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 200 OK/.test(data), {
                 method: 'PROPPATCH',
                 auth,
