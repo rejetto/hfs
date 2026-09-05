@@ -1706,11 +1706,13 @@ describe('after-login', () => {
         }
         await rmAny(decomposedPath)
         try {
-            await reqUpload(CANT_OVERWRITE_URI + pathEncode(decomposedName),
+            const decomposedUri = CANT_OVERWRITE_URI + pathEncode(decomposedName)
+            await reqUpload(decomposedUri,
                 (_data, res) => res.statusCode === 200, 'owned')()
             await req(CANT_OVERWRITE_URI + pathEncode(composedName), 403, { method: 'delete' })()
             if (readFileSync(composedPath, 'utf8') !== 'victim')
                 throw Error('unicode-distinct file was deleted through another upload owner')
+            await req(decomposedUri, 200, { method: 'delete' })()
         }
         finally {
             await rmAny(dir)
@@ -1971,7 +1973,7 @@ describe('after-login', () => {
             await reqUpload(sourceUri, 200, 'owned', undefined, 0, ownerReq)()
             await reqApi('move_files', { uri_from: [sourceUri], uri_to: folderUri },
                 data => !data?.errors?.[0], ownerReq)()
-            await reqList(folderUri, { permInList: { [displayName]: 'D' } }, undefined, ownerReq)()
+            await reqList(folderUri, { inList: [displayName], permInList: { [displayName]: 'D' } }, undefined, ownerReq)()
 
             await writeFile(sourcePath, 'replacement')
             await reqApi('move_files', { uri_from: [sourceUri], uri_to: folderUri },
