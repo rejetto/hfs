@@ -1,4 +1,4 @@
-import { getNodeByName, statusCodeForMissingPerm, VfsNodeWithPath } from './vfs'
+import { getNodeByName, normalizeFilename, statusCodeForMissingPerm, VfsNodeWithPath } from './vfs'
 import Koa from 'koa'
 import {
     HTTP_CONFLICT, HTTP_FOOL, HTTP_INSUFFICIENT_STORAGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_NO_CONTENT, HTTP_SERVER_ERROR,
@@ -71,7 +71,8 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
     if (statusCodeForMissingPerm(base, 'can_upload', ctx))
         return fail()
     const fullPath = join(base.source!, filename)
-    const already = uploadingFiles.get(fullPath) // this can be checked so early because this function is sync
+    const uploadKey = normalizeFilename(fullPath)
+    const already = uploadingFiles.get(uploadKey) // this can be checked so early because this function is sync
     if (already) // if it's the same client, we tell to retry later
         return fail(HTTP_CONFLICT, ctx.query.id && ctx.query.id === already.ctx.query.id ? 'retry' : 'already uploading')
     const dir = dirname(fullPath)
@@ -163,7 +164,7 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
         trackProgress()
         cancelDeletion(tempName)
         const tracked = { ctx, got: 0, size: stillToWrite }
-        uploadingFiles.set(fullPath, tracked)
+        uploadingFiles.set(uploadKey, tracked)
         console.debug('Upload started')
         let tempOwnerSet = false
         // ownership must be visible before a follow-up request can act on the unfinished file
@@ -298,7 +299,7 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
     }
 
     function releaseFile() {
-        uploadingFiles.delete(fullPath)
+        uploadingFiles.delete(uploadKey)
     }
 
     function fail(status=ctx.status, msg?: string) {

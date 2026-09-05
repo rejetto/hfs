@@ -1694,6 +1694,76 @@ describe('after-login', () => {
             await rmAny(destDir)
         }
     })
+    test('case variants cannot share an upload temporary file', async t => {
+        const dir = await ensureCantOverwriteDir()
+        const id = randomId(6).toLowerCase()
+        const lowerName = `case-${id}.txt`
+        const upperName = lowerName.toUpperCase()
+        const probe = resolve(dir, `probe-${id}`)
+        await writeFile(probe, '')
+        if (!existsSync(probe.toUpperCase())) {
+            t.skip('case-sensitive filesystem')
+            await rmAny(probe)
+            return
+        }
+        const users = [`case-a-${id}`, `case-b-${id}`]
+        const pass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        const tempPath = resolve(dir, UPLOAD_TEMP_PREFIX + lowerName)
+        const finalPath = resolve(dir, lowerName)
+        const requests: ReturnType<typeof httpRequest>[] = []
+        try {
+            for (const username of users)
+                await reqApi('add_account', { username, password: pass, belongs: ['admins'] }, 200, adminReq)()
+            const first = startUpload(lowerName, users[0])
+            first.request.write('AAAA')
+            if (!await waitFor(() => existsSync(tempPath) && readFileSync(tempPath, 'utf8') === 'AAAA', { timeout: 3000 }))
+                throw Error('first upload did not start')
+            const second = startUpload(upperName, users[1])
+            second.request.write('ZZZZ')
+            if (await waitFor(() => readFileSync(tempPath, 'utf8') === 'ZZZZ', { interval: 20, timeout: 500 })) {
+                first.request.end('CCCC')
+                const firstStatus = await first.response
+                await waitFor(() => existsSync(finalPath), { timeout: 3000 })
+                const afterFirst = readFileSync(finalPath, 'utf8')
+                second.request.end('YYYY')
+                await second.response
+                const changed = await waitFor(() => readFileSync(finalPath, 'utf8') !== afterFirst, { timeout: 3000 })
+                throw Error(`second account shared the temporary file: first=${firstStatus}, changed=${Boolean(changed)}`)
+            }
+            if (await second.response !== 409)
+                throw Error('case-variant upload was not rejected')
+            first.request.end('CCCC')
+            if (await first.response !== 200 || readFileSync(finalPath, 'utf8') !== 'AAAACCCC')
+                throw Error('first upload was corrupted')
+        }
+        finally {
+            for (const request of requests)
+                request.destroy()
+            for (const username of users)
+                await reqApi('del_account', { username }, 200, adminReq)().catch(() => {})
+            await rmAny(probe)
+            await rmAny(tempPath)
+            await rmAny(finalPath)
+            await rmAny(resolve(dir, upperName))
+            await rmAny(dir)
+        }
+
+        function startUpload(name: string, username: string) {
+            let request: ReturnType<typeof httpRequest>
+            const response = new Promise<number | undefined>(resolve => {
+                request = httpRequest(BASE_URL + CANT_OVERWRITE_URI + name, {
+                    method: 'PUT', auth: `${username}:${pass}`,
+                    headers: { 'content-length': '8', connection: 'close' },
+                }, res => {
+                    res.resume()
+                    res.on('end', () => resolve(res.statusCode))
+                }).on('error', () => resolve(undefined))
+                requests.push(request)
+            })
+            return { request: request!, response }
+        }
+    })
     test('upload.path bypass', async () => {
         const name = 'no-upload'
         const targetDir = resolve(UPLOAD_DISK_ROOT, name)
