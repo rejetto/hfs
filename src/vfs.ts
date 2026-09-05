@@ -198,12 +198,12 @@ export async function getNodeByName(name: string, parent: VfsNodeWithPath, assum
         let onDisk = name
         if (parent.rename) { // reverse the mapping
             for (const [from, to] of Object.entries(parent.rename))
-                if (name === to) {
+                if (isSameFilenameAs(name)(to)) {
                     onDisk = from
                     virtualName = to
                     break // found, search no more
                 }
-                else if (name === from) {
+                else if (isSameFilenameAs(name)(from)) {
                     return // a VFS rename replaces the original public name
                 }
             ret.rename = renameUnderPath(parent.rename, virtualName)

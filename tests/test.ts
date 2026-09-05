@@ -1965,6 +1965,8 @@ describe('after-login', () => {
             }, 200)()
             await req(folderUri + displayName, 403)()
             await req(folderUri + physicalName, 404)()
+            if (process.platform !== 'linux')
+                await req(folderUri + physicalName.toUpperCase(), 404)()
             await req(folderUri + physicalName, 404, { method: 'delete' })()
             if (readFileSync(path, 'utf8') !== 'protected')
                 throw Error('physical alias bypassed its VFS rename mask')
