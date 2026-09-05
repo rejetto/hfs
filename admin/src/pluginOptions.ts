@@ -182,7 +182,7 @@ function ColorField(rest: FieldProps<string>) {
         InputProps: { endAdornment: rest.value ? h(Btn, {
                 icon: Clear,
                 size: 'small',
-                sx: { position: 'absolute', right: 4 },
+                sx: { position: 'absolute', right: 0, bottom: 3 },
                 title: "Clear",
                 onClick(event) {
                     rest.onChange(null as any, { was: rest.value, event: event })
