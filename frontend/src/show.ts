@@ -37,6 +37,12 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             onClose?.()
         },
         Content() {
+            useEffect(() => {
+                const viewport = document.querySelector<HTMLMetaElement>('meta[name="viewport"]')!
+                const original = viewport.content
+                viewport.content = 'width=device-width, initial-scale=1' // allow native pinch zoom in the viewer, restoring the list's policy on close
+                return () => { viewport.content = original }
+            }, [])
             const { uri, list } = useSnapState()
             useEffect(() => {
                 if (uri === firstUri) return
