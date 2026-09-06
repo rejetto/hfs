@@ -637,6 +637,12 @@ This is a list of available frontend-events, with respective object parameter an
 - `menuZip`
   - parameter `{ def: ReactNode }`
   - output `Html`
+- `validatePassword`
+  - called when a user chooses a new password, before confirmation and SRP generation (not in Admin)
+  - parameter `{ username: string, password: string }`
+  - return a string error message, or true to just stop, or nothing/falsy to accept it; the first error is displayed
+  - async supported
+  - validation runs only in the browser and does not enforce a server-side policy
 - `userPanelAfterInfo`
   - no parameter
   - output `Html`
@@ -1209,5 +1215,6 @@ If you want to override a text regardless of the language, use the special langu
   - backend events: logRotated
   - listDiskFolder gets "hidden" parameter
   - backend event uploadFinished: fullPath corresponds to the path that was actually written
-- 13.2 (v3.3.0)
+- 13.3 (v3.3.0)
   - exports.disableDefaultStyle
+  - frontend event: validatePassword
