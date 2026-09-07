@@ -33,7 +33,8 @@ onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT', 'SIGHUP', 'before
     }
     cbsOnExit.clear()
     console.debug('Process exit')
-    process.exit(exitCode)
+    if (signal !== 'exit')
+        process.exit(exitCode)
 })
 
 export function quit(code=0) {
