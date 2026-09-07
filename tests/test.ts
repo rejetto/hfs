@@ -2151,6 +2151,33 @@ describe('after-login', () => {
             await rmAny(dir)
         }
     })
+    test('VFS explicit child takes precedence over a renamed physical name', async () => {
+        const nodeName = `rename-child-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const folderUri = `/${nodeName}/`
+        await mkdir(dir, { recursive: true })
+        await writeFile(resolve(dir, 'A.txt'), 'renamed disk file')
+        await writeFile(resolve(dir, 'other.txt'), 'explicit VFS child')
+        try {
+            await reqApi('add_vfs', {
+                source: dir,
+                name: nodeName,
+                can_read: true,
+                rename: { 'A.txt': 'B.txt' },
+                children: [{ name: 'A.txt', source: resolve(dir, 'other.txt') }],
+            }, 200)()
+            await reqList(folderUri, { inList: ['A.txt', 'B.txt'] })()
+            await req(folderUri + 'A.txt', /^explicit VFS child$/)()
+            await req(folderUri + 'B.txt', /^renamed disk file$/)()
+            await reqApi('set_vfs', { uri: folderUri + 'A.txt', props: { can_read: false } }, 200)()
+            await req(folderUri + 'A.txt', 403)()
+            await req(folderUri + 'B.txt', /^renamed disk file$/)()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
     test('VFS rename masks survive alias collisions and nesting', async () => {
         const id = randomId(6)
         const nodeName = `rename-chain-${id}`
