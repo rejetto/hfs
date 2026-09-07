@@ -25,6 +25,7 @@ been built, so their files are available in `dist` folder.
 To run tests
 - `npm run build-all`
 - `npm run test-with-server` (backend tests)
+- `node --import tsx --test tests/shutdown.test.ts` (shutdown tests, no server needed)
 - `npx playwright test` (UI tests)
 
 # File organization

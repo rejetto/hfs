@@ -5,7 +5,7 @@ allowed_referer: x.com
 localhost_admin: false
 vfs:
   masks:
-    "**/config.yaml*|test.ts|work|*uploaded|work2|tmp":
+    "**/config.yaml*|*test.ts|work|*uploaded|work2|tmp":
       can_see: false
     tests/page/!*.png:
       mime: text/plain
