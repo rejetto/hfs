@@ -70,6 +70,7 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
         delete s.allowNet // discard restrictions cached for another identity before replacing the session account
     s.username = normalized
     s.ts = Date.now()
+    s.ip = ctx.ip
     const k = ALLOW_SESSION_IP_CHANGE
     s[k] = k in ctx.query || Boolean(ctx.state.params?.[k]) || undefined // login APIs will get ctx.state.params, others can rely on ctx.query
     if (!a.expire && a.days_to_live)

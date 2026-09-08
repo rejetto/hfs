@@ -50,14 +50,7 @@ export const headRequests: Koa.Middleware = async (ctx, next) => {
 let proxyDetected: undefined | Koa.Context
 export let cloudflareDetected: undefined | Date
 export const someSecurity: Koa.Middleware = (ctx, next) => {
-    const ss = ctx.session
-    if (ss?.username && !ss?.[ALLOW_SESSION_IP_CHANGE])
-        if (!ss.ip)
-            ss.ip = ctx.ip
-        else if (ss.ip !== ctx.ip) {
-            delete ss.username
-            ss.ip = ctx.ip
-        }
+    enforceSessionIp(ctx)
 
     if (!ctx.state.skipFilters && applyBlock(ctx.socket, ctx.ip))
         return
@@ -77,6 +70,17 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
     return next()
 }
 
+function enforceSessionIp(ctx: Koa.Context) {
+    const s = ctx.session
+    if (!s?.username || s[ALLOW_SESSION_IP_CHANGE]) return
+    if (!s.ip)
+        s.ip = ctx.ip
+    else if (s.ip !== ctx.ip) {
+        delete s.username
+        s.ip = ctx.ip
+    }
+}
+
 // limited to http proxies
 export function getProxyDetected() {
     if (Number(proxyDetected?.state.whenProxyDetected) < Date.now() - DAY) // detection is reset after a day
@@ -87,6 +91,8 @@ export function getProxyDetected() {
 export const prepareState: Koa.Middleware = async (ctx, next) => {
     // normalize once so auth, filters and logging agree on the same client address
     ctx.request.ip = normalizeIp(ctx.ip)
+    // invalidate before account resolution; someSecurity calls again to bind logins made below
+    enforceSessionIp(ctx)
     // rootsMiddleware consults proxy-aware admin access before someSecurity runs
     if (ctx.get('X-Forwarded-For')
     // we have some dev-proxies to ignore

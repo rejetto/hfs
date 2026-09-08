@@ -305,6 +305,47 @@ describe('basics', () => {
             await reqApi('del_account', { username: loginUser }, 200, adminReq)().catch(() => {})
         }
     })
+    test('session IP change invalidates the current request', async () => {
+        const adminReq = { auth, jar: {} }
+        const user = `session-ip-${randomId(6)}`.toLowerCase()
+        const pass = `pw-${randomId(8)}`
+        const userAuth = `${user}:${pass}`
+        const old = await reqApi('get_config', { only: ['proxies'] }, 200, adminReq)()
+        const changedIpHeaders = { 'x-forwarded-for': '192.0.2.1', 'x-hfs-anti-csrf': '1' }
+        const sessionJar = {}
+        const apiJar = {}
+        const allowedJar = {}
+        await reqApi('add_account', { username: user, password: pass }, 200, adminReq)()
+        await reqApi('set_config', { values: { proxies: 1 } }, 200, adminReq)()
+        try {
+            await reqApi('refresh_session', {}, res => res?.username === user, { auth: userAuth, jar: sessionJar })()
+            await reqApi('refresh_session', {}, res => !res?.username, {
+                headers: changedIpHeaders, jar: sessionJar,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === user, {
+                auth: userAuth, headers: changedIpHeaders, jar: sessionJar,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === user, {
+                headers: changedIpHeaders, jar: sessionJar,
+            })()
+
+            await reqApi('login', { username: user, password: pass }, 200, { jar: apiJar })()
+            await reqApi('refresh_session', {}, res => !res?.username, {
+                headers: changedIpHeaders, jar: apiJar,
+            })()
+
+            await reqApi('refresh_session?allow_session_ip_change', {}, res => res?.username === user, {
+                auth: userAuth, jar: allowedJar,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === user, {
+                headers: changedIpHeaders, jar: allowedJar,
+            })()
+        }
+        finally {
+            await reqApi('set_config', { values: { proxies: old.proxies } }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
     test('website', req('/f1/page/', { re:/This is a test/, mime:'text/html' }))
     test('traversal', req('/f1/page/.%2e/.%2e/README.md', 404))
     test('traversal.double-encoded', req('/f1/page/%252e%252e/%252e%252e/README.md', 404))
@@ -3157,7 +3198,7 @@ exports.init = api => {
     })
     test('antibrute.prototype-key usernames do not corrupt state', async () => {
         await withPluginConfig('antibrute', antibruteCfg, async () => {
-            const self = `prototype-self-${randomId(6)}`
+            const self = `prototype-self-${randomId(6)}`.toLowerCase() // account names are normalized, randomId can contain uppercase L
             const selfPassword = randomId(12)
             const victim = `prototype-victim-${randomId(6)}`
             const selfJar = {}
