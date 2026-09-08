@@ -189,7 +189,7 @@ vfs:
     - name: cantReadPage
       source: ../
       masks:
-        page|*.ts|*.yaml*|tsconfig.json:
+        page|*.ts|*.mjs|*.yaml*|tsconfig.json:
           can_read: false
           can_list: false
     - name: cantReadRealFolder
