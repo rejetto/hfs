@@ -97,8 +97,8 @@ export function isUploading(path: string) {
     const key = normalizeFilename(path)
     return basename(path).startsWith(UPLOAD_TEMP_PREFIX)
         || uploadingFiles.has(key)
+        || uploadingFiles.has(normalizeFilename(getUploadTempFor(path))) // active uploads are keyed by their temporary file
         || uploadMetaPending.has(key)
-        || Array.from(uploadingFiles.keys()).some(dest => getUploadTempFor(dest) === key)
 }
 
 export async function whileUploadMetaPending<T>(path: string, cb: () => Promise<T>) {
