@@ -2667,6 +2667,33 @@ describe('after-login', () => {
                 throw "missing temp file"
         }
     })
+    test('partial upload expires as unfinished', async () => {
+        const name = `partial-expiry-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const folderUri = `/${name}/`
+        const dest = `${folderUri}unfinished.txt?partial=1`
+        const temp = resolve(dir, UPLOAD_TEMP_PREFIX + 'unfinished.txt')
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['delete_unfinished_uploads_after'] }, 200, adminReq)()
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { source: dir, name, can_upload: ['admins'], can_delete: false }, 200, adminReq)()
+        try {
+            await reqApi('set_config', { values: { delete_unfinished_uploads_after: 30 * 24 * 60 * 60 } }, 200, adminReq)()
+            await reqUpload(dest, 204, 'x', undefined, 0, adminReq)()
+            await wait(100)
+            if (!existsSync(temp))
+                throw Error('long partial-upload retention expired immediately')
+            await reqApi('set_config', { values: { delete_unfinished_uploads_after: 0 } }, 200, adminReq)()
+            await reqUpload(dest, 204, 'x', undefined, 0, adminReq)()
+            if (!await waitFor(() => !existsSync(temp), { timeout: 3000 }))
+                throw Error('expired partial upload was not deleted')
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
     test('aborted upload ownership cannot attach to a shadowed VFS alias', async () => {
         const id = randomId(6)
         const nodeName = `unfinished-alias-${id}`

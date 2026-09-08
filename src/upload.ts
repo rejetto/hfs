@@ -206,8 +206,12 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
                     setTempOwner()
                     return _.isNumber(sec) && delayedDelete(tempName, sec, tempOwnerUri)
                 }
-                if (isPartial) // we are supposed to leave the unfinished upload as it is, with its temp name
+                if (isPartial) { // we are supposed to leave the unfinished upload as it is, with its temp name
+                    const sec = deleteUnfinishedUploadsAfter.get()
+                    if (_.isNumber(sec))
+                        delayedDelete(tempName, sec, tempOwnerUri)
                     return ctx.status = HTTP_NO_CONTENT // lockMiddleware contains an empty string, so we must take care of the status
+                }
                 let dest = fullPath // final destination, considering numbering if necessary
                 if (dontOverwriteUploading.get() && fs.existsSync(dest) && !await overwriteAnyway()) {
                     if (overwriteRequestedButForbidden) {
@@ -301,25 +305,36 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
 
     function delayedDelete(path: string, secs: number, tempUri: string) {
         const key = fileIdentity(path)
-        if (!key) return
-        clearTimeout(waitingToBeDeleted.get(key)?.timeout)
+        if (key === undefined) return
+        const identity = key
+        clearTimeout(waitingToBeDeleted.get(identity)?.timeout)
+        const expires = Date.now() + secs * 1000
+        // Node clamps larger delays to 1ms, so long retention is scheduled in chunks
+        const timeout = setTimeout(remove, Math.min(secs * 1000, 2 ** 31 - 1))
         const entry = {
             path,
             mtime,
-            expires: Date.now() + secs * 1000,
-            timeout: setTimeout(() => {
-                if (waitingToBeDeleted.get(key) !== entry) return
-                waitingToBeDeleted.delete(key)
-                if (fileIdentity(path) !== key) return
-                try {
-                    fs.rmSync(path, { force: true })
-                    deleteUploadOwner(tempUri)
-                }
-                catch {}
-            }, secs * 1000)
+            expires,
+            timeout,
         }
-        waitingToBeDeleted.set(key, entry)
+        waitingToBeDeleted.set(identity, entry)
         return entry
+
+        function remove() {
+            if (waitingToBeDeleted.get(identity) !== entry) return
+            const remaining = expires - Date.now()
+            if (remaining > 0) {
+                entry.timeout = setTimeout(remove, Math.min(remaining, 2 ** 31 - 1))
+                return
+            }
+            waitingToBeDeleted.delete(identity)
+            if (fileIdentity(path) !== identity) return
+            try {
+                fs.rmSync(path, { force: true })
+                deleteUploadOwner(tempUri)
+            }
+            catch {}
+        }
     }
 
     function releaseFile() {
