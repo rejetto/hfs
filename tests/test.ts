@@ -3426,6 +3426,41 @@ describe('after-login', () => {
             await rmAny(dir)
         }
     })
+    test('unfinished upload reuse requires owner or delete permission', async () => {
+        const name = `unfinished-reuse-${randomId(6)}`
+        const otherUser = `unfinished-other-${randomId(6)}`.toLowerCase()
+        const otherPass = `pw-${randomId(8)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const dest = `${UPLOAD_ROOT}${name}/unfinished.txt`
+        const temp = resolve(dir, UPLOAD_TEMP_PREFIX + 'unfinished.txt')
+        const ownerReq = { auth, jar: {} }
+        const otherReq = { auth: `${otherUser}:${otherPass}`, jar: {} }
+        const first = 'owner-'
+        const rest = 'continued'
+        const complete = first + rest
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_account', { username: otherUser, password: otherPass }, 200, ownerReq)()
+        await reqApi('add_vfs', {
+            parent: UPLOAD_ROOT, source: `../tmp/${name}`, name,
+            can_upload: [username, otherUser], can_delete: false,
+        }, 200, ownerReq)()
+        try {
+            await reqUpload(`${dest}?partial=${complete.length}`, 204, first, undefined, 0, ownerReq)()
+            const original = readFileSync(temp)
+            await reqUpload(dest, 403, 'replacement', undefined, 0, otherReq)()
+            await reqUpload(dest, 403, rest, complete.length, first.length, otherReq)()
+            if (!readFileSync(temp).equals(original))
+                throw Error('foreign upload changed unfinished content')
+            await reqUpload(dest, 200, rest, complete.length, first.length, ownerReq)()
+            if (readFileSync(resolve(dir, 'unfinished.txt'), 'utf8') !== complete)
+                throw Error('owner resume changed content')
+        }
+        finally {
+            await reqApi('del_account', { username: otherUser }, 200, ownerReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200, ownerReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
     test('anonymous upload can delete own unfinished upload', async () => {
         const name = `anon-unfinished-cleanup-${randomId(6)}`
         const dir = resolve(UPLOAD_DISK_ROOT, name)
