@@ -908,6 +908,41 @@ describe('basics', () => {
             return s.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
         }
     })
+    test('session IP change invalidates the current request', async () => {
+        const adminReq = { auth, jar: {} }
+        const user = `session-ip-${randomId(6)}`.toLowerCase()
+        const pass = `pw-${randomId(8)}`
+        const userAuth = `${user}:${pass}`
+        const old = await reqApi('get_config', { only: ['proxies'] }, 200, adminReq)()
+        const changedIpHeaders = { 'x-forwarded-for': '192.0.2.1', 'x-hfs-anti-csrf': '1' }
+        const sessionJar = {}
+        const allowedJar = {}
+        await reqApi('add_account', { username: user, password: pass }, 200, adminReq)()
+        await reqApi('set_config', { values: { proxies: 1 } }, 200, adminReq)()
+        try {
+            await reqApi('refresh_session', {}, res => res?.username === user, { auth: userAuth, jar: sessionJar })()
+            await reqApi('refresh_session', {}, res => !res?.username, {
+                headers: changedIpHeaders, jar: sessionJar,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === user, {
+                auth: userAuth, headers: changedIpHeaders, jar: sessionJar,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === user, {
+                headers: changedIpHeaders, jar: sessionJar,
+            })()
+
+            await reqApi('refresh_session?allow_session_ip_change', {}, res => res?.username === user, {
+                auth: userAuth, jar: allowedJar,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === user, {
+                headers: changedIpHeaders, jar: allowedJar,
+            })()
+        }
+        finally {
+            await reqApi('set_config', { values: { proxies: old.proxies } }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
 })
 
 describe('webdav', () => {
