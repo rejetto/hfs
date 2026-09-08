@@ -2531,16 +2531,15 @@ describe('after-login', () => {
                 throw Error('aborted upload did not start')
             aborted.request.destroy()
             await wait(300)
+            const original = readFileSync(tempPath)
             const replacement = startUpload(upperName, users[1])
-            replacement.request.write('ZZZZ')
-            if (!await waitFor(() => existsSync(tempPath) && readFileSync(tempPath, 'utf8') === 'ZZZZ', { timeout: 3000 }))
-                throw Error('replacement upload did not start')
-            await wait(2000)
-            if (!existsSync(tempPath))
-                throw Error('case-variant stale timer deleted the replacement upload')
-            replacement.request.end('YYYY')
-            if (await replacement.response !== 200)
-                throw Error('replacement upload failed after stale deletion timer')
+            replacement.request.end('ZZZZYYYY')
+            if (await replacement.response !== 403)
+                throw Error('case-variant replacement upload was not rejected')
+            if (!readFileSync(tempPath).equals(original))
+                throw Error('case-variant replacement changed unfinished content')
+            if (!await waitFor(() => !existsSync(tempPath), { timeout: 3000 }))
+                throw Error('rejected replacement prevented unfinished-upload cleanup')
         }
         finally {
             for (const request of requests)
@@ -2569,6 +2568,33 @@ describe('after-login', () => {
                 requests.push(request)
             })
             return { request: request!, response }
+        }
+    })
+    test('long filenames sharing an upload temporary file are serialized', async () => {
+        const nodeName = `long-upload-${randomId(6)}`
+        const suffix = 'x'.repeat(196) + '.txt'
+        const firstName = 'a' + suffix
+        const secondName = 'b' + suffix
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const firstUri = `${UPLOAD_ROOT}${nodeName}/${firstName}`
+        const secondUri = `${UPLOAD_ROOT}${nodeName}/${secondName}`
+        const temp = resolve(dir, UPLOAD_TEMP_PREFIX + suffix)
+        const ownerReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', {
+            parent: UPLOAD_ROOT, source: `../tmp/${nodeName}`, name: nodeName,
+            can_upload: ['admins'], can_delete: true,
+        }, 200, ownerReq)()
+        try {
+            const first = reqUpload(firstUri, 200, makeReadableThatTakes(600), undefined, 0, ownerReq)()
+            if (!await waitFor(() => existsSync(temp), { timeout: 3000 }))
+                throw Error('first long-name upload did not start')
+            await reqUpload(secondUri, 409, 'replacement', undefined, 0, ownerReq)()
+            await first
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + nodeName] }, 200, ownerReq)().catch(() => {})
+            await rmAny(dir)
         }
     })
     test('upload.path bypass', async () => {
@@ -2667,6 +2693,96 @@ describe('after-login', () => {
                 throw "missing temp file"
         }
     })
+    test('unfinished upload reuse requires owner or delete permission', async () => {
+        const name = `unfinished-reuse-${randomId(6)}`
+        const otherUser = `unfinished-other-${randomId(6)}`.toLowerCase()
+        const otherPass = `pw-${randomId(8)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const rootUri = `/${name}`
+        const dest = `${rootUri}/unfinished.txt`
+        const temp = resolve(dir, UPLOAD_TEMP_PREFIX + 'unfinished.txt')
+        const ownerReq = { auth, jar: {} }
+        const otherReq = { auth: `${otherUser}:${otherPass}`, jar: {} }
+        const first = 'owner-'
+        const rest = 'continued'
+        const complete = first + rest
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_account', { username: otherUser, password: otherPass }, 200, ownerReq)()
+        await reqApi('add_vfs', {
+            parent: '/', source: dir, name, can_see: true, can_list: true,
+            can_upload: [username, otherUser], can_delete: false,
+        }, 200, ownerReq)()
+        try {
+            await reqUpload(`${dest}?partial=${complete.length}`, 204, first, undefined, 0, ownerReq)()
+            const original = readFileSync(temp)
+            await reqUpload(dest, 403, 'replacement', undefined, 0, otherReq)()
+            await reqUpload(dest, 403, rest, complete.length, first.length, otherReq)()
+            if (!readFileSync(temp).equals(original))
+                throw Error('foreign upload changed unfinished content')
+            await reqUpload(dest, (_data, res) => {
+                if (res.statusCode !== 200)
+                    throw Error(`expected owner resume 200, got ${res.statusCode}`)
+            }, rest, complete.length, first.length, ownerReq)()
+            if (readFileSync(resolve(dir, 'unfinished.txt'), 'utf8') !== complete)
+                throw Error('owner resume changed content')
+        }
+        finally {
+            await reqApi('del_account', { username: otherUser }, 200, ownerReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [rootUri] }, 200, ownerReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('split upload continuation is independent of own-delete hours', async () => {
+        const name = `split-owner-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/file.txt`
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['own_upload_delete_hours'] }, 200, adminReq)()
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { source: dir, name, can_upload: true, can_delete: false }, 200, adminReq)()
+        try {
+            for (const hours of [0, 0.000001]) {
+                const ownerReq = { jar: {} }
+                await reqApi('refresh_session', {}, 200, ownerReq)()
+                await reqApi('set_config', { values: { own_upload_delete_hours: hours } }, 200, adminReq)()
+                await reqUpload(`${uri}?partial=3`, 204, 'a', undefined, 0, ownerReq)()
+                await wait(30) // let the short delete grant expire before continuing the same upload
+                await reqUpload(`${uri}?partial=3`, 204, 'b', 2, 1, ownerReq)()
+                await reqUpload(uri, (_data, res) => res.statusCode === 200, 'c', 3, 2, ownerReq)()
+                if (readFileSync(resolve(dir, 'file.txt'), 'utf8') !== 'abc')
+                    throw Error('split upload content changed')
+                await wait(30)
+                await req(uri, 403, { method: 'delete', ...ownerReq })()
+                await rm(resolve(dir, 'file.txt'))
+            }
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)()
+            await reqApi('del_vfs', { uris: [`/${name}/`] }, 200, adminReq)()
+            await rmAny(dir)
+        }
+    })
+    test('upload temporary files honor file-only permission masks', async () => {
+        const name = `temp-file-mask-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/file.txt`
+        const adminReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await writeFile(resolve(dir, UPLOAD_TEMP_PREFIX + 'file.txt'), 'a')
+        await reqApi('add_vfs', {
+            source: dir, name, can_upload: true, can_delete: false,
+            masks: { '*|files|': { can_delete: true } },
+        }, 200, adminReq)()
+        try {
+            await reqUpload(uri, (_data, res) => res.statusCode === 200, 'b', 2, 1, { jar: {} })()
+            if (readFileSync(resolve(dir, 'file.txt'), 'utf8') !== 'ab')
+                throw Error('authorized file-mask resume changed content')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [`/${name}/`] }, 200, adminReq)()
+            await rmAny(dir)
+        }
+    })
     test('partial upload expires as unfinished', async () => {
         const name = `partial-expiry-${randomId(6)}`
         const dir = resolve(UPLOAD_DISK_ROOT, name)
@@ -2691,6 +2807,91 @@ describe('after-login', () => {
         finally {
             await reqApi('set_config', { values: old }, 200, adminReq)().catch(() => {})
             await reqApi('del_vfs', { uris: [folderUri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('fresh upload clears stale unfinished ownership', async () => {
+        const name = `stale-unfinished-owner-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const folderUri = `/${name}/`
+        const dest = `${folderUri}unfinished.txt`
+        const temp = resolve(dir, UPLOAD_TEMP_PREFIX + 'unfinished.txt')
+        const tempUri = `${folderUri}${pathEncode(basename(temp))}`
+        const adminReq = { auth, jar: {} }
+        const ownerJar = {}
+        const otherJar = {}
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { source: dir, name, can_upload: true, can_delete: false }, 200, adminReq)()
+        try {
+            await reqApi('refresh_session', {}, 200, { jar: ownerJar })()
+            await reqApi('refresh_session', {}, 200, { jar: otherJar })()
+            await reqUpload(`${dest}?partial=1`, 204, 'old', undefined, 0, { jar: ownerJar })()
+            await rm(temp) // simulate cleanup that removed the file but left its persistent ownership record
+            const replacement = reqUpload(dest, (_data, res) => res.statusCode === 200,
+                makeReadableThatTakes(600), undefined, 0, { jar: otherJar })()
+            if (!await waitFor(() => existsSync(temp), { timeout: 3000 }))
+                throw Error('replacement upload did not start')
+            await req(tempUri, 403, { method: 'delete', jar: ownerJar })()
+            await replacement
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('unfinished upload cannot overwrite an explicit VFS child source', async () => {
+        const id = randomId(6)
+        const nodeName = `unfinished-child-${id}`
+        const filename = 'unfinished.txt'
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const temp = resolve(dir, UPLOAD_TEMP_PREFIX + filename)
+        const folderUri = `/${nodeName}/`
+        const ownerReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await writeFile(temp, 'protected')
+        try {
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_upload: ['admins'], can_delete: true,
+                children: [{ source: temp, name: 'protected-temp.txt' }],
+            }, 200, ownerReq)()
+            await req(folderUri + filename, 403, {
+                method: 'PUT', body: 'replacement', ...ownerReq,
+                headers: { 'content-length': '11' },
+            })()
+            if (readFileSync(temp, 'utf8') !== 'protected')
+                throw Error('explicit VFS child source was overwritten')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, ownerReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('unfinished upload cannot overwrite an aliased explicit VFS child source', { skip: process.platform === 'win32' }, async () => {
+        const id = randomId(6)
+        const nodeName = `unfinished-child-alias-${id}`
+        const filename = 'unfinished.txt'
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const temp = resolve(dir, UPLOAD_TEMP_PREFIX + filename)
+        const alias = resolve(dir, 'protected-temp-link.txt')
+        const folderUri = `/${nodeName}/`
+        const ownerReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await writeFile(temp, 'protected')
+        await symlink(basename(temp), alias)
+        try {
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_upload: ['admins'], can_delete: true,
+                children: [{ source: alias, name: 'protected-temp.txt' }],
+            }, 200, ownerReq)()
+            await req(folderUri + filename, 403, {
+                method: 'PUT', body: 'replacement', ...ownerReq,
+                headers: { 'content-length': '11' },
+            })()
+            if (readFileSync(temp, 'utf8') !== 'protected')
+                throw Error('aliased explicit VFS child source was overwritten')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, ownerReq)().catch(() => {})
             await rmAny(dir)
         }
     })
@@ -2732,12 +2933,13 @@ describe('after-login', () => {
         const name = `anon-unfinished-cleanup-${randomId(6)}`
         const dir = resolve(UPLOAD_DISK_ROOT, name)
         const jar = {}
-        const dest = `${UPLOAD_ROOT}${name}/unfinished.txt`
+        const folderUri = `/${name}/`
+        const dest = `${folderUri}unfinished.txt`
         const tempName = UPLOAD_TEMP_PREFIX + 'unfinished.txt'
         const temp = resolve(dir, tempName)
-        const tempUri = `${UPLOAD_ROOT}${name}/${pathEncode(tempName)}`
+        const tempUri = `${folderUri}${pathEncode(tempName)}`
         await mkdir(dir, { recursive: true })
-        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: true, can_delete: false }, 200)()
+        await reqApi('add_vfs', { source: dir, name, can_upload: true, can_delete: false }, 200)()
         try {
             await reqApi('refresh_session', {}, 200, { jar })()
             const r = reqUpload(dest, 0, makeReadableThatTakes(600), undefined, 0, { jar })()
@@ -2745,37 +2947,48 @@ describe('after-login', () => {
             await r.catch(() => {})
             if (!existsSync(temp))
                 throw "missing temp file"
-            await req(tempUri, 200, { method: 'delete', jar })()
+            let deleted = false
+            await waitFor(async () => { // client abort does not wait for the server to publish ownership
+                await req(tempUri, (_body, res) => {
+                    deleted = res.statusCode === 200
+                    return deleted || res.statusCode === 403
+                }, { method: 'delete', jar })()
+                return deleted
+            }, { interval: 50, timeout: 3000 })
+            if (!deleted)
+                throw Error('unfinished upload ownership was not published')
         }
         finally {
-            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await reqApi('del_vfs', { uris: [folderUri] }, 200)().catch(() => {})
             await rmAny(dir)
         }
     })
     test('upload.interrupted owner is cleared after resume completes', async () => {
         const name = `unfinished-resume-cleanup-${randomId(6)}`
         const dir = resolve(UPLOAD_DISK_ROOT, name)
-        const dest = `${UPLOAD_ROOT}${name}/unfinished.txt`
+        const folderUri = `/${name}/`
+        const dest = `${folderUri}unfinished.txt`
         const tempName = UPLOAD_TEMP_PREFIX + 'unfinished.txt'
         const temp = resolve(dir, tempName)
-        const tempUri = `${UPLOAD_ROOT}${name}/${pathEncode(tempName)}`
+        const tempUri = `${folderUri}${pathEncode(tempName)}`
         // use a dedicated session because other suites may change the shared test jar
         const ownerReq = { auth, jar: {} }
         await mkdir(dir, { recursive: true })
-        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200, ownerReq)()
+        await reqApi('add_vfs', { source: dir, name, can_upload: ['admins'], can_delete: false }, 200, ownerReq)()
         try {
             const r = reqUpload(dest, 0, makeReadableThatTakes(600), undefined, 0, ownerReq)()
             setTimeout(r.abort, 300)
             await r.catch(() => {})
             await wait(500)
             const partial = statSync(temp).size
-            await reqUpload(dest, 200, Readable.from(BIG_CONTENT.slice(partial)), BIG_CONTENT.length, partial, ownerReq)()
+            await reqUpload(dest, (_data, res) => res.statusCode === 200,
+                Readable.from(BIG_CONTENT.slice(partial)), BIG_CONTENT.length, partial, ownerReq)()
             await writeFile(temp, 'new temp')
             await req(tempUri, 403, { method: 'delete', ...ownerReq })()
         }
         finally {
             await req(dest, 200, { method: 'delete', ...ownerReq })().catch(() => {})
-            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200, ownerReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, ownerReq)().catch(() => {})
             await rmAny(dir)
         }
     })

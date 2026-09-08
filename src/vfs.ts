@@ -122,9 +122,7 @@ export async function isSameFilePath(a: string, b: string) {
 // security state follows the displayed VFS identity even when I/O uses its physical alias
 export function getVirtualName(name: string, parent: VfsNodeWithPath, source?: string) {
     if (source) {
-        const normalizedSource = normalizeFilename(resolve(source))
-        const child = parent.children?.find(x => x.source
-            && normalizeFilename(resolve(x.source)) === normalizedSource)
+        const child = getChildBySource(parent, source)
         if (child)
             return getNodeName(child)
     }
@@ -138,6 +136,12 @@ export function getVirtualName(name: string, parent: VfsNodeWithPath, source?: s
         || name
 }
 
+export function getChildBySource(parent: VfsNode, source: string) {
+    const normalizedSource = normalizeFilename(resolve(source))
+    return parent.children?.find(x => x.source
+        && normalizeFilename(resolve(x.source)) === normalizedSource)
+}
+
 export function getFreeVfsName(siblings: VfsNode[] | undefined, name: string) {
     const ext = extname(name)
     const noExt = ext ? name.slice(0, -ext.length) : name
@@ -147,7 +151,7 @@ export function getFreeVfsName(siblings: VfsNode[] | undefined, name: string) {
     return name
 }
 
-export async function applyParentToChild(child: VfsNode | undefined, parent: VfsNodeWithPath, name?: string) {
+export function applyParentToChild(child: VfsNode | undefined, parent: VfsNodeWithPath, name?: string) {
     name ||= child ? getNodeName(child) : ''
     const ret = setVfsPath({
         original: child, // this can be overridden by passing an 'original' in `child`
@@ -157,7 +161,7 @@ export async function applyParentToChild(child: VfsNode | undefined, parent: Vfs
         parent,
     }, name, parent)
     inheritMasks(ret, parent, name)
-    await parentMaskApplier(parent)(ret, name)
+    parentMaskApplier(parent)(ret, name)
     inheritFromParent(ret)
     return ret
 }
@@ -564,7 +568,7 @@ export function parentMaskApplier(parent: VfsNode, pathBased=false) {
         }
         return mask && { matcher: makeMatcher(mask), mods, mustBeFolder }
     }))
-    return async (item: VfsNode, virtualName=(pathBased ? _.identity : basename)(getNodeName(item))!) => {
+    return (item: VfsNode, virtualName=(pathBased ? _.identity : basename)(getNodeName(item))!) => {
         // depth traversal passes full relative paths, while node traversal still matches only basenames
         let isFolder: boolean | undefined = undefined
         for (const { matcher, mods, mustBeFolder } of matchers) {

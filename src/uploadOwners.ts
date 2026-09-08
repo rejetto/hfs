@@ -12,6 +12,7 @@ export interface UploadOwner {
     sessionId?: string
     ip?: string
     created: Date
+    unfinishedUntil?: number | null // continuation lifetime is independent of the configurable delete grant
 }
 
 export const ownUploadDeleteHours = defineConfig(CFG.own_upload_delete_hours, 24)
@@ -29,7 +30,7 @@ setInterval(() => {
     const keys = Array.from(uploadOwners.keys())
     for (const k of keys) {
         const owner = uploadOwners.getSync(k)
-        if (owner && isExpired(owner))
+        if (owner && isRecordExpired(owner))
             void uploadOwners.del(k)
     }
 }, MINUTE)
@@ -44,17 +45,28 @@ events.on('checkVfsPermission', ({ node, perm, ctx }: { node: VfsNode, perm: str
     if (!owner)
         return
     if (isExpired(owner)) {
-        void deleteUploadOwner(vfsPath)
+        if (isRecordExpired(owner))
+            void deleteUploadOwner(vfsPath)
         return
     }
-    const username = getCurrentUsername(ctx)
-    const { sessionId } = owner
-    if (sessionId && sessionId === ctx.session?.sessionId || username && owner.username === username)
+    if (matchesOwner(owner, ctx))
         return 0
 })
 
-export async function setUploadOwner(vfsPath: string, ctx: Koa.Context, expectedSource?: string) {
-    if (!uploadOwners.isOpen() || !ownUploadDeleteHours.get())
+function matchesOwner(owner: UploadOwner, ctx: Koa.Context) {
+    const username = getCurrentUsername(ctx)
+    const { sessionId } = owner
+    return Boolean(sessionId && sessionId === ctx.session?.sessionId || username && owner.username === username)
+}
+
+export function isUnfinishedUploadOwner(node: VfsNode, ctx: Koa.Context) {
+    if (node.original || !node.vfsPath || !uploadOwners.isOpen()) return false
+    const owner = uploadOwners.getSync(cleanVfsPath(node.vfsPath))
+    return Boolean(owner && owner.unfinishedUntil !== undefined && !isRecordExpired(owner) && matchesOwner(owner, ctx))
+}
+
+export async function setUploadOwner(vfsPath: string, ctx: Koa.Context, expectedSource?: string, unfinishedUntil?: number | null) {
+    if (!uploadOwners.isOpen() || unfinishedUntil === undefined && !ownUploadDeleteHours.get())
         return
     if (expectedSource && !await getNodeMatchingSource(vfsPath, ctx, expectedSource))
         return
@@ -64,6 +76,7 @@ export async function setUploadOwner(vfsPath: string, ctx: Koa.Context, expected
         sessionId: username ? undefined : getSessionId(ctx),
         ip: ctx.ip,
         created: new Date(),
+        unfinishedUntil,
     })?.catch(e => {
         console.error("Couldn't store upload owner for", vfsPath, String(e.message || e))
     })
@@ -86,7 +99,8 @@ export async function moveUploadOwner(fromPath: string, toPath: string, expected
         return
     const owners = affected.map(k => ({ k, owner: uploadOwners.getSync(k) }))
     // ownership is keyed by VFS path, so HFS moves must carry descendant upload records too
-    await Promise.all(owners.map(({ k, owner }) => owner && uploadOwners.put(to + k.slice(from.length), owner)))
+    // an ordinary move must not carry the right to continue an upload at another path
+    await Promise.all(owners.map(({ k, owner }) => owner && uploadOwners.put(to + k.slice(from.length), { ...owner, unfinishedUntil: undefined })))
     await Promise.all(affected.map(k => uploadOwners.del(k)))
 }
 
@@ -108,6 +122,11 @@ export function deleteUploadOwner(vfsPath: string) {
 function isExpired(owner: UploadOwner) {
     const hours = ownUploadDeleteHours.get()
     return !hours || Number(owner.created) + hours * HOUR <= Date.now()
+}
+
+function isRecordExpired(owner: UploadOwner) {
+    return owner.unfinishedUntil === undefined ? isExpired(owner)
+        : owner.unfinishedUntil !== null && owner.unfinishedUntil <= Date.now()
 }
 
 export function getSessionId(ctx: Koa.Context) {
