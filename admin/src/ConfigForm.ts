@@ -13,6 +13,7 @@ export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }:
     onSave?: Callback,
     saveOnChange?: boolean
 }) {
+    const [saving, setSaving] = useState(false)
     const [keys_, setKeys_] = useState(keys)
     const config = useApiEx(keys_ && 'get_config', { only: keys_ })
     const [values, setValues] = useState<any>(config.data)
@@ -39,6 +40,7 @@ export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }:
         },
         ...formProps,
         ...rest,
+        ...{ inert: saving ? '' : undefined }, // prevent edits until both saving and refreshing the configuration finish
         barSx: { gap: 1, ...rest.barSx },
         addToBar: [
             h(IconBtn, {
@@ -52,6 +54,8 @@ export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }:
     })
 
     function save() {
+        setSaving(true)
         return apiCall('set_config', { values }).then(onSave).then(config.reload)
+            .finally(() => setSaving(false))
     }
 }

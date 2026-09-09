@@ -135,9 +135,11 @@ export function useApi<FT extends ApiHandler>(cmd: string | Falsy, params?: obje
         }
     }, [cmd, JSON.stringify(params), JSON.stringify(options), forcer]) //eslint-disable-line -- json-ize to detect deep changes
     const reload = useCallback(() => {
-        if (reloadPromise.current) return
-        reloadPromise.current = pendingPromise()
-        setForcer(v => v + 1)
+        if (!reloadPromise.current) {
+            reloadPromise.current = pendingPromise()
+            setForcer(v => v + 1)
+        }
+        return reloadPromise.current
     }, [setForcer])
     const ee = useMemo(() => new BetterEventEmitter, [])
     const sub = useCallback((cb: Callback) => ee.on('data', cb), [ee])
