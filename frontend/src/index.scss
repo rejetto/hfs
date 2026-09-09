@@ -311,6 +311,7 @@ ul.dir {
         &:nth-of-type(odd) { background-color: var(--ghost-contrast); }
 
         .container-folder { font-size: smaller }
+        .entry-name { white-space: pre-wrap }
 
         input[type=checkbox] {
             margin-right: 1em;
