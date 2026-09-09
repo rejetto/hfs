@@ -8,6 +8,7 @@ import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
 import { Btn, FlexV, iconBtn, Spinner } from './components'
 import { openFileMenu } from './fileMenu'
+import { deleteFiles } from './menu'
 import { alertDialog, toast } from './dialog'
 import _ from 'lodash'
 import { getId3Tags } from './id3'
@@ -36,7 +37,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             onClose?.()
         },
         Content() {
-            const { uri } = useSnapState()
+            const { uri, list } = useSnapState()
             useEffect(() => {
                 if (uri === firstUri) return
                 firstUri ??= uri // init
@@ -48,6 +49,12 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             const lastGood = useRef(entry)
             const [mode, setMode] = useState(ZoomMode.contain)
             const [shuffle, setShuffle] = useState<undefined | DirList>()
+            useEffect(() => {
+                const sameKey = _.find(state.list, { key: cur.key || cur.n }) // rename replaces the list entry to preserve list focus, so follow that replacement in the viewer
+                if (!sameKey || sameKey.n === cur.n) return // different name?
+                setShuffle(x => x?.map(entry => entry.n === cur.n ? sameKey : entry))
+                goTo(sameKey)
+            }, [list, cur])
             useEffect(() => toggleShuffle(startShuffle), [])
             const shufflePlayed = useRef(0) // keep track of how many entries of the shuffle list we played
             if (!shuffle) shufflePlayed.current = 0
@@ -173,7 +180,8 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                             }),
                         ),
                         iconBtn('menu', ev => openFileMenu(cur, ev, [
-                            'open', 'delete',
+                            'open',
+                            cur.canDelete() && { id: 'delete', label: t`Delete`, icon: 'delete', onClick: deleteCurrent },
                             { id: 'zoom', icon: 'zoom', label: t`Switch zoom mode`, onClick: switchZoomMode },
                             { id: 'fullscreen', icon: 'fullscreen', label: t`Full screen`, onClick: toggleFullScreen },
                             { id: 'shuffle', icon: 'shuffle', label: t`Shuffle`, toggled: Boolean(shuffle), onClick: () => toggleShuffle() },
@@ -243,6 +251,17 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             function goPrev() { go(-1) }
 
             function goNext() { go(+1) }
+
+            async function deleteCurrent() {
+                const list = shuffle || state.list
+                const i = _.findIndex(list, { n: cur.n })
+                const canShow = (entry: DirEntry) => !entry.isFolder && Boolean(getShowComponent(entry))
+                const next = _.find(list.slice(i + 1), canShow) || _.findLast(list.slice(0, i), canShow)
+                if (!await deleteFiles([cur.uri])) return
+                if (shuffle)
+                    setShuffle(list.filter(x => x.n !== cur.n))
+                next ? goTo(next) : close()
+            }
 
             function onError() {
                 const mediaError = (document.querySelector('.showing-container .showing') as any)?.error?.code // only present in video/audio elements

@@ -902,6 +902,51 @@ test('file show stops auto-play after a broken last image', async ({ page, brows
     }
 })
 
+test('file show follows rename and advances after deleting the current file', async ({ page, browserName }) => {
+    if (browserName !== 'chromium') return
+    const names = ['show-delete-a.png', 'show-delete-b.png', 'show-delete-c.png']
+    const renamed = 'show-delete-renamed.png'
+    const folder = fs.mkdtempSync('tests/tmp/show-delete-')
+    names.forEach(name => fs.copyFileSync('tests/page/gpl.png', `${folder}/${name}`))
+    try {
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/${folder.split('/').pop()}/`)
+        await page.getByRole('link', { name: names[1], exact: true }).click()
+        await page.getByRole('link', { name: 'Show' }).click()
+
+        await page.locator('.file-show').getByRole('button', { name: 'menu' }).click()
+        await page.locator('.file-dialog').getByRole('link', { name: 'Rename' }).click()
+        const renameDialog = page.locator('.dialog-prompt')
+        const renameInput = renameDialog.getByRole('textbox')
+        await expect(renameInput).toHaveValue(names[1])
+        await renameInput.fill(renamed)
+        await renameDialog.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.locator('.file-show .filename')).toContainText(renamed)
+
+        await deleteShownFile()
+        await expect(page.locator('.file-show .filename')).toContainText(names[2])
+        await page.waitForFunction(name => !(window as any).HFS.state.loading
+            && !(window as any).HFS.state.list.some((x: any) => x.name === name), renamed)
+
+        await deleteShownFile()
+        await expect(page.locator('.file-show .filename')).toContainText(names[0])
+    }
+    finally {
+        fs.rmSync(folder, { recursive: true, force: true })
+    }
+
+    async function deleteShownFile() {
+        await page.locator('.file-show').getByRole('button', { name: 'menu' }).click()
+        await page.locator('.file-dialog').getByRole('link', { name: 'Delete' }).click()
+        await page.locator('.dialog-confirm').getByRole('button', { name: 'Yes' }).click()
+    }
+})
+
 test('English option updates the page language', async ({ page }) => {
     await gotoFrontend(page, FRONTEND_URL + '?lang=it')
     const content = page.locator('#root > [lang]')
