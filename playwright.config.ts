@@ -4,6 +4,11 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import yaml from 'yaml';
 
+// isolated Admin logic regressions need one browser; end-to-end flows, calendars and drag retain all projects
+const adminLogicTests = [
+  '**/admin-accounts.spec.ts',
+]
+
 const snapshotBranch = getSnapshotBranch()
 // use the same test port source as tests/test.ts to avoid config drift
 const testPort = Number(yaml.parse(readFileSync(resolve(process.cwd(), 'tests/config.yaml'), 'utf8')).port)
@@ -50,14 +55,17 @@ export default defineConfig({
     },
     {
       name: 'Android',
+      testIgnore: adminLogicTests,
       use: { ...devices['Pixel 7'] },
     },
     {
       name: 'iPhone 6',
+      testIgnore: adminLogicTests,
       use: { ...devices['iPhone 6'] },
     },
     {
       name: 'firefox',
+      testIgnore: adminLogicTests,
       use: {
         ...devices['Desktop Firefox'],
         launchOptions: {
