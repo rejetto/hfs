@@ -28,6 +28,7 @@ To run tests
 - `node --import tsx --test tests/shutdown.test.ts` (shutdown tests, no server needed)
 - `node --import tsx --test tests/plugin-server-cleanup.test.ts` (after compiling the server; starts isolated HTTP and HTTPS servers)
 - `npx playwright test` (UI tests)
+- For the DataTable component regression, start Admin with `npm run start --workspace=admin -- --port 3112 --strictPort`, then run `PLAYWRIGHT_HTML_OPEN=never ADMIN_DATA_TABLE_URL=http://127.0.0.1:3112/#/monitoring npx playwright test admin-data-table --workers=1 --project=chromium`.
 
 The normal Playwright configuration also starts its test servers, so prepare the build as above. Without `ADMIN_APP_URL`, this dev-only test is skipped.
 

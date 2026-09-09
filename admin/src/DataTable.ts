@@ -156,7 +156,8 @@ export function DataTable({
     const displayingDetails = useRef<any>({})
     useEffect(() => {
         const { current: { id, setCurRow } } = displayingDetails
-        setCurRow?.(_.find(rest.rows, { id }))
+        // details must follow the same identity as the grid, including custom getRowId
+        setCurRow?.(_.find(rest.rows, row => apiRef.current!.getRowId(row) === id))
     })
     const sizeFooterSide = useGetSize()
     const wrappedFooterSide = h(Flex, {
@@ -280,7 +281,7 @@ export function DataTable({
                         if (curRow)
                             keepRow.current = curRow
                         const rowToShow = keepRow.current
-                        displayingDetails.current = { id: rowToShow.id, setCurRow }
+                        displayingDetails.current = { id: apiRef.current!.getRowId(rowToShow), setCurRow }
                         return h(Box, {
                             sx: {
                                 display: 'grid',
@@ -394,7 +395,7 @@ export function DataTable({
         if (col.valueGetter) // @ts-ignore
             value = col.valueGetter(value, row, col, api)
         const render = (col as any).originalRenderCell || col.renderCell
-        return render && render !== true ? render({ value, row, api, ...row })
+        return render && render !== true ? render({ value, row, api, ...row, id: api!.getRowId(row) })
             // @ts-ignore
             : col.valueFormatter ? col.valueFormatter(value, row, col, api)
                 : value
