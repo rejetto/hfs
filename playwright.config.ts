@@ -9,6 +9,7 @@ const adminLogicTests = [
   '**/admin-accounts.spec.ts',
   '**/admin-config-file.spec.ts',
   '**/admin-data-table.spec.ts',
+  '**/admin-home.spec.ts',
 ]
 
 const snapshotBranch = getSnapshotBranch()
