@@ -17,8 +17,11 @@ export default function ConfigFilePage() {
     const [text, setText] = useState<string | undefined>()
     const [saved, setSaved] = useState<string | undefined>()
     const [edit, setEdit] = useState(false)
-    useEffect(() => { setSaved(data?.text) }, [data])
-    useEffect(() => { saved !== undefined && setText(saved || '') }, [saved])
+    useEffect(() => {
+        setSaved(data?.text)
+        // loading config replaces the draft, but completing an earlier save must preserve new edits
+        setText(data?.text)
+    }, [data])
     return element || h(Fragment, {},
         h(Flex, { flexWrap: 'wrap', justifyContent: 'space-between' },
             h(Btn, { icon: Download, onClick: exportConfig, disabled: !data }, "Export without passwords"),
