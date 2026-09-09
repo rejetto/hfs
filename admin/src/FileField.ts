@@ -4,7 +4,7 @@ import { FieldProps, StringField } from '@hfs/mui-grid-form'
 import { createElement as h } from 'react'
 import { Eject } from '@mui/icons-material'
 import { IconBtn, useBreakpoint } from './mui'
-import { newDialog, prefix } from '@hfs/shared'
+import { enforceFinal, getHFS, newDialog, prefix } from '@hfs/shared'
 import FilePicker from './FilePicker'
 import { apiCall } from './api'
 
@@ -37,9 +37,10 @@ export default function FileField({ value, onChange, files=true, folders=false, 
                             async onSelect(sel) {
                                 let one = sel?.[0]
                                 if (!one) return
-                                const cwd = (await apiCall('get_cwd'))?.path
+                                // include the directory boundary without duplicating root separators
+                                const cwd = enforceFinal(getHFS().pathSeparator, (await apiCall('get_cwd'))?.path)
                                 if (one.startsWith(cwd))
-                                    one = one.slice(cwd.length+1) || '.'
+                                    one = one.slice(cwd.length) || '.'
                                 onChange(one, { was: value, event: 'picker' })
                                 close()
                             }
