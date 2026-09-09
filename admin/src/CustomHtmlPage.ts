@@ -8,7 +8,6 @@ import { Dict, HTTP_MESSAGES, prefix, md, isNumeric, CFG } from './misc'
 import { hTooltip, IconBtn, reloadBtn, useCtrlShortcutButton, wikiLink } from './mui'
 import { Save } from '@mui/icons-material'
 import _ from 'lodash'
-import { useDebounce } from 'usehooks-ts'
 import { TextEditor } from './TextEditor';
 import { state, useSnapState } from './state'
 import { PageProps } from './App'
@@ -21,16 +20,16 @@ const names: any = {
 }
 
 export default function CustomHtmlPage({ setTitleSide }: PageProps) {
-    const { data, reload } = useApiEx<typeof adminApis.get_custom_html>('get_custom_html')
+    const { data, reload, element } = useApiEx<typeof adminApis.get_custom_html>('get_custom_html')
     const { customHtmlSection: section } = useSnapState()
     const [all, setAll] = useState<Dict<string>>({})
     const [saved, setSaved] = useState({})
     useEffect(() => {
         if (!data) return
         setSaved(data.sections)
+        setAll(data.sections) // loading sections replaces the draft, but completing an earlier save must preserve new edits
         setEnabled(data.enabled)
     }, [data])
-    useEffect(() => setAll(saved), [saved])
     const options = useMemo(() => {
         const keys = _.sortBy(Object.keys(all), isNumeric) // http codes at the bottom
         if (keys.length && !keys.includes(section))
@@ -39,7 +38,7 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
             value: x,
             label: (names[x] || prefix('HTTP ', HTTP_MESSAGES[x as any]) || _.startCase(x)) + (all[x]?.trim() ? ' *' : '')
         }))
-    }, [useDebounce(all, 500)])
+    }, [all])
     const anyChange = useMemo(() => !_.isEqualWith(saved, all, (a,b) => !a && !b || undefined),
         [saved, all])
     const [enabled, setEnabled] = useState<boolean>()
@@ -50,7 +49,8 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
         ),
         h(Alert, { severity: 'info' }, "To customize icons ", wikiLink('customization#icons', "read documentation") ),
     ), []))
-    return h(Fragment, {},
+    const saveShortcut = useCtrlShortcutButton(['s', 'Enter'])
+    return element || h(Fragment, {},
         h(Box, { sx: { display: 'flex', alignItems: 'center', gap: 1, mb: 1 } },
             h(SelectField as Field<string>, {
                 label: "Section",
@@ -60,7 +60,7 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
             }),
             reloadBtn(reload),
             h(IconBtn, {
-                ref: useCtrlShortcutButton(['s', 'Enter']).ref,
+                ref: saveShortcut.ref,
                 icon: Save,
                 title: "Save\n(ctrl+s)",
                 modified: anyChange,
