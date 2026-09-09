@@ -175,9 +175,9 @@ export default function AccountsPage() {
 
     async function deleteAccounts() {
         if (typeof sel === 'string') return
-        const toDelete = _.without(_.uniq(sel.map(userFromItemId)), username)
-        if (sel.length > toDelete.length)
+        if (sel.some(x => userFromItemId(x) === username))
             if (!await confirmDialog(`You cannot ask to delete the account you are using. Continue with the rest?`)) return
+        const toDelete = _.without(_.uniq(sel.map(userFromItemId)), username)
         if (!toDelete.length)
             return alertDialog("Nothing to delete", 'info')
         if (!await confirmDialog(`Delete ${toDelete.length} item(s)?`)) return
