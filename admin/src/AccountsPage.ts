@@ -72,9 +72,13 @@ export default function AccountsPage() {
                     : selectedAccount ? (selectedAccount.isGroup ? "Group: " : "User: ") + selectedAccount.username
                         : '?', // never
             Content: () => sideContent,
-            onClose: selectNone,
+            onClose(keepSelection) {
+                if (!keepSelection)
+                    selectNone()
+            },
         })
-        return () => void close()
+        // effect cleanup replaces the dialog; only user dismissal should clear selection
+        return () => void close(true)
     }, [isSideBreakpoint, sel, selectedAccount])
 
     const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
