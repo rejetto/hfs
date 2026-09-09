@@ -266,9 +266,10 @@ export function DataTable({
             onCellClick({ field, row }) {
                 if (field === ACTIONS || details === false) return
                 if (window.getSelection()?.type === 'Range') return // not a click but a drag
-                const visibleInList = merged + (apiRef.current?.getVisibleColumns().length || 0)
                 const showInDialog = manipulatedColumns.filter(x =>
                     !x.dialogHidden && (x.renderCell || x.valueGetter || x.field === ACTIONS || row[x.field] !== undefined))
+                // action-only columns must not count as visible data hiding the need for details
+                const visibleInList = merged + _.intersectionBy(showInDialog, apiRef.current!.getVisibleColumns(), 'field').length
                 if (showInDialog.length <= visibleInList) return // no need for dialog
                 newDialog({
                     title: "Details",
