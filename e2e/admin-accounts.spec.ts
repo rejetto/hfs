@@ -35,6 +35,25 @@ test('selecting another account in multiple groups avoids a self-deletion warnin
     await expect.poll(() => deleted).toEqual(['member'])
 })
 
+test('account selection survives switching from dialog to side panel', async ({ page }) => {
+    await page.setViewportSize({ width: 700, height: 900 })
+    await page.route('**/~/api/get_accounts', route => route.fulfill({ json: { list: [{
+        username: 'member', hasPassword: true, isGroup: false, canLogin: true,
+        canChangePassword: true, members: [], directMembers: [],
+    }] } }))
+    await page.goto(process.env.ADMIN_ACCOUNTS_URL || `http://localhost:${port}/~/admin/#/accounts`)
+    await page.getByRole('treeitem', { name: 'member', exact: true }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await page.setViewportSize({ width: 1400, height: 900 })
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page.getByRole('textbox', { name: 'Username', exact: true })).toHaveValue('member')
+    await page.setViewportSize({ width: 700, height: 900 })
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page.getByRole('treeitem', { name: 'member', exact: true })).toHaveAttribute('aria-checked', 'false')
+})
+
 test('renaming the current account keeps its Delete button disabled', async ({ page }) => {
     await page.setViewportSize({ width: 1400, height: 900 })
     let username = 'admin'
