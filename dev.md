@@ -29,6 +29,7 @@ To run tests
 - `node --import tsx --test tests/plugin-server-cleanup.test.ts` (after compiling the server; starts isolated HTTP and HTTPS servers)
 - `npx playwright test` (UI tests)
 - For the DataTable component regression, start Admin with `npm run start --workspace=admin -- --port 3112 --strictPort`, then run `PLAYWRIGHT_HTML_OPEN=never ADMIN_DATA_TABLE_URL=http://127.0.0.1:3112/#/monitoring npx playwright test admin-data-table --workers=1 --project=chromium`.
+- With the same Vite server, test FileField and its real picker using `PLAYWRIGHT_HTML_OPEN=never ADMIN_FILE_FIELD_URL=http://127.0.0.1:3112/#/monitoring npx playwright test admin-file-field --workers=1 --project=chromium`. The test serves a local filesystem-list fixture and closes it afterwards.
 
 For DateTimeField, use the same Vite setup with `ADMIN_DATE_TIME_URL=http://127.0.0.1:3112/#/monitoring PLAYWRIGHT_HTML_OPEN=never npx playwright test admin-date-time --workers=1`. Without the URL override the component test is skipped.
 
