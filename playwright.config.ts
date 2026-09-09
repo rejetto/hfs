@@ -7,6 +7,7 @@ import yaml from 'yaml';
 // isolated Admin logic regressions need one browser; end-to-end flows, calendars and drag retain all projects
 const adminLogicTests = [
   '**/admin-accounts.spec.ts',
+  '**/admin-data-table.spec.ts',
 ]
 
 const snapshotBranch = getSnapshotBranch()
