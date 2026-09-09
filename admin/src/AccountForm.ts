@@ -147,7 +147,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                     setValues(values => ({ ...values, password: '', password2: '' }))
                 }
                 if (account.username === username)
-                    state.username = values.username
+                    state.username = got.username // use the server's normalized name for current-account checks
                 done(got?.username, saveBtn) // username may have been changed, so we pass it back
             }
         }
