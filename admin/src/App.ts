@@ -92,7 +92,7 @@ function Routed() {
         })
     }, [])
     useEffect(() => {
-        if (!titleSideSet)
+        if (titleSideSet === null) // false is a valid empty title; replacing it with null would keep triggering renders
             set(null)
     })
     return h(Fragment, {},

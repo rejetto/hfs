@@ -29,6 +29,8 @@ To run tests
 - `node --import tsx --test tests/plugin-server-cleanup.test.ts` (after compiling the server; starts isolated HTTP and HTTPS servers)
 - `npx playwright test` (UI tests)
 
+The normal Playwright configuration also starts its test servers, so prepare the build as above. Without `ADMIN_APP_URL`, this dev-only test is skipped.
+
 # File organization
 
 The project is roughly divided in Server + Frontend + Admin, where Frontend is a web interface intended to access
