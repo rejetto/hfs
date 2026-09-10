@@ -61,16 +61,14 @@ export function WhoField({ value, onChange, parent, inherit, accountsApi, helper
         h(SelectField as typeof SelectField<typeof thisValue | null>, {
             ...rest,
             value: arrayMode ? [] : thisValue ?? null,
-            onChange(v, { event }) {
-                onChange(objectMode ? simplify({ ...value, this: v ?? undefined }) : v ?? undefined, { was: value, event })
-            },
+            onChange: changeThis,
             options,
         }),
         h(Collapse, { in: arrayMode, timeout },
             arrayMode && h(MultiSelectField as Field<string[]>, {
                 label: accounts?.length ? "Accounts " + rest.label : "You didn't create any account yet",
                 value: thisValue,
-                onChange,
+                onChange: changeThis,
                 options: accounts?.map(a => ({ value: a.username, label: a.username, a })) || [],
                 placeholder: "none",
                 ...thisValue.length === 0 && { helperText: "Select some account", error: true },
@@ -100,6 +98,10 @@ export function WhoField({ value, onChange, parent, inherit, accountsApi, helper
             })
         ),
     )
+
+    function changeThis(v: WhoVfs | null | undefined, { event }: { event: unknown }) {
+        onChange(objectMode ? simplify({ ...value, this: v ?? undefined }) : v ?? undefined, { was: value, event })
+    }
 
     function simplify(v: WhoObject) {
         return v.this === v.children ? v.this : v
