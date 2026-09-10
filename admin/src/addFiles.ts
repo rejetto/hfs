@@ -25,7 +25,9 @@ export default function addFiles() {
                     from: lastFolder ?? parent.source,
                     async onSelect(sel) {
                         addNodes(parent, sel.map(source => ({ source, name: getFreeName(parent, basename(source)) })))
-                        lastFolder = sel[0].slice(0, sel[0].lastIndexOf('/'))
+                        const source = sel[0]
+                        // retain the delimiter for roots; Windows also accepts paths typed with forward slashes
+                        lastFolder = source.slice(0, Math.max(source.lastIndexOf('/'), source.lastIndexOf(getHFS().pathSeparator)) + 1)
                         close()
                     }
                 })
