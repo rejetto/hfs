@@ -163,7 +163,10 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             setList(x => [...x, ...treated])
         }
     })
-    const { list, setList, error, connecting, initializing, reload } = useApiList(firstSight && 'get_log', { file }, { limit, invert, pause, map: enhanceLogLine })
+    // file-backed streams send only new events, so reconnecting must retain the loaded history
+    const { list, setList, error, connecting, initializing, reload } = useApiList(firstSight && 'get_log', { file }, {
+        limit, invert, pause, map: enhanceLogLine, keepListOnReconnect: hasFile
+    })
     const isIps = file === 'ips'
     if (isIps)
         reloadIps = reload

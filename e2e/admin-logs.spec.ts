@@ -32,3 +32,25 @@ for (const whole of [false, true])
         await expect(page.getByRole('gridcell').filter({ hasText: '/first.txt' })).toHaveCount(1)
         await expect(page.getByRole('gridcell').filter({ hasText: '/recent.txt' })).toHaveCount(1)
     })
+
+test('reconnecting the live stream keeps previously loaded file history', async ({ page }) => {
+    test.skip(!process.env.ADMIN_LOGS_URL, 'requires the Admin Vite server')
+    await page.addInitScript(() => Object.assign(window, { HFS: { session: { username: 'admin', isAdmin: true } } }))
+    await page.route('**/~/api/**', route => route.fulfill({ json: { username: 'admin', isAdmin: true } }))
+    const body = logLine('history.txt')
+    const size = Buffer.byteLength(body)
+    await page.route('**/~/api/get_log_info', route => route.fulfill({ json: { current: { log: size }, rotated: {} } }))
+    await page.route('**/~/api/get_log_file', route => route.fulfill({ status: 206, headers: { 'Content-Range': `bytes 0-${size - 1}/${size}` }, body }))
+    let connections = 0
+    await page.route(/\/~\/api\/get_log\?/, route => {
+        connections++
+        return route.fulfill({ contentType: 'text/event-stream',
+            // the first stream ends unexpectedly; the replacement sends the normal final empty message
+            body: 'data: [["ready"]]\n\n' + (connections === 1 ? '' : 'data:\n\n') })
+    })
+    await page.goto(url)
+    const history = page.getByRole('gridcell').filter({ hasText: '/history.txt' })
+    await expect(history).toHaveCount(1)
+    await expect.poll(() => connections).toBe(2)
+    await expect(history).toHaveCount(1)
+})

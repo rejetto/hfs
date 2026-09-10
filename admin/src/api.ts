@@ -39,7 +39,7 @@ export function useApiEx<T extends ApiHandler=any>(...args: Parameters<typeof us
     }
 }
 
-export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map, invert, pause, limit }: { limit?: number, pause?: boolean, invert?: boolean, map?: (rec: S) => unknown }={}) {
+export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map, invert, pause, limit, keepListOnReconnect }: { keepListOnReconnect?: boolean, limit?: number, pause?: boolean, invert?: boolean, map?: (rec: S) => unknown }={}) {
     const [list, setList] = useStateMounted<T[]>([])
     const [props, setProps] = useStateMounted<any>(undefined)
     const [error, setError] = useStateMounted<any>(undefined)
@@ -52,6 +52,7 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
     useEffect(() => setPausedList(pause ? list : undefined), [pause])
     useEffect(() => {
         if (!cmd) return
+        const command = cmd
         const bufferAdd: T[] = []
         const apply = _.debounce(() => {
             const chunk = bufferAdd.splice(0, Infinity)
@@ -68,98 +69,111 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
                 return ret
             })
         }, 1000, { maxWait: 1000 })
-        setError(undefined)
-        setLoading(true)
-        setConnecting(true)
-        setInitializing(true)
+        let retry: ReturnType<typeof setTimeout>
+        let close: () => void
         setList([])
-        const src = apiEvents(cmd, _.mapValues(params, x => x === false ? undefined : x), (type, data) => {
-            switch (type) {
-                case 'connected':
-                    setConnecting(false)
-                    return setTimeout(() => apply.flush()) // this trick we'll cause first entries to be rendered almost immediately, while the rest will be subject to normal debouncing
-                case 'error':
-                    setError("Connection error")
-                    setTimeout(reload, 1000)
-                    return stop()
-                case 'closed':
-                    return stop()
-                case 'msg':
-                    if (src.readyState !== src.OPEN)
-                        return stop()
-                    const removeOnList: ReturnType<typeof _.matches>[] = []
-                    const updateOnList: [object,object][] = []
-                    wantArray(data).forEach(msg => {
-                        if (!Array.isArray(msg))
-                            return console.debug('illegal list packet', msg)
-                        console.debug('LIST', ...msg)
-                        const [op, par] = msg
-                        if (op === LIST.ready) {
-                            apply.flush()
-                            setInitializing(false)
-                            return
-                        }
-                        if (op === LIST.error) {
-                            if (par === HTTP_UNAUTHORIZED)
-                                state.loginRequired = msg[2]?.possible !== false || HTTP_FORBIDDEN
-                            else
-                                setError(_.isString(par) || _.isNumber(par) ? err2msg(par) : par)
-                            return
-                        }
-                        if (op === LIST.props)
-                            return setProps(par)
-                        if (op === LIST.add) {
-                            const mappedPar = map?.(par) ?? par
-                            mappedPar.id ??= idGenerator.current = Math.max(idGenerator.current, Date.now()) + .001
-                            bufferAdd.push(mappedPar)
-                            apply()
-                            return
-                        }
-                        if (op === LIST.remove) {
-                            const match = _.matches(par)
-                            if (_.isEmpty(_.remove(bufferAdd, match))) // first remove from the buffer
-                                removeOnList.push(match)
-                            return
-                        }
-                        if (op === LIST.update) {
-                            const change = map?.(msg[2]) ?? msg[2]
-                            const found = _.find(bufferAdd, par)
-                            if (found)
-                                return Object.assign(found, change)
-                            updateOnList.push([par, change])
-                            return
-                        }
-                        console.debug('unknown list api', op)
-                    })
-                    setList(list => {
-                        let ret = list
-                        let copy // optimization: remember if we already made a copy
-                        if (removeOnList.length) {
-                            copy = list.filter(rec => !removeOnList.some(match1 => match1(rec)))
-                            if (copy.length < list.length)  // avoid unnecessary render
-                                ret = copy
-                        }
+        connect()
 
-                        if (updateOnList.length) {
-                            for (const [search, change] of updateOnList) {
-                                const foundAt = _.findIndex(ret, search)
-                                if (foundAt < 0) continue
-                                if (ret === list)
-                                    ret = copy ?? list.slice()
-                                ret[foundAt] = { ...ret[foundAt], ...change }
+        function connect() {
+            setError(undefined)
+            setLoading(true)
+            setConnecting(true)
+            setInitializing(true)
+            if (!keepListOnReconnect) setList([])
+            const src = apiEvents(command, _.mapValues(params, x => x === false ? undefined : x), (type, data) => {
+                switch (type) {
+                    case 'connected':
+                        setConnecting(false)
+                        return setTimeout(() => apply.flush()) // this trick we'll cause first entries to be rendered almost immediately, while the rest will be subject to normal debouncing
+                    case 'error':
+                        setError("Connection error")
+                        src.close()
+                        retry = setTimeout(connect, 1000)
+                        return stop()
+                    case 'closed':
+                        return stop()
+                    case 'msg':
+                        if (src.readyState !== src.OPEN)
+                            return stop()
+                        const removeOnList: ReturnType<typeof _.matches>[] = []
+                        const updateOnList: [object,object][] = []
+                        wantArray(data).forEach(msg => {
+                            if (!Array.isArray(msg))
+                                return console.debug('illegal list packet', msg)
+                            console.debug('LIST', ...msg)
+                            const [op, par] = msg
+                            if (op === LIST.ready) {
+                                apply.flush()
+                                setInitializing(false)
+                                return
                             }
-                        }
-                        return ret
-                    })
-            }
-        })
+                            if (op === LIST.error) {
+                                if (par === HTTP_UNAUTHORIZED)
+                                    state.loginRequired = msg[2]?.possible !== false || HTTP_FORBIDDEN
+                                else
+                                    setError(_.isString(par) || _.isNumber(par) ? err2msg(par) : par)
+                                return
+                            }
+                            if (op === LIST.props)
+                                return setProps(par)
+                            if (op === LIST.add) {
+                                const mappedPar = map?.(par) ?? par
+                                mappedPar.id ??= idGenerator.current = Math.max(idGenerator.current, Date.now()) + .001
+                                bufferAdd.push(mappedPar)
+                                apply()
+                                return
+                            }
+                            if (op === LIST.remove) {
+                                const match = _.matches(par)
+                                if (_.isEmpty(_.remove(bufferAdd, match))) // first remove from the buffer
+                                    removeOnList.push(match)
+                                return
+                            }
+                            if (op === LIST.update) {
+                                const change = map?.(msg[2]) ?? msg[2]
+                                const found = _.find(bufferAdd, par)
+                                if (found)
+                                    return Object.assign(found, change)
+                                updateOnList.push([par, change])
+                                return
+                            }
+                            console.debug('unknown list api', op)
+                        })
+                        setList(list => {
+                            let ret = list
+                            let copy // optimization: remember if we already made a copy
+                            if (removeOnList.length) {
+                                copy = list.filter(rec => !removeOnList.some(match1 => match1(rec)))
+                                if (copy.length < list.length)  // avoid unnecessary render
+                                    ret = copy
+                            }
+
+                            if (updateOnList.length) {
+                                for (const [search, change] of updateOnList) {
+                                    const foundAt = _.findIndex(ret, search)
+                                    if (foundAt < 0) continue
+                                    if (ret === list)
+                                        ret = copy ?? list.slice()
+                                    ret[foundAt] = { ...ret[foundAt], ...change }
+                                }
+                            }
+                            return ret
+                        })
+                }
+            })
+
+            close = () => src.close()
+        }
 
         return () => {
             apply.cancel()
-            src.close()
+            // a retry belongs to this request and must not restart after its cleanup
+            clearTimeout(retry)
+            close()
         }
 
         function stop() {
+            setConnecting(false)
             setInitializing(false)
             setLoading(false)
             apply.flush()
