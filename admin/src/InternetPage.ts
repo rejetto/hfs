@@ -239,6 +239,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                 ],
                 save: {
                     children: "Request",
+                    disabled: !cert.data,
                     startIcon: h(Send),
                     ...saving && { loading: true },
                     async onClick() {
