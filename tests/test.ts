@@ -1,4 +1,5 @@
 import './shutdown.test'
+import './plugin-server-cleanup.test'
 import test, { describe, before, after } from 'node:test';
 import { promisify } from 'util'
 import { srpClientSequence } from '../src/srp'
