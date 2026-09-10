@@ -174,6 +174,10 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
                 Object.assign(res, change)
         })
     }, [updateList])
+    const element = useMemo(() => connecting || initializing || loading ? spinner()
+        : error ? h(Alert, { severity: 'error', sx: { flex: 1 } }, err2msg(error))
+        : null,
+        [connecting, initializing, loading, error])
     return {
         list: pausedList ?? list,
         props,
@@ -186,9 +190,7 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
         updateEntry,
         reload,
         enabled: Boolean(cmd),
-        element: connecting || initializing || loading ? spinner()
-            : error ? h(Alert, { severity: 'error', sx: { flex: 1 } }, err2msg(error))
-            : null
+        element
     }
 
     function reload() {

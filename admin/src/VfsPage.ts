@@ -105,7 +105,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
                     h(ListItemText, { primary: f.name, secondary: f.source }) ))
             )
         )
-    , [accountsApi.element, vfs, diskContent.list, isSideBreakpoint, single, selectedFiles])
+    , [accountsApi.element, vfs, diskContent.list, diskContent.element, vfsShowDiskContentFor, isSideBreakpoint, single, selectedFiles])
 
     useEffect(() => {
         if (isSideBreakpoint || !sideContent) return
