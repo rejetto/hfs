@@ -17,18 +17,18 @@ export default function VfsActionButtons({ files, pasteTo, done }: {
     done?: Callback
 }) {
     const { movingFiles } = useSnapState()
-    const actionFiles = files.filter(x => !x.isRoot)
-    const actionIds = actionFiles.map(x => x.id)
+    const hasRoot = files.some(x => x.isRoot)
+    const ids = files.map(x => x.id)
     return h(Fragment, {},
         h(Btn, {
             icon: ContentCut,
             disabled: !files.length ? "Select something to cut"
-                : !actionIds.length ? "Cannot cut Home"
-                : _.isEqual(actionIds.slice().sort(), movingFiles.slice().sort()) && "Already cut",
+                : hasRoot ? "Cannot cut Home"
+                : _.isEqual(ids.slice().sort(), movingFiles.slice().sort()) && "Already cut",
             title: "Cut (you can also use drag & drop to move items)",
             'aria-label': "Cut",
             onClick() {
-                state.movingFiles = actionIds
+                state.movingFiles = ids
                 alertDialog(h(Box, {}, "Now that this is marked for moving, click on the destination folder, and then the paste button ", h(ContentPaste)), 'info')
             },
         }),
@@ -45,9 +45,9 @@ export default function VfsActionButtons({ files, pasteTo, done }: {
             icon: Delete,
             title: "Delete",
             disabled: !files.length ? "Select something to delete"
-                : !actionIds.length && "Cannot delete Home",
+                : hasRoot && "Cannot delete Home",
             onClick() {
-                deleteVfs(actionIds)
+                deleteVfs(ids)
                 done?.()
             },
         }),

@@ -98,7 +98,11 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         : h(Fragment, {},
             h(Flex, {},
                 h(Typography, {variant: 'h6'}, selectedFiles.length + ' selected'),
-                h(Button, { onClick: deleteFiles, startIcon: h(Delete) }, "Remove"),
+                h(Button, {
+                    onClick: deleteFiles,
+                    disabled: selectedFiles.some(x => x.isRoot),
+                    startIcon: h(Delete)
+                }, "Remove"),
             ),
             h(List, { dense: true, disablePadding: true },
                 selectedFiles.map(f => h(ListItem, { key: f.id },
@@ -191,9 +195,10 @@ async function deleteFiles() {
 }
 
 export function deleteVfs(uris: string[]) {
+    if (uris.includes('/')) return
     const sorted = _.uniq(uris).sort()
-    const topLevelUris = sorted.filter((uri, idx) => uri !== '/'
-        && (idx === 0 || _.findLastIndex(sorted, parentUri => isDescendantUri(uri, parentUri), idx - 1) < 0))
+    const topLevelUris = sorted.filter((uri, idx) =>
+        idx === 0 || _.findLastIndex(sorted, parentUri => isDescendantUri(uri, parentUri), idx - 1) < 0)
     if (!topLevelUris.length) return
     prepareVfsUndo()
     for (const uri of topLevelUris) {
