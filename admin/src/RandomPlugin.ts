@@ -12,7 +12,7 @@ const cacheKey = 'onlinePluginsCache'
 
 export function RandomPlugin() {
     const { hideRandomPlugin } = useSnapState()
-    const serializedCache = localStorage.getItem(cacheKey)
+    const [serializedCache, setSerializedCache] = useState(() => localStorage.getItem(cacheKey))
     const cached = useMemo(() => {
         const obj = tryJson(serializedCache || '')
         return obj?.ts && Date.now() - obj.ts < DAY && _.shuffle(obj.list)
@@ -21,8 +21,12 @@ export function RandomPlugin() {
     const [idx, setIdx] = useState(-1)
     const one = cached?.[idx]
     useEffect(() => {
-        if (!cached && !initializing && list.length)
-            localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), list }))
+        if (!cached && !initializing && list.length) {
+            const serialized = JSON.stringify({ ts: Date.now(), list })
+            localStorage.setItem(cacheKey, serialized)
+            // localStorage writes do not trigger a render
+            setSerializedCache(serialized)
+        }
         setIdx(0)
     }, [list, initializing])
     useEffect(() => {
