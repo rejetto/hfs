@@ -1,3 +1,4 @@
+import './filename-normalization.test'
 import './shutdown.test'
 import './plugin-server-cleanup.test'
 import test, { describe, before, after } from 'node:test';

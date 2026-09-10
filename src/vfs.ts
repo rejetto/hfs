@@ -3,14 +3,14 @@
 import fs from 'fs/promises'
 import { basename, dirname, extname, join, resolve, sep } from 'path'
 import {
-    CFG, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, WhoVfs, debounceAsync,
+    CFG, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, WhoVfs, debounceAsync, pathEncode,
     isWhoObject, WHO_ANY_ACCOUNT, WHO_ADMIN, defaultPerms, PERM_KEYS, HTTP_SERVER_ERROR, try_, matches, Promisable,
-    statWithTimeout, safeDecodeURIComponent, getUncHost, Who, enforceFinal, hasFinalSlash, pathEncode,
+    statWithTimeout, safeDecodeURIComponent, getUncHost, Who, enforceFinal, hasFinalSlash, normalizeFilenameForPlatform,
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, saveConfigAsap } from './config'
-import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_MAC, IS_WINDOWS } from './const'
+import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_WINDOWS } from './const'
 import events from './events'
 import { ctxBelongsTo } from './perm'
 import { getCurrentUsername } from './auth'
@@ -99,9 +99,7 @@ export function isSameFilenameAs(name: string) {
 }
 
 export function normalizeFilename(x: string) {
-    const cased = IS_WINDOWS || IS_MAC ? x.toLocaleLowerCase() : x
-    // only macOS filesystems normalize Unicode names; elsewhere NFC and NFD may identify different files
-    return IS_MAC ? cased.normalize() : cased
+    return normalizeFilenameForPlatform(x, process.platform)
 }
 
 export async function isSameFilePath(a: string, b: string) {
