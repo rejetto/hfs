@@ -99,7 +99,7 @@ function ForceLang({ langs }: { langs: string[] }) {
         async onChange(v) {
             setSaving(v)
             try {
-                await apiCall('set_config', { values: { [K]: v } })
+                await apiCall('set_config', { values: { [K]: v } }).catch(alertDialog)
                 await reload()
             }
             finally { setSaving(undefined) }
