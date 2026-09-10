@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useState } from 'react'
+import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import httpCodes from './httpCodes'
 import { Box, Tab, Tabs } from '@mui/material'
 import { PageProps } from './App'
@@ -127,6 +127,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
         icon: SmartToy,
         sx: { rotate: v ? 0 : '180deg' },
     }), true)
+    const nextFileId = useRef(0)
     const [totalSize, setTotalSize] = useState(NaN)
     const [limited, setLimited] = useState(true)
     const [skipped, setSkipped] = useState(0)
@@ -135,24 +136,30 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
     const [firstSight, setFirstSight] = useState(!hidden)
     useEffect(() => setFirstSight(x => x || !hidden), [hidden])
     const hasFile = LOGS_ON_FILE.includes(file)
-    const { loading } = useApi(firstSight && hasFile && 'get_log_file', { file, range: limited || !skipped ? String(-MAX) : `0-${skipped}` }, {
+    // clearing the remaining prefix after a full load must not request the tail again
+    const { loading } = useApi(firstSight && hasFile && (limited || skipped > 0) && 'get_log_file', { file, range: limited || !skipped ? String(-MAX) : `0-${skipped}` }, {
         skipParse: true, skipLog: true,
         onResponse(res, body) {
             const lines = body.split('\n')
             if (limited) {
-                const size = Number(splitAt('/', res.headers.get('Content-Range') ||'')?.[1])
+                const [range, total] = splitAt('/', res.headers.get('Content-Range') || '')
+                const size = Number(total)
                 if (isNaN(size)) throw _dbg("shouldn't happen")
                 setTotalSize(size)
-                if (body.length >= size)
+                if (range.startsWith('bytes 0-'))
                     setLimited(false)
-                else
-                    setSkipped(size! - body.length + lines.shift().length + 1)
+                else {
+                    lines.shift()
+                    // the discarded fragment may start inside a UTF-8 character; only measure complete remaining lines
+                    setSkipped(size - new Blob([lines.join('\n')]).size)
+                }
             }
             else if (skipped) {
                 toast(`Entire log loaded, ${formatBytes(skipped)}`)
                 setSkipped(0)
             }
-            const treated = mapFilter(lines, (x: any, i) => enhanceLogLine(parseLogLine(x, i)), Boolean, invert)
+            // older file batches must not reuse the IDs of rows already displayed
+            const treated = mapFilter(lines, (x: any) => enhanceLogLine(parseLogLine(x, nextFileId.current++)), Boolean, invert)
             setList(x => [...x, ...treated])
         }
     })
