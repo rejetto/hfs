@@ -78,10 +78,11 @@ export function TextEditorField({ onChange, value, onBlur, setApi, lang, InputLa
     })
 }
 
-const TextEditorAsInput = forwardRef<HTMLInputElement, any>(({ onChange, ...rest }: any, ref) =>
+const TextEditorAsInput = forwardRef<HTMLInputElement, any>(({ onChange, id, ...rest }: any, ref) =>
     h(Box, { sx: { width: '100%', textarea: { outline: 0 } } },
         h(TextEditor, {
             ref,
+            textareaId: id,
             padding: 2,
             style: { background: 'initial', borderBottom: 'initial' },
             ...rest,
