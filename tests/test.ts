@@ -1939,6 +1939,26 @@ describe('after-login', () => {
             await rmAny(dir)
         }
     })
+    test('folder upload grants ownership only to newly created directories', async () => {
+        const name = `owner-tree-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const parent = `${UPLOAD_ROOT}${name}/`
+        await mkdir(resolve(dir, 'existing'), { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: true, can_delete: false }, 200)()
+        const jar = {}
+        try {
+            const folder = `${parent}existing/new%20folder/`
+            await reqUpload(`${folder}nested/file.txt`, 200, undefined, undefined, 0, { jar })()
+            await req(`${folder}nested/file.txt`, 200, { method: 'delete', jar })()
+            await req(`${folder}nested/`, 200, { method: 'delete', jar })()
+            await req(folder, 200, { method: 'delete', jar })()
+            await req(`${parent}existing/`, 403, { method: 'delete', jar })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
     test('upload owner follows rename and move', async () => {
         const name = `owner-move-${randomId(6)}`
         const dir = resolve(UPLOAD_DISK_ROOT, name)

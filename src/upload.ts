@@ -4,7 +4,7 @@ import {
     HTTP_CONFLICT, HTTP_FOOL, HTTP_INSUFFICIENT_STORAGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_NO_CONTENT, HTTP_SERVER_ERROR,
     HTTP_PRECONDITION_FAILED, HTTP_LENGTH_REQUIRED, MTIME_CHECK, UPLOAD_TEMP_PREFIX,
 } from './const'
-import { basename, dirname, extname, join } from 'path'
+import { basename, dirname, extname, join, posix, resolve } from 'path'
 import fs from 'fs'
 import {
     isValidFileName, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter, pathEncode,
@@ -126,9 +126,20 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
     let overwriteRequestedButForbidden = false
     const mtime = Number(ctx.query.mtime) || 0
     try {
-        // if upload creates a folder, then add meta to it too
-        if (!dir.endsWith(':\\') && fs.mkdirSync(dir, { recursive: true }))
+        const createdFolders: { uri: string, source: string }[] = []
+        const firstCreated = !dir.endsWith(':\\') && fs.mkdirSync(dir, { recursive: true })
+        if (firstCreated) {
             setUploadMeta(dir, ctx)
+            // recursive mkdir returns the first created directory; existing ancestors must not receive ownership
+            const existingParent = dirname(resolve(firstCreated))
+            let source = resolve(dir)
+            let uri = posix.dirname(vfsUri)
+            while (source !== existingParent) {
+                createdFolders.push({ uri, source })
+                source = dirname(source)
+                uri = posix.dirname(uri)
+            }
+        }
         // use temporary name while uploading
         const tempVirtualName = getVirtualName(basename(tempName), base, tempName)
         const tempOwnerUri = enforceFinal('/', base.vfsPath || baseUri)
@@ -209,6 +220,8 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
             try {
                 ctx.state.uploadSize = bytesGot() // in case content-length is not specified
                 await new Promise(res => fileStream.close(res)) // this only seems necessary on Windows
+                for (const { uri, source } of createdFolders)
+                    await setUploadOwner(uri, ctx, source)
                 if (errored)
                     return
                 if (simulate)
