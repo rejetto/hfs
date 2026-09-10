@@ -49,7 +49,8 @@ export default function VfsTree({ statusApi, isSideBreakpoint }:{ statusApi: Api
             label: h(Box, {
                 draggable: !isRoot,
                 onDragStart() {
-                    dragging.current = selectedFiles.length ? selectedFiles.map(x => x.id) : [id]
+                    // dragging an unselected item must not move the previous selection
+                    dragging.current = selectedFiles.some(x => x.id === id) ? selectedFiles.map(x => x.id) : [id]
                 },
                 onDragOver(ev) {
                     if (!isFolder) return
