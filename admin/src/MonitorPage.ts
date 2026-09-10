@@ -243,9 +243,9 @@ function Connections() {
                             headerName: "Protocol",
                             align: 'center',
                             hideUnder: Infinity,
-                            renderCell: ({ value }) => h(Fragment, {},
+                            renderCell: ({ value, row }) => h(Fragment, {},
                                 "IPv" + value,
-                                iconTooltip(Lock, "HTTPS", { opacity: .5 })
+                                row.secure && iconTooltip(Lock, "HTTPS", { opacity: .5 })
                             )
                         },
                         {
