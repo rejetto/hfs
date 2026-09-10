@@ -31,11 +31,16 @@ export async function suggestMakingCert(onSaved?: (saved: object) => void) {
         async function makeCertAndSave() {
             if (!window.crypto.subtle)
                 return alertDialog("Retry this procedure on localhost", 'warning')
-            const saved = await apiCall('make_self_signed_cert', { fileName: 'self' })
-            Object.assign(state.config, saved)
-            onSaved?.(saved)
-            await alertDialog("Certificate saved", 'success')
-            close()
+            try {
+                const saved = await apiCall('make_self_signed_cert', { fileName: 'self' })
+                Object.assign(state.config, saved)
+                onSaved?.(saved)
+                await alertDialog("Certificate saved", 'success')
+                close()
+            }
+            catch(e) {
+                await alertDialog(e as Error)
+            }
         }
     })
 }
