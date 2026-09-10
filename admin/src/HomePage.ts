@@ -28,7 +28,7 @@ export default function HomePage() {
     const { username } = useSnapState()
     const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<typeof adminApis.get_status>('get_status')
     const { data: account } = useApiEx<typeof adminApis.get_account>(username && 'get_account')
-    const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'ignore_proxies', 'vfs'] })
+    const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'ignore_proxies', 'vfs', 'split_uploads'] })
     const { list: plugins } = useApiList('get_plugins')
     const [checkPlugins, setCheckPlugins] = useState(false)
     const { list: pluginUpdates} = useApiList(checkPlugins && 'get_plugin_updates')
@@ -82,7 +82,7 @@ export default function HomePage() {
                 && entry('warning', "Found blacklisted plugin(s): ", x.join(', ')) ),
             with_(plugins?.filter(x => x.error || x.badApi).length, x => x > 0
                 && entry('warning', `${x} plugin(s) failing`, SOLUTION_SEP, h(InLink, { to:'/plugins' }, "check now"))),
-            !cfg.data?.split_uploads && (Date.now() - Number(status.cloudflareDetected || 0)) < DAY
+            !cfg.data?.split_uploads && (Date.now() - +new Date(status.cloudflareDetected || 0)) < DAY
                 && entry('', wikiLink('Reverse-proxy#cloudflare', "Cloudflare detected, read our guide")),
             with_(proxyWarning(cfg.data, status), x => x && entry('warning', x,
                     SOLUTION_SEP, cfgLink("set the number of proxies"),
