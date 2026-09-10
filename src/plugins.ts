@@ -124,8 +124,9 @@ export function getPluginConfigFields(id: string) {
 }
 
 async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict, onInitError?: () => Promisable<unknown>) {
-    const undoEvents: any[] = []
+    const cleanups: (() => unknown)[] = []
     const timeouts: NodeJS.Timeout[] = []
+    let unloading = false
     let unload = pl.unload
     const controlledEvents = Object.create(events, objFromKeys(['on', 'once', 'multi'], k => ({
         value() {
@@ -134,7 +135,7 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict, onI
             else
                 arguments[1] = trap(arguments[1])
             const ret = (events[k] as any)(...arguments)
-            undoEvents.push(ret)
+            cleanups.push(ret)
             return ret
 
             function trap(cb: unknown) {
@@ -182,13 +183,25 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict, onI
             timeouts.push(ret)
             return ret
         },
-        async onServer(cb: Callback<object>) {
+        async onServer(cb: Callback<object, unknown>) {
             const res = await getServerStatus()
-            if (res.http.srv)
-                cb(res.http.srv)
-            if (res.https.srv)
-                cb(res.https.srv)
-            controlledEvents.on('listening', ({ server }: any) => cb(server))
+            if (unloading) return
+            // subscribe before awaiting callbacks so new servers are not missed during async setup
+            controlledEvents.on('listening', ({ server }: any) => handleServer(server))
+            await Promise.all([res.http.srv, res.https.srv].map(server => server && handleServer(server)))
+
+            async function handleServer(server: object) {
+                if (unloading) return
+                const result = await cb(server)
+                if (typeof result === 'function') {
+                    // an async callback may finish after the plugin has already unloaded
+                    if (unloading)
+                        await callAsPromise(() => result()).catch(console.error)
+                    else
+                        cleanups.push(() => result())
+                }
+                return result
+            }
         },
         misc, _,
         customApiCall, notifyClient, addBlock, ctxBelongsTo, getConnections, normalizeFilename,
@@ -207,8 +220,10 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict, onI
     return pl
 
     async function cleanup() {
+        unloading = true
         for (const x of timeouts) clearTimeout(x)
-        for (const cb of undoEvents) cb()
+        // run every cleanup even if one fails, and finish before the plugin's unload hook
+        await Promise.all(cleanups.map(cb => callAsPromise(cb).catch(console.error)))
         if (typeof unload === 'function')
             return unload()
     }

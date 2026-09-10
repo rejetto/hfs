@@ -26,6 +26,7 @@ To run tests
 - `npm run build-all`
 - `npm run test-with-server` (backend tests)
 - `node --import tsx --test tests/shutdown.test.ts` (shutdown tests, no server needed)
+- `node --import tsx --test tests/plugin-server-cleanup.test.ts` (after compiling the server; starts isolated HTTP and HTTPS servers)
 - `npx playwright test` (UI tests)
 
 # File organization

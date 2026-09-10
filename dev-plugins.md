@@ -400,6 +400,26 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `onServer(cb: (Server) => any)` execute your callback on every instance of Server created by HFS.
   It is the standard Node.js class, and it can be http or https. It can be instantiated multiple times.
+  Since API 13.4, the callback can return a cleanup function. HFS calls registered cleanups when the plugin
+  unloads (including reloads and failed initialization), before its `unload` hook. Cleanup functions may return
+  promises; HFS waits for all of them and logs errors without skipping the other cleanups.
+  The callback may also be async. Await `api.onServer(...)` during initialization to wait for callbacks on
+  the current servers. Other return values are ignored. If a callback finishes after unloading has begun,
+  HFS immediately runs its returned cleanup instead of registering it; unloading does not wait for pending callbacks.
+
+  ```js
+  exports.apiRequired = 13.4
+  exports.init = async api => {
+      await api.onServer(server => {
+          server.on('upgrade', handleUpgrade)
+          return () => server.removeListener('upgrade', handleUpgrade)
+      })
+
+      function handleUpgrade(req, socket, head) {
+          // handle the connection
+      }
+  }
+  ```
 
 - `normalizeFilename(filename: string): string` HFS applies some normalization to files, and so should you.
   It's necessary when running on Mac and Windows, as they are case-insensitive.
@@ -1215,6 +1235,7 @@ If you want to override a text regardless of the language, use the special langu
   - backend events: logRotated
   - listDiskFolder gets "hidden" parameter
   - backend event uploadFinished: fullPath corresponds to the path that was actually written
-- 13.3 (v3.3.0)
+- 13.4 (v3.3.0)
   - exports.disableDefaultStyle
   - frontend event: validatePassword
+  - `api.onServer` callbacks can return a cleanup function
