@@ -12,6 +12,7 @@ import { TextEditor } from './TextEditor';
 import { state, useSnapState } from './state'
 import { PageProps } from './App'
 import { switchBtn } from './VerticalSwitch';
+import { alertDialog } from './dialog'
 import { adminApis } from '../../src/adminApis'
 
 const names: any = {
@@ -68,8 +69,11 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
                 onClick: save,
             }),
             hTooltip("Enable all sections", undefined, switchBtn(enabled, async v => {
-                await apiCall('set_config', { values: { [CFG.disable_custom_html]: !v } })
-                setEnabled(v)
+                try {
+                    await apiCall('set_config', { values: { [CFG.disable_custom_html]: !v } })
+                    setEnabled(v)
+                }
+                catch (e: any) { alertDialog(e) }
             })),
         ),
         h(TextEditor, {
