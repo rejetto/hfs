@@ -58,8 +58,8 @@ function MoreInfo() {
         pair('outSpeedKb', { label: "Output", render: formatSpeedK, minWidth: '8.5em' }),
         pair('inSpeedKb', { label: "Input", render: formatSpeedK, minWidth: '8.5em' }),
         (allInfo || sm) && pair('ips', { label: "IPs", title: () => stats && `${stats.connections.toLocaleString()} connections` }),
-        (md || allInfo && md || status?.http?.error) && pair('http', { label: "HTTP", render: port }),
-        (md || allInfo && md || status?.https?.error) && pair('https', { label: "HTTPS", render: port }),
+        (md || allInfo || status?.http?.error) && pair('http', { label: "HTTP", render: port }),
+        (md || allInfo || status?.https?.error) && pair('https', { label: "HTTPS", render: port }),
         (xl || allInfo) && pair('ram', { label: "RAM", render: formatBytes }),
         !xl && h(IconBtn, {
             size: 'small',
