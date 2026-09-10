@@ -40,7 +40,7 @@ export default function VfsTree({ statusApi, isSideBreakpoint }:{ statusApi: Api
                 ref.current = el
             },
             onKeyUp(ev) {
-                if (ev.key === 'Delete') {
+                if (ev.key === 'Delete' && !selectedFiles.some(x => x.isRoot)) {
                     deleteVfs([id])
                     ev.stopPropagation()
                 }
