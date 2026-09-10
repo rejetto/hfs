@@ -10,7 +10,7 @@ import { UseApi } from './api'
 import {
     basename, defaultPerms, formatBytes, formatTimestamp, isModifiedConfig, newDialog, useRequestRender, try_, pathEncode,
     onlyTruthy, prefix, VfsPerms, wantArray, WhoVfs, matches, md, Callback, copyTextToClipboard,
-    IMAGE_FILEMASK, MASK_IN_TESTS, WHO_ANY_ACCOUNT, WHO_ADMIN,
+    IMAGE_FILEMASK, MASK_IN_TESTS, WHO_ANY_ACCOUNT, WHO_ADMIN, enforceFinal, enforceStarting,
 } from './misc'
 import { Btn, Flex, IconBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'
 import VfsActionButtons from './VfsActionButtons'
@@ -342,8 +342,9 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
 
     function pathInRoot(uri: string | undefined, root: string | undefined) {
         if (!root || root === '/') return uri
-        root = pathEncode(root)
-        return uri?.startsWith(root, 1) ? uri.slice(root.length) : undefined
+        // match the server's root normalization and preserve the directory boundary
+        root = pathEncode(enforceFinal('/', enforceStarting('/', root.replace(/\/{2,}/g, '/'))))
+        return uri?.startsWith(root) ? uri.slice(root.length - 1) : undefined
     }
 }
 

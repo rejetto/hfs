@@ -11,6 +11,7 @@ const adminLogicTests = [
   '**/admin-custom-html.spec.ts',
   '**/admin-data-table.spec.ts',
   '**/admin-file-field.spec.ts',
+  '**/admin-file-form.spec.ts',
   '**/admin-home.spec.ts',
 ]
 
