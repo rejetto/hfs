@@ -32,7 +32,7 @@ export default function OnlinePlugins() {
             fillFlex: true,
             initializing,
             columnVisibilityModel: snap.onlinePluginsColumns,
-            onColumnVisibilityModelChange: newModel => Object.assign(state.onlinePluginsColumns, newModel),
+            onColumnVisibilityModelChange: newModel => state.onlinePluginsColumns = newModel,
             columns: [
                 {
                     field: 'id',

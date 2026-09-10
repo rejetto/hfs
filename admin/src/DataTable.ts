@@ -301,7 +301,8 @@ export function DataTable({
                     }
                 })
             },
-            onColumnVisibilityModelChange: vis => {
+            onColumnVisibilityModelChange: (vis, details) => {
+                rest.onColumnVisibilityModelChange?.(vis, details)
                 const reset = persist && _.isEqual(vis, apiRef.current?.store.getSnapshot().columns.initialColumnVisibilityModel)
                 if (reset) { // reset restores the persisted mount state, so discard it to restore automatic visibility
                     setVis({})
