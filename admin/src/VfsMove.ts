@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { id2vfsNode, isDescendantUri, markVfsModified, prepareVfsUndo, reindexVfs, state, VfsNodeAdmin } from './state'
-import { onlyTruthy, pathEncode, prefix } from './misc'
+import { getHFS, normalizeFilenameForPlatform, onlyTruthy, pathEncode, prefix } from './misc'
 import { alertDialog } from './dialog'
 import _ from 'lodash'
 
@@ -22,12 +22,16 @@ export function getMoveVfsError(from: MoveVfsSources, to: string) {
         return "Cannot move inside itself"
     if (topLevelUris.every(uri => isDirectChildOf(uri, to)))
         return "Already in this folder"
-    if (_.uniqBy(fromNodes, 'name').length !== fromNodes.length)
+    if (_.uniqBy(fromNodes, node => normalizeName(node.name)).length !== fromNodes.length)
         return "Some selected items have the same name"
-    if (fromNodes.some(fromNode => toNode.children?.some(x => x.name === fromNode.name && x.id !== fromNode.id)))
+    if (fromNodes.some(fromNode => toNode.children?.some(x => normalizeName(x.name) === normalizeName(fromNode.name) && x.id !== fromNode.id)))
         return "Item with same name already present in destination"
     if (fromNodes.some(fromNode => !fromNode.parent?.children))
         return "Source parent not found"
+
+    function normalizeName(name: string) {
+        return normalizeFilenameForPlatform(name, getHFS().platform)
+    }
 }
 
 export function moveVfs(from: MoveVfsSources, to: string) {

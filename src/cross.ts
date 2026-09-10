@@ -474,6 +474,12 @@ export async function promiseBestEffort<T>(promises: Promise<T>[]) {
     return res.filter(x => x.status === 'fulfilled').map((x: any) => x.value as T)
 }
 
+export function normalizeFilenameForPlatform(name: string, platform: string) {
+    const cased = platform === 'win32' || platform === 'darwin' ? name.toLocaleLowerCase() : name
+    // only macOS treats canonically equivalent Unicode filenames as the same name
+    return platform === 'darwin' ? cased.normalize() : cased
+}
+
 // encode paths leaving / separator unencoded (not like encodeURIComponent), but still encode #
 export function pathEncode(s: string, all=false) {
     return all ? encodeURI(s).replace(/#/g, escape) : s.replace(/[:&#'"% ?\\]/g, escape) // escape() is not utf8, but we are encoding only ascii chars

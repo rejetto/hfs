@@ -149,6 +149,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         API_VERSION,
                         SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
                         pathSeparator: sep,
+                        platform: isFrontend ? undefined : process.platform,
                         session: session instanceof ApiError ? null : session,
                         plugins,
                         loadScripts,
