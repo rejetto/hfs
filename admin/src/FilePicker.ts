@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { createElement as h, Fragment, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { apiCall, useApi, useApiList } from './api'
 import _ from 'lodash'
 import { Alert, Box, Checkbox, ListItemButton, ListItemIcon, ListItemText, TextField, Typography } from '@mui/material'
@@ -46,11 +46,11 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
 
     const [sel, setSel] = useState<string[]>([])
     const [filter, setFilter] = useState('')
-    const setFilterBounced = useMemo(() => _.debounce((x:string) => setFilter(x)), [])
+    const deferredFilter = useDeferredValue(filter) // defer filtering, not the controlled input, to preserve typed text and cursor position
     const filterMatch = useMemo(() => {
-        const re = new RegExp(_.escapeRegExp(filter), 'i')
+        const re = new RegExp(_.escapeRegExp(deferredFilter), 'i')
         return (v:string) => re.test(v)
-    }, [filter])
+    }, [deferredFilter])
 
     const sm = useBreakpoint('sm')
     const [listHeight, setListHeight] = useState(0)
@@ -166,7 +166,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                         value: filter,
                         label: `Filter results (${filteredList.length}${filteredList.length < list.length ? '/'+list.length : ''})`,
                         onChange(ev) {
-                            setFilterBounced(ev.target.value)
+                            setFilter(ev.target.value)
                         },
                         sx: { flex: 1 },
                     }),
