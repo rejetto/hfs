@@ -390,7 +390,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
             const res = await apiCall('self_check', {})
             if (res.some((x: any) => x.success)) {
                 setCheckResult(true)
-                const mild = urlResult.success === false && md(`Your server is responding over the Internet 👍\nbut not with configured address ${checkUrl} 👎\njust on your IP:`)
+                const mild = urlResult?.success === false && md(`Your server is responding over the Internet 👍\nbut not with configured address ${checkUrl} 👎\njust on your IP:`)
                 return alertDialog(h(Box, {}, mild || "Your server is responding correctly over the Internet:",
                     h('ul', {}, ...res.map((x: any) => h('li', {}, x.url)))), mild ? 'warning' : 'success')
             }
