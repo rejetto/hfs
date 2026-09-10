@@ -71,7 +71,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                 const res = await apiCall('resolve_path', { path: v })
                 if (res.isFolder === false) // the user entered a path to a file
                     return files ? onSelect([v]) // select it, if files are allowed
-                        : setCwd(v.slice(0, -basename(v).length-1)) // otherwise consider its folder
+                        : setCwd(res.path.slice(0, -basename(res.path).length)) // otherwise consider its folder
                 setCwd(res.path)
             },
             end: h(Fragment, {},
