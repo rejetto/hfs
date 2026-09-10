@@ -105,7 +105,7 @@ export default function HomePage() {
             entry('', md("This is the *Admin-panel*, where you manage your server. Access your files on the [Front-end](../..).")),
             entry('', wikiLink('', "See the documentation"), " and ", h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "get support")),
             !updates && with_(status.autoCheckUpdateResult, x =>
-                x?.isNewer && h(Update, { info: x, fromAuto: true, bodyCollapsed: true, title: "An update has been found" }) ),
+                x?.isNewer && h(Update, { info: x, fromAuto: true, disabled: !status.updatePossible, bodyCollapsed: true, title: "An update has been found" }) ),
             pluginUpdates.length > 0 && entry('success', "Updates available for plugin(s): " + pluginUpdates.map(p => p.id).join(', ')),
             h(ConfigForm, {
                 // MUI 7 folded Grid2 into Grid, so the generated class name changed with the import path.
@@ -161,7 +161,7 @@ export default function HomePage() {
     }
 }
 
-function Update({ info, title, bodyCollapsed, fromAuto }: { title?: ReactNode, info: Release, bodyCollapsed?: boolean, fromAuto?: true }) {
+function Update({ info, title, bodyCollapsed, fromAuto, disabled }: { title?: ReactNode, info: Release, bodyCollapsed?: boolean, fromAuto?: true, disabled?: boolean }) {
     const [collapsed, setCollapsed] = useState(bodyCollapsed)
     return h(Flex, { alignItems: 'flex-start', flexWrap: 'wrap' },
         h(Card, { className: 'release' }, h(CardContent, {},
@@ -169,6 +169,7 @@ function Update({ info, title, bodyCollapsed, fromAuto }: { title?: ReactNode, i
                 title && h(Box, { sx: { fontSize: 'larger', mb: 1 } }, title),
                 h(Btn, {
                     icon: UpdateIcon,
+                    disabled,
                     ...!info.isNewer && info.prerelease && { color: 'warning', variant: 'outlined' },
                     onClick: () => update(fromAuto ? undefined : info.tag_name) // in case of autoCheck, don't specify the tag_name, as it may have been retired in the meantime (in favor of a newer one)
                 }, prefix("Install ", info.name, info.isNewer ? '' : " (older)")),

@@ -46,3 +46,15 @@ for (const delayed of ['set_config', 'get_config'])
         }
         finally { release() }
     })
+
+test('Install stays disabled when automatic updates are unsupported', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('admin_state', JSON.stringify({ hideRandomPlugin: true })))
+    await page.route('**/~/api/get_plugins*', route => route.fulfill({ contentType: 'text/event-stream', body: '' }))
+    await page.route('**/~/api/get_status', route => route.fulfill({ json: {
+        http: { listening: true, port: 80 }, https: {}, started: new Date().toISOString(), updatePossible: false,
+        autoCheckUpdateResult: { name: '99.0', tag_name: 'v99.0', isNewer: true, body: 'Release notes', prerelease: false, assets: [] },
+    } }))
+    await page.route('**/~/api/get_config', route => route.fulfill({ json: {} }))
+    await page.goto(process.env.ADMIN_HOME_URL || `http://localhost:${port}/~/admin/`)
+    await expect(page.locator('button').filter({ hasText: 'Install 99.0' })).toBeDisabled()
+})
