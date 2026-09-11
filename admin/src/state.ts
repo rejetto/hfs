@@ -30,7 +30,7 @@ const INIT = {
     accountsAsTree: false,
     movingFiles: [] as string[],
     vfs: undefined as VfsNodeAdmin | undefined,
-    vfsUndo: undefined as VfsNodeAdmin | undefined,
+    vfsUndo: undefined as { vfs: VfsNodeAdmin, movingFiles: string[], expanded: string[] } | undefined,
     vfsModified: false,
     expanded: [] as string[],
     loginRequired: false as boolean | number,
@@ -80,10 +80,14 @@ export function reindexVfs({
     select?: VfsNodeAdmin[] | string[]
 } = {}) {
     if (!node) return
+    const renamedIds = new Map<string, string>()
     const originalId2vfsNode = new Map<string, VfsNodeAdmin>()
     if (clearMap)
         id2vfsNode.clear()
     recur(node, node.parent?.id || '/', node.parent)
+    // follow renamed paths; undo restores its own cut and expanded paths
+    for (const k of ['movingFiles', 'expanded'] as const)
+        state[k] = state[k].map(id => renamedIds.get(id) ?? id)
     state.vfsShowDiskContentFor = ''
     // Reindex can update ids/references; remap caller-provided selections to canonical nodes from id2node.
     if (select)
@@ -100,6 +104,7 @@ export function reindexVfs({
         if (oldId && oldId !== newId)
             id2vfsNode.delete(oldId)
         node.id = newId
+        if (oldId) renamedIds.set(oldId, newId)
         node.originalId ||= newId // set only first value (all are truthy)
         id2vfsNode.set(newId, node)
         originalId2vfsNode.set(node.originalId, node)
@@ -144,17 +149,21 @@ export function isDescendantUri(childUri: string, parentUri: string) {
 
 export function prepareVfsUndo() {
     if (!state.vfs) return
-    state.vfsUndo = cloneVfs(state.vfs)
+    state.vfsUndo = snapshotVfs()
 }
 
 export function undoVfs() {
     if (!state.vfs || !state.vfsUndo) return
     // Swap current/snapshot so pressing undo again restores the state we just replaced (single-level redo behavior).
-    const current = cloneVfs(state.vfs)
-    state.vfs = state.vfsUndo
+    const current = snapshotVfs()
+    Object.assign(state, state.vfsUndo)
     state.vfsUndo = current
     state.vfsModified = true
     reindexVfs()
+}
+
+function snapshotVfs() {
+    return { vfs: cloneVfs(state.vfs!), movingFiles: [...state.movingFiles], expanded: [...state.expanded] }
 }
 
 // use this to reflect a deep change in an object to its root, so that valtio is triggered
