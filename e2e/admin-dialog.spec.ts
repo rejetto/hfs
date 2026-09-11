@@ -26,6 +26,9 @@ test('failed alternate save does not change the next Save and close action', asy
     await dialog.getByRole('button', { name: 'Save without closing', exact: true }).click()
     await expect(dialog.getByRole('textbox', { name: 'Name' })).toHaveAttribute('aria-invalid', 'true')
     await dialog.getByRole('textbox', { name: 'Name' }).fill('valid')
+    // isolate alternate-submit behavior from Form's separate commit-on-blur validation timing
+    await dialog.getByRole('textbox', { name: 'Name' }).blur()
+    await expect(page.getByTestId('validated')).toHaveText('valid')
     await dialog.getByRole('button').filter({ hasText: 'Save and close' }).click()
     await expect(dialog).toHaveCount(0)
 })
