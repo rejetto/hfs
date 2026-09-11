@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test'
 import { resolve } from 'node:path'
 
+test.use({ locale: 'it-IT' })
+
 test.beforeEach(async ({ page }) => {
     test.skip(!process.env.ADMIN_DATE_TIME_URL, 'requires the Admin Vite server for the component fixture')
     await page.addInitScript(() => { Object.assign(window, { HFS: { session: { username: 'admin', isAdmin: true } } }) })
@@ -11,6 +13,9 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('invalid dates cannot be submitted as an empty date', async ({ page }) => {
+    await page.getByRole('button', { name: /Choose date/ }).click()
+    await expect(page.getByRole('dialog')).toContainText('settembre 2026')
+    await page.keyboard.press('Escape')
     const day = page.getByRole('spinbutton', { name: 'Day', exact: true })
     await day.click()
     await day.press('3')
