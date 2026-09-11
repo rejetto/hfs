@@ -13,7 +13,7 @@ import _ from 'lodash'
 import FileField from './FileField'
 import VfsPathField from './VfsPathField'
 import { DateTimeField } from './DateTimeField'
-import { formDialog, toast } from './dialog'
+import { alertDialog, formDialog, toast } from './dialog'
 import { useApiEx, useApiList } from './api'
 import { adminApis } from '../../src/adminApis'
 import { type Account } from './AccountsPage'
@@ -32,6 +32,7 @@ export async function showPluginOptions(row: any, maxWidth: string) {
             fields: makeFields(callable(row.config, values) || {}, values),
             save: showOptions ? { children: "Save and close" } : false,
             barSx: { gap: 1 },
+            onError: alertDialog,
             addToBar: [h(Btn, {
                 variant: 'outlined',
                 onClick: () => submit(save),
@@ -116,9 +117,9 @@ function makeFields(config: any, values: any) {
             rest.$type = 'dateTime'
         if (comp === ArrayField) {
             let {fields} = rest
-            rest.valuesForAdd = newObj(callable(fields, false), x => x.defaultValue)
             if (typeof fields === 'string')
                 fields = evalWrapper(fields)
+            rest.valuesForAdd = newObj(callable(fields, false), x => x.defaultValue)
             rest.details ??= false
             rest.fields = (values: unknown) => _.map(makeFields(callable(fields, values), values), (v,k) => v && ({ k, ...v, defaultValue: undefined })).filter(Boolean)
         }
