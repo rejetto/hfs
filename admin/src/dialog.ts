@@ -67,7 +67,8 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
 
 export function useDialogBarColors() {
     const { darkTheme } = useSnapState()
-    return darkTheme ?? useDark() ? { bgcolor: '#2d2d2d' } : { bgcolor:'#ccc', color: '#444', }
+    const detected = useDark()
+    return darkTheme ?? detected ? { bgcolor: '#2d2d2d' } : { bgcolor:'#ccc', color: '#444', }
 }
 
 type AlertType = 'error' | 'warning' | 'info' | 'success'
@@ -194,6 +195,12 @@ export async function formDialog<T, RT=Partial<T>>(
                                 submitActionRef.current = undefined
                                 return submitAction ? submitAction(curValues, dialog) : dialog.close(curValues)
                             },
+                        },
+                        onValidation(errors, submitting) {
+                            // a rejected alternate action must not leak into the next normal Save
+                            if (errors && submitting)
+                                submitActionRef.current = undefined
+                            props.onValidation?.(errors, submitting)
                         },
                         apiRef,
                         addToBar: _.castArray(callable(addToBar, ctx)),
