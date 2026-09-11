@@ -1,7 +1,7 @@
 import { defineConfig } from './config'
 import {
     ADMIN_URI, API_URI, Callback, CFG, isLocalHost, join, makeMatcher, removeStarting, SPECIAL_URI, try_,
-    enforceFinal, enforceStarting
+    normalizeVfsPath
 } from './misc'
 import Koa from 'koa'
 import { disconnect } from './connections'
@@ -12,7 +12,7 @@ import { ctxAdminAccess } from './adminApis'
 export const roots = defineConfig(CFG.roots, {} as { [hostMask: string]: string }, map => {
     const list = Object.keys(map)
     const matchers = list.map(hostMask => makeMatcher(hostMask))
-    const values = Object.values(map).map(x => enforceFinal('/', enforceStarting('/', x.replace(/\/{2,}/g, '/'))))
+    const values = Object.values(map).map(normalizeVfsPath)
     return (host: string) => values[matchers.findIndex(m => m(host))]
 })
 const forceAddress = defineConfig(CFG.force_address, false)

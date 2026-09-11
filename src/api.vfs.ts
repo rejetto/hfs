@@ -10,7 +10,7 @@ import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, join, resolve } from 'path'
 import {
     enforceFinal, enforceStarting, hasFinalSlash, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, pathDecode, pathEncode, PERM_KEYS,
-    VFS_STORED_KEYS, statWithTimeout, VfsNodeAdminSend
+    VFS_STORED_KEYS, statWithTimeout, VfsNodeAdminSend, normalizeVfsPath
 } from './misc'
 import {
     IS_WINDOWS, HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE,
@@ -310,7 +310,7 @@ function updateRootsForVfsUriRemaps(uriRemaps={}) {
     let changed = false
     const updatedRoots = _.mapValues(roots.get(), root => {
         if (typeof root !== 'string' || !root) return root
-        const normalizedRoot = normalize(root)
+        const normalizedRoot = normalizeVfsPath(root)
         for (const [from, to] of remaps) {
             // roots are stored outside the VFS tree, so rename/move edits need an explicit path remap
             const remappedRoot = replaceUriPrefix(normalizedRoot, from, to)
@@ -324,12 +324,8 @@ function updateRootsForVfsUriRemaps(uriRemaps={}) {
     if (changed)
         roots.set(updatedRoots)
 
-    function normalize(uri: unknown) {
-        return String(uri).replace(/^\/+|^(?!\/)|\/{2,}|\/+$|(?<!\/)$/g, '/')
-    }
-
     function normalizeVfsId(uri: unknown) {
-        return normalize(pathDecode(String(uri))) // admin remaps come from tree ids, while roots are stored as readable VFS paths
+        return normalizeVfsPath(pathDecode(String(uri)) || '/') // admin remaps come from tree ids, while roots are stored as readable VFS paths
     }
 
     function replaceUriPrefix(uri: string, oldPrefix: string, newPrefix: string) {

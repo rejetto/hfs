@@ -138,6 +138,11 @@ export function objFromKeys<K extends string, VR=unknown>(src: K[], getValue: (v
     return Object.fromEntries(src.map(k => [k, getValue(k)]))
 }
 
+// VFS paths use forward slashes; preserve empty paths, names and percent encoding
+export function normalizeVfsPath(root: string) {
+    return enforceFinal('/', enforceStarting('/', root.replace(/\/{2,}/g, '/')))
+}
+
 export function hasFinalSlash(s: string) {
     return /[\\/]$/.test(s)
 }

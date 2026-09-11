@@ -18,7 +18,7 @@ import { dontBotherWithKeys, restartAnimation, useBatch, useStateMounted } from 
 import { mergeSx, Promisable, StringField } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import { Link as RouterLink, useLocation } from 'wouter'
-import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
+import { SvgIconProps } from '@mui/material/SvgIcon'
 import _ from 'lodash'
 import { ALL as COUNTRIES } from './countries'
 import { apiCall } from '@hfs/shared/api'
