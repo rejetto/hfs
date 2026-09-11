@@ -169,7 +169,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
     const [loadingState, setLoadingState] = useStateMounted(false)
     if (typeof disabled === 'string')
         title = disabled
-    disabled = progress || disabled ? true : undefined
+    disabled = progress || disabled || loading ? true : undefined
     if (link)
         onClick = () => window.open(link)
     const showLabel = useBreakpoint(_.isString(labelIf) ? labelIf : 'xs') && (_.isBoolean(labelIf) ? labelIf : true)
@@ -183,16 +183,15 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
         async onClick(...args: any[]) {
             if (loadingState) return
             if (confirm && !await confirmDialog(confirm === true ? "Are you sure?" : confirm)) return
-            const ret = onClick?.apply(this, args as any)
-            if (ret instanceof Promise) {
-                setLoadingState(true)
-                ret.finally(()=> setLoadingState(false))
-            }
             try {
+                const ret = onClick?.apply(this, args as any)
+                if (ret instanceof Promise)
+                    setLoadingState(true)
                 if (await ret !== false)
                     execDoneMessage(doneMessage, doneAnimation && ref.current)
             }
             catch(e: any) { alertDialog(e) }
+            finally { setLoadingState(false) }
         },
     } as const, rest)
     const iconElement = isValidElement(icon) ? icon : (icon && h(icon))
@@ -211,7 +210,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
             // we need a direct accessible name on the actual clickable element for testing
             'aria-label': !children || !showLabel ? rest['aria-label'] ?? (_.isString(title) ? title : undefined) : rest['aria-label'],
         }),
-            (progress || loadingState) && progress !== false  // false is also useful to inhibit behavior with loading
+            (progress || loading || loadingState) && progress !== false  // false is also useful to inhibit behavior with loading
             && h(CircularProgress, {
                 ...(typeof progress === 'number' ? { value: progress*100, variant: 'determinate' } : null),
                 style: { position:'absolute', top: '10%', left: '10%', width: '80%', height: '80%' }
