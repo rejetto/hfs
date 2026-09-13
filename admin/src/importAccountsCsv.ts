@@ -30,13 +30,15 @@ export async function importAccountsCsv(cb?: () => void) {
             dialogProps: { maxWidth: 'sm' },
             values: initialConfig,
             form: values => {
-                const row = rows[values.skipFirstLines || 0]
+                // preview renders before invalid input is rejected by validation
+                const row = rows[values.skipFirstLines || 0] || []
                 const rec = getRec(row, { ...initialConfig, ...values })
                 return {
                     save: { startIcon: h(Upload), children: 'Go' },
                     fields: [
                         h(Box, { sx: { p: 1 } }, "Total lines:", rows.length),
                         { k: 'skipFirstLines', comp: NumberField, max: rows.length-1, typing: true, md: 6,
+                            getError: value => value != null && !Number.isInteger(value) && "Enter an integer",
                             helperText: h(Fragment, {}, "First line: ", h('code', {}, row.join(', ')) ),
                         },
                         { k: 'overwriteExistingAccounts', comp: BoolField, md: 6 },
@@ -89,7 +91,7 @@ export async function importAccountsCsv(cb?: () => void) {
                                 }).then(() => {
                                     if (rec.p)
                                         return apiNewPassword(rec.u, rec.p)
-                                }, e => {
+                                }).catch(e => {
                                     if (e.code === HTTP_CONFLICT)
                                         return already++
                                     bad++
