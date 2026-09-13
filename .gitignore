@@ -5,6 +5,7 @@ hfs.plist
 dist
 .DS_Store
 scripts/sec
+tmp
 #produced by running
 tests/work
 tests/work2

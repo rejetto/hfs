@@ -109,8 +109,8 @@ exports.init = async api => {
     assert.equal(await probe(https + '/~/api/get_status'), 200)
     // listening can precede the asynchronous scan of installed plugins
     for (let i = 0; i < 50; i++) {
-        const { list } = await fetch(http + '/~/api/get_plugins').then(r => r.json())
-        if (list.some((p: { id: string }) => p.id === 'server-cleanup')) break
+        const { list } = await fetch(http + '/~/api/get_plugins').then(r => r.json()) as { list: { id: string }[] }
+        if (list.some(p => p.id === 'server-cleanup')) break
         await delay(100)
     }
     await api('start_plugin', { id: 'server-cleanup' })
@@ -133,7 +133,7 @@ exports.init = async api => {
     await api('start_plugin', { id: 'server-cleanup' })
     assert.deepEqual(await trace(), ['add:http', 'add:https'])
     await probe(http, true)
-    const status = await fetch(http + '/~/api/get_status').then(r => r.json())
+    const status = await fetch(http + '/~/api/get_status').then(r => r.json()) as { https: { port: number } }
     https = 'https://127.0.0.1:' + status.https.port
     await probe(https, true)
     await api('stop_plugin', { id: 'server-cleanup' })

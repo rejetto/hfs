@@ -467,7 +467,7 @@ describe('basics', () => {
         }
         const stream = new ThrottledStream(group)
         const transformed = new Promise<void>((resolve, reject) => {
-            stream._transform(Buffer.alloc(5000), 'buffer', error => error ? reject(error) : resolve())
+            stream.write(Buffer.alloc(5000), error => error ? reject(error) : resolve())
         })
         stream.destroy()
         await transformed
@@ -553,7 +553,8 @@ describe('basics', () => {
             const closed = once(source, 'close', { signal: AbortSignal.timeout(1000) })
             zip.destroy()
             await closed
-            if (source.fd !== null)
+            // Node's types omit fd, so narrow the property before checking the descriptor
+            if (!('fd' in source) || source.fd !== null)
                 throw Error('aborted ZIP retained an open file descriptor')
         }
         finally {
@@ -2533,7 +2534,7 @@ describe('after-login', () => {
         const probe = resolve(dir, `probe-${id}`)
         await writeFile(probe, '')
         const caseInsensitive = existsSync(probe.toUpperCase())
-        const users = [`case-a-${id}`, `case-b-${id}`]
+        const users = [`case-a-${id}`, `case-b-${id}`] as const
         const pass = randomId(12)
         const adminReq = { auth, jar: {} }
         const tempPath = resolve(dir, UPLOAD_TEMP_PREFIX + lowerName)
