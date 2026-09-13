@@ -1242,5 +1242,4 @@ If you want to override a text regardless of the language, use the special langu
   - exports.disableDefaultStyle
   - frontend event: validatePassword
   - `api.onServer` callbacks can return a cleanup function
-- 13.5 (v3.3.0)
   - `finalizingLogin`: canonical username and login veto with an optional error message
