@@ -110,6 +110,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         const logger = isError && accessErrorLog || accessLogger
         let { stream, last, path } = logger
         if (!stream) return
+        if (events.emit('beforeLog', { ctx })?.isDefaultPrevented()) return
         const rotate = logRotation.get()?.[0]
         const reqEnd = logger.last = new Date()
         if (rotate && last) { // rotation enabled and a file exists?
