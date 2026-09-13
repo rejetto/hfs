@@ -65,6 +65,9 @@ Some properties use a `Who` descriptor, with one of these values:
 - `log_api` should api calls be logged? Default is `true`. 
 - `log_gui` should GUI files be logged? Default is `false`.
 - `log_spam` log *failed* requests that are considered spam. Default is false.
+- `log_spam_regex` case-sensitive regular expression matched against request paths when `log_spam` is false. 
+  Default: `wlwmanifest.xml$|\.(php|asp)$|cgi|robots.txt$`. Matching requests are omitted from logs only for 404 or 307
+  responses whose path is absent from the VFS.
 - `log_ua` include user-agent in the logs. Default is false.
 - `track_ips` keep track of all IP addresses seen. Default is true.
 - `error_log` path of the log file for errors. Default is `error.log`.

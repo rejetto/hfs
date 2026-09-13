@@ -31,7 +31,7 @@ export const CFG = constMap([
     'force_https', 'force_lang', 'force_webdav_login',
     'geo_allow', 'geo_allow_unknown', 'geo_enable', 'geo_ignore_net', 'geo_list',
     'ignore_proxies', 'invert_order', 'keep_session_alive', 'listen_interface',
-    'localhost_admin', 'log', 'log_api', 'log_gui', 'log_host', 'log_rotation', 'log_spam',
+    'localhost_admin', 'log', 'log_api', 'log_gui', 'log_host', 'log_rotation', 'log_spam', 'log_spam_regex',
     'log_ua', 'mapped_port', 'max_downloads', 'max_downloads_per_account',
     'max_downloads_per_ip', 'max_kbps', 'max_kbps_per_ip', 'menu_at_top', 'mime',
     'min_available_mb', 'open_browser_at_start', 'outbound_interface', 'outbound_proxy', 'own_upload_delete_hours',
