@@ -13,7 +13,7 @@ import _ from 'lodash'
 import { Btn, Flex, reloadBtn, useBreakpoint, useCtrlShortcutButton } from './mui'
 import { apiCall, ApiObject, useApi } from './api'
 import VfsPathField from './VfsPathField'
-import { alertDialog, promptDialog } from './dialog'
+import { alertDialog, promptDialog, waitDialog } from './dialog'
 import { formatDiskSpace } from './FilePicker'
 import { getDiskSpaces } from '../../src/util-os'
 import { adminApis } from '../../src/adminApis'
@@ -36,7 +36,7 @@ export default function VfsMenuBar({ statusApi, add, isSideBreakpoint }: { add: 
             disabled: !vfsModified && "No changes to save",
             modified: vfsModified,
             doneAnimation: true,
-            onClick: () => saveVfs().finally(statusApi.reload)
+            onClick: () => saveVfs().finally(waitDialog()).finally(statusApi.reload)
         }),
         h(Btn, {
             icon: Undo,
