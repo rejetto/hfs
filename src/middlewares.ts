@@ -2,7 +2,7 @@
 
 import compress from 'koa-compress'
 import Koa from 'koa'
-import { API_URI, DEV, HTTP_UNAUTHORIZED } from './const'
+import { API_URI, DEV, HTTP_UNAUTHORIZED, HTTP_TEMPORARY_REDIRECT_KEEP_METHOD } from './const'
 import { ALLOW_SESSION_IP_CHANGE, CFG, DAY, escapeHTML, hasDirTraversal, isLocalHost, netMatches, readRequestBodyLimited, splitAt, try_, tryJson } from './misc'
 import { randomUUID } from 'node:crypto'
 import { getLangData } from './lang'
@@ -67,7 +67,7 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
         const { URL } = ctx
         URL.protocol = 'https'
         URL.port = getHttpsWorkingPort()
-        ctx.status = 307 // this ensures the client doesn't switch to a simpler GET request
+        ctx.status = HTTP_TEMPORARY_REDIRECT_KEEP_METHOD // this ensures the client doesn't switch to a simpler GET request
         return ctx.redirect(URL.href)
     }
     const page = ctx.state.urlLoginPage
