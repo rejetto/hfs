@@ -37,7 +37,7 @@ test('around1', async ({ page }) => {
     await page.getByRole('link', { name: 'for-admins, Folder' }).click()
     await page.getByRole('link', { name: 'upload, Folder' }).click()
     await page.getByRole('link', { name: 'alfa.txt' }).click()
-    await expect(page.getByText('Delete')).toBeVisible() // first check single-delete command
+    await expect(page.getByRole('link', { name: 'Delete', exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Close' }).click()
     await page.getByRole('button', { name: 'Select' }).click()
     await page.getByRole('checkbox', { name: 'alfa.txt' }).check()
