@@ -102,6 +102,13 @@ export default function LogsPage({ setTitleSide }: PageProps) {
                             { k: CFG.log_ua, sm: 6, comp: BoolField, label: t`Log User-Agent`, helperText: t`user_agent_log_size_warning` },
                             { k: CFG.log_host, sm: 6, comp: BoolField, label: t`Log Host header` },
                             { k: CFG.log_spam, sm: 6, comp: BoolField, label: t`Log spam requests`, helperText: md(t`Failed requests that you probably don't want to see`) },
+                            { k: CFG.log_spam_regex, label: t`Spam URL regex`,
+                                helperText: t`log_spam_regex_help`,
+                                getError(value: string) {
+                                    try { new RegExp(value) }
+                                    catch { return t`Invalid regular expression` }
+                                },
+                            },
                             { k: CFG.track_ips, sm: 6, comp: BoolField, label: t`Keep track of IPs`,
                                 parentProps: { sx: { display: 'flex', gap: 1, alignItems: 'flex-start' } },
                                 after: h(Btn, {
