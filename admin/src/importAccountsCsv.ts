@@ -70,8 +70,8 @@ export async function importAccountsCsv(cb?: () => void) {
                         let already =0
                         let skip = cfg.skipFirstLines
                         const total = rows.length - skip
+                        let worked = 0
                         try {
-                            let i = 0
                             for (const row of rows) {
                                 if (stop) return
                                 if (skip) {
@@ -80,7 +80,7 @@ export async function importAccountsCsv(cb?: () => void) {
                                 }
                                 const rec = getRec(row, cfg)
                                 setRecord(rec)
-                                setProgress(i++ / total)
+                                setProgress(worked++ / total)
                                 await apiCall('add_account', {
                                     username: rec.u,
                                     belongs: rec.g?.split(','),
@@ -98,7 +98,7 @@ export async function importAccountsCsv(cb?: () => void) {
                         }
                         finally {
                             close()
-                            const good = total - bad - already
+                            const good = worked - bad - already
                             const msg = "Results: " + [
                                 prefix('', bad, " failed"),
                                 prefix('', good, " succeeded"),
