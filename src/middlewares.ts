@@ -2,7 +2,7 @@
 
 import compress from 'koa-compress'
 import Koa from 'koa'
-import { API_URI, DEV } from './const'
+import { API_URI, DEV, HTTP_UNAUTHORIZED } from './const'
 import { ALLOW_SESSION_IP_CHANGE, CFG, DAY, hasDirTraversal, isLocalHost, netMatches, splitAt, stream2string, try_, tryJson } from './misc'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
@@ -122,8 +122,16 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
         if (!accountCanLogin(a) || failAllowNet(ctx, a)) // enforce allow_net also after login
             await setLoggedIn(ctx, false)
         else if (loggedInNotBySession) {
-            if (a.username)
-            await setLoggedIn(ctx, a.username)
+            try {
+                if (a.username)
+                    await setLoggedIn(ctx, a.username)
+            }
+            catch (e) {
+                events.emit('failedLogin', { ctx, username: a.username, via: ctx.query.login ? 'url' : ctx.get('authorization') ? 'header' : undefined })
+                ctx.status = HTTP_UNAUTHORIZED
+                ctx.body = String(e)
+                return
+            }
             ctx.headers['x-username'] = a.username // give an easier way to determine if the login was successful
         }
 

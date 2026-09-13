@@ -3,7 +3,7 @@ import './shutdown.test'
 import './plugin-server-cleanup.test'
 import test, { describe, before, after } from 'node:test';
 import { promisify } from 'util'
-import { srpClientSequence } from '../src/srp'
+import { srpClientPart, srpClientSequence } from '../src/srp'
 import * as srp from 'tssrp6a'
 import { createReadStream, existsSync, mkdirSync, readFileSync, rmSync, statfsSync, statSync } from 'fs'
 import { basename, dirname, join, resolve } from 'path'
@@ -80,7 +80,7 @@ let defaultBaseUrl = BASE_URL
 const execP = (cmd: string) => promisify(exec)(cmd).then(x => x.stdout)
 const srp6aNimbusRoutines = new srp.SRPRoutines(new srp.SRPParameters())
 
-describe('basics', () => {
+describe('http utilities', () => {
     test('httpString limits continuously streaming responses', async () => {
         const server = createServer((_req, res) => {
             let sent = 0
@@ -106,6 +106,9 @@ describe('basics', () => {
             await new Promise<void>(resolve => server.close(() => resolve()))
         }
     })
+})
+
+describe('languages', () => {
     test('unwatch cancels pending language load', async () => {
         const marker = `watch-load-${randomId(6)}`
         const file = resolve(__dirname, 'work/hfs-lang-zz.json')
@@ -122,20 +125,9 @@ describe('basics', () => {
             await rm(file, { force: true })
         }
     })
-    test('folder size avoids symlink cycles', { skip: process.platform === 'win32' }, async () => {
-        const root = await mkdtemp(resolve(UPLOAD_DISK_ROOT, 'walk-cycle-'))
-        try {
-            await mkdir(join(root, 'dir'))
-            await symlink('..', join(root, 'dir/loop'))
-            await reqApi('get_folder_size', {
-                uri: UPLOAD_ROOT + basename(root),
-                id: randomId(6),
-            }, res => res?.folders === 2 && res?.files === 0, { auth, jar: {}, timeout: 1000 })()
-        }
-        finally {
-            await rm(root, { recursive: true, force: true })
-        }
-    })
+})
+
+describe('basics', () => {
     //before(async () => appStarted)
     test('frontend', req('/', /<body>/, { headers: { accept: '*/*' } })) // workaround: 'accept' is necessary when running server-for-test-dev, still don't know why
     test('frontend config defaults', reqApi('get_config', { only: Object.keys(FRONTEND_OPTIONS) },
@@ -1544,6 +1536,61 @@ describe('limits', () => {
 })
 
 describe('sessions', () => {
+    test('finalizingLogin veto preserves messages and session identity', async () => {
+        const adminReq = { auth, jar: {} }
+        const oldConfig = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
+        const script = `exports.init = api => {
+            const { app } = api.require('./index')
+            let errors = 0
+            function onError() { errors++ }
+            app.on('error', onError)
+            api.events.on('finalizingLogin', () => '')
+            api.events.on('finalizingLogin', async ({ username, inputs }, event) => {
+                if (username !== username.toLowerCase()) return 'non-canonical username'
+                if (inputs.veto === 'message') return 'invalid OTP'
+                if (inputs.veto === 'empty') return ''
+                if (inputs.veto === 'prevent') event.preventDefault()
+                if (inputs.veto === 'stop') return api.events.stop
+            })
+            exports.customRest = { veto_ready: () => ({ ready: true, errors }) }
+            return () => app.off('error', onError)
+        }`
+        try {
+            await reqApi('set_config', { values: { server_code: script } }, 200, adminReq)()
+            const ready = await waitFor(() => reqApi('_veto_ready', {}, x => x?.ready, adminReq)()
+                .catch(() => false), { interval: 50, timeout: 3000 })
+            if (!ready) throw Error('login veto plugin did not start')
+            for (const veto of ['message', 'prevent', 'stop']) {
+                const jar = {}
+                await reqApi('login', { username, password, veto },
+                    { status: 401, re: veto === 'message' ? /invalid OTP/ : /Login denied/ }, { jar })()
+                await reqApi('refresh_session', {}, x => x?.username === '', { jar })()
+            }
+            const emptyJar = {}
+            await reqApi('login', { username, password, veto: 'empty' }, 200, { jar: emptyJar })()
+            await reqApi('refresh_session', {}, x => x?.username === username, { jar: emptyJar })()
+            const jar = {}
+            await srpClientSequence(srp, username.toUpperCase(), password, (cmd, params) =>
+                reqApi(cmd, params, 200, { jar })())
+            await reqApi('login', { username, password, veto: 'message' }, 401, { jar })()
+            await reqApi('refresh_session', {}, x => x?.username === username, { jar })()
+            const srpJar = {}
+            const { salt, pubKey } = await reqApi('loginSrp1', { username }, 200, { jar: srpJar })()
+            const client = await srpClientPart(srp, username, password, salt, pubKey)
+            await reqApi('loginSrp2', { pubKey: String(client.A), proof: String(client.M1), veto: 'message' },
+                { status: 401, re: /invalid OTP/ }, { jar: srpJar })()
+            await reqApi('refresh_session', {}, x => x?.username === '', { jar: srpJar })()
+            await req('/for-admins/?veto=message', { status: 401, re: /invalid OTP/ }, { auth, jar: {} })()
+            await req('/for-admins/?veto=message', { status: 401, re: /invalid OTP/ },
+                { auth, jar: {}, method: 'PROPFIND' })()
+            await req('/for-admins/?login=' + auth + '&veto=message',
+                { status: 401, re: /invalid OTP/ }, { jar: {}, noRedirect: true })()
+            await reqApi('_veto_ready', {}, x => x?.errors === 0, adminReq)()
+        }
+        finally {
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)()
+        }
+    })
     test('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw "in" }, () => {}))
     test('allow_net.canLogin', () => login(username))
     test('allow_net.cantLogin', () => {
@@ -3078,6 +3125,20 @@ describe('after-login', () => {
 })
 
 describe('admin', () => {
+    test('folder size avoids symlink cycles', { skip: process.platform === 'win32' }, async () => {
+        const root = await mkdtemp(resolve(UPLOAD_DISK_ROOT, 'walk-cycle-'))
+        try {
+            await mkdir(join(root, 'dir'))
+            await symlink('..', join(root, 'dir/loop'))
+            await reqApi('get_folder_size', {
+                uri: UPLOAD_ROOT + basename(root),
+                id: randomId(6),
+            }, res => res?.folders === 2 && res?.files === 0, { auth, jar: {}, timeout: 1000 })()
+        }
+        finally {
+            await rm(root, { recursive: true, force: true })
+        }
+    })
     test('add folder', async () => {
         const name = 'added'
         try {

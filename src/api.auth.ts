@@ -55,6 +55,7 @@ export const authApis = {
             await setLoggedIn(ctx, account.username)
         }
         catch (e) {
+            events.emit('failedLogin', { ctx, username, via: 'api' })
             return new ApiError(HTTP_UNAUTHORIZED, String(e))
         }
         return {

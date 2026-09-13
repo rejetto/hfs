@@ -772,10 +772,13 @@ This section is still partially documented, and you may need to have a look at t
   - return: `true` to consider authentication done
 - `finalizingLogin`
   - parameters: { ctx, username, inputs }
+    - username: canonical account name
     - inputs: object
       - merge of all inputs both from body and URL
       - all fields with a `name` attribute in the form, included those added by plugins, are included 
   - async supported
+  - preventable (login is denied with a generic message)
+  - return: a non-empty string to deny login with that message
 - `configReady` when the config is fully loaded (the boolean flags whether we started without an existing config file)
   - parameters: { startedWithoutConfig: boolean }
 - `config.KEY` where KEY is the key of a config that has changed
@@ -1239,3 +1242,5 @@ If you want to override a text regardless of the language, use the special langu
   - exports.disableDefaultStyle
   - frontend event: validatePassword
   - `api.onServer` callbacks can return a cleanup function
+- 13.5 (v3.3.0)
+  - `finalizingLogin`: canonical username and login veto with an optional error message

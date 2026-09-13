@@ -1,5 +1,6 @@
 import { Account, getAccount, normalizeUsername, updateAccount } from './perm'
-import { ALLOW_SESSION_IP_CHANGE, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './cross-const'
+import { ALLOW_SESSION_IP_CHANGE, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED } from './cross-const'
+import _ from 'lodash'
 import * as srp from 'tssrp6a'
 import { Context } from 'koa'
 import { srpClientPart } from './srp'
@@ -64,7 +65,14 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
     delete s.loggingIn // clear pending SRP handshake state
     const a = ctx.state.account = getAccount(username)
     if (!a) return
-    await events.emitAsync('finalizingLogin', { ctx, username, inputs: { ...ctx.state.params, ...ctx.query } })
+    const result = await events.emitAsync('finalizingLogin', { ctx, username: a.username, inputs: { ...ctx.state.params, ...ctx.query } })
+    const error = result?.find(x => x && _.isString(x)) || result?.isDefaultPrevented() && "Login denied"
+    if (error) {
+        // restore the session identity: the candidate account was exposed only for plugin checks
+        ctx.state.account = getAccount(s.username, false)
+        delete ctx.state.usernames
+        ctx.throw(HTTP_UNAUTHORIZED, error)
+    }
     const normalized = normalizeUsername(username)
     if (s.username !== normalized)
         delete s.allowNet // discard restrictions cached for another identity before replacing the session account
