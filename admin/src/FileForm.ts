@@ -110,7 +110,7 @@ export default function FileForm({ file, addToBar, statusApi, accountsApi, done,
             {
                 k: 'name', required: true, xl: true, helperText: hasSource && "You can decide a name that's different from the one on your disk",
                 ...isRoot && { disabled: true, value: "Home folder" },
-                end: nameFromSource && !nameIsDerivedFromSource && h(Btn, {
+                end: !isRoot && nameFromSource && !nameIsDerivedFromSource && h(Btn, {
                     icon: RestartAlt, title: "Reset to same name on disk",
                     onClick: resetNameFromSource
                 }),
