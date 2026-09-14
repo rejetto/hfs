@@ -78,8 +78,8 @@ export async function addVirtual() {
         if (!name) return
         addNodes(parent, [{ name, type: 'folder' }])
     }
-    catch(e) {
-        await alertDialog(e as Error)
+    catch(e: any) {
+        await alertDialog(e)
     }
 }
 
@@ -93,12 +93,12 @@ export async function addLink() {
             onClose: () => focusSelector('input[name=url]')
         })
     }
-    catch(e) {
-        await alertDialog(e as Error)
+    catch(e: any) {
+        await alertDialog(e)
     }
 }
 
 function getFolderFromSelected() {
     const f = state.selectedFiles[0] || state.vfs
-    return f.type === 'folder' ? f : f.parent!
+    return f.type === 'folder' || f.isRoot ? f : f.parent!
 }
