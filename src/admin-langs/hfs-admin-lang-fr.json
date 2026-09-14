@@ -332,7 +332,7 @@
         "vfs_source_additional_items_hint": "Les fichiers de ce chemin sur le disque seront répertoriés, mais vous pouvez en ajouter d'autres.",
         "results_count": "Filtrer les résultats ({count})",
         "filtered_results_count": "Filtrer les résultats ({filteredCount}/{totalCount})",
-        "Filters": "Filtres",
+        "View filters": "Filtres d’affichage",
         "First create at least one admin account": "Créez d’abord au moins un compte administrateur",
         "First group: ": "Premier groupe : ",
         "First line: ": "Première ligne : ",

@@ -336,7 +336,7 @@
         "vfs_source_additional_items_hint": "將列出磁碟上此路徑中的文件，但您可以添加更多文件",
         "results_count": "過濾結果 ({count})",
         "filtered_results_count": "過濾結果 ({filteredCount}/{totalCount})",
-        "Filters": "過濾器",
+        "View filters": "顯示篩選器",
         "First create at least one admin account": "首先建立至少一個管理員帳戶",
         "First group: ": "第一組： ",
         "First line: ": "第一行： ",

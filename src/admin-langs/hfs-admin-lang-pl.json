@@ -336,7 +336,7 @@
         "vfs_source_additional_items_hint": "Pliki z tej ścieżki na dysku zostaną wyświetlone, ale możesz dodać ich więcej",
         "results_count": "Wyniki filtra ({count})",
         "filtered_results_count": "Wyniki filtra ({filteredCount}/{totalCount})",
-        "Filters": "Filtry",
+        "View filters": "Filtry widoku",
         "First create at least one admin account": "Najpierw utwórz co najmniej jedno konto administratora",
         "First group: ": "Pierwsza grupa: ",
         "First line: ": "Pierwsza linia: ",

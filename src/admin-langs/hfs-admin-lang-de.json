@@ -336,7 +336,7 @@
         "vfs_source_additional_items_hint": "Dateien aus diesem Pfad auf der Festplatte werden aufgelistet, Sie können jedoch weitere hinzufügen",
         "results_count": "Ergebnisse filtern ({count})",
         "filtered_results_count": "Ergebnisse filtern ({filteredCount}/{totalCount})",
-        "Filters": "Filter",
+        "View filters": "Ansichtsfilter",
         "First create at least one admin account": "Erstellen Sie zunächst mindestens ein Administratorkonto",
         "First group: ": "Erste Gruppe: ",
         "First line: ": "Erste Zeile: ",

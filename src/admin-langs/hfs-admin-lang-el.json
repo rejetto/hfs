@@ -336,7 +336,7 @@
         "vfs_source_additional_items_hint": "Τα αρχεία από αυτήν τη διαδρομή στο δίσκο θα παρατίθενται, αλλά μπορείτε να προσθέσετε περισσότερα",
         "results_count": "Φιλτράρισμα αποτελεσμάτων ({count})",
         "filtered_results_count": "Φιλτράρισμα αποτελεσμάτων ({filteredCount}/{totalCount})",
-        "Filters": "Φίλτρα",
+        "View filters": "Φίλτρα προβολής",
         "First create at least one admin account": "Πρώτα δημιουργήστε τουλάχιστον έναν λογαριασμό διαχειριστή",
         "First group: ": "Πρώτη ομάδα: ",
         "First line: ": "Πρώτη γραμμή: ",

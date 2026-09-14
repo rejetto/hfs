@@ -336,7 +336,7 @@
         "vfs_source_additional_items_hint": "Tämän levyn polun tiedostot näkyvät luettelossa, mutta voit lisätä niitä",
         "results_count": "Suodata tulokset ({count})",
         "filtered_results_count": "Suodata tulokset ({filteredCount}/{totalCount})",
-        "Filters": "Suodattimet",
+        "View filters": "Näkymän suodattimet",
         "First create at least one admin account": "Luo ensin vähintään yksi järjestelmänvalvojan tili",
         "First group: ": "Ensimmäinen ryhmä: ",
         "First line: ": "Ensimmäinen rivi: ",

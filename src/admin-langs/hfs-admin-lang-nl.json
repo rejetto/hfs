@@ -336,7 +336,7 @@
         "vfs_source_additional_items_hint": "Bestanden van dit pad op schijf worden weergegeven, maar u kunt er meer toevoegen",
         "results_count": "Resultaten filteren ({count})",
         "filtered_results_count": "Resultaten filteren ({filteredCount}/{totalCount})",
-        "Filters": "Filters",
+        "View filters": "Weergavefilters",
         "First create at least one admin account": "Maak eerst minimaal één beheerdersaccount aan",
         "First group: ": "Eerste groep: ",
         "First line: ": "Eerste regel: ",

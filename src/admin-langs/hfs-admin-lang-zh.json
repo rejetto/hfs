@@ -332,7 +332,7 @@
         "vfs_source_additional_items_hint": "将列出磁盘上此路径中的文件，但您可以添加更多文件",
         "results_count": "过滤结果 ({count})",
         "filtered_results_count": "过滤结果 ({filteredCount}/{totalCount})",
-        "Filters": "过滤器",
+        "View filters": "显示过滤器",
         "First create at least one admin account": "首先创建至少一个管理员帐户",
         "First group: ": "第一组： ",
         "First line: ": "第一行： ",

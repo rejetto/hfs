@@ -336,7 +336,7 @@
         "vfs_source_additional_items_hint": "Файлы по этому пути на диске будут перечислены, но вы можете добавить больше.",
         "results_count": "Результаты фильтра ({count})",
         "filtered_results_count": "Результаты фильтра ({filteredCount}/{totalCount})",
-        "Filters": "Фильтры",
+        "View filters": "Фильтры отображения",
         "First create at least one admin account": "Сначала создайте хотя бы одну учетную запись администратора.",
         "First group: ": "Первая группа: ",
         "First line: ": "Первая строка: ",

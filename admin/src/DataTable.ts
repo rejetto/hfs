@@ -167,7 +167,7 @@ export function DataTable({
         gap: 0,
     },
         footerSide?.(width),
-        !rest.disableColumnFilter && h(IconBtn, { icon: FilterAlt, title: t`Filters`, size: 'small', onClick: () => apiRef.current?.showFilterPanel() }),
+        !rest.disableColumnFilter && h(IconBtn, { icon: FilterAlt, title: t`View filters`, size: 'small', onClick: () => apiRef.current?.showFilterPanel() }),
     )
     const [causingScrolling, setCausingScrolling] = useState(false)
     const updateCausingScrolling = useCallback(_.debounce(() => {
@@ -456,7 +456,7 @@ function MultiFilterPanel({ model, onChange, presets, onSavePreset, onLoadPreset
     const activeFilters = countActiveMultiFilters(undefined, model, apiRef)
     return h(GridPanelWrapper, {},
         h(Box, { sx: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, pl: 2 } },
-            h(Box, { sx: { color: 'text.primary', fontWeight: 'bold' } }, t`Filters`),
+            h(Box, { sx: { color: 'text.primary', fontWeight: 'bold' } }, t`View filters`),
             h(rootProps.slots.baseIconButton, {
                 'aria-label': t`Close`,
                 title: t`Close`,

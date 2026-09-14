@@ -336,7 +336,7 @@
         "vfs_source_additional_items_hint": "Файловете от този път на диска ще бъдат изброени, но можете да добавите още",
         "results_count": "Филтриране на резултати ({count})",
         "filtered_results_count": "Филтриране на резултати ({filteredCount}/{totalCount})",
-        "Filters": "Филтри",
+        "View filters": "Филтри за изгледа",
         "First create at least one admin account": "Първо създайте поне един администраторски акаунт",
         "First group: ": "Първа група: ",
         "First line: ": "Първи ред: ",

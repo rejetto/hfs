@@ -336,7 +336,7 @@
         "vfs_source_additional_items_hint": "Datoteke sa ove putanje na disku će biti navedene, ali možete dodati još",
         "results_count": "Filtrirajte rezultate ({count})",
         "filtered_results_count": "Filtrirajte rezultate ({filteredCount}/{totalCount})",
-        "Filters": "Filteri",
+        "View filters": "Filteri prikaza",
         "First create at least one admin account": "Prvo napravite najmanje jedan administratorski nalog",
         "First group: ": "Prva grupa: ",
         "First line: ": "prva linija: ",

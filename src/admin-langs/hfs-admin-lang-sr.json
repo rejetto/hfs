@@ -336,7 +336,7 @@
         "vfs_source_additional_items_hint": "Датотеке са ове путање на диску ће бити наведене, али можете додати још",
         "results_count": "Филтрирајте резултате ({count})",
         "filtered_results_count": "Филтрирајте резултате ({filteredCount}/{totalCount})",
-        "Filters": "Филтери",
+        "View filters": "Филтери приказа",
         "First create at least one admin account": "Прво направите најмање један администраторски налог",
         "First group: ": "Прва група: ",
         "First line: ": "прва линија: ",

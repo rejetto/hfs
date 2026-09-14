@@ -336,7 +336,7 @@
         "vfs_source_additional_items_hint": "Os arquivos deste caminho no disco serão listados, mas você pode adicionar mais",
         "results_count": "Filtrar resultados ({count})",
         "filtered_results_count": "Filtrar resultados ({filteredCount}/{totalCount})",
-        "Filters": "Filtros",
+        "View filters": "Filtros de visualização",
         "First create at least one admin account": "Primeiro crie pelo menos uma conta de administrador",
         "First group: ": "Primeiro grupo: ",
         "First line: ": "Primeira linha: ",

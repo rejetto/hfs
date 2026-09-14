@@ -336,7 +336,7 @@
         "vfs_source_additional_items_hint": "Failai iš šio kelio diske bus pateikti sąraše, bet galite pridėti daugiau",
         "results_count": "Filtruoti rezultatus ({count})",
         "filtered_results_count": "Filtruoti rezultatus ({filteredCount}/{totalCount})",
-        "Filters": "Filtrai",
+        "View filters": "Rodinio filtrai",
         "First create at least one admin account": "Pirmiausia sukurkite bent vieną administratoriaus paskyrą",
         "First group: ": "Pirmoji grupė: ",
         "First line: ": "Pirma eilutė: ",
