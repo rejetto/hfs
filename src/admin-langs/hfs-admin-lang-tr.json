@@ -334,7 +334,7 @@
         "vfs_source_additional_items_hint": "Diskteki bu yoldaki dosyalar listelenecek, ancak daha fazlasını ekleyebilirsiniz",
         "results_count": "Filtre sonuçları ({count})",
         "filtered_results_count": "Filtre sonuçları ({filteredCount}/{totalCount})",
-        "Filters": "Filtreler",
+        "View filters": "Görünüm filtreleri",
         "First create at least one admin account": "Öncelikle en az bir yönetici hesabı oluşturun",
         "First group: ": "Birinci grup: ",
         "First line: ": "İlk satır: ",

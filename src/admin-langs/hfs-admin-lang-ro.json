@@ -334,7 +334,7 @@
         "vfs_source_additional_items_hint": "Fișierele de pe această cale de pe disc vor fi listate, dar puteți adăuga mai multe",
         "results_count": "Filtrați rezultatele ({count})",
         "filtered_results_count": "Filtrați rezultatele ({filteredCount}/{totalCount})",
-        "Filters": "Filtre",
+        "View filters": "Filtre de afișare",
         "First create at least one admin account": "Mai întâi creați cel puțin un cont de administrator",
         "First group: ": "Primul grup: ",
         "First line: ": "Prima linie: ",

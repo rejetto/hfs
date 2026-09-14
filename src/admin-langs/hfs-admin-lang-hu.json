@@ -334,7 +334,7 @@
         "vfs_source_additional_items_hint": "A lemezen lévő ezen elérési útról származó fájlok megjelennek a listában, de hozzáadhat továbbiakat is",
         "results_count": "Eredmények szűrése ({count})",
         "filtered_results_count": "Eredmények szűrése ({filteredCount}/{totalCount})",
-        "Filters": "Szűrők",
+        "View filters": "Megjelenítési szűrők",
         "First create at least one admin account": "Először hozzon létre legalább egy rendszergazdai fiókot",
         "First group: ": "Első csoport: ",
         "First line: ": "Első sor: ",

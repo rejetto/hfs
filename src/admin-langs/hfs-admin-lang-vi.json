@@ -334,7 +334,7 @@
         "vfs_source_additional_items_hint": "Các tệp từ đường dẫn này trên đĩa sẽ được liệt kê, nhưng bạn có thể thêm nhiều hơn nữa",
         "results_count": "Lọc kết quả ({count})",
         "filtered_results_count": "Lọc kết quả ({filteredCount}/{totalCount})",
-        "Filters": "Bộ lọc",
+        "View filters": "Bộ lọc hiển thị",
         "First create at least one admin account": "Trước tiên hãy tạo ít nhất một tài khoản quản trị viên",
         "First group: ": "Nhóm đầu tiên: ",
         "First line: ": "Dòng đầu tiên: ",

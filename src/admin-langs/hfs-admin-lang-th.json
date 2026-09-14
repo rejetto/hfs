@@ -334,7 +334,7 @@
         "vfs_source_additional_items_hint": "ไฟล์จากเส้นทางนี้บนดิสก์จะแสดงรายการ แต่คุณสามารถเพิ่มได้อีก",
         "results_count": "กรองผลลัพธ์ ({count})",
         "filtered_results_count": "กรองผลลัพธ์ ({filteredCount}/{totalCount})",
-        "Filters": "ตัวกรอง",
+        "View filters": "ตัวกรองการแสดงผล",
         "First create at least one admin account": "ขั้นแรกให้สร้างบัญชีผู้ดูแลระบบอย่างน้อยหนึ่งบัญชี",
         "First group: ": "กลุ่มแรก: ",
         "First line: ": "บรรทัดแรก: ",

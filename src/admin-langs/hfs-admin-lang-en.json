@@ -334,7 +334,7 @@
         "vfs_source_additional_items_hint": "Files from this path on disk will be listed, but you can add more",
         "results_count": "Filter results ({count})",
         "filtered_results_count": "Filter results ({filteredCount}/{totalCount})",
-        "Filters": "Filters",
+        "View filters": "View filters",
         "First create at least one admin account": "First create at least one admin account",
         "First group: ": "First group: ",
         "First line: ": "First line: ",

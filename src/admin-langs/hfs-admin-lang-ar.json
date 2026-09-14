@@ -334,7 +334,7 @@
         "vfs_source_additional_items_hint": "سيتم سرد الملفات من هذا المسار على القرص، ولكن يمكنك إضافة المزيد",
         "results_count": "تصفية النتائج ({count})",
         "filtered_results_count": "تصفية النتائج ({filteredCount}/{totalCount})",
-        "Filters": "المرشحات",
+        "View filters": "مرشحات العرض",
         "First create at least one admin account": "قم أولاً بإنشاء حساب مسؤول واحد على الأقل",
         "First group: ": "المجموعة الأولى: ",
         "First line: ": "السطر الأول: ",

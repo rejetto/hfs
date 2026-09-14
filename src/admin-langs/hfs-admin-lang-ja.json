@@ -330,7 +330,7 @@
         "vfs_source_additional_items_hint": "ディスク上のこのパスのファイルがリストされますが、さらに追加することもできます",
         "results_count": "フィルタ結果 ({count})",
         "filtered_results_count": "フィルタ結果 ({filteredCount}/{totalCount})",
-        "Filters": "フィルター",
+        "View filters": "表示フィルター",
         "First create at least one admin account": "まず、少なくとも 1 つの管理者アカウントを作成します",
         "First group: ": "最初のグループ: ",
         "First line: ": "最初の行: ",

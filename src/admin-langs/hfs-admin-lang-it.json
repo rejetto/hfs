@@ -330,7 +330,7 @@
         "vfs_source_additional_items_hint": "Verranno elencati i file di questo percorso sul disco, ma puoi aggiungerne altri",
         "results_count": "Filtra risultati ({count})",
         "filtered_results_count": "Filtra risultati ({filteredCount}/{totalCount})",
-        "Filters": "Filtri",
+        "View filters": "Filtri di visualizzazione",
         "First create at least one admin account": "Per prima cosa crea almeno un account amministratore",
         "First group: ": "Primo gruppo: ",
         "First line: ": "Prima riga: ",

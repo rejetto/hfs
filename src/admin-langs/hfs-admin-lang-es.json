@@ -330,7 +330,7 @@
         "vfs_source_additional_items_hint": "Se enumerarán los archivos de esta ruta en el disco, pero puede agregar más",
         "results_count": "Filtrar resultados ({count})",
         "filtered_results_count": "Filtrar resultados ({filteredCount}/{totalCount})",
-        "Filters": "Filtros",
+        "View filters": "Filtros de visualización",
         "First create at least one admin account": "Primero cree al menos una cuenta de administrador",
         "First group: ": "Primer grupo: ",
         "First line: ": "Primera línea: ",

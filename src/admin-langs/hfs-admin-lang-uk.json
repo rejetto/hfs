@@ -334,7 +334,7 @@
         "vfs_source_additional_items_hint": "Файли з цього шляху на диску буде показано, але ви можете додати більше",
         "results_count": "Фільтрувати результати ({count})",
         "filtered_results_count": "Фільтрувати результати ({filteredCount}/{totalCount})",
-        "Filters": "Фільтри",
+        "View filters": "Фільтри відображення",
         "First create at least one admin account": "Спочатку створіть принаймні один обліковий запис адміністратора",
         "First group: ": "Перша група: ",
         "First line: ": "Перший рядок: ",
