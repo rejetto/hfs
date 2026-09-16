@@ -1,6 +1,7 @@
 import './filename-normalization.test'
 import './shutdown.test'
 import './plugin-server-cleanup.test'
+import './create-admin.test'
 import test, { describe, before, after } from 'node:test';
 import { promisify } from 'util'
 import { srpClientPart, srpClientSequence } from '../src/srp'

@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { CFG, objRenameKey, setHidden, typedEntries, wantArray } from './misc'
-import { defineConfig, saveConfigAsap } from './config'
+import { configReady, defineConfig, saveConfigAsap } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
 import { getCurrentUsername } from './auth'
@@ -68,8 +68,13 @@ const createAdminConfig = defineConfig(CFG['create-admin'], '')
 createAdminConfig.sub(v => {
     if (!v) return
     createAdminConfig.set('')
-    // we can't createAdmin right away, as its changes will be lost after return, when our caller (setConfig) applies undefined properties. setTimeout is good enough, as the process is sync.
-    setTimeout(() => createAdmin(v))
+    // creating admin inside this subscriber can lose the account when setConfig later applies accounts or its default
+    // configReady waits for the full async startup; a timer alone cannot guarantee that defaults have been applied
+    // the timer keeps creation deferred on reloads, when configReady is already resolved, but does not await async reloads
+    setTimeout(async () => {
+        await configReady
+        await createAdmin(v)
+    })
 })
 
 export async function createAdmin(password: string, username='admin') {
