@@ -79,13 +79,14 @@ The minimum Windows version required is 10 or Server 2019.
 3. The browser should automatically open at `localhost`, so you can configure the rest in the Admin-panel.
 
 Troubleshooting
-   - If a browser cannot be opened on the computer where you are installing HFS, 
-     you should enter this command in the HFS console: `create-admin <PASSWORD>`
-   - If you cannot access the console (like when you are running as a service), 
-       you can [edit the config file to add your admin account](config.md#accounts)
-   - If you don't want to use an editor, you can create the file with this command: 
-     
-     `echo "create-admin: PASSWORD" > config.yaml` 
+  - If a browser cannot be opened on the computer where HFS runs, enter `create-admin <PASSWORD>` 
+    in the **running HFS console** (this is not an OS shell command), then log in as `admin` with that password.
+  - If you cannot access the HFS console (for example, when running as a service),
+    you can [edit the config file to add your admin account](config.md#accounts)
+  - If you don't want to use an editor, you can create the file with this command:
+    `echo "create-admin: PASSWORD" > config.yaml`
+  - For a new Docker installation, set `HFS_CREATE_ADMIN` to **only the password**, and log in as `admin`.
+    The image uses this variable only when creating a new config file. See [Docker setup](https://github.com/rejetto/hfs/wiki/Docker).
 
 By default, HFS does not require a login when you access the *Admin-panel* from localhost.
 If you don't like this behavior, disable it in the Admin-panel or enter this console command `config localhost_admin false`.

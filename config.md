@@ -152,7 +152,9 @@ Some properties use a `Who` descriptor, with one of these values:
 - `cache_control_disk_files` number of seconds after which the browser should bypass the cache and check the server for an updated version of the file. Default is 5. No UI.
 - `disable_custom_html` disable the content of `custom_html`. Default is false.
 - `split_uploads` The size in megabytes of the chunks the upload will be split into. Default is none.
-- `create-admin` special entry to quickly create an admin account. The value will be set as the password. As soon as the account is created, this entry is removed.
+- `create-admin` creates or updates the account named `admin` with administrator access.
+  The value is **only the password**. For example: `create-admin: 'YOUR_PASSWORD'`. 
+  A "create-admin" entry is added to the existing config, and HFS removes it after processing it.
 
 #### Virtual File System (VFS)
 
