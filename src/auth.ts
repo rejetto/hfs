@@ -50,7 +50,7 @@ export async function clearTextLogin(ctx: Context, u: string, p: string, via: st
 }
 
 // centralized log-in state
-export async function setLoggedIn(ctx: Context, username: string | false) {
+export async function setLoggedIn(ctx: Context, username: string | false, via?: 'body' | 'srp' | 'url' | 'header' | 'net') {
     const s = ctx.session
     if (!s)
         return ctx.throw(HTTP_SERVER_ERROR,'session')
@@ -65,7 +65,7 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
     delete s.loggingIn // clear pending SRP handshake state
     const a = ctx.state.account = getAccount(username)
     if (!a) return
-    const result = await events.emitAsync('finalizingLogin', { ctx, username: a.username, inputs: { ...ctx.state.params, ...ctx.query } })
+    const result = await events.emitAsync('finalizingLogin', { ctx, username: a.username, via, inputs: { ...ctx.state.params, ...ctx.query } })
     const error = result?.find(x => x && _.isString(x)) || result?.isDefaultPrevented() && "Login denied"
     if (error) {
         // restore the session identity: the candidate account was exposed only for plugin checks

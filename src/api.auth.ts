@@ -52,7 +52,7 @@ export const authApis = {
             const account = await clearTextLogin(ctx, username, password, 'api')
             if (!account)
                 return new ApiError(HTTP_UNAUTHORIZED)
-            await setLoggedIn(ctx, account.username)
+            await setLoggedIn(ctx, account.username, 'body')
         }
         catch (e) {
             events.emit('failedLogin', { ctx, username, via: 'api' })
@@ -127,7 +127,7 @@ export const authApis = {
         try {
             const M2 = await step1.step2(BigInt(pubKey), BigInt(proof))
                 .catch(() => { throw '' }) // falsy value for later
-            await setLoggedIn(ctx, username)
+            await setLoggedIn(ctx, username, 'srp')
             return {
                 proof: String(M2),
                 redirect: ctx.state.account?.redirect,
