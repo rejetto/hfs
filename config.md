@@ -42,6 +42,10 @@ Configuration can be done in several ways
   Command-line configuration arguments still apply. To disable this option, unset it: any non-empty value, including `false`, enables it.
   The Docker entrypoint creates a non-empty configuration before HFS starts, so this option also excludes values such as `HFS_PORT` on a fresh Docker installation.
 - env `DISABLE_UPDATE` (designed for containers) will disable updating, but check-for-update will still be possible.  
+- Docker-only env `HFS_INITIAL_ADMIN_PASSWORD` sets the password for `admin` only when the entrypoint creates a missing `config.yaml`.
+  Existing files, including empty files, are left unchanged. Later password changes are managed in HFS.
+  A non-empty `HFS_CREATE_ADMIN` takes precedence; if neither variable is non-empty, the initial password is `please-change`.
+  This does not require `HFS_ENV_BOOTSTRAP` and does not prevent other configuration envs from applying at startup.
 
 `NAME` stands for the property name that you want to change. See the complete list below.
 
