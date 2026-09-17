@@ -291,15 +291,20 @@ jobs:
       - name: Normalize release title
         id: release_title
         shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          # keep the release tag untouched, but strip the optional leading v from the display title
-          tag='${{ inputs.tag }}'
+          tag="$RELEASE_TAG"
+          if [[ $tag == [0-9]* ]]; then
+            tag="v$tag"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "name=${tag#v}" >> "$GITHUB_OUTPUT"
 
       - name: Create draft release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ inputs.tag }}
+          tag_name: ${{ steps.release_title.outputs.tag }}
           name: ${{ steps.release_title.outputs.name }}
           # release tags with a dash are treated as pre-releases so beta-style builds stay separated from stable ones
           prerelease: ${{ contains(inputs.tag, '-') }}
