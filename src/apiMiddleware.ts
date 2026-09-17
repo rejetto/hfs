@@ -10,7 +10,7 @@ import { firstPlugin } from './plugins'
 import { SendListReadable } from './SendList'
 
 export class ApiError extends Error {
-    constructor(public status:number, message?:string | Error | object) {
+    constructor(public status:number, message?: unknown) {
         super(typeof message === 'string' ? message : message && message instanceof Error ? message.message : JSON.stringify(message))
     }
 }

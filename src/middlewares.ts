@@ -130,7 +130,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
             catch (e) {
                 events.emit('failedLogin', { ctx, username: a.username, via: ctx.query.login ? 'url' : ctx.get('authorization') ? 'header' : undefined })
                 ctx.status = HTTP_UNAUTHORIZED
-                ctx.body = String(e)
+                ctx.body = e instanceof Error ? e.message : String(e)
                 return
             }
             ctx.headers['x-username'] = a.username // give an easier way to determine if the login was successful
