@@ -37,7 +37,10 @@ Configuration can be done in several ways
 - using envs in the form `HFS_<uppercase property name>`, like `HFS_PORT=80` if you want to change the config `port`, 
   but the same applies to any other config available. Values can use JSON syntax.
 - after HFS has started you can enter console command in the form `config NAME VALUE`
-- setting special env `HFS_ENV_BOOTSTRAP=true` will disable other envs when file config.yaml already exists. 
+- setting `HFS_ENV_BOOTSTRAP=true` applies `HFS_*` configuration values only when the configuration loaded at startup is empty.
+  A missing, empty, or comments-only config file allows these values; a non-empty configuration makes HFS ignore them all, not just `HFS_CREATE_ADMIN`.
+  Command-line configuration arguments still apply. To disable this option, unset it: any non-empty value, including `false`, enables it.
+  The Docker entrypoint creates a non-empty configuration before HFS starts, so this option also excludes values such as `HFS_PORT` on a fresh Docker installation.
 - env `DISABLE_UPDATE` (designed for containers) will disable updating, but check-for-update will still be possible.  
 
 `NAME` stands for the property name that you want to change. See the complete list below.

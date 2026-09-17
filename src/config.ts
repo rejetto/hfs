@@ -143,7 +143,7 @@ export async function setConfig(newCfg: Record<string,unknown>, save?: boolean) 
     // first time we consider also CLI args
     const argCfg = !started && _.pickBy(
         newObj(configProps, (_x, k) =>
-            tryJson(k in argv ? argv[k] : considerEnvs ? process.env['HFS_' + k.toUpperCase().replaceAll('-','_')] : '', _.identity) ),
+            tryJson(k in argv ? argv[k] : considerEnvs ? process.env['HFS_' + k.toUpperCase().replaceAll('-','_')] : undefined, _.identity) ),
         x => x !== undefined )
     if (!_.isEmpty(argCfg)) {
         saveConfigAsap() // don't set `save` argument, as it would interfere below, at check `save===false`

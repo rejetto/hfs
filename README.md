@@ -86,7 +86,9 @@ Troubleshooting
   - If you don't want to use an editor, you can create the file with this command:
     `echo "create-admin: PASSWORD" > config.yaml`
   - For a new Docker installation, set `HFS_CREATE_ADMIN` to **only the password**, and log in as `admin`.
-    The image uses this variable only when creating a new config file. See [Docker setup](https://github.com/rejetto/hfs/wiki/Docker).
+    By default, HFS reapplies this password at every container start, overwriting password changes made in the Admin panel.
+    To manage the password in HFS after setup, remove the variable and recreate the container while keeping the same persistent config volume.
+    See [Docker setup](https://github.com/rejetto/hfs/wiki/Docker).
 
 By default, HFS does not require a login when you access the *Admin-panel* from localhost.
 If you don't like this behavior, disable it in the Admin-panel or enter this console command `config localhost_admin false`.
