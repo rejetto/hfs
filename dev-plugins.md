@@ -184,6 +184,8 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
   }
   ```
   To interrupt other middlewares on this http request, call `ctx.stop()`.
+  Exceptions thrown by plugin middleware are logged but do not automatically stop request processing.
+  To deny a request, set the response status/body and call `ctx.stop()`; do not rely on throwing an exception.
   If you want to execute something in the "upstream" of middlewares, return a function.
   Upstream you can access the response calculated by HFS and other middlewares, so you'll find both the status and body set.
   See more at https://github.com/rejetto/hfs/wiki/Middlewares .
@@ -221,6 +223,8 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
 - `customHtml: object | () => object` return custom-html sections programmatically.
   Each key is a section name, the value is the html (or js, or css). Refer to https://github.com/rejetto/hfs/wiki/Customization:-HTML-sections
 - `customRest: { [name]: (parameters: object, ctx) => any }` declare backend functions to be called by frontend with `HFS.customRestCall`
+  Names are global across plugins: if multiple plugins export the same name, the first matching plugin handles the request.
+  Prefix names with a plugin-specific identifier, for example `twoFactor_getSecret`, to avoid collisions.
   E.g. 
   ```js
   exports.customRest = {
