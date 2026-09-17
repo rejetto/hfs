@@ -1588,7 +1588,7 @@ describe('sessions', () => {
             for (const veto of ['message', 'prevent', 'stop']) {
                 const jar = {}
                 await reqApi('login', { username, password, veto },
-                    { status: 401, re: veto === 'message' ? /invalid OTP/ : /Login denied/ }, { jar })()
+                    { status: 401, re: veto === 'message' ? /^invalid OTP$/ : /^Login denied$/ }, { jar })()
                 await reqApi('refresh_session', {}, x => x?.username === '', { jar })()
             }
             const emptyJar = {}
@@ -1603,13 +1603,13 @@ describe('sessions', () => {
             const { salt, pubKey } = await reqApi('loginSrp1', { username }, 200, { jar: srpJar })()
             const client = await srpClientPart(srp, username, password, salt, pubKey)
             await reqApi('loginSrp2', { pubKey: String(client.A), proof: String(client.M1), veto: 'message' },
-                { status: 401, re: /invalid OTP/ }, { jar: srpJar })()
+                { status: 401, re: /^invalid OTP$/ }, { jar: srpJar })()
             await reqApi('refresh_session', {}, x => x?.username === '', { jar: srpJar })()
-            await req('/for-admins/?veto=message', { status: 401, re: /invalid OTP/ }, { auth, jar: {} })()
-            await req('/for-admins/?veto=message', { status: 401, re: /invalid OTP/ },
+            await req('/for-admins/?veto=message', { status: 401, re: /^invalid OTP$/ }, { auth, jar: {} })()
+            await req('/for-admins/?veto=message', { status: 401, re: /^invalid OTP$/ },
                 { auth, jar: {}, method: 'PROPFIND' })()
             await req('/for-admins/?login=' + auth + '&veto=message',
-                { status: 401, re: /invalid OTP/ }, { jar: {}, noRedirect: true })()
+                { status: 401, re: /^invalid OTP$/ }, { jar: {}, noRedirect: true })()
             await reqApi('_veto_ready', {}, x => x?.errors === 0, adminReq)()
         }
         finally {

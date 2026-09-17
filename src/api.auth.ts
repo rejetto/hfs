@@ -56,7 +56,7 @@ export const authApis = {
         }
         catch (e) {
             events.emit('failedLogin', { ctx, username, via: 'api' })
-            return new ApiError(HTTP_UNAUTHORIZED, String(e))
+            return new ApiError(HTTP_UNAUTHORIZED, e)
         }
         return {
             redirect: ctx.state.account?.redirect,
@@ -138,7 +138,7 @@ export const authApis = {
             ctx.logExtra({ u: username })
             ctx.state.dontLog = false // log even if log_api is false
             events.emit('failedLogin', { ctx, username })
-            return new ApiError(HTTP_UNAUTHORIZED, e ? String(e) : undefined)
+            return new ApiError(HTTP_UNAUTHORIZED, e)
         }
         finally {
             delete ongoingLogins[sid]
