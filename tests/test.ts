@@ -1375,6 +1375,28 @@ describe('webdav', () => {
             await rmAny(destPath)
         }
     })
+    test('webdav.proppatch preserves hexadecimal directory attributes', { skip: process.platform !== 'win32' }, async () => {
+        const uri = `${UPLOAD_ROOT}wd-attributes-${randomId(6)}`
+        const body = `<D:propertyupdate xmlns:D="DAV:" xmlns:Z="urn:schemas-microsoft-com:">
+            <D:set><D:prop><Z:Win32FileAttributes>00000010</Z:Win32FileAttributes></D:prop></D:set>
+        </D:propertyupdate>`
+        const headers = { 'user-agent': WEBDAV_UA }
+        try {
+            await req(uri, 201, { method: 'MKCOL', auth, jar, headers })()
+            await req(uri, (data, res) => res.statusCode === 207 && /HTTP\/1\.1 200 OK/.test(data), {
+                method: 'PROPPATCH', auth, jar,
+                headers: { ...headers, 'content-type': 'text/xml', 'content-length': Buffer.byteLength(body) },
+                body,
+            })()
+            await req(uri, 207, { method: 'PROPFIND', auth, jar, headers: { ...headers, depth: '0' } })()
+            const fileUri = `${uri}/test.txt`
+            await webdavUpload(fileUri, x => x?.uri === fileUri, 'roundtrip')()
+            await req(fileUri, data => data === 'roundtrip', { auth, jar, headers })()
+        }
+        finally {
+            await rmAny(uploadUriToPath(uri))
+        }
+    })
     test('webdav.proppatch requires upload permission for timestamp changes', req('/f1/f2/alfa.txt', data =>
         /<D:Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 403 Forbidden/.test(data), {
         method: 'PROPPATCH',

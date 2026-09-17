@@ -38,7 +38,7 @@ const WEBDAV_HINT_HEADERS = ['depth', 'destination', 'overwrite', 'translate', '
 const KNOWN_UA = /webdav|miniredir|davclnt|microsoft office|ms-office/i
 const LOCK_DEFAULT_SECONDS = 3600
 const LOCK_MAX_SECONDS = DAY / 1000
-const xmlParser = new XMLParser({ ignoreAttributes: false, removeNSPrefix: true, trimValues: true })
+const xmlParser = new XMLParser({ ignoreAttributes: false, removeNSPrefix: true, trimValues: true, parseTagValue: false }) // don't parse values, to preserve leading zeros so Windows file attributes are recognized as hexadecimal
 const PROPPATCH_PROTECTED_LIVE_PROPS = new Set([
     'creationdate', 'displayname', 'getcontentlanguage', 'getcontentlength', 'getcontenttype',
     'getetag', 'getlastmodified', 'lockdiscovery', 'resourcetype', 'supportedlock',
