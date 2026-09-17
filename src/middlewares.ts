@@ -115,6 +115,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     // calculate these once and for all
     ctx.state.connection = socket2connection(ctx.socket)!
     // explicit credentials and existing sessions must take precedence, so a matching IP cannot override a chosen account
+    let via: 'url' | 'header' | 'net' | undefined
     let a = await urlLogin() || await getHttpAccount() || !s?.username && autoLogin()
     const loggedInNotBySession = a
     ctx.state.account = a ||= getAccount(s?.username, false) // with least precedence, we consider session
@@ -124,7 +125,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
         else if (loggedInNotBySession) {
             try {
                 if (a.username)
-                    await setLoggedIn(ctx, a.username)
+                    await setLoggedIn(ctx, a.username, via)
             }
             catch (e) {
                 events.emit('failedLogin', { ctx, username: a.username, via: ctx.query.login ? 'url' : ctx.get('authorization') ? 'header' : undefined })
@@ -140,6 +141,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     await next()
 
     function urlLogin() {
+        via = 'url'
         const { login }  = ctx.query
         if (!login) return
         const [u, p] = splitAt(':', String(login))
@@ -148,6 +150,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     }
 
     function getHttpAccount() {
+        via = 'header'
         const b64 = allowAuthorizationHeader.get() && ctx.get('authorization')?.split(' ')[1]
         if (!b64) return
         try {
@@ -159,6 +162,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     }
 
     function autoLogin() {
+        via = 'net'
         // keep the mask direct so group inheritance cannot make identity depend on account order
         return Object.values(accounts.get()).find(a =>
             accountCanLogin(a) && a.auto_login_net && netMatches(ctx.ip, a.auto_login_net, true))

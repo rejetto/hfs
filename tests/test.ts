@@ -1570,8 +1570,9 @@ describe('sessions', () => {
             function onError() { errors++ }
             app.on('error', onError)
             api.events.on('finalizingLogin', () => '')
-            api.events.on('finalizingLogin', async ({ username, inputs }, event) => {
+            api.events.on('finalizingLogin', async ({ username, inputs, via }, event) => {
                 if (username !== username.toLowerCase()) return 'non-canonical username'
+                if (inputs.expectedVia && via !== inputs.expectedVia) return 'wrong login origin'
                 if (inputs.veto === 'message') return 'invalid OTP'
                 if (inputs.veto === 'empty') return ''
                 if (inputs.veto === 'prevent') event.preventDefault()
@@ -1591,6 +1592,9 @@ describe('sessions', () => {
                     { status: 401, re: veto === 'message' ? /invalid OTP/ : /Login denied/ }, { jar })()
                 await reqApi('refresh_session', {}, x => x?.username === '', { jar })()
             }
+            await reqApi('login', { username, password, expectedVia: 'body' }, 200, { jar: {} })()
+            await req(API + 'login?' + new URLSearchParams({ username, password, expectedVia: 'url' }),
+                200, { jar: {}, headers: { 'x-hfs-anti-csrf': '1' } })()
             const emptyJar = {}
             await reqApi('login', { username, password, veto: 'empty' }, 200, { jar: emptyJar })()
             await reqApi('refresh_session', {}, x => x?.username === username, { jar: emptyJar })()

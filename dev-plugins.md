@@ -771,7 +771,10 @@ This section is still partially documented, and you may need to have a look at t
   - async supported
   - return: `true` to consider authentication done
 - `finalizingLogin`
-  - parameters: { ctx, username, inputs }
+  - parameters: { ctx, username, inputs, via? }
+    - via: `'body'`, `'url'`, `'header'` (password in the specified part of the request), `'srp'` (SRP was used), or `'net'` (`auto_login_net`)
+      - identifies the actual login path, not just credentials present in the request
+      - may be absent for plugins calling `setLoggedIn` without specifying it
     - username: canonical account name
     - inputs: object
       - merge of all inputs both from body and URL
@@ -1238,8 +1241,10 @@ If you want to override a text regardless of the language, use the special langu
   - backend events: logRotated
   - listDiskFolder gets "hidden" parameter
   - backend event uploadFinished: fullPath corresponds to the path that was actually written
-- 13.4 (v3.3.0)
+- 13.4 (v3.3.1)
   - exports.disableDefaultStyle
   - frontend event: validatePassword
   - `api.onServer` callbacks can return a cleanup function
   - `finalizingLogin`: canonical username and login veto with an optional error message
+- 13.5 (v3.3.2)
+  - `finalizingLogin`: `via` identifies the login origin
