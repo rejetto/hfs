@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Inclure les fichiers cachés",
-        "Uploaded frontend languages": "Langues de l’interface publique importées",
+        "Uploaded languages": "Langues importées",
+        "Interface": "Interface",
+        "Frontend": "Publique",
+        "Admin": "Administration",
         "(already invalidated sessions before {timestamp})": "(séances déjà invalidées avant {timestamp})",
         "total_size": "Total: {totalSize}",
         " (aborted)": " (avorté)",

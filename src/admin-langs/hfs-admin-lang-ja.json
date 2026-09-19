@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "隠しファイルを含める",
-        "Uploaded frontend languages": "アップロードされたフロントエンド言語",
+        "Uploaded languages": "アップロードされた言語",
+        "Interface": "インターフェース",
+        "Frontend": "フロントエンド",
+        "Admin": "管理",
         "(already invalidated sessions before {timestamp})": "（以前にセッションをすでに無効にしました {timestamp}）",
         "total_size": "合計： {totalSize}",
         " (aborted)": " (中止)",

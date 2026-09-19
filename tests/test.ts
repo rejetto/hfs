@@ -115,6 +115,50 @@ describe('http utilities', () => {
 })
 
 describe('languages', () => {
+    test('uploaded admin languages support selection, replacement and isolated deletion', async () => {
+        const code = `zz-${randomId(6).toLowerCase()}`
+        const adminReq = { auth, jar: {} }
+        const original = await reqApi('get_config', { only: ['admin_lang'] }, 200, adminReq)()
+        const frontFile = `hfs-lang-${code}.json`
+        const adminFile = `hfs-admin-lang-${code}.json`
+        const frontMarker = `frontend-${randomId(8)}`
+        const adminMarker = `admin-${randomId(8)}`
+        const updatedMarker = `updated-${randomId(8)}`
+        try {
+            await reqApi('add_langs', { langs: {
+                [frontFile]: JSON.stringify({ translate: { Home: frontMarker } }),
+                [adminFile]: JSON.stringify({ translate: { Home: adminMarker } }),
+            } }, 200, adminReq)()
+            await reqApi('get_langs', {}, res =>
+                Boolean(_.find(res.list, { code, admin: true, embedded: false }))
+                && Boolean(_.find(res.list, { code, admin: false, embedded: false })), adminReq)()
+            await reqApi('set_config', { values: { admin_lang: code } }, 200, adminReq)()
+            await reqApi('get_config', { only: ['admin_lang'] }, res => res.admin_lang === code, adminReq)()
+            if (JSON.parse(readFileSync(resolve(__dirname, 'work', adminFile), 'utf8')).translate.Home !== adminMarker)
+                throw Error('admin catalog was not stored')
+            await reqApi('add_langs', { langs: {
+                [adminFile]: JSON.stringify({ translate: { Home: updatedMarker } }),
+            } }, 200, adminReq)()
+            if (JSON.parse(readFileSync(resolve(__dirname, 'work', adminFile), 'utf8')).translate.Home !== updatedMarker)
+                throw Error('admin catalog was not replaced')
+            await reqApi('del_lang', { code, admin: true }, 200, adminReq)()
+            if (existsSync(resolve(__dirname, 'work', adminFile)))
+                throw Error('admin catalog was not deleted')
+            if (JSON.parse(readFileSync(resolve(__dirname, 'work', frontFile), 'utf8')).translate.Home !== frontMarker)
+                throw Error('admin deletion changed the frontend catalog')
+            await reqApi('get_langs', {}, res => !_.find(res.list, { code, admin: true })
+                && Boolean(_.find(res.list, { code, admin: false })), adminReq)()
+            await reqApi('del_lang', { code }, 200, adminReq)()
+            await reqApi('add_langs', { langs: { 'hfs-admin-lang-../bad.json': '{"translate":{}}' } }, 400, adminReq)()
+            await reqApi('add_langs', { langs: { [adminFile]: '{}' } }, 406, adminReq)()
+            await reqApi('del_lang', { code: '../bad', admin: true }, 400, adminReq)()
+        }
+        finally {
+            await reqApi('set_config', { values: original }, 200, adminReq)()
+            for (const file of [frontFile, adminFile])
+                await rm(resolve(__dirname, 'work', file), { force: true })
+        }
+    })
     test('unwatch cancels pending language load', async () => {
         const marker = `watch-load-${randomId(6)}`
         const file = resolve(__dirname, 'work/hfs-lang-zz.json')

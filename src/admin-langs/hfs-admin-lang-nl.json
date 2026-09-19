@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Verborgen bestanden opnemen",
-        "Uploaded frontend languages": "Geüploade frontendtalen",
+        "Uploaded languages": "Geüploade talen",
+        "Interface": "Interface",
+        "Frontend": "Frontend",
+        "Admin": "Beheer",
         "Net": "Netwerk",
         "Front-end": "Frontend",
         "Uploads": "Uploads",

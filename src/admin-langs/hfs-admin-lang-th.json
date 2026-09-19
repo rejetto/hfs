@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "รวมไฟล์ที่ซ่อนอยู่",
-        "Uploaded frontend languages": "ภาษาส่วนติดต่อผู้ใช้ที่อัปโหลด",
+        "Uploaded languages": "ภาษาที่อัปโหลด",
+        "Interface": "ส่วนติดต่อ",
+        "Frontend": "ผู้ใช้",
+        "Admin": "ผู้ดูแลระบบ",
         "Net": "เครือข่าย",
         "Front-end": "ส่วนหน้า",
         "Uploads": "การอัปโหลด",

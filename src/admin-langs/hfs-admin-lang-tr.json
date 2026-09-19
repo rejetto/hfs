@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Gizli dosyaları dahil et",
-        "Uploaded frontend languages": "Yüklenen ön yüz dilleri",
+        "Uploaded languages": "Yüklenen diller",
+        "Interface": "Arayüz",
+        "Frontend": "Ön yüz",
+        "Admin": "Yönetim",
         "Net": "Ağ",
         "Front-end": "Ön yüz",
         "Uploads": "Yüklemeler",

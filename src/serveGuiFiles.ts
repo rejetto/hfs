@@ -20,7 +20,7 @@ import { getAllSections, getSection } from './customHtml'
 import _ from 'lodash'
 import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
-import { adminLang, adminLangs, getAdminLangData } from './adminLang'
+import { adminLang, getAdminLangs, getAdminLangData } from './adminLang'
 import { dontOverwriteUploading } from './upload'
 import { customizedIcons, CustomizedIcons } from './icons'
 import { getProxyDetected } from './middlewares'
@@ -124,7 +124,8 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
         return !_.isEmpty(configs) && [name, configs]
     })))
     const timestamp = await getFaviconTimestamp()
-    const lang = isFrontend ? await getLangData(ctx) : await getAdminLangData(ctx)
+    const adminLangs = isFrontend ? [] : await getAdminLangs()
+    const lang = isFrontend ? await getLangData(ctx) : await getAdminLangData(ctx, adminLangs)
     let group = 0 // this represents the loading-group: all plugins with the same group can be loaded concurrently
     const loadScripts = onlyTruthy(mapPlugins((p, id) => {
         const js = p.frontend_js?.map(f => f.includes('//') ? f : pub + id + '/' + f)

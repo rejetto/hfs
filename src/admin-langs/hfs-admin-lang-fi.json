@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Sisällytä piilotetut tiedostot",
-        "Uploaded frontend languages": "Ladatut käyttöliittymän kielet",
+        "Uploaded languages": "Ladatut kielet",
+        "Interface": "Käyttöliittymä",
+        "Frontend": "Käyttäjä",
+        "Admin": "Ylläpito",
         "Net": "Verkko",
         "Front-end": "Käyttöliittymä",
         "Uploads": "Lähetykset",

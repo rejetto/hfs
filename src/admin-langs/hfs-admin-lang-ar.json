@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "تضمين الملفات المخفية",
-        "Uploaded frontend languages": "لغات الواجهة الأمامية المرفوعة",
+        "Uploaded languages": "اللغات المرفوعة",
+        "Interface": "الواجهة",
+        "Frontend": "واجهة المستخدم",
+        "Admin": "الإدارة",
         "Net": "الشبكة",
         "Front-end": "الواجهة الأمامية",
         "Uploads": "التحميلات",

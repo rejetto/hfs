@@ -30,6 +30,7 @@ To run tests
 - Docker bootstrap: build with `docker build --build-arg HFS_VERSION=3.3.0 -t hfs:bootstrap-test .`, then run `HFS_DOCKER_TEST_IMAGE=hfs:bootstrap-test node --import tsx --test tests/docker-bootstrap.test.ts` (requires Docker; uses temporary containers and configuration directories).
 - `npx playwright test` (UI tests)
 - For the DataTable component regression, start Admin with `npm run start --workspace=admin -- --port 3112 --strictPort`, then run `PLAYWRIGHT_HTML_OPEN=never ADMIN_DATA_TABLE_URL=http://127.0.0.1:3112/#/monitoring npx playwright test admin-data-table --workers=1 --project=chromium`.
+- With the same Vite server, test language uploads, deletion, and desktop/mobile layout using `PLAYWRIGHT_HTML_OPEN=never ADMIN_LANGUAGES_URL=http://127.0.0.1:3112/#/language npx playwright test admin-languages --workers=1 --project=chromium`. The test mocks the language APIs and is skipped without `ADMIN_LANGUAGES_URL`.
 - With the same Vite server, test FileField and its real picker using `PLAYWRIGHT_HTML_OPEN=never ADMIN_FILE_FIELD_URL=http://127.0.0.1:3112/#/monitoring npx playwright test admin-file-field --workers=1 --project=chromium`. The test serves a local filesystem-list fixture and closes it afterwards.
 
 

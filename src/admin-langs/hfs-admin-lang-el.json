@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Συμπερίληψη κρυφών αρχείων",
-        "Uploaded frontend languages": "Μεταφορτωμένες γλώσσες περιβάλλοντος χρήστη",
+        "Uploaded languages": "Μεταφορτωμένες γλώσσες",
+        "Interface": "Περιβάλλον",
+        "Frontend": "Χρήστη",
+        "Admin": "Διαχείρισης",
         "Net": "Δίκτυο",
         "Front-end": "Διεπαφή",
         "Uploads": "Μεταφορτώσεις",

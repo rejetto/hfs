@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Включване на скритите файлове",
-        "Uploaded frontend languages": "Качени езици на потребителския интерфейс",
+        "Uploaded languages": "Качени езици",
+        "Interface": "Интерфейс",
+        "Frontend": "Потребителски",
+        "Admin": "Административен",
         "Net": "Мрежа",
         "Front-end": "Интерфейс",
         "Uploads": "Качвания",

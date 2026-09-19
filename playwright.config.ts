@@ -13,6 +13,7 @@ const adminLogicTests = [
   '**/admin-file-field.spec.ts',
   '**/admin-file-form.spec.ts',
   '**/admin-home.spec.ts',
+  '**/admin-languages.spec.ts',
 ]
 
 const snapshotBranch = getSnapshotBranch()

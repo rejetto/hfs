@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Bao gồm các tệp ẩn",
-        "Uploaded frontend languages": "Ngôn ngữ giao diện người dùng đã tải lên",
+        "Uploaded languages": "Ngôn ngữ đã tải lên",
+        "Interface": "Giao diện",
+        "Frontend": "Người dùng",
+        "Admin": "Quản trị",
         "Net": "Mạng",
         "Front-end": "Giao diện",
         "Uploads": "Tải lên",

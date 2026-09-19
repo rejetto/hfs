@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Incluir arquivos ocultos",
-        "Uploaded frontend languages": "Idiomas do frontend enviados",
+        "Uploaded languages": "Idiomas enviados",
+        "Interface": "Interface",
+        "Frontend": "Frontend",
+        "Admin": "Administração",
         "Net": "Rede",
         "Front-end": "Front-end",
         "Uploads": "Uploads",

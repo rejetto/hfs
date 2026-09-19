@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Incluir archivos ocultos",
-        "Uploaded frontend languages": "Idiomas del frontend cargados",
+        "Uploaded languages": "Idiomas cargados",
+        "Interface": "Interfaz",
+        "Frontend": "Frontend",
+        "Admin": "Administración",
         "(already invalidated sessions before {timestamp})": "(sesiones ya invalidadas antes {timestamp})",
         "total_size": "Total: {totalSize}",
         " (aborted)": " (abortado)",

@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Sertakan fail tersembunyi",
-        "Uploaded frontend languages": "Bahasa antara muka pengguna yang dimuat naik",
+        "Uploaded languages": "Bahasa yang dimuat naik",
+        "Interface": "Antara muka",
+        "Frontend": "Pengguna",
+        "Admin": "Pentadbir",
         "Net": "Rangkaian",
         "Front-end": "Antara muka",
         "Uploads": "Muat naik",

@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Rejtett fájlok megjelenítése",
-        "Uploaded frontend languages": "Feltöltött felhasználói felületi nyelvek",
+        "Uploaded languages": "Feltöltött nyelvek",
+        "Interface": "Felület",
+        "Frontend": "Felhasználói",
+        "Admin": "Adminisztrációs",
         "Net": "Hálózat",
         "Front-end": "Felület",
         "Uploads": "Feltöltések",

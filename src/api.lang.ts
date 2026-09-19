@@ -8,6 +8,8 @@ import { HTTP_BAD_REQUEST, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './cons
 import { apiAssertTypes, tryJson } from './misc'
 import { code2file, file2code, normalizeLangCode } from './lang'
 import EMBEDDED_TRANSLATIONS from './langs/embedded'
+import ADMIN_TRANSLATIONS from './admin-langs/embedded'
+import { invalidateAdminLang } from './adminLang'
 import { SendListReadable } from './SendList'
 
 const apis: ApiHandlers = {
@@ -15,26 +17,29 @@ const apis: ApiHandlers = {
     get_langs() {
         return new SendListReadable({
             doAtStart: async list => {
-                for await (let name of glob.stream(code2file('*'))) {
-                    name = String(name)
-                    const code = file2code(name)
-                    try {
-                        const data = JSON.parse(await readFile(name, 'utf8'))
-                        list.add({ code, ..._.omit(data, 'translate') })
+                for (const admin of [false, true]) {
+                    for await (const name of glob.stream(code2file('*', admin))) {
+                        const code = file2code(String(name), admin)
+                        try {
+                            const data = JSON.parse(await readFile(String(name), 'utf8'))
+                            list.add({ ..._.omit(data, 'translate'), code, admin, embedded: false })
+                        }
+                        catch {}
                     }
-                    catch {}
+                    for (const [code, data] of Object.entries(admin ? ADMIN_TRANSLATIONS : EMBEDDED_TRANSLATIONS))
+                        list.add({ ..._.omit(data, 'translate'), code, admin, embedded: true })
                 }
-                for (const [code, data] of Object.entries(EMBEDDED_TRANSLATIONS))
-                    list.add({ code, embedded: true, ..._.omit(data, 'translate') })
                 list.close()
             }
         })
     },
 
-    async del_lang({ code }) {
+    async del_lang({ code, admin=false }) {
+        apiAssertTypes({ string: { code }, boolean: { admin } })
         validateCode(code)
         try {
-            await rm(code2file(code))
+            await rm(code2file(code, admin))
+            if (admin) invalidateAdminLang(code.toLowerCase())
             return {}
         }
         catch (e: any) {
@@ -45,14 +50,16 @@ const apis: ApiHandlers = {
     async add_langs({ langs }) {
         apiAssertTypes({ object: { langs } })
         for (let [code, content] of Object.entries(langs)) {
-            code = file2code(code)
+            const admin = code.startsWith('hfs-admin-lang-')
+            code = file2code(code, admin)
             validateCode(code)
-            const fn = code2file(code)
+            const fn = code2file(code, admin)
             const s = String(content)
             const o = tryJson(s)
             if (!o?.translate)
                 return new ApiError(HTTP_NOT_ACCEPTABLE, "bad content for file " + fn)
             await writeFile(fn, s, 'utf8')
+            if (admin) invalidateAdminLang(code.toLowerCase())
         }
         return {}
     }

@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Įtraukti paslėptus failus",
-        "Uploaded frontend languages": "Įkeltos naudotojo sąsajos kalbos",
+        "Uploaded languages": "Įkeltos kalbos",
+        "Interface": "Sąsaja",
+        "Frontend": "Naudotojo",
+        "Admin": "Administravimo",
         "Net": "Tinklas",
         "Front-end": "Sąsaja",
         "Uploads": "Įkėlimai",

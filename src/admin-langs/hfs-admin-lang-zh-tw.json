@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "包含隱藏檔案",
-        "Uploaded frontend languages": "已上傳的前端語言",
+        "Uploaded languages": "已上傳的語言",
+        "Interface": "介面",
+        "Frontend": "前端",
+        "Admin": "管理",
         "Net": "網路",
         "Front-end": "前端",
         "Uploads": "上傳",

@@ -6,6 +6,62 @@ import { ADMIN_URL, clearUploads, clickAdminMenu, clickIconBtn, gotoFrontend, lo
 // this test is separated to run serially, as it will modify folder timestamp for a few seconds, during which other tests may fail
 test.describe.configure({ mode: 'serial' }) // to disconnect the upload consistently, i need only 1 upload at a time
 
+test('uploaded admin languages render independently and refresh after replacement and deletion', async ({ page }, testInfo) => {
+    // admin_lang is global, so only one project may change it while the other browsers run
+    test.skip(testInfo.project.name !== 'chromium')
+    const code = `zz-${randomUUID().slice(0, 8)}`
+    const adminFile = `hfs-admin-lang-${code}.json`
+    const frontFile = `hfs-lang-${code}.json`
+    const adminMarker = 'Custom Admin Home'
+    const updatedMarker = 'Updated Admin Home'
+    const frontMarker = 'Custom Frontend Home'
+    await loginAdmin(page)
+    await expect(page.getByRole('link', { name: /^Home/ })).toBeVisible()
+    const original = await api('get_config', { only: ['admin_lang'] })
+    try {
+        await api('add_langs', { langs: {
+            [adminFile]: JSON.stringify({ translate: { Home: adminMarker } }),
+            [frontFile]: JSON.stringify({ translate: { Home: frontMarker, home: frontMarker } }),
+        } })
+        await api('set_config', { values: { admin_lang: code } })
+        await page.reload()
+        await expect(page.getByRole('link', { name: new RegExp('^' + adminMarker) })).toBeVisible()
+        expect(await page.evaluate(() => JSON.stringify((window as any).HFS.lang))).not.toContain(frontMarker)
+        await gotoFrontend(page, `${FRONTEND_URL}?lang=${code}`)
+        await expect(page.locator('#breadcrumb-home')).toHaveAccessibleName(frontMarker)
+        expect(await page.evaluate(() => JSON.stringify((window as any).HFS.lang))).not.toContain(adminMarker)
+
+        await api('add_langs', { langs: { [adminFile]: JSON.stringify({ translate: { Home: updatedMarker } }) } })
+        await page.goto(ADMIN_URL)
+        await expect(page.getByRole('link', { name: new RegExp('^' + updatedMarker) })).toBeVisible()
+        expect(await page.evaluate(() => JSON.stringify((window as any).HFS.lang))).not.toContain(adminMarker)
+        await api('set_config', { values: { admin_lang: '' } })
+        await page.route('**/~/admin/', route => route.continue({
+            headers: { ...route.request().headers(), 'accept-language': code },
+        }))
+        await page.reload()
+        await expect(page.getByRole('link', { name: new RegExp('^' + updatedMarker) })).toBeVisible()
+        await api('set_config', { values: { admin_lang: code } })
+        await api('del_lang', { code, admin: true })
+        await page.reload()
+        await expect(page.getByRole('link', { name: /^Home/ })).toBeVisible()
+        expect(await page.evaluate(() => JSON.stringify((window as any).HFS.lang))).not.toContain(updatedMarker)
+    }
+    finally {
+        await api('set_config', { values: original })
+        for (const file of [adminFile, frontFile])
+            fs.rmSync(`tests/work/${file}`, { force: true })
+    }
+
+    async function api(name: string, data: object) {
+        const response = await page.request.post(`${FRONTEND_URL}~/api/${name}`, {
+            headers: { 'x-hfs-anti-csrf': '1' }, data,
+        })
+        expect(response.ok()).toBe(true)
+        return response.json()
+    }
+})
+
 test('cancelled internal drag does not affect a later external drop', async ({ page, browserName }, testInfo) => {
     if (browserName !== 'chromium') return
     const fixtureName = `cancelled-drag-${testInfo.workerIndex}`

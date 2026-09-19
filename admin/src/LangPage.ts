@@ -7,7 +7,7 @@ import { DataTable } from './DataTable'
 import { Box, Typography } from '@mui/material'
 import { Delete, Upload } from '@mui/icons-material'
 import { CFG, getHFS, readFile, selectFiles } from './misc'
-import { fillFlexParentSx, IconBtn } from './mui'
+import { fillFlexParentSx, IconBtn, wikiLink } from './mui'
 import { PageProps } from './App'
 import _ from 'lodash'
 import { alertDialog, toast } from './dialog'
@@ -15,7 +15,7 @@ import { Field, SelectField } from '@hfs/mui-grid-form';
 
 export default function LangPage({ setTitleSide }: PageProps) {
     const { list, error, connecting, initializing, reload } = useApiList('get_langs')
-    const langs = useMemo(() => _.uniq(['en', ...list.map(x => x.code)]), [list])
+    const langs = useMemo(() => _.uniq(['en', ...list.filter(x => !x.admin).map(x => x.code)]), [list])
     setTitleSide(null)
     return h(Fragment, {},
         h(Box, { sx: { mt: 1, maxWidth: '50em', flex: 1, ...fillFlexParentSx } },
@@ -23,15 +23,21 @@ export default function LangPage({ setTitleSide }: PageProps) {
                 h(Box, { sx: { flex: 1 } }, h(FrontendLanguage, { langs })),
                 h(Box, { sx: { flex: 1 } }, h(AdminLanguage)),
             ),
-            h(Typography<'h2'>, { component: 'h2', variant: 'subtitle1', sx: { mb: 1 } }, t`Uploaded frontend languages`),
+            h(Typography<'h2'>, { component: 'h2', variant: 'subtitle1', sx: { mb: 1 } }, t`Uploaded languages`),
+            h(Typography, { variant: 'body2', sx: { mb: 1 } }, wikiLink('Translation#hfs-34-beta', t`See the documentation`)),
             h(DataTable, {
                 error,
                 loading: connecting,
                 initializing,
-                rows: useMemo(() => _.sortBy(list.filter(x => !x.embedded), 'code'), [list]),
+                rows: useMemo(() => _.sortBy(list.filter(x => !x.embedded), 'code', 'admin'), [list]),
                 hideFooter: true,
                 fillFlex: true,
                 columns: [
+                    {
+                        field: 'admin', headerName: t`Interface`,
+                        width: 110,
+                        valueGetter: (_value, row) => row.admin ? t`Admin` : t`Frontend`,
+                    },
                     {
                         field: 'code', headerName: t`Code`,
                         width: 110,
@@ -39,7 +45,7 @@ export default function LangPage({ setTitleSide }: PageProps) {
                     },
                     {
                         field: 'language', headerName: t`Language`,
-                        width: 180,
+                        flex: 1, minWidth: 100,
                         valueGetter: (_value, row) => languageName(row.code),
                     },
                     {
@@ -61,8 +67,9 @@ export default function LangPage({ setTitleSide }: PageProps) {
                         title: t`Delete`,
                         confirm: t("Delete language code \"{code}\"?", { code: row.code }),
                         async onClick() {
-                            await apiCall('del_lang', _.pick(row, 'code'))
-                            reload()
+                            await apiCall('del_lang', _.pick(row, 'code', 'admin'))
+                            if (row.admin) location.reload()
+                            else reload()
                             toast(t`Deleted`)
                         }
                     }),
@@ -85,6 +92,9 @@ export default function LangPage({ setTitleSide }: PageProps) {
                 await alertDialog(failed.join('.\n'), 'error')
             else
                 toast(t`Loaded`)
+            // Admin translations and available languages are injected when the page loads
+            if (Array.from(list).some(f => f.name.startsWith('hfs-admin-lang-')))
+                location.reload()
         }, { accept: '.json' })
     }
 }
@@ -118,7 +128,8 @@ function FrontendLanguage({ langs }: { langs: string[] }) {
 }
 
 function AdminLanguage() {
-    const current = getHFS().adminLang || ''
+    const langs: string[] = getHFS().adminLangs
+    const current = langs.includes(getHFS().adminLang) ? getHFS().adminLang : ''
     return h(SelectField as Field<string>, {
         fullWidth: true,
         size: 'small',
@@ -127,7 +138,7 @@ function AdminLanguage() {
         value: current,
         options: [
             { value: '', label: t`Respect browser language` },
-            ..._.sortBy(getHFS().adminLangs).map((code: string) => ({ value: code, label: `${code.toUpperCase()} — ${languageName(code)}` }))
+            ..._.sortBy(langs).map((code: string) => ({ value: code, label: `${code.toUpperCase()} — ${languageName(code)}` }))
         ],
         async onChange(value) {
             await apiCall('set_config', { values: { [CFG.admin_lang]: value } })

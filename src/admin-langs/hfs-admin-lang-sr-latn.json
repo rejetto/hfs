@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Uključi skrivene datoteke",
-        "Uploaded frontend languages": "Otpremljeni jezici korisničkog interfejsa",
+        "Uploaded languages": "Otpremljeni jezici",
+        "Interface": "Interfejs",
+        "Frontend": "Korisnički",
+        "Admin": "Administratorski",
         "Net": "Mreža",
         "Front-end": "Interfejs",
         "Uploads": "Otpremanja",

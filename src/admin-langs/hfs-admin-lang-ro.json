@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Include fișierele ascunse",
-        "Uploaded frontend languages": "Limbi încărcate pentru interfața utilizatorului",
+        "Uploaded languages": "Limbi încărcate",
+        "Interface": "Interfață",
+        "Frontend": "Utilizator",
+        "Admin": "Administrare",
         "Net": "Rețea",
         "Front-end": "Interfață",
         "Uploads": "Încărcări",

@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "包含隐藏文件",
-        "Uploaded frontend languages": "已上传的前端语言",
+        "Uploaded languages": "已上传的语言",
+        "Interface": "界面",
+        "Frontend": "前端",
+        "Admin": "管理",
         "(already invalidated sessions before {timestamp})": "（之前已经失效的会话 {timestamp}）",
         "total_size": "全部的： {totalSize}",
         " (aborted)": " （已中止）",

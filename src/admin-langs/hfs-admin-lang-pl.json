@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Uwzględnij ukryte pliki",
-        "Uploaded frontend languages": "Przesłane języki interfejsu użytkownika",
+        "Uploaded languages": "Przesłane języki",
+        "Interface": "Interfejs",
+        "Frontend": "Użytkownika",
+        "Admin": "Administracyjny",
         "Net": "Sieć",
         "Front-end": "Interfejs",
         "Uploads": "Przesyłanie",

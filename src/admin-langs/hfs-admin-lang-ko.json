@@ -3,7 +3,10 @@
     "version": 1,
     "translate": {
         "Include hidden files": "숨김 파일 포함",
-        "Uploaded frontend languages": "업로드한 프런트엔드 언어",
+        "Uploaded languages": "업로드한 언어",
+        "Interface": "인터페이스",
+        "Frontend": "프런트엔드",
+        "Admin": "관리자",
         "Net": "네트워크",
         "Front-end": "프런트엔드",
         "Uploads": "업로드",

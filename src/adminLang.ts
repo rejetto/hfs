@@ -7,32 +7,40 @@ import { defineConfig } from './config'
 import { expiringCache } from './expiringCache'
 import ADMIN_TRANSLATIONS from './admin-langs/embedded'
 import { EMBEDDED_LANGUAGE } from './const'
-import { normalizeLangCode } from './lang'
+import { code2file, file2code, normalizeLangCode } from './lang'
+import glob from 'fast-glob'
+import _ from 'lodash'
 
-const PREFIX = 'hfs-admin-lang-'
-const SUFFIX = '.json'
+export async function getAdminLangs() {
+    const files = await glob(code2file('*', true))
+    return _.uniq([...Object.keys(ADMIN_TRANSLATIONS), ...files.map(name => file2code(name, true))
+        .filter(code => normalizeLangCode(code) === code)])
+}
 
-export const adminLangs = Object.keys(ADMIN_TRANSLATIONS)
-export const adminLang = defineConfig(CFG.admin_lang, '', code =>
-    adminLangs.includes(code) ? code : '')
+export const adminLang = defineConfig(CFG.admin_lang, '', normalizeLangCode)
 
 const cache = expiringCache<Dict>(3_000)
-export function getAdminLangData(ctx?: Koa.Context) {
-    const code = adminLang.compiled() || browserAdminLang(ctx) || EMBEDDED_LANGUAGE
+export function getAdminLangData(ctx: Koa.Context, langs: string[]) {
+    const configured = adminLang.compiled()
+    const code = langs.includes(configured) ? configured : browserAdminLang(ctx, langs)
     return cache.try(code, async () => ({
-        [code]: tryJson(await readFile(PREFIX + code + SUFFIX, 'utf8').catch(() => ''))
-            || ADMIN_TRANSLATIONS[code as keyof typeof ADMIN_TRANSLATIONS],
+        [code]: tryJson(await readFile(code2file(code, true), 'utf8').catch(() => ''))
+            || ADMIN_TRANSLATIONS[code as keyof typeof ADMIN_TRANSLATIONS] || ADMIN_TRANSLATIONS.en,
         ...code === EMBEDDED_LANGUAGE ? {} : { [EMBEDDED_LANGUAGE]: ADMIN_TRANSLATIONS.en },
     }))
 }
 
-function browserAdminLang(ctx?: Koa.Context) {
+export function invalidateAdminLang(code: string) {
+    cache.delete(code) // uploads and deletions must be visible immediately after the Admin reloads
+}
+
+function browserAdminLang(ctx: Koa.Context | undefined, langs: string[]) {
     const accepted = ctx?.get('Accept-Language') || ''
     for (const raw of accepted.split(',')) {
         const code = normalizeLangCode(raw)
-        if (adminLangs.includes(code)) return code
+        if (langs.includes(code)) return code
         const base = code.split('-')[0] || ''
-        if (adminLangs.includes(base)) return base
+        if (langs.includes(base)) return base
     }
     return EMBEDDED_LANGUAGE
 }
