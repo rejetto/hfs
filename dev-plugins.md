@@ -1018,7 +1018,7 @@ repository description, and plugin description. Metadata is downloaded again onl
 push date or default branch changes, or HFS is upgraded. Installed-plugin update checks remain independent
 of this catalog cache.
 
-If the name of the repository has the prefix "hfs-", it won't be displayed. Eg: "hfs-chat" will be displayed as "chat".
+If the name of the repository has the prefix "hfs-", or a suffix "-plugin", it won't be displayed. Eg: "hfs-chat" will be displayed as "chat".
 This is good way to have a clearer repository name on github, while avoiding being redundant within the context of the HFS' UI. 
 
 The files intended to be installed must go in a folder named `dist`.

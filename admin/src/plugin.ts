@@ -61,7 +61,7 @@ export async function installPluginFromResult(row: any) {
 }
 
 export function pluginName(name: string) {
-    return name.replace(/hfs-/, '')
+    return name.replace(/^hfs-|-plugin$/g, '')
 }
 
 async function installPlugin(id: string, branch?: string): Promise<any> {
