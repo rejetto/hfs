@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Sertakan fail tersembunyi",
+        "Plugin lists are cached for 5 minutes.": "Senarai pemalam dicache selama 5 minit.",
+        "Updated: {time}": "Dikemas kini: {time}",
+        "Updating…": "Mengemas kini…",
         "Uploaded languages": "Bahasa yang dimuat naik",
         "Interface": "Antara muka",
         "Frontend": "Pengguna",

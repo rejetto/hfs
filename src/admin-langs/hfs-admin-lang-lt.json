@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Įtraukti paslėptus failus",
+        "Plugin lists are cached for 5 minutes.": "Papildinių sąrašai talpykloje saugomi 5 minutes.",
+        "Updated: {time}": "Atnaujinta: {time}",
+        "Updating…": "Atnaujinama…",
         "Uploaded languages": "Įkeltos kalbos",
         "Interface": "Sąsaja",
         "Frontend": "Naudotojo",

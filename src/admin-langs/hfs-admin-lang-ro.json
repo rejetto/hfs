@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Include fișierele ascunse",
+        "Plugin lists are cached for 5 minutes.": "Listele de pluginuri sunt păstrate în cache timp de 5 minute.",
+        "Updated: {time}": "Actualizat: {time}",
+        "Updating…": "Se actualizează…",
         "Uploaded languages": "Limbi încărcate",
         "Interface": "Interfață",
         "Frontend": "Utilizator",

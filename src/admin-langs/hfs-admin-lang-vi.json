@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Bao gồm các tệp ẩn",
+        "Plugin lists are cached for 5 minutes.": "Danh sách plugin được lưu vào bộ nhớ đệm trong 5 phút.",
+        "Updated: {time}": "Đã cập nhật: {time}",
+        "Updating…": "Đang cập nhật…",
         "Uploaded languages": "Ngôn ngữ đã tải lên",
         "Interface": "Giao diện",
         "Frontend": "Người dùng",

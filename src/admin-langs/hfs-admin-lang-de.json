@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Versteckte Dateien einschließen",
+        "Plugin lists are cached for 5 minutes.": "Plugin-Listen werden 5 Minuten lang zwischengespeichert.",
+        "Updated: {time}": "Aktualisiert: {time}",
+        "Updating…": "Aktualisierung…",
         "Uploaded languages": "Hochgeladene Sprachen",
         "Interface": "Oberfläche",
         "Frontend": "Frontend",

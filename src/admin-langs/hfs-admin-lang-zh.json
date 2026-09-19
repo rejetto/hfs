@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "包含隐藏文件",
+        "Plugin lists are cached for 5 minutes.": "插件列表会缓存 5 分钟。",
+        "Updated: {time}": "更新时间：{time}",
+        "Updating…": "正在更新…",
         "Uploaded languages": "已上传的语言",
         "Interface": "界面",
         "Frontend": "前端",

@@ -25,12 +25,14 @@ been built, so their files are available in `dist` folder.
 To run tests
 - `npm run build-all`
 - `npm run test-with-server` (backend tests)
+- `node --import tsx --test tests/plugin-catalog.test.ts` (persistent plugin catalog, no server needed)
 - `node --import tsx --test tests/shutdown.test.ts` (shutdown tests, no server needed)
 - `node --import tsx --test tests/plugin-server-cleanup.test.ts` (after compiling the server; starts isolated HTTP and HTTPS servers)
 - Docker bootstrap: build with `docker build --build-arg HFS_VERSION=3.3.0 -t hfs:bootstrap-test .`, then run `HFS_DOCKER_TEST_IMAGE=hfs:bootstrap-test node --import tsx --test tests/docker-bootstrap.test.ts` (requires Docker; uses temporary containers and configuration directories).
 - `npx playwright test` (UI tests)
 - For the DataTable component regression, start Admin with `npm run start --workspace=admin -- --port 3112 --strictPort`, then run `PLAYWRIGHT_HTML_OPEN=never ADMIN_DATA_TABLE_URL=http://127.0.0.1:3112/#/monitoring npx playwright test admin-data-table --workers=1 --project=chromium`.
 - With the same Vite server, test language uploads, deletion, and desktop/mobile layout using `PLAYWRIGHT_HTML_OPEN=never ADMIN_LANGUAGES_URL=http://127.0.0.1:3112/#/language npx playwright test admin-languages --workers=1 --project=chromium`. The test mocks the language APIs and is skipped without `ADMIN_LANGUAGES_URL`.
+- With the same Vite server, test plugin catalog rendering using `ADMIN_CATALOG_URL=http://127.0.0.1:3112/ PLAYWRIGHT_HTML_OPEN=never npx playwright test admin-plugin-catalog --workers=1 --project=chromium`.
 - With the same Vite server, test list reconnections using `PLAYWRIGHT_HTML_OPEN=never ADMIN_LIST_URL=http://127.0.0.1:3112/ npx playwright test admin-list-reconnect --workers=1 --project=chromium`. The fixture simulates EventSource and time; the test is skipped without `ADMIN_LIST_URL`.
 - With the same Vite server, test FileField and its real picker using `PLAYWRIGHT_HTML_OPEN=never ADMIN_FILE_FIELD_URL=http://127.0.0.1:3112/#/monitoring npx playwright test admin-file-field --workers=1 --project=chromium`. The test serves a local filesystem-list fixture and closes it afterwards.
 

@@ -11,10 +11,11 @@ import { apiAssertTypes, HTTP_CONFLICT, HTTP_PRECONDITION_FAILED, newObj, waitFo
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { rm } from 'fs/promises'
 import {
-    downloadPlugin, getFolder2repo, readOnlineCompatiblePlugin, readOnlinePlugin, searchPlugins, downloading
+    downloadPlugin, getFolder2repo, readOnlineCompatiblePlugin, readOnlinePlugin, downloading
 } from './github'
 import { HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './const'
 import { SendListReadable } from './SendList'
+import { getPluginCatalog, searchPluginCatalog } from './pluginCatalog'
 
 const apis: ApiHandlers = {
 
@@ -135,17 +136,35 @@ const apis: ApiHandlers = {
                     }
                 })
                 if (skipInitial) return list.ready()
+                let updatedAt: number | undefined
+                let previous = new Map<string, object>()
                 try {
-                    const already = Object.values(getFolder2repo()).filter(Boolean).map(String)
-                    for await (const pl of await searchPlugins(text, { skipRepos: already })) {
+                    for await (const snapshot of getPluginCatalog()) {
+                        const already = Object.values(getFolder2repo()).filter(Boolean).map(String)
+                        const plugins = await searchPluginCatalog(snapshot, text, already)
                         if (ctx.isAborted()) return
-                        const repo = pl.repo || pl.id // .repo property can be more trustworthy in case github user renamed and left the previous link in 'repo'
-                        const missing = getMissingDependencies(pl)
-                        if (missing.length) pl.missing = missing
-                        list.add(pl)
-                        repos.push(repo)
+                        const rows = plugins.map(pl => {
+                            const missing = getMissingDependencies(pl)
+                            return { ...pl, missing: missing.length ? missing : null, downloading: downloading[pl.repo] ?? null }
+                        })
+                        // reconcile snapshots without dropping selection or retaining obsolete optional metadata
+                        for (const id of previous.keys())
+                            if (!rows.some(row => row.id === id)) list.remove({ id })
+                        for (const row of rows) {
+                            const old = previous.get(row.id)
+                            if (old)
+                                list.update({ id: row.id }, { ..._.mapValues(old, () => null), ..._.mapValues(row, value => value ?? null) })
+                            else
+                                list.add(row)
+                        }
+                        previous = new Map(rows.map(row => [row.id, row]))
+                        repos.splice(0, repos.length, ...rows.map(row => row.repo))
+                        updatedAt = snapshot.updatedAt
+                        list.props({ updatedAt, refreshing: snapshot.refreshing })
+                        list.ready()
                     }
                 } catch (err: any) {
+                    list.props({ updatedAt, refreshing: false })
                     list.error(err.code || err.message)
                 }
                 list.ready()

@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Rejtett fájlok megjelenítése",
+        "Plugin lists are cached for 5 minutes.": "A bővítménylisták 5 percig maradnak a gyorsítótárban.",
+        "Updated: {time}": "Frissítve: {time}",
+        "Updating…": "Frissítés…",
         "Uploaded languages": "Feltöltött nyelvek",
         "Interface": "Felület",
         "Frontend": "Felhasználói",

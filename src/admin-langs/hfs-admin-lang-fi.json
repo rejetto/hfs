@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Sisällytä piilotetut tiedostot",
+        "Plugin lists are cached for 5 minutes.": "Lisäosaluettelot säilytetään välimuistissa 5 minuuttia.",
+        "Updated: {time}": "Päivitetty: {time}",
+        "Updating…": "Päivitetään…",
         "Uploaded languages": "Ladatut kielet",
         "Interface": "Käyttöliittymä",
         "Frontend": "Käyttäjä",

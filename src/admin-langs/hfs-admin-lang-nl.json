@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Verborgen bestanden opnemen",
+        "Plugin lists are cached for 5 minutes.": "Pluginlijsten worden 5 minuten in de cache bewaard.",
+        "Updated: {time}": "Bijgewerkt: {time}",
+        "Updating…": "Bijwerken…",
         "Uploaded languages": "Geüploade talen",
         "Interface": "Interface",
         "Frontend": "Frontend",

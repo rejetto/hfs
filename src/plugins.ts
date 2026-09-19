@@ -444,7 +444,7 @@ type CallMeAfter = ()=>any
 
 export type Repo = string | { web?: string, main: string, zip?: string, zipRoot?: string } // string is github, object is custom
 type Depend = { repo: string, version?: number }[]
-export interface CommonPluginInterface {
+export type CommonPluginInterface = {
     id: string
     description?: string
     version?: number
@@ -454,9 +454,9 @@ export interface CommonPluginInterface {
     isTheme?: boolean | 'light' | 'dark'
     disableDefaultStyle?: boolean
     preview?: string | string[]
-    changelog?: unknown
+    changelog?: { version: number, message: string }[]
 }
-export interface InactivePlugin extends CommonPluginInterface {
+export type InactivePlugin = CommonPluginInterface & {
     branch?: string
     badApi?: string
     error?: string
@@ -734,6 +734,10 @@ export function parsePluginSource(id: string, source: string) {
         typeof x.repo === 'string' && x.version === undefined || typeof x.version === 'number'
             || console.warn("Plugin dependency discarded", x) )
     pl.changelog = tryJson(/exports.changelog\s*=\s*(\[[\s\S]*?])/m.exec(source)?.[1])
+    if (!Array.isArray(pl.changelog))
+        delete pl.changelog
+    else if (_.remove(pl.changelog, entry => !Number.isFinite(entry?.version) || typeof entry?.message !== 'string').length)
+        console.warn("Invalid plugin changelog entries discarded", id)
     if (Array.isArray(pl.apiRequired) && (pl.apiRequired.length !== 2 || !pl.apiRequired.every(_.isFinite))) // validate [from,to] form
         pl.apiRequired = undefined
     calculateBadApi(pl)

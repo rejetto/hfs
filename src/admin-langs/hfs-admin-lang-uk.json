@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Включати приховані файли",
+        "Plugin lists are cached for 5 minutes.": "Списки плагінів кешуються на 5 хвилин.",
+        "Updated: {time}": "Оновлено: {time}",
+        "Updating…": "Оновлення…",
         "Uploaded languages": "Завантажені мови",
         "Interface": "Інтерфейс",
         "Frontend": "Користувацький",

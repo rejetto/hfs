@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "隠しファイルを含める",
+        "Plugin lists are cached for 5 minutes.": "プラグイン一覧は5分間キャッシュされます。",
+        "Updated: {time}": "更新日時: {time}",
+        "Updating…": "更新中…",
         "Uploaded languages": "アップロードされた言語",
         "Interface": "インターフェース",
         "Frontend": "フロントエンド",

@@ -16,7 +16,8 @@ import { installPluginFromResult, PLUGIN_ERRORS, renderPluginName } from './plug
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
     const debouncedSearch = useDebounce(search, 1000)
-    const { list, error, initializing } = useApiList('get_online_plugins', { text: debouncedSearch }, { reconnectGraceSeconds: 60 })
+    // no reconnectGraceSeconds: reload the list on reconnect to include catalog updates missed while disconnected
+    const { list, error, initializing, props } = useApiList('get_online_plugins', { text: debouncedSearch })
     const snap = useSnapState()
     return h(Fragment, {},
         h(StringField, {
@@ -24,7 +25,10 @@ export default function OnlinePlugins() {
             onChange: setSearch as any,
             start: h(Search),
             typing: true,
-            label: t`Search text`
+            label: t`Search text`,
+            helperText: t("Plugin lists are cached for 5 minutes.")
+                + (props?.updatedAt ? ' ' + t("Updated: {time}", { time: new Date(props.updatedAt).toLocaleString(language) }) : '')
+                + (props?.refreshing ? ' ' + t`Updating…` : '')
         }),
         h(DataTable, {
             error: error && err2msg(xlate(error, PLUGIN_ERRORS)),

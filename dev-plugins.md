@@ -1011,6 +1011,13 @@ Suggested method for publishing is to have a dedicated repository on GitHub, wit
 To set the topic go on the repo home and click on the gear icon near the "About" box.
 Be sure to also fill the "exports.description" field, especially with words that people may search for.
 
+The Admin plugin catalog in HFS is cached locally across restarts. Opening or searching it checks GitHub again
+when the last successful refresh is at least 5 minutes old. A cached catalog less than 24 hours old stays
+visible during the refresh; older catalogs are not displayed. Searches match the repository name/owner,
+repository description, and plugin description. Metadata is downloaded again only when the repository's
+push date or default branch changes, or HFS is upgraded. Installed-plugin update checks remain independent
+of this catalog cache.
+
 If the name of the repository has the prefix "hfs-", it won't be displayed. Eg: "hfs-chat" will be displayed as "chat".
 This is good way to have a clearer repository name on github, while avoiding being redundant within the context of the HFS' UI. 
 

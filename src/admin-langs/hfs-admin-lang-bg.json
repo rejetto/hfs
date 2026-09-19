@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Включване на скритите файлове",
+        "Plugin lists are cached for 5 minutes.": "Списъците с приставки се кешират за 5 минути.",
+        "Updated: {time}": "Обновено: {time}",
+        "Updating…": "Обновяване…",
         "Uploaded languages": "Качени езици",
         "Interface": "Интерфейс",
         "Frontend": "Потребителски",

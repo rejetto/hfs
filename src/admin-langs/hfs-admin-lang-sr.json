@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Укључи скривене датотеке",
+        "Plugin lists are cached for 5 minutes.": "Листе додатака се кеширају 5 минута.",
+        "Updated: {time}": "Ажурирано: {time}",
+        "Updating…": "Ажурирање…",
         "Uploaded languages": "Отпремљени језици",
         "Interface": "Интерфејс",
         "Frontend": "Кориснички",

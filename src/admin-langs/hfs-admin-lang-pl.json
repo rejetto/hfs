@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Uwzględnij ukryte pliki",
+        "Plugin lists are cached for 5 minutes.": "Listy wtyczek są przechowywane w pamięci podręcznej przez 5 minut.",
+        "Updated: {time}": "Zaktualizowano: {time}",
+        "Updating…": "Aktualizowanie…",
         "Uploaded languages": "Przesłane języki",
         "Interface": "Interfejs",
         "Frontend": "Użytkownika",

@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "숨김 파일 포함",
+        "Plugin lists are cached for 5 minutes.": "플러그인 목록은 5분 동안 캐시됩니다.",
+        "Updated: {time}": "업데이트: {time}",
+        "Updating…": "업데이트 중…",
         "Uploaded languages": "업로드한 언어",
         "Interface": "인터페이스",
         "Frontend": "프런트엔드",

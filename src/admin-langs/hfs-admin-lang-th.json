@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "รวมไฟล์ที่ซ่อนอยู่",
+        "Plugin lists are cached for 5 minutes.": "รายการปลั๊กอินจะถูกแคชไว้เป็นเวลา 5 นาที",
+        "Updated: {time}": "อัปเดตเมื่อ: {time}",
+        "Updating…": "กำลังอัปเดต…",
         "Uploaded languages": "ภาษาที่อัปโหลด",
         "Interface": "ส่วนติดต่อ",
         "Frontend": "ผู้ใช้",

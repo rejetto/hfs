@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Включать скрытые файлы",
+        "Plugin lists are cached for 5 minutes.": "Списки плагинов кэшируются на 5 минут.",
+        "Updated: {time}": "Обновлено: {time}",
+        "Updating…": "Обновление…",
         "Uploaded languages": "Загруженные языки",
         "Interface": "Интерфейс",
         "Frontend": "Пользовательский",

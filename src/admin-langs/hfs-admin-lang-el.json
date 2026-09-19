@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Συμπερίληψη κρυφών αρχείων",
+        "Plugin lists are cached for 5 minutes.": "Οι λίστες προσθέτων αποθηκεύονται προσωρινά για 5 λεπτά.",
+        "Updated: {time}": "Ενημερώθηκε: {time}",
+        "Updating…": "Ενημέρωση…",
         "Uploaded languages": "Μεταφορτωμένες γλώσσες",
         "Interface": "Περιβάλλον",
         "Frontend": "Χρήστη",

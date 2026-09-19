@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Gizli dosyaları dahil et",
+        "Plugin lists are cached for 5 minutes.": "Eklenti listeleri 5 dakika boyunca önbellekte tutulur.",
+        "Updated: {time}": "Güncellendi: {time}",
+        "Updating…": "Güncelleniyor…",
         "Uploaded languages": "Yüklenen diller",
         "Interface": "Arayüz",
         "Frontend": "Ön yüz",

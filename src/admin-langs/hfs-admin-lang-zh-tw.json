@@ -3,6 +3,9 @@
     "version": 1,
     "translate": {
         "Include hidden files": "包含隱藏檔案",
+        "Plugin lists are cached for 5 minutes.": "外掛程式清單會快取 5 分鐘。",
+        "Updated: {time}": "更新時間：{time}",
+        "Updating…": "正在更新…",
         "Uploaded languages": "已上傳的語言",
         "Interface": "介面",
         "Frontend": "前端",
