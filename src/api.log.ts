@@ -32,24 +32,25 @@ export default {
         return null
     },
 
-    get_log({ file = 'log' }, ctx) {
+    get_log({ file = 'log', skipInitial }, ctx) {
         apiAssertTypes({ string: { file } })
         const files = file.split('|') // potentially more than one
         return new SendListReadable({
             bufferTime: 10,
             async doAtStart(list) {
                 if (file === 'disconnections') {
-                    for (const x of disconnectionsLog) list.add(x)
+                    for (const x of skipInitial ? [] : disconnectionsLog) list.add(x)
                     ctx.res.once('close', events.on('disconnection', x => list.add(x)))
                     return list.ready()
                 }
                 if (file === 'ips') {
+                    if (skipInitial) return list.ready()
                     for await (const [k, v] of ips.iterator())
                         list.add({ ip: k, ...v })
                     return list.ready()
                 }
                 if (file === 'console') {
-                    for (const chunk of _.chunk(consoleLog, 1000)) { // avoid occupying the thread too long
+                    for (const chunk of _.chunk(skipInitial ? [] : consoleLog, 1000)) { // avoid occupying the thread too long
                         for (const x of chunk)
                             list.add(x)
                         await wait(0)

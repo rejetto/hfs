@@ -18,8 +18,8 @@ import { SendListReadable } from './SendList'
 
 const apis: ApiHandlers = {
 
-    get_plugins({}, ctx) {
-        const list = new SendListReadable({ addAtStart: [ ...mapPlugins(serialize, false), ...getInactivePlugins().map(serialize) ] })
+    get_plugins({ skipInitial }, ctx) {
+        const list = new SendListReadable({ addAtStart: skipInitial ? [] : [ ...mapPlugins(serialize, false), ...getInactivePlugins().map(serialize) ] })
         return list.events(ctx, {
             pluginInstalled: p => list.add(serialize(p)),
             'pluginStarted pluginStopped pluginUpdated': p => {
@@ -31,7 +31,7 @@ const apis: ApiHandlers = {
         })
     },
 
-    async get_plugin_updates({}, ctx) {
+    async get_plugin_updates({ skipInitial }, ctx) {
         return new SendListReadable({
             async doAtStart(list) {
                 const errs: any = {}
@@ -43,6 +43,7 @@ const apis: ApiHandlers = {
                         list.update({ id }, { updated: true })
                     }
                 })
+                if (skipInitial) return list.ready()
                 await pluginsScanned
                 await Promise.allSettled(_.map(getFolder2repo(), async (repo, folder) => {
                     try {
@@ -111,27 +112,29 @@ const apis: ApiHandlers = {
         }
     },
 
-    get_online_plugins({ text }, ctx) {
+    get_online_plugins({ text, skipInitial }, ctx) {
         if (text !== undefined && !_.isString(text))
             return new ApiError(HTTP_BAD_REQUEST, 'bad text')
         return new SendListReadable({
             async doAtStart(list) {
+                // resumed clients retain their own rows; updates for other repos are ignored by useApiList
                 const repos = [] as string[]
                 list.events(ctx, {
                     pluginInstalled: p => {
-                        if (repos.includes(p.repo))
+                        if (skipInitial || repos.includes(p.repo))
                             list.update({ id: p.repo }, { installed: true })
                     },
                     pluginUninstalled: (_folder, repo) => {
                         if (typeof repo !== 'string') return // custom repo
-                        if (repos.includes(repo))
+                        if (skipInitial || repos.includes(repo))
                             list.update({ id: repo }, { installed: false })
                     },
                     pluginDownload({ repo, status }) {
-                        if (repos.includes(repo))
+                        if (skipInitial || repos.includes(repo))
                             list.update({ id: repo }, { downloading: status ?? null })
                     }
                 })
+                if (skipInitial) return list.ready()
                 try {
                     const already = Object.values(getFolder2repo()).filter(Boolean).map(String)
                     for await (const pl of await searchPlugins(text, { skipRepos: already })) {
@@ -184,12 +187,12 @@ const apis: ApiHandlers = {
         return {}
     },
 
-    get_plugin_log({ id }, ctx) {
+    get_plugin_log({ id, skipInitial }, ctx) {
         assertPluginId(id)
         const p = getPluginInfo(id)
         if (!p)
             return new ApiError(HTTP_NOT_FOUND)
-        const list = new SendListReadable({ addAtStart: p.log })
+        const list = new SendListReadable({ addAtStart: skipInitial ? [] : p.log })
         return list.events(ctx, {
             ['pluginLog:' + id]: x => list.add(x)
         })

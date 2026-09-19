@@ -16,7 +16,7 @@ import { installPluginFromResult, PLUGIN_ERRORS, renderPluginName } from './plug
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
     const debouncedSearch = useDebounce(search, 1000)
-    const { list, error, initializing } = useApiList('get_online_plugins', { text: debouncedSearch })
+    const { list, error, initializing } = useApiList('get_online_plugins', { text: debouncedSearch }, { reconnectGraceSeconds: 60 })
     const snap = useSnapState()
     return h(Fragment, {},
         h(StringField, {

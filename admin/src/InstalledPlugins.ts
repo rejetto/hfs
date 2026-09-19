@@ -20,7 +20,7 @@ import { parsePluginConfig, showPluginOptions } from './pluginOptions'
 // updates=true will show the "check updates" version of the page
 export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, error, setList, initializing } = useApiList<any>(updates ? 'get_plugin_updates' : 'get_plugins', {}, {
-        map: parsePluginConfig,
+        map: parsePluginConfig, reconnectGraceSeconds: 60,
     })
     const [sortAgain, setSortAgain] = useState(0)
     useEffect(() => {

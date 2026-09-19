@@ -179,7 +179,8 @@ export function LogFile({ file, footerSide, hidden, limit=DEFAULT_MEMORY_LIMIT, 
     })
     // file-backed streams send only new events, so reconnecting must retain the loaded history
     const { list, setList, error, connecting, initializing, reload } = useApiList(firstSight && 'get_log', { file }, {
-        limit, invert, pause, map: enhanceLogLine, keepListOnReconnect: hasFile
+        limit, invert, pause, map: enhanceLogLine,
+        reconnectGraceSeconds: hasFile ? Infinity : file === 'ips' ? 60 : 1
     })
     const isIps = file === 'ips'
     if (isIps)

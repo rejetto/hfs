@@ -18,7 +18,7 @@ export function RandomPlugin() {
         const obj = tryJson(serializedCache || '')
         return obj?.ts && Date.now() - obj.ts < DAY && _.shuffle(obj.list)
     }, [serializedCache])
-    const { list, initializing } = useApiList(!hideRandomPlugin && !cached && 'get_online_plugins')
+    const { list, initializing } = useApiList(!hideRandomPlugin && !cached && 'get_online_plugins', {}, { reconnectGraceSeconds: 60 })
     const [idx, setIdx] = useState(-1)
     const one = cached?.[idx]
     useEffect(() => {

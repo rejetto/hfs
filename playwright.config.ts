@@ -14,6 +14,7 @@ const adminLogicTests = [
   '**/admin-file-form.spec.ts',
   '**/admin-home.spec.ts',
   '**/admin-languages.spec.ts',
+  '**/admin-list-reconnect.spec.ts',
 ]
 
 const snapshotBranch = getSnapshotBranch()

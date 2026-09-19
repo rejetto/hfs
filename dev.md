@@ -31,6 +31,7 @@ To run tests
 - `npx playwright test` (UI tests)
 - For the DataTable component regression, start Admin with `npm run start --workspace=admin -- --port 3112 --strictPort`, then run `PLAYWRIGHT_HTML_OPEN=never ADMIN_DATA_TABLE_URL=http://127.0.0.1:3112/#/monitoring npx playwright test admin-data-table --workers=1 --project=chromium`.
 - With the same Vite server, test language uploads, deletion, and desktop/mobile layout using `PLAYWRIGHT_HTML_OPEN=never ADMIN_LANGUAGES_URL=http://127.0.0.1:3112/#/language npx playwright test admin-languages --workers=1 --project=chromium`. The test mocks the language APIs and is skipped without `ADMIN_LANGUAGES_URL`.
+- With the same Vite server, test list reconnections using `PLAYWRIGHT_HTML_OPEN=never ADMIN_LIST_URL=http://127.0.0.1:3112/ npx playwright test admin-list-reconnect --workers=1 --project=chromium`. The fixture simulates EventSource and time; the test is skipped without `ADMIN_LIST_URL`.
 - With the same Vite server, test FileField and its real picker using `PLAYWRIGHT_HTML_OPEN=never ADMIN_FILE_FIELD_URL=http://127.0.0.1:3112/#/monitoring npx playwright test admin-file-field --workers=1 --project=chromium`. The test serves a local filesystem-list fixture and closes it afterwards.
 
 

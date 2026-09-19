@@ -40,7 +40,7 @@ export function useApiEx<T extends ApiHandler=any>(...args: Parameters<typeof us
     }
 }
 
-export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map, invert, pause, limit, keepListOnReconnect }: { keepListOnReconnect?: boolean, limit?: number, pause?: boolean, invert?: boolean, map?: (rec: S) => unknown }={}) {
+export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map, invert, pause, limit, reconnectGraceSeconds=0 }: { reconnectGraceSeconds?: number, limit?: number, pause?: boolean, invert?: boolean, map?: (rec: S) => unknown }={}) {
     const [list, setList] = useStateMounted<T[]>([])
     const [props, setProps] = useStateMounted<any>(undefined)
     const [error, setError] = useStateMounted<any>(undefined)
@@ -56,6 +56,8 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
     useEffect(() => {
         if (!cmd) return
         const command = cmd
+        let disconnectedAt = 0
+        let ready = false
         const bufferAdd: T[] = []
         const apply = _.debounce(() => {
             const chunk = bufferAdd.splice(0, Infinity)
@@ -82,16 +84,26 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
             setLoading(true)
             setConnecting(true)
             setInitializing(true)
-            if (!keepListOnReconnect) setList([])
-            const src = apiEvents(command, _.mapValues(params, x => x === false ? undefined : x), (type, data) => {
+            const skipInitial = ready && disconnectedAt > 0 && Date.now() - disconnectedAt <= reconnectGraceSeconds * 1000 // brief gaps may lose events; refresh restores snapshots without a replay buffer
+            if (!skipInitial) {
+                ready = false
+                if (reconnectGraceSeconds !== Infinity) // infinite retention also preserves separately loaded history before the stream is ready
+                    setList([])
+            }
+            const src = apiEvents(command, _.mapValues({ ...params, skipInitial }, x => x === false ? undefined : x), (type, data) => {
                 switch (type) {
                     case 'connected':
+                        if (skipInitial && Date.now() - disconnectedAt > reconnectGraceSeconds * 1000) { // a slow handshake can outlive the window even when the attempt started in time
+                            src.close()
+                            return connect()
+                        }
                         setConnecting(false)
                         return setTimeout(() => apply.flush()) // this trick we'll cause first entries to be rendered almost immediately, while the rest will be subject to normal debouncing
                     case 'error':
                         setError("Connection error")
                         src.close()
-                        retry = setTimeout(connect, 1000)
+                        disconnectedAt ||= Date.now() // failed retries must not extend the window
+                        retry = setTimeout(connect, reconnectGraceSeconds > 0 ? Math.min(1000, reconnectGraceSeconds * 500) : 1000) // leave time for a retry within short retention windows
                         return stop()
                     case 'closed':
                         return stop()
@@ -106,6 +118,8 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
                             console.debug('LIST', ...msg)
                             const [op, par] = msg
                             if (op === LIST.ready) {
+                                ready = true
+                                disconnectedAt = 0
                                 apply.flush()
                                 setInitializing(false)
                                 return
@@ -181,7 +195,7 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
             setLoading(false)
             apply.flush()
         }
-    }, [reloader, cmd, JSON.stringify(params)]) //eslint-disable-line
+    }, [reloader, cmd, JSON.stringify(params), reconnectGraceSeconds]) //eslint-disable-line
     const updateList = useCallback((cb: (toModify: Draft<typeof list>) => void) => setList(list => produce(list, cb)),
         [setList])
     const updateEntry = useCallback((search: T, change: T) => {

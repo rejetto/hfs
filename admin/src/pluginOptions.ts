@@ -60,6 +60,7 @@ export async function showPluginOptions(row: any) {
         ),
         Wrapper({ children }: any) {
             const { list, setList } = useApiList('get_plugin_log', { id }, {
+                reconnectGraceSeconds: 5,
                 map(x) { x.ts = new Date(x.ts) }
             })
             let lastDate: any
