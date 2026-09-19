@@ -1,5 +1,6 @@
 import './filename-normalization.test'
 import './path-root.test'
+import './update-changelog.test'
 import './shutdown.test'
 import './plugin-server-cleanup.test'
 import './create-admin.test'

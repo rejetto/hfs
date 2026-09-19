@@ -18,6 +18,7 @@ import { storedMap } from './persistence'
 import _ from 'lodash'
 import { argv } from './argv'
 import { pipeline } from 'stream/promises'
+import { updateChangelog } from './updateChangelog'
 
 const updateToBeta = defineConfig(CFG.update_to_beta, false)
 const autoCheckUpdate = defineConfig(CFG.auto_check_update, true)
@@ -74,12 +75,15 @@ function prepareRelease(r: Release) {
     })
 }
 
-export async function getVersions(filter?: (r: Release) => boolean, max=30) {
+export async function getVersions(filter?: (r: Release) => boolean, max=30, stopAtCurrent=false) {
     const ret: Release[] = []
     for await (const x of apiGithubPaginated(`repos/${HFS_REPO}/releases`)) {
         if (x.name.endsWith('-ignore')) continue
         const rel = prepareRelease(x)
-        if (rel.versionScalar === curV) continue
+        if (rel.versionScalar === curV) {
+            if (stopAtCurrent) break // stop at the installed release, not at older maintenance releases published more recently
+            continue
+        }
         if (!filter || filter(rel))
             ret.push(rel)
         if (ret.length >= max) break
@@ -96,6 +100,11 @@ export async function getUpdates(strict=false) {
     const betas = !includeBetas ? [] : await getVersions(x => x.prerelease && x.versionScalar > stable.versionScalar && (!strict || x.isNewer))
     if (stable.isNewer || RUNNING_BETA && !strict)
         betas.push(stable)
+    if (stable.isNewer && stable.body) {
+        const history = await getVersions(r => !r.prerelease && r.isNewer && r.versionScalar <= stable.versionScalar, Infinity, true)
+            .catch(() => []) // missing history must not prevent installing an available update
+        stable.body = updateChangelog(stable, history, curV)
+    }
     return betas
 }
 
