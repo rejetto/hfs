@@ -52,6 +52,9 @@
     "byVersion": {
         "^(0\\..*|3\\.[01]\\..*|3\\.2\\.0.*)$": {
             "alert": "This version is dangerous – please update"
+        },
+        "^3\\.2\\.[1-9]": {
+            "alert": "Please update. Your installation may be at risk if:\n - shared folders contain hidden subfolders: their contents can be downloaded if the folder name is known;\n - untrusted users can download folders as ZIP: they can make HFS unavailable;\n - you use WebDAV, LDAP, or `?login=` links: passwords can be exposed during login;\n - multiple users manage files in the same folders: one user can alter another's files"
         }
     }
 }
