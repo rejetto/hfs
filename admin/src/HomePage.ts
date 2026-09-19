@@ -299,7 +299,7 @@ function entry(color: Color, ...content: ReactNode[]) {
 }
 
 function fsLink(key='file_system_page') {
-    return h(InLink, { to:'/fs' }, t(key))
+    return h(InLink, { to:'/shared' }, t(key))
 }
 
 function cfgLink(key='options_page') {

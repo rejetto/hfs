@@ -39,7 +39,7 @@ export interface MenuEntry {
 
 export const mainMenu: MenuEntry[] = [
     { path: '/', icon: Home, label: t`Home`, comp: HomePage },
-    { path: '/fs', icon: AccountTree, label: t`Shared files`, comp: VfsPage },
+    { path: '/shared', icon: AccountTree, label: t`Shared files`, comp: VfsPage },
     { path: '/accounts', icon: ManageAccounts, label: t`Accounts`, comp: AccountsPage },
     { path: '/options', icon: Settings, label: t`Options`, comp: OptionsPage, subRoutes: true },
     { path: '/internet', icon: Public, label: t`Internet`, comp: InternetPage },
