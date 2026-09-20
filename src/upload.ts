@@ -4,7 +4,7 @@ import {
     HTTP_CONFLICT, HTTP_FOOL, HTTP_INSUFFICIENT_STORAGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_NO_CONTENT, HTTP_SERVER_ERROR,
     HTTP_PRECONDITION_FAILED, HTTP_LENGTH_REQUIRED, MTIME_CHECK, UPLOAD_TEMP_PREFIX,
 } from './const'
-import { basename, dirname, extname, join, posix, resolve } from 'path'
+import { basename, dirname, extname, join, posix, resolve, toNamespacedPath } from 'path'
 import fs from 'fs'
 import {
     isValidFileName, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter, pathEncode,
@@ -131,11 +131,13 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
         if (firstCreated) {
             setUploadMeta(dir, ctx)
             // recursive mkdir returns the first created directory; existing ancestors must not receive ownership
-            const existingParent = dirname(resolve(firstCreated))
+            const firstCreatedPath = toNamespacedPath(resolve(firstCreated)) // Node 24 mkdir can return a namespace-prefixed Windows path
             let source = resolve(dir)
             let uri = posix.dirname(vfsUri)
-            while (source !== existingParent) {
+            while (true) {
                 createdFolders.push({ uri, source })
+                // stop before the existing parent: namespaced drive and UNC roots can differ in their trailing separator
+                if (toNamespacedPath(source) === firstCreatedPath) break
                 source = dirname(source)
                 uri = posix.dirname(uri)
             }
