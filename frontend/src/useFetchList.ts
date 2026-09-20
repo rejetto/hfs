@@ -82,6 +82,7 @@ export default function useFetchList() {
 
         const params = { uri, ...remoteSearch, ...firstListRequest }
         if (snap.listReloader === lastReloader.current && _.isEqual(params, lastParams.current)) return
+        const selected = previous === uri && snap.listReloader !== lastReloader.current ? state.selected : {}
         lastParams.current = params
         lastReloader.current = snap.listReloader
 
@@ -100,6 +101,10 @@ export default function useFetchList() {
             if (!chunk.length) return
             hfsEvent('newListEntries', { entries: chunk })
             state.list = sort([...state.list, ...chunk])
+            // restore only entries returned by the reload, leaving removed files unselected
+            for (const entry of chunk)
+                if (selected[entry.uri] && entry.canSelect())
+                    state.selected[entry.uri] = true
             if (playShuffle) // find first proper file, and play it
                 for (const x of chunk)
                     if (getShowComponent(x)) {

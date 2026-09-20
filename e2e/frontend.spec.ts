@@ -247,39 +247,60 @@ test('numeric name sorting ignores prefix case', async ({ page }) => {
         .then(items => items.filter(name => names.includes(name)))).toEqual(names)
 })
 
-test('select all resets when the list reloads', async ({ page }) => {
-    await gotoFrontend(page, FRONTEND_URL + 'for-admins/upload/')
-    await expect(page.getByRole('dialog')).toBeVisible()
-    await page.getByRole('textbox', { name: 'Username' }).fill(username)
-    await page.getByRole('textbox', { name: 'Password' }).fill(password)
-    await page.getByRole('button', { name: 'Continue' }).click()
-    await expect(page.getByText('alfa.txt')).toBeVisible()
-    await page.getByRole('button', { name: 'Select' }).click()
+test('selection survives reloadList and drops missing entries', async ({ page }) => {
+    // isolate the list from uploads and deletions performed by parallel tests
+    const folder = fs.mkdtempSync('tests/tmp/selection-')
+    const uri = `/for-admins/upload/${folder.split('/').pop()}/`
+    fs.writeFileSync(`${folder}/alfa.txt`, 'a')
+    fs.writeFileSync(`${folder}/beta.txt`, 'b')
+    try {
+        await gotoFrontend(page, FRONTEND_URL + uri.slice(1))
+        await expect(page.getByRole('dialog')).toBeVisible()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByText('alfa.txt')).toBeVisible()
+        await page.getByRole('button', { name: 'Select' }).click()
 
-    const selectAll = page.getByRole('checkbox', { name: 'Select all' })
-    await selectAll.check()
-    await expect(page.getByText(/[1-9]\d* selected/)).toBeVisible()
-    await page.evaluate(() => (window as any).HFS.reloadList())
-    await expect(page.getByText(/[1-9]\d* selected/)).toHaveCount(0)
-    await expect(selectAll).not.toBeChecked()
-    await expect.poll(() => page.evaluate(() => Boolean((window as any).HFS.state.props))).toBe(true)
+        const selectAll = page.getByRole('checkbox', { name: 'Select all' })
+        await selectAll.check()
+        await expect(page.getByText(/[1-9]\d* selected/)).toBeVisible()
+        const selected = await page.evaluate(() => Object.keys((window as any).HFS.state.selected).sort())
+        await page.evaluate(uri => (window as any).HFS.state.selected[uri + 'removed.txt'] = true, uri)
+        const reloaded = page.waitForRequest(request => new URL(request.url()).pathname === '/~/api/get_file_list')
+        await page.evaluate(() => (window as any).HFS.reloadList())
+        await reloaded
+        await page.waitForFunction(() => !(window as any).HFS.state.loading)
+        await expect.poll(() => page.evaluate(() => Object.keys((window as any).HFS.state.selected).sort())).toEqual(selected)
+        await expect(selectAll).toBeChecked()
 
-    await page.evaluate(() => {
-        ;(window as any).HFS.state.props.can_archive = false
-        ;(window as any).HFS.state.props.can_delete_children = false
-        ;(window as any).HFS.state.showFilter = false
-    })
-    await expect(page.getByRole('textbox', { name: 'Type here to filter the list below' })).toBeHidden()
-    await page.evaluate(() => {
-        ;(window as any).selectionChecks = 0
-        document.addEventListener('hfs.enableEntrySelection', () => ++(window as any).selectionChecks)
-    })
-    await page.evaluate(() => new Promise<void>(resolve => {
-        const { state } = (window as any).HFS
-        state.list = [...state.list]
-        requestAnimationFrame(() => requestAnimationFrame(resolve))
-    }))
-    expect(await page.evaluate(() => (window as any).selectionChecks)).toBe(0)
+        await page.evaluate(() => {
+            ;(window as any).HFS.state.props.can_archive = false
+            ;(window as any).HFS.state.props.can_delete_children = false
+            ;(window as any).HFS.state.showFilter = false
+        })
+        await expect(page.getByRole('textbox', { name: 'Type here to filter the list below' })).toBeHidden()
+        await page.evaluate(() => {
+            ;(window as any).selectionChecks = 0
+            document.addEventListener('hfs.enableEntrySelection', () => ++(window as any).selectionChecks)
+        })
+        await page.evaluate(() => new Promise<void>(resolve => {
+            const { state } = (window as any).HFS
+            state.list = [...state.list]
+            requestAnimationFrame(() => requestAnimationFrame(resolve))
+        }))
+        expect(await page.evaluate(() => (window as any).selectionChecks)).toBe(0)
+        await page.evaluate(() => {
+            const { state } = (window as any).HFS
+            state.showFilter = true
+            state.selected[state.list[0].uri] = true
+        })
+        await page.getByRole('link', { name: 'home', exact: true }).click()
+        await expect.poll(() => page.evaluate(() => Object.keys((window as any).HFS.state.selected).sort())).toEqual([])
+    }
+    finally {
+        fs.rmSync(folder, { recursive: true, force: true })
+    }
 })
 
 test('overwrite policy resets without overwrite permission', async ({ page }) => {
