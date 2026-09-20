@@ -20,7 +20,7 @@ import _ from 'lodash'
 import events from './events'
 import { rm, rename, utimes } from 'fs/promises'
 import { expiringCache } from './expiringCache'
-import { onProcessExit } from './first'
+import { onProcessExit, quitting } from './first'
 import { deleteUploadOwner, isUnfinishedUploadOwner, setUploadOwner } from './uploadOwners'
 import { isWebdavLocked } from './webdav'
 import { ctxAdminAccess } from './adminApis'
@@ -267,7 +267,7 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
                 if (errored)
                     return
                 if (ctx.isAborted()) { // in the very unlikely case the connection is interrupted between last-byte and here, we still consider it unfinished, as the client had no way to know, and will resume, but it would get an error if we finish the process
-                    const sec = deleteUnfinishedUploadsAfter.get()
+                    const sec = quitting ? undefined : deleteUnfinishedUploadsAfter.get() // preserve uploads interrupted by shutdown for resuming
                     await setUploadOwner(tempOwnerUri, ctx, tempName, _.isNumber(sec) ? Date.now() + sec * 1000 : null)
                     return _.isNumber(sec) && delayedDelete(tempName, sec, tempOwnerUri)
                 }
