@@ -14,7 +14,7 @@
     "watch-server-full": "npm run start --workspace=frontend & npm run start --workspace=admin & cross-env FRONTEND_PROXY=3005 ADMIN_PROXY=3006 npm run watch-server",
     "start-frontend": "npm run start --workspace=frontend",
     "start-admin": "npm run start --workspace=admin",
-    "build-all": "rm -rf dist && npm run build-server && (npm run build-frontend & npm run build-admin) && echo COMPLETED",
+    "build-all": "rm -rf dist && npm run build-server && (npm run build-frontend & fe=$!; npm run build-admin & ad=$!; wait $fe && wait $ad) && echo COMPLETED",
     "build-server": "rm -rf dist/src dist/plugins && npm i && tsc && touch package.json && cp -v -r package.json central.json README* LICENSE* hfs.ico plugins dist && find dist -name .DS_Store -o -name storage -exec rm -rf {} + && node scripts/afterbuild.js",
     "build-frontend": "npm run build --workspace=frontend",
     "build-admin": "npm run build --workspace=admin",
