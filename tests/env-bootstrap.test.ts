@@ -69,7 +69,7 @@ async function workspace(t: TestContext) {
     const stops: (() => Promise<void>)[] = []
     t.after(async () => {
         for (const stop of stops) await stop()
-        await rm(cwd, { recursive: true, force: true })
+        await rm(cwd, { recursive: true, force: true, maxRetries: 5 }) // allow Windows to release file handles after process exit
     })
     return { cwd, start: (env: NodeJS.ProcessEnv, args: string[] = []) => startServer(cwd, stops, env, args) }
 }

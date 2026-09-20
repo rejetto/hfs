@@ -387,7 +387,7 @@ describe('basics', () => {
     test('name encoding', req(FUNNY_NAME_ENCODED, 200))
     test('name encoding list', reqList('/', { inList: [FUNNY_NAME] }))
     test('name encoding search', reqList('/', { inList: [FUNNY_NAME] }, { search: FUNNY_NAME }))
-    test('basic listing escapes', async () => {
+    test('basic listing escapes', { skip: process.platform === 'win32' && 'Windows forbids < and > in filenames' }, async () => {
         const name = '<img src=x onerror=alert(1)>.png'
         const path = resolve(__dirname, name)
         await writeFile(path, '')
@@ -629,25 +629,23 @@ describe('basics', () => {
     test('upload.put.virtual folder', reqUpload(`${VIRTUAL_UPLOAD_ROOT}gpl.png`, 403))
     test('upload.post.empty filename', async () => {
         const boundary = '----hfs-boundary'
-        const body = `--${boundary}\\r\\nContent-Disposition: form-data; name="upload"; filename=""\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nX\\r\\n--${boundary}--\\r\\n`
-        const { status, body: responseBody } = await curlWithStatus(`printf '%b' "${body}" | curl -s -u ${auth} -H "Content-Type: multipart/form-data; boundary=${boundary}" --data-binary @- ${BASE_URL}${UPLOAD_ROOT}`)
-        if (status !== 400)
-            throw "unexpected status " + status
-        const errMsg = tryJson(responseBody)?.errors?.[0]
+        const body = `--${boundary}\r\nContent-Disposition: form-data; name="upload"; filename=""\r\nContent-Type: application/octet-stream\r\n\r\nX\r\n--${boundary}--\r\n`
+        const response = await req(UPLOAD_ROOT, 400, {
+            auth, jar: {}, body, headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+        })()
+        const errMsg = response?.errors?.[0]
         if (!['empty filename', 'no files'].includes(errMsg))
             throw 'missing error'
     })
     test('upload.post.missing-boundary', async () => {
-        const { status } = await curlWithStatus(`printf 'x' | curl -s -u ${auth} -H "Content-Type: multipart/form-data" --data-binary @- ${BASE_URL}${UPLOAD_ROOT}`)
-        if (status !== 400)
-            throw "unexpected status " + status
+        await req(UPLOAD_ROOT, 400, { auth, jar: {}, body: 'x', headers: { 'content-type': 'multipart/form-data' } })()
     })
     test('upload.post.truncated', async () => {
         const boundary = '----hfs-boundary'
-        const body = `--${boundary}\\r\\nContent-Disposition: form-data; name="upload"\\r\\n`
-        const { status } = await curlWithStatus(`printf '%b' '${body}' | curl -s -u ${auth} -H "Content-Type: multipart/form-data; boundary=${boundary}" --data-binary @- ${BASE_URL}${UPLOAD_ROOT}`)
-        if (status !== 400)
-            throw "unexpected status " + status
+        const body = `--${boundary}\r\nContent-Disposition: form-data; name="upload"\r\n`
+        await req(UPLOAD_ROOT, 400, {
+            auth, jar: {}, body, headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+        })()
     })
     test('upload.post.absolute filename', async () => {
         const absPath = resolve(__dirname, `abs-${randomId(6)}.txt`)
@@ -679,8 +677,8 @@ describe('basics', () => {
 
     test('get_accounts', reqApi('get_accounts', {}, 401)) // admin api requires login
     test('url login', async () => {
-        const output = await execP(`curl -s -D - -o /dev/null "${BASE_URL}/for-admins/?login=${auth}"`)
-        if (!/^(location|set-cookie):/im.test(output))
+        const { headers } = await httpWithBody(`${BASE_URL}/for-admins/?login=${auth}`, { noRedirect: true })
+        if (!headers.location && !headers['set-cookie'])
             throw "failed"
     })
 })
@@ -1521,7 +1519,7 @@ describe('limits', () => {
             const originalStat = fs.stat
             let waiting = false
             fs.stat = function(...args) {
-                if (!waiting && String(args[0]).endsWith('/big')) {
+                if (!waiting && require('path').basename(String(args[0])) === 'big') {
                     waiting = true
                     return setTimeout(() => originalStat(...args), 200)
                 }
@@ -1957,10 +1955,10 @@ describe('after-login', () => {
         }
         await rmAny(decomposedPath)
         try {
-            const decomposedUri = CANT_OVERWRITE_URI + pathEncode(decomposedName)
+            const decomposedUri = CANT_OVERWRITE_URI + encodeURIComponent(decomposedName)
             await reqUpload(decomposedUri,
                 (_data, res) => res.statusCode === 200, 'owned')()
-            await req(CANT_OVERWRITE_URI + pathEncode(composedName), 403, { method: 'delete' })()
+            await req(CANT_OVERWRITE_URI + encodeURIComponent(composedName), 403, { method: 'delete' })()
             if (readFileSync(composedPath, 'utf8') !== 'victim')
                 throw Error('unicode-distinct file was deleted through another upload owner')
             await req(decomposedUri, 200, { method: 'delete' })()
@@ -2724,7 +2722,7 @@ describe('after-login', () => {
         await reqUpload(UPLOAD_DEST, 409)() // should conflict
         await first
     })
-    test('upload.concurrent', { timeout: 5000 }, () => Promise.all([
+    test('upload.concurrent', { timeout: 10_000 }, () => Promise.all([ // test concurrency, not disk throughput
         reqUpload(UPLOAD_DEST, 200, new StringRepeaterStream(BIG_CONTENT, 150))(), // 300MB
         ..._.range(3).map(i =>  reqUpload(UPLOAD_DEST + i, 200, new StringRepeaterStream(BIG_CONTENT, 50))()) // 3 x 100MB
     ]).then(() => {}))
@@ -3270,7 +3268,7 @@ describe('admin', () => {
         }
         finally { await rmAny(resolve(UPLOAD_DISK_ROOT, rawName)) }
     })
-    test('monitor.connections upload path decodes colon folder', async () => {
+    test('monitor.connections upload path decodes colon folder', { skip: process.platform === 'win32' && 'Windows forbids : in folder names' }, async () => {
         const body = makeReadableThatTakes(700)
         const size = body.length
         const folderName = `colon:${randomId(4)}`
