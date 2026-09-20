@@ -185,8 +185,11 @@ export default {
     async resolve_path({ path, closestFolder }) {
         path = resolve(path)
         if (closestFolder)
-            while (path && !await isDirectory(path))
-                path = dirname(path)
+            while (path && !await isDirectory(path)) {
+                const parent = dirname(path)
+                if (parent === path) break // an unavailable root has no other parent to try
+                path = parent
+            }
         return { path, isFolder: await isDirectory(path) }
     },
 
@@ -210,7 +213,7 @@ export default {
                     }
                     return list.close()
                 }
-                const sendPropsAsap = getDiskSpace(path).then(x => x && list.props(x))
+                const sendPropsAsap = getDiskSpace(path).then(x => x && list.props(x)).catch(() => {}) // listing can fail before we await the disk-space query
                 try {
                     const matching = makeMatcher(fileMask)
                     path = isWindowsDrive(path) ? path + '\\' : resolve(path || '/')
@@ -233,7 +236,7 @@ export default {
                             })
                         } catch {} // just ignore entries we can't stat
                     })
-                    await sendPropsAsap.catch(() => {})
+                    await sendPropsAsap
                     list.close()
                 } catch (e: any) {
                     list.error(e.code || e.message || String(e), true)
