@@ -119,7 +119,7 @@ function makeFields(config: any, values: any) {
             let {fields} = rest
             if (typeof fields === 'string')
                 fields = evalWrapper(fields)
-            rest.valuesForAdd = newObj(callable(fields, false), x => x.defaultValue)
+            rest.valuesForAdd = newObj(callable(fields, false), x => x?.defaultValue)
             rest.details ??= false
             rest.fields = (values: unknown) => _.map(makeFields(callable(fields, values), values), (v,k) => v && ({ k, ...v, defaultValue: undefined })).filter(Boolean)
         }

@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
         body: `export { default } from ${JSON.stringify('/@fs/' + resolve('e2e/fixtures/plugin-options.ts'))}` }))
 })
 
-test('new array entries honor defaults from serialized function fields', async ({ page }) => {
+test('new array entries honor defaults and skip null serialized function fields', async ({ page }) => {
     const url = new URL(process.env.ADMIN_PLUGIN_OPTIONS_URL!)
     await page.goto(String(url))
     await page.getByRole('button', { name: 'Open plugin options', exact: true }).click()
@@ -22,6 +22,7 @@ test('new array entries honor defaults from serialized function fields', async (
     const entry = page.getByRole('dialog').last()
     await expect(entry.getByRole('textbox', { name: 'Label', exact: true })).toHaveValue('new entry')
     await expect(entry.getByRole('spinbutton', { name: 'Count', exact: true })).toHaveValue('7')
+    await expect(entry.getByLabel('Omitted', { exact: true })).toHaveCount(0)
 })
 
 test('Save reports API failure and allows retry without losing edits', async ({ page }) => {
