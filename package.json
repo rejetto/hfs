@@ -83,7 +83,7 @@
   },
   "dependencies": {
     "@gregoranders/csv": "^0.0.13",
-    "@rejetto/kvstorage": "^0.17.7",
+    "@rejetto/kvstorage": "^0.18.0",
     "@rejetto/nat-upnp": "^2.1.4",
     "acme-client": "^5.4.0",
     "busboy": "^1.6.0",
