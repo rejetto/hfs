@@ -113,8 +113,8 @@ function makeFields(config: any, values: any) {
         catch {}
         rest.helperText &&= md(rest.helperText, { html: false })
         const comp = (type2comp as any)[type] as Field<any> | undefined
-        if (values === false && type === 'date_time')
-            rest.$type = 'dateTime'
+        if (values === false)
+            rest.$type = type === 'date_time' ? 'dateTime' : type
         if (comp === ArrayField) {
             let {fields} = rest
             if (typeof fields === 'string')
