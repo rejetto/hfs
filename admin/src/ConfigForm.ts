@@ -4,7 +4,7 @@ import { createElement as h, useEffect, useState, Dispatch } from 'react'
 import _ from 'lodash'
 import { IconBtn, propsForModifiedValues } from './mui'
 import { RestartAlt } from '@mui/icons-material'
-import { Callback, onlyTruthy } from './misc'
+import { Callback, isOrderedEqual, onlyTruthy } from './misc'
 
 type FormRest<T> = Omit<FormProps<T>, 'values' | 'set' | 'save'> & Partial<Pick<FormProps<T>, 'save'>>
 export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }: Partial<FormRest<T>> & {
@@ -18,7 +18,7 @@ export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }:
     const config = useApiEx(keys_ && 'get_config', { only: keys_ })
     const [values, setValues] = useState<any>(config.data)
     useEffect(() => setValues((v: any) => config.data || v), [config.data])
-    const modified = values && !_.isEqual(values, config.data)
+    const modified = values && !isOrderedEqual(values, config.data)
     useEffect(() => {
         if (modified && saveOnChange) save()
     }, [modified])
