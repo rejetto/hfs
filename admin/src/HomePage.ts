@@ -192,22 +192,24 @@ function renderChangelog(s: string) {
 
 async function update(tag?: string) {
     if (!await confirmDialog("Installation may take less than a minute, depending on the speed of your server")) return
-    toast('Downloading')
+    let d = toast('Downloading')
     const err = await apiCall('update', { tag }, { timeout: 600 /*download can be lengthy*/ })
         .then(() => 0, e => e)
     if (err)
         return alertDialog(err)
-    toast("Restarting")
+    d.close()
+    d = toast("Restarting")
     const restarting = Date.now()
     let warning: undefined | ReturnType<typeof alertDialog>
-    while (await apiCall('NONE').then(() => 0, e => !e.code)) { // while we get no response
+    do {
         if (!warning && Date.now() - restarting > 15_000)
             warning = alertDialog("This is taking too long, please check your server", 'warning')
-        await wait(500)
-    }
+        await wait(500) // give the old server time to stop responding before the first probe
+    } while (await apiCall('NONE').then(() => 0, e => !e.code)) // while we get no response
     warning?.close()
     // the server is back on, SSE is restored and login dialog may appear, unwanted because we are just waiting to reload
     subscribeKey(state, 'loginRequired', () => state.loginRequired = false)
+    d.close()
     await alertDialog("Procedure complete", 'success')
     window.location.reload() // show new gui
 }
