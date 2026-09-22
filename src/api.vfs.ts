@@ -79,9 +79,10 @@ export default {
         Object.assign(n, sanitizeVfsProps(props))
         simplifyName(n)
         n.isFolder = undefined // reset field, it will be set by saveVfs
-        await saveVfs()
+        // compute the remap before saveVfs replaces the tree and invalidates node identity
         if (!isRoot(n)) // not actually used by admin-panel but still
             uriRemaps[uri] = uriForNode(uri, n) // just in case the current node was modified
+        await saveVfs()
         await updateRootsForVfsUriRemaps(uriRemaps)
         return n
 

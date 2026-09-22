@@ -58,7 +58,7 @@ vfs:
           children:
             - source: ../tmp/no-upload
               can_upload: false
-        - source: ../work/cant-overwrite
+        - source: ../work/cant-overwrite/
           can_upload:
             - admins
           can_delete: false

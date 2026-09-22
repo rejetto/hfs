@@ -3220,6 +3220,21 @@ describe('admin', () => {
             await reqApi('del_account', { username: [newUsername, oldUsername] }, 200, { auth })().catch(() => {})
         }
     })
+    test('set_vfs root saves preserve domain roots', async () => {
+        const old = await reqApi('get_config', { only: ['vfs', 'roots'] }, 200, { auth })()
+        const roots = { 'root-save.example.com': '/f1/', 'default.example.com': '' }
+        try {
+            await reqApi('set_config', { values: { roots } }, 200, { auth })()
+            for (let i = 0; i < 2; i++) {
+                await reqApi('set_vfs', { uri: '/', props: { source: resolve(__dirname, '..'), comment: `save ${i}` } }, 200, { auth })()
+                await reqApi('get_config', { only: ['roots'] }, res =>
+                    throwIf(_.isEqual(res.roots, roots) ? '' : JSON.stringify(res.roots)), { auth })()
+            }
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, { auth })()
+        }
+    })
     test('set_vfs.rename and props', async () => {
         const name = `set vfs ${randomId(6)}`
         const renamed = `${name}-renamed`
