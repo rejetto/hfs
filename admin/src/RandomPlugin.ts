@@ -1,13 +1,14 @@
 import { createElement as h, useEffect, useMemo, useState } from 'react'
 import { t } from './i18n'
-import { Box, Card, CardActions, CardContent } from '@mui/material'
+import { Box, ButtonBase, Card, CardActions, CardContent } from '@mui/material'
 import { Btn } from './mui'
 import { state, useSnapState } from './state'
 import { useApiList } from './api'
 import { DAY, tryJson, wantArray } from './misc'
 import _ from 'lodash'
 import { installPluginFromResult, renderPluginName } from './plugin'
-import { toast } from './dialog'
+import { ShowImages } from './OnlinePlugins'
+import { newDialog, toast } from './dialog'
 
 const cacheKey = 'onlinePluginsCache'
 
@@ -40,16 +41,21 @@ export function RandomPlugin() {
             h(Box, { sx: { fontWeight: 'bold', fontSize: '1.4em' } }, h(Box, { sx: { color: 'warning.main', mr: 1, display: 'inline' } }, '🎲'), t`Random plugin:`),
             h(Box, { sx: { fontWeight: 'bold', fontSize: '1.8em', my: 1 } }, renderPluginName({ row: one })),
             h(Box, {}, one.description),
-            one.preview && h('img', {
+            one.preview && h(ButtonBase, {
+                'aria-label': one.id,
+                onClick: () => newDialog({ title: one.id, Content: () => h(ShowImages, { imgs: wantArray(one.preview) }) }),
+                sx: { display: 'block', mt: '1em', cursor: 'zoom-in' },
+            }, h('img', {
                 src: wantArray(one.preview)[0],
+                alt: one.id,
                 style: {
                     maxWidth: '100%',
                     maxHeight: '50vh',
-                    marginTop: '1em',
+                    display: 'block',
                     border: '1px solid',
                     maskImage: 'radial-gradient(circle at center, black 50%, transparent 100%)'
                 }
-            }),
+            })),
         ),
         h(CardActions, {},
             h(Btn, { variant: 'outlined', onClick: () => installPluginFromResult(one) }, t`Install`),

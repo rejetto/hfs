@@ -95,7 +95,7 @@ export default function OnlinePlugins() {
     )
 }
 
-function ShowImages({ imgs }: { imgs: string[] }) {
+export function ShowImages({ imgs }: { imgs: string[] }) {
     const [cur, setCur] = useState(0)
     return h(Flex, { vert: true, flex: 1 },
         h(Flex, { vert: true, center: true, height: 0, flex: 'auto', minHeight: '50vh', minWidth: '50vw'  },
