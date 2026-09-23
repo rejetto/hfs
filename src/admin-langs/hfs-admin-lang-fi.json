@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Sisällytä piilotetut tiedostot",
+        "non_public_ip_warning": "Tämä IP-osoite ei ole julkinen. Siihen ei voi muodostaa yhteyttä suoraan internetistä. Käytä julkista IP-osoitetta tai verkkotunnusta.",
         "Could not remove a DNS challenge TXT record": "DNS-varmennuksen TXT-tietuetta ei voitu poistaa",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "HTTP-varmennuksella ei voi myöntää jokerimerkkivarmenteita. Valitse DNS-palveluntarjoaja.",
         "Validation": "Varmennus",

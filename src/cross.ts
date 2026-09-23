@@ -458,7 +458,20 @@ export function isIpLocalHost(ip: string) {
 }
 
 export function isIpLan(ip: string) {
-    return /^(?:10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|fe80::)/.test(ip)
+    return /^(?:10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|f[cd][\da-f]{2}:|fe[89ab][\da-f]:)/i.test(normalizeIp(ip))
+}
+
+export function normalizeIp(ip: string) {
+    // proxy headers may contain invalid addresses; do not interpret URL paths or credentials as an IP
+    if (!/^[\da-f:.\[\]]+$/i.test(ip)) return ip
+    // URL canonicalizes IPv6 and alternate IPv4 spellings before matching
+    const host = try_(() => new URL(`http://${ip.includes(':') && !ip.startsWith('[') ? `[${ip}]` : ip}`).hostname) || ip
+    const bare = host.startsWith('[') ? host.slice(1, -1) : host
+    if (bare.startsWith('::ffff:')) {
+        const words = bare.slice(7).split(':').map(x => parseInt(x, 16))
+        return words.flatMap(x => [x >> 8, x & 255]).join('.')
+    }
+    return bare
 }
 
 export function ipForUrl(ip: string) {

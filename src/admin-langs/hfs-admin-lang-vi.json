@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Bao gồm các tệp ẩn",
+        "non_public_ip_warning": "Đây không phải là địa chỉ IP công cộng. Không thể truy cập trực tiếp từ Internet. Hãy sử dụng địa chỉ IP công cộng hoặc tên miền.",
         "Could not remove a DNS challenge TXT record": "Không thể xóa bản ghi TXT xác thực DNS",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "Xác thực HTTP không thể cấp chứng chỉ ký tự đại diện. Hãy chọn nhà cung cấp DNS.",
         "Validation": "Xác thực",

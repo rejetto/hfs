@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "숨김 파일 포함",
+        "non_public_ip_warning": "이 IP 주소는 공인 IP 주소가 아닙니다. 인터넷에서 직접 접속할 수 없습니다. 공인 IP 주소나 도메인 이름을 사용하세요.",
         "Could not remove a DNS challenge TXT record": "DNS 검증용 TXT 레코드를 삭제하지 못했습니다",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "HTTP 검증으로는 와일드카드 인증서를 발급할 수 없습니다. DNS 공급자를 선택하세요.",
         "Validation": "검증",

@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "包含隐藏文件",
+        "non_public_ip_warning": "这是非公网 IP 地址，无法从互联网直接访问。请使用公网 IP 地址或域名。",
         "Could not remove a DNS challenge TXT record": "无法删除 DNS 验证 TXT 记录",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "HTTP 验证无法签发通配符证书。请选择 DNS 服务商。",
         "Validation": "验证",

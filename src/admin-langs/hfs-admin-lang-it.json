@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Includi file nascosti",
+        "non_public_ip_warning": "Questo è un indirizzo IP non pubblico. Non può essere raggiunto direttamente da Internet. Usa invece un indirizzo IP pubblico o un nome di dominio.",
         "Could not remove a DNS challenge TXT record": "Impossibile rimuovere un record TXT di verifica DNS",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "La verifica HTTP non consente di ottenere certificati wildcard. Seleziona un provider DNS.",
         "Validation": "Verifica",

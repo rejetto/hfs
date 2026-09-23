@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Συμπερίληψη κρυφών αρχείων",
+        "non_public_ip_warning": "Αυτή η διεύθυνση IP δεν είναι δημόσια. Δεν είναι δυνατή η απευθείας πρόσβαση σε αυτήν από το Διαδίκτυο. Χρησιμοποιήστε μια δημόσια διεύθυνση IP ή ένα όνομα τομέα.",
         "Could not remove a DNS challenge TXT record": "Δεν ήταν δυνατή η αφαίρεση μιας εγγραφής TXT επικύρωσης DNS",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "Η επικύρωση HTTP δεν μπορεί να εκδώσει πιστοποιητικά wildcard. Επιλέξτε πάροχο DNS.",
         "Validation": "Επικύρωση",

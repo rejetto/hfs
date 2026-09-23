@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Verborgen bestanden opnemen",
+        "non_public_ip_warning": "Dit is een niet-openbaar IP-adres. Het is niet rechtstreeks bereikbaar via internet. Gebruik een openbaar IP-adres of een domeinnaam.",
         "Could not remove a DNS challenge TXT record": "Een TXT-record voor DNS-validatie kon niet worden verwijderd",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "Met HTTP-validatie kunnen geen wildcardcertificaten worden uitgegeven. Selecteer een DNS-provider.",
         "Validation": "Validatie",

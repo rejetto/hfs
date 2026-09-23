@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Rejtett fájlok megjelenítése",
+        "non_public_ip_warning": "Ez nem nyilvános IP-cím. Az internetről közvetlenül nem érhető el. Használj helyette nyilvános IP-címet vagy domainnevet.",
         "Could not remove a DNS challenge TXT record": "Nem sikerült eltávolítani egy DNS-ellenőrzési TXT-rekordot",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "HTTP-ellenőrzéssel nem lehet helyettesítő karakteres tanúsítványt kiadni. Válassz DNS-szolgáltatót.",
         "Validation": "Ellenőrzés",

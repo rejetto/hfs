@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "包含隱藏檔案",
+        "non_public_ip_warning": "這是非公用 IP 位址，無法從網際網路直接存取。請改用公用 IP 位址或網域名稱。",
         "Could not remove a DNS challenge TXT record": "無法刪除 DNS 驗證 TXT 記錄",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "HTTP 驗證無法簽發萬用字元憑證。請選擇 DNS 服務商。",
         "Validation": "驗證",

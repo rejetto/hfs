@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Įtraukti paslėptus failus",
+        "non_public_ip_warning": "Tai neviešas IP adresas. Jo negalima tiesiogiai pasiekti iš interneto. Naudokite viešą IP adresą arba domeno vardą.",
         "Could not remove a DNS challenge TXT record": "Nepavyko pašalinti DNS patikros TXT įrašo",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "HTTP patikra negali išduoti pakaitos simbolio sertifikatų. Pasirinkite DNS teikėją.",
         "Validation": "Patikra",

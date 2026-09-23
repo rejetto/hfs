@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Укључи скривене датотеке",
+        "non_public_ip_warning": "Ово није јавна IP адреса. Није јој могуће приступити директно са интернета. Користите јавну IP адресу или назив домена.",
         "Could not remove a DNS challenge TXT record": "Није могуће уклонити TXT запис за DNS проверу",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "HTTP провера не може да изда wildcard сертификате. Изаберите DNS провајдера.",
         "Validation": "Провера",

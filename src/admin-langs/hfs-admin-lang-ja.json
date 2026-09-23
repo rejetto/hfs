@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "隠しファイルを含める",
+        "non_public_ip_warning": "これはパブリックIPアドレスではありません。インターネットから直接アクセスすることはできません。代わりにパブリックIPアドレスまたはドメイン名を使用してください。",
         "Could not remove a DNS challenge TXT record": "DNS 検証用の TXT レコードを削除できませんでした",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "HTTP 検証ではワイルドカード証明書を発行できません。DNS プロバイダーを選択してください。",
         "Validation": "検証",

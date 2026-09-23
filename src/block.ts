@@ -1,8 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { defineConfig } from './config'
-import { disconnect, getConnections, normalizeIp } from './connections'
-import { CFG, makeNetMatcher, MINUTE, onlyTruthy } from './misc'
+import { disconnect, getConnections } from './connections'
+import { normalizeIp, CFG, makeNetMatcher, MINUTE, onlyTruthy } from './misc'
 import { isIP, Socket } from 'net'
 import _ from 'lodash'
 

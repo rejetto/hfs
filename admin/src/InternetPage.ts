@@ -9,7 +9,7 @@ import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTon
 import { apiCall, useApiEvents, useApiEx } from './api'
 import {
     closeDialog, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG, md,
-    useRequestRender, replace, restartAnimation, prefix, isIpLan, HIDE_IN_TESTS
+    useRequestRender, replace, restartAnimation, prefix, isIpLan, HIDE_IN_TESTS, normalizeIp
 } from './misc'
 import { Flex, LinkBtn, Btn, Country, wikiLink, NetmaskField } from './mui'
 import { alertDialog, confirmDialog, formDialog, promptDialog, toast, waitDialog } from './dialog'
@@ -331,7 +331,9 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         setChecking(true)
         try {
             const hostname = baseUrl && new URL(baseUrl).hostname
-            const checkUrl = !isIpLan(hostname) && baseUrl
+            if (hostname && isNonPublicIp(hostname))
+                return alertDialog(t`non_public_ip_warning`, 'warning')
+            const checkUrl = baseUrl
             if (!isIP(hostname) && await stopOnCheckDomain(hostname)) return
             const urlResult = checkUrl && await apiCall('self_check', { url: checkUrl }).catch(e =>
                 alertDialog(!e.code ? e : t`internet_test_unavailable`, 'error'))
@@ -464,4 +466,16 @@ function TitleCard({ title, icon, color, children }: { title: ReactNode, icon?: 
         h(Typography, { variant: 'h3', sx: { fontSize: 'x-large' } }, icon && h(icon, { color, sx: { mr: 1, mb: '2px' } }), title),
         children
     )))
+}
+
+function isNonPublicIp(address: string): boolean {
+    const host = normalizeIp(address)
+    if (isIpLan(host))
+        return true
+    if (host.includes(':'))
+        return /^(?:::|::1|ff[\da-f]{2}:.*)$/.test(host)
+    if (!/^\d+\.\d+\.\d+\.\d+$/.test(host)) return false
+    const [a, b] = host.split('.').map(Number) as [number, number]
+    return a === 0 || a === 127 || a >= 224
+        || a === 100 && b >= 64 && b <= 127
 }

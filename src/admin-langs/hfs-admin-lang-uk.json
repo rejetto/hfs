@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Включати приховані файли",
+        "non_public_ip_warning": "Це непублічна IP-адреса. Вона недоступна безпосередньо з Інтернету. Використовуйте публічну IP-адресу або доменне ім’я.",
         "Could not remove a DNS challenge TXT record": "Не вдалося видалити TXT-запис перевірки DNS",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "Перевірка HTTP не дозволяє видавати wildcard-сертифікати. Виберіть DNS-провайдера.",
         "Validation": "Перевірка",
