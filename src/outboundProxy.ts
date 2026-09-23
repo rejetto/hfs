@@ -41,7 +41,7 @@ configReady.then(async (startedWithoutConfig) => {
     // it can be like "IP:PORT" or "http=IP:PORT;https=IP:PORT;ftp=IP:PORT"
     const url = prefix('https://', /https=([\d:.]+)/.exec(out)?.[1]) // prefer https
         || prefix('http://', /http=([\d:.]+)/.exec(out)?.[1])
-        || !read.includes('=') && 'http://' + read // simpler form
+        || !read.includes('=') && (read.includes('://') ? read : 'http://' + read) // simpler form
     if (!url) return
     outboundProxy.set(url)
     console.log("Detected proxy", read)
