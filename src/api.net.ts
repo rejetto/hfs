@@ -7,7 +7,7 @@ import {
 import _ from 'lodash'
 import { getCertObject } from './listen'
 import { getProjectInfo } from './github'
-import { apiAssertTypes, haveTimeout, onlyTruthy, promiseBestEffort } from './misc'
+import { apiAssertTypes, haveTimeout, ipForUrl, onlyTruthy, promiseBestEffort } from './misc'
 import { lookup, Resolver } from 'dns/promises'
 import { isIPv6 } from 'net'
 import { getNatInfo, getPublicIps, getUpnpClient, mappedPort, upnpMappingParam } from './nat'
@@ -79,7 +79,7 @@ export default {
         const proto = nat.proto || (getCertObject() ? 'https' : 'http')
         const defPort = proto === 'https' ? 443 : 80
         const results = onlyTruthy(await promiseBestEffort(publicIps.map(ip =>
-            selfCheck(`${proto}://${ip}${finalPort === defPort ? '' : ':' + finalPort}`) )))
+            selfCheck(`${proto}://${ipForUrl(ip)}${finalPort === defPort ? '' : ':' + finalPort}`) )))
         return results.length ? results : new ApiError(HTTP_SERVICE_UNAVAILABLE)
     },
 
