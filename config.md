@@ -102,7 +102,10 @@ Some properties use a `Who` descriptor, with one of these values:
 - `force_https` redirect http traffic to https. Requires https to be working. Default is true.
 - `force_lang` force translation for frontend. Default is none, meaning *let browser decide*.
 - `admin_lang` force translation for the Admin panel. Default is none, meaning *let browser decide*.
-  Upload frontend translations as `hfs-lang-<code>.json` and Admin translations as `hfs-admin-lang-<code>.json` from Admin → Language. Both use a JSON `translate` object, with optional `author` and `version`. Uploaded files are stored in the CWD and override built-in translations for the same interface and code; deleting an override restores the built-in translation. New language codes are also supported.
+  Upload frontend translations as `hfs-lang-<code>.json` and Admin translations as `hfs-admin-lang-<code>.json` from Admin → Language. 
+  Both use a JSON `translate` object, with optional `author` and `version`. 
+  Uploaded files are stored in the CWD and override built-in translations for the same interface and code;
+  deleting an override restores the built-in translation. New language codes are also supported.
 - `admin_net` net-mask specifying what addresses are allowed to access Admin-panel. Default is any.
 - `title` text displayed in the tab of your browser. Default is "File server".
 - `file_menu_on_link` if to display file-menu when clicking on a link, or have a dedicated button instead. Default is true.
@@ -112,9 +115,17 @@ Some properties use a `Who` descriptor, with one of these values:
 - `keep_session_alive` keeps you logged in while the page is left open and the computer is on. Default is true.
 - `session_duration` after how many seconds should the login session expire. Default is a day.
 - `force_webdav_login` force WebDAV clients to authenticate. Accepts: `false` (disabled), `true` (all user-agents), or a case-insensitive regex string (only matching user-agents). Default is true.
-- `webdav_initial_auth` one-time login prompt for matching WebDAV user-agents (used only when `force_webdav_login` does not match). Accepts: `false` (disabled), `true` (all user-agents), or a case-insensitive regex string. Default is `WebDAVFS`.
+- `webdav_initial_auth` one-time login prompt for matching WebDAV user-agents (used only when `force_webdav_login` does not match). 
+  Accepts: `false` (disabled), `true` (all user-agents), or a case-insensitive regex string. Default is `WebDAVFS`.
 - `acme_domain` domain used for ACME certificate generation. Default is none. 
 - `acme_renew` automatically renew acme certificate close to expiration. Default is false.
+- `acme_challenge` certificate validation method: `http-01` (default) or `dns-01`. 
+  DNS is required for wildcard names and does not require an incoming connection to port 80. 
+  Each `*.example.com` also includes `example.com`; `*.files.example.com` includes `files.example.com`, not `example.com`.
+- `acme_dns` list of DNS configurations, currently limited to one through the Admin UI. 
+  Each entry contains `id` (for example `main`), `provider` (the catalog ID), `config_version`, and `credentials`. 
+  DNS validation uses the first entry. The format allows future configurations without changing existing entries. 
+  See [Certificate validation](https://github.com/rejetto/hfs/wiki/Certificate-validation).
 - `listen_interface` network interface to listen on, by specifying IP address. Default is any.
 - `base_url` URL to be used for links generation. Default is automatic.
 - `force_address` disconnect any request not made with one of the hosts specified in `roots` or `base_url`. Default is false.

@@ -22,7 +22,7 @@ export const KB = 1024
 export const MB = KB * KB
 
 export const CFG = constMap([
-    'accounts', 'acme_domain', 'acme_renew', 'admin_lang', 'admin_net', 'allowed_referer',
+    'accounts', 'acme_domain', 'acme_renew', 'acme_challenge', 'acme_dns', 'admin_lang', 'admin_net', 'allowed_referer',
     'authorization_header', 'auto_basic', 'auto_check_update', 'auto_play_seconds',
     'base_url', 'block', 'cache_control_disk_files', 'cert', 'comments_storage',
     'create-admin', 'debug', 'delete_unfinished_uploads_after',

@@ -1,9 +1,10 @@
+import AcmeForm from './AcmeForm'
 import { createElement as h, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { t } from './i18n'
 import {
     Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link, Typography, Skeleton,
 } from '@mui/material'
-import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Send, Storage,
+import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Storage,
     Error as ErrorIcon, SvgIconComponent, Search } from '@mui/icons-material'
 import { apiCall, useApiEvents, useApiEx } from './api'
 import {
@@ -12,7 +13,7 @@ import {
 } from './misc'
 import { Flex, LinkBtn, Btn, Country, wikiLink, NetmaskField } from './mui'
 import { alertDialog, confirmDialog, formDialog, promptDialog, toast, waitDialog } from './dialog'
-import { BoolField, Form, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
+import { BoolField, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
 import { suggestMakingCert } from './cert'
 import { changeBaseUrl } from './baseUrl'
 import { adminApis } from '../../src/adminApis'
@@ -187,11 +188,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     }
 
     function httpsBox() {
-        const [values, setValues] = useState<any>()
         const cert = useApiEx('get_cert')
-        useEffect(() => { apiCall('get_config', { only: ['acme_domain', 'acme_renew'] }).then(setValues) } , [])
-        const [saving, setSaving] = useState(false)
-        if (!values) return h(CircularProgress)
         const { https } = status.data ||{}
         const disabled = https?.port === PORT_DISABLED
         const error = https?.error
@@ -207,66 +204,20 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                 )
             )),
             h(Divider),
-            h(Form, {
-                sx: { gap: 1 },
-                gridProps: {rowSpacing:1},
-                values,
-                set(v, k) {
-                    setValues((was: any) => {
-                        const values = { ...was, [k]: v }
-                        setSaving(true)
-                        apiCall('set_config', { values }).finally(() => setSaving(false))
-                        return values
-                    })
+            h(AcmeForm, {
+                checkDomain: stopOnCheckDomain,
+                renewError: status.data?.acmeRenewError,
+                fresh(domain) {
+                    const validTo = Number(new Date(cert.data?.validTo))
+                    const renewBefore = (validTo - Number(new Date(cert.data?.validFrom))) / 3
+                    return Boolean(cert.data?.altNames?.includes(domain) && validTo - Date.now() >= renewBefore)
                 },
-                fields: [
-                    md(t('generate_lets_encrypt_certificate', { letsEncryptUrl: 'https://letsencrypt.org' })),
-                    {
-                        k: 'acme_domain',
-                        label: t`Domain for certificate`,
-                        sm: values.acme_domain?.length > 30 ? 12 : 6,
-                        required: true,
-                        multiline: true,
-                        fromField: x => x.replaceAll('\n', ','),
-                        toField: x => x.replaceAll(',', '\n'),
-                        helperText: md(t`certificate_domains_example`)
-                    },
-                    values.acme_domain?.split(',').some(isIP) && h(Alert, { severity: 'info' },
-                        t`acme_ip_short_lived_notice`),
-                    {
-                        k: 'acme_renew',
-                        label: t`Automatic renew before expiration`,
-                        comp: BoolField,
-                        disabled: !values.acme_domain
-                    },
-                    with_(status.data.acmeRenewError, x => x && h(Alert, { severity: 'error' }, x)),
-                ],
-                save: {
-                    children: t`Request`,
-                    disabled: !cert.data,
-                    startIcon: h(Send),
-                    ...saving && { loading: true },
-                    async onClick() {
-                        const [domain, ...altNames] = values.acme_domain.split(',')
-                        const validTo = Number(new Date(cert.data.validTo))
-                        const renewBefore = (validTo - Number(new Date(cert.data.validFrom))) / 3
-                        const fresh = cert.data.altNames?.includes(domain)
-                            && validTo - Date.now() >= renewBefore
-                        if (fresh && !await confirmDialog(t`Your certificate is still good`, { trueText: t`Make a new one anyway` }))
-                            return
-                        if (!await confirmDialog(t`acme_http_port_requirement`)) return
-                        if (await stopOnCheckDomain(domain)) return
-                        await apiCall('make_cert', { domain, altNames }, { timeout: 20_000 })
-                            .then(async () => {
-                                await alertDialog(t`Certificate created`, 'success')
-                                if (disabled)
-                                    await notEnabled()
-                                cert.reload()
-                            }, alertDialog)
-                            .finally(status.reload)
-                    }
+                onComplete() {
+                    cert.reload()
+                    status.reload()
+                    if (disabled) void notEnabled()
                 },
-            })
+            }),
         )
 
         async function noCertClick() {

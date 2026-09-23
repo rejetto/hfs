@@ -11,7 +11,8 @@ import { apiAssertTypes, haveTimeout, ipForUrl, onlyTruthy, promiseBestEffort } 
 import { lookup, Resolver } from 'dns/promises'
 import { isIPv6 } from 'net'
 import { getNatInfo, getPublicIps, getUpnpClient, mappedPort, upnpMappingParam } from './nat'
-import { makeCert } from './acme'
+import { makeCert, getAcmeStatus, getAcmeStatusEvents } from './acme'
+import { getAcmeSettings, setAcmeSettings } from './acmeConfig'
 import { selfCheck } from './selfCheck'
 
 export default {
@@ -83,12 +84,26 @@ export default {
         return results.length ? results : new ApiError(HTTP_SERVICE_UNAVAILABLE)
     },
 
-    async make_cert({domain, email, altNames}) {
-        apiAssertTypes({ string: { domain }, string_undefined: { email }, array_undefined: { altNames } })
+    get_acme: getAcmeSettings,
+    get_acme_status: getAcmeStatusEvents,
+    async set_acme({ settings }) {
+        if (getAcmeStatus().state === 'running') throw new ApiError(409, "Certificate request already running")
+        if (!settings || typeof settings !== 'object') throw new ApiError(HTTP_BAD_REQUEST)
+        return setAcmeSettings(settings).catch(error => { throw new ApiError(HTTP_BAD_REQUEST, error.message) })
+    },
+
+    async make_cert({domain, email, altNames, background}) {
+        apiAssertTypes({ string: { domain }, string_undefined: { email }, array_undefined: { altNames }, boolean_undefined: { background } })
         if (!domain) return new ApiError(HTTP_BAD_REQUEST, 'bad params')
         if (altNames?.some((name: unknown) => typeof name !== 'string'))
             return new ApiError(HTTP_BAD_REQUEST, 'bad altNames')
-        await makeCert(domain, email, altNames).catch(e => {
+        if (getAcmeStatus().state === 'running') throw new ApiError(409, "Certificate request already running")
+        const pending = makeCert(domain, email, altNames)
+        if (background) {
+            void pending.catch(() => {}) // the status stream carries the error even after the browser disconnects
+            return { id: getAcmeStatus().id }
+        }
+        await pending.catch(e => {
             throw new ApiError(HTTP_SERVER_ERROR, e.message || String(e))
         })
         return {}

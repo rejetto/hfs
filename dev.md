@@ -25,6 +25,8 @@ been built, so their files are available in `dist` folder.
 To run tests
 - `npm run build-all`
 - `npm run test-with-server` (backend tests)
+- `node --import tsx --test tests/acme-dns.test.ts tests/acme-dns-providers.test.ts tests/acme-config.test.ts` (DNS recipes, local DNS propagation and persisted settings/plugin lifecycle; compile the server and copy `central.json` to `dist/` first).
+- For the ACME Admin form, run the Admin Vite server and use `ADMIN_ACME_URL=http://127.0.0.1:3112/#/monitoring npx playwright test admin-acme --project=chromium`. The test exercises the real form with API and progress-stream fixtures.
 - `node --import tsx --test tests/plugin-catalog.test.ts` (persistent plugin catalog, no server needed)
 - `node --import tsx --test tests/shutdown.test.ts` (shutdown tests, no server needed)
 - `node --import tsx --test tests/plugin-server-cleanup.test.ts` (after compiling the server; starts isolated HTTP and HTTPS servers)

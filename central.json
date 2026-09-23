@@ -56,5 +56,104 @@
         "^3\\.2\\.[1-9]": {
             "alert": "Please update. Your installation may be at risk if:\n - shared folders contain hidden subfolders: their contents can be downloaded if the folder name is known;\n - untrusted users can download folders as ZIP: they can make HFS unavailable;\n - you use WebDAV, LDAP, or `?login=` links: passwords can be exposed during login;\n - multiple users manage files in the same folders: one user can alter another's files"
         }
-    }
+    },
+    "acmeDns": [
+        {
+            "driver": "http-json1",
+            "help_url": "https://dash.cloudflare.com/profile/api-tokens",
+            "config_version": 1,
+            "providers": {"Cloudflare": {"endpoint": "https://api.cloudflare.com/client/v4"}},
+            "fields": {"token": {"label": "API token", "secret": true}},
+            "headers": {"Authorization": "Bearer {credentials.token}"},
+            "prepare": [{"method": "GET", "path": "/zones?name={zone}", "expect": ["success", true], "capture": {"zoneId": "result.0.id"}}],
+            "create": [{"method": "POST", "path": "/zones/{zoneId}/dns_records", "body": {"type": "TXT", "name": "{name}", "content": "{value}", "ttl": 120}, "expect": ["success", true], "capture": {"recordId": "result.id"}}],
+            "remove": [{"method": "DELETE", "path": "/zones/{zoneId}/dns_records/{recordId}", "expect": ["success", true]}]
+        },
+        {
+            "driver": "http-json1",
+            "help_url": "https://cloud.digitalocean.com/account/api/tokens",
+            "config_version": 1,
+            "providers": {"DigitalOcean": {"endpoint": "https://api.digitalocean.com/v2"}},
+            "fields": {"token": {"label": "API token", "secret": true}},
+            "headers": {"Authorization": "Bearer {credentials.token}"},
+            "create": [{"method": "POST", "path": "/domains/{zone}/records", "body": {"type": "TXT", "name": "{name}", "data": "{value}", "ttl": 30}, "capture": {"recordId": "domain_record.id"}}],
+            "remove": [{"method": "DELETE", "path": "/domains/{zone}/records/{recordId}"}]
+        },
+        {
+            "driver": "http-json1",
+            "help_url": "https://porkbun.com/account/api",
+            "config_version": 1,
+            "providers": {"Porkbun": {"endpoint": "https://api.porkbun1.com/api/json/v3"}},
+            "fields": {"key": {"label": "API key", "secret": true}, "secret": {"label": "Secret API key", "secret": true}},
+            "headers": {},
+            "create": [{"method": "POST", "path": "/dns/create/{zone}", "body": {"apikey": "{credentials.key}", "secretapikey": "{credentials.secret}", "type": "TXT", "name": "{relative}", "content": "{value}", "ttl": "300"}, "expect": ["status", "SUCCESS"], "capture": {"recordId": "id"}}],
+            "remove": [{"method": "POST", "path": "/dns/delete/{zone}/{recordId}", "body": {"apikey": "{credentials.key}", "secretapikey": "{credentials.secret}"}, "expect": ["status", "SUCCESS"]}]
+        },
+        {
+            "driver": "http-json1",
+            "help_url": "https://my.vultr.com/settings/#settingsapi",
+            "config_version": 1,
+            "providers": {"Vultr": {"endpoint": "https://api.vultr.com/v2"}},
+            "fields": {"token": {"label": "API token", "secret": true}},
+            "headers": {"Authorization": "Bearer {credentials.token}"},
+            "create": [{"method": "POST", "path": "/domains/{zone}/records", "body": {"type": "TXT", "name": "{relative}", "data": "\"{value}\"", "ttl": 300, "priority": 0}, "capture": {"recordId": "record.id"}}],
+            "remove": [{"method": "DELETE", "path": "/domains/{zone}/records/{recordId}"}]
+        },
+        {
+            "driver": "http-json1",
+            "help_url": "https://cloud.linode.com/profile/tokens",
+            "config_version": 1,
+            "providers": {"Linode": {"endpoint": "https://api.linode.com/v4"}},
+            "fields": {"token": {"label": "API token", "secret": true}},
+            "headers": {"Authorization": "Bearer {credentials.token}", "X-Filter": "{\"domain\":\"{zone}\"}"},
+            "prepare": [{"method": "GET", "path": "/domains", "expect": ["results", 1], "capture": {"zoneId": "data.0.id"}}],
+            "create": [{"method": "POST", "path": "/domains/{zoneId}/records", "body": {"type": "TXT", "name": "{relative}", "target": "{value}", "ttl_sec": 300}, "capture": {"recordId": "id"}}],
+            "remove": [{"method": "DELETE", "path": "/domains/{zoneId}/records/{recordId}"}]
+        },
+        {
+            "driver": "http-json1",
+            "help_url": "https://support.dnsimple.com/articles/api-access-token/",
+            "config_version": 1,
+            "providers": {"DNSimple": {"endpoint": "https://api.dnsimple.com/v2"}},
+            "fields": {"token": {"label": "Account API token", "secret": true}},
+            "headers": {"Authorization": "Bearer {credentials.token}"},
+            "prepare": [{"method": "GET", "path": "/whoami", "capture": {"accountId": "data.account.id"}}],
+            "create": [{"method": "POST", "path": "/{accountId}/zones/{zone}/records", "body": {"type": "TXT", "name": "{relative}", "content": "{value}", "ttl": 300}, "capture": {"recordId": "data.id"}}],
+            "remove": [{"method": "DELETE", "path": "/{accountId}/zones/{zone}/records/{recordId}"}]
+        },
+        {
+            "driver": "http-json1",
+            "help_url": "https://developer.hosting.ionos.com/keys",
+            "config_version": 1,
+            "providers": {"IONOS": {"endpoint": "https://api.hosting.ionos.com/dns/v1"}},
+            "fields": {"token": {"label": "API token", "secret": true}},
+            "headers": {"X-API-Key": "{credentials.token}"},
+            "prepare": [{"method": "GET", "path": "/zones", "select": {"field": "name", "equals": "{zone}"}, "capture": {"zoneId": "id"}}],
+            "create": [{"method": "POST", "path": "/zones/{zoneId}/records", "body": [{"type": "TXT", "name": "{name}", "content": "{value}", "ttl": 300, "disabled": false}], "capture": {"recordId": "0.id"}}],
+            "remove": [{"method": "DELETE", "path": "/zones/{zoneId}/records/{recordId}"}],
+            "propagation_timeout": 900
+        },
+        {
+            "driver": "http-json1",
+            "help_url": "https://www.name.com/account/settings/api",
+            "config_version": 1,
+            "providers": {"Name.com": {"endpoint": "https://api.name.com/core/v1"}},
+            "fields": {"username": {"label": "Username"}, "token": {"label": "API token", "secret": true}},
+            "headers": {},
+            "create": [{"method": "POST", "path": "/domains/{zone}/records", "body": {"type": "TXT", "host": "{relative}", "answer": "{value}", "ttl": 300}, "capture": {"recordId": "id"}}],
+            "remove": [{"method": "DELETE", "path": "/domains/{zone}/records/{recordId}"}],
+            "auth": {"basic": "{credentials.username}:{credentials.token}"}
+        },
+        {
+            "driver": "http-json1",
+            "help_url": "https://eu.api.ovh.com/createToken/?POST=/domain/zone/*&DELETE=/domain/zone/*",
+            "config_version": 1,
+            "providers": {"OVHcloud": {"endpoint": "https://eu.api.ovh.com/1.0"}, "OVHcloud Canada": {"endpoint": "https://ca.api.ovh.com/1.0", "help_url": "https://ca.api.ovh.com/createToken/?POST=/domain/zone/*&DELETE=/domain/zone/*"}},
+            "fields": {"applicationKey": {"label": "Application key", "secret": true}, "applicationSecret": {"label": "Application secret", "secret": true}, "consumerKey": {"label": "Consumer key", "secret": true}},
+            "headers": {},
+            "auth": "ovh",
+            "create": [{"method": "POST", "path": "/domain/zone/{zone}/record", "body": {"fieldType": "TXT", "subDomain": "{relative}", "target": "{value}", "ttl": 60}, "capture": {"recordId": "id"}}, {"method": "POST", "path": "/domain/zone/{zone}/refresh"}],
+            "remove": [{"method": "DELETE", "path": "/domain/zone/{zone}/record/{recordId}"}, {"method": "POST", "path": "/domain/zone/{zone}/refresh"}]
+        }
+    ]
 }

@@ -6,6 +6,7 @@ import yaml from 'yaml';
 
 // isolated Admin logic regressions need one browser; end-to-end flows, calendars and drag retain all projects
 const adminLogicTests = [
+  '**/admin-acme.spec.ts',
   '**/admin-accounts.spec.ts',
   '**/admin-config-file.spec.ts',
   '**/admin-custom-html.spec.ts',

@@ -266,6 +266,8 @@ export const getProjectInfo = debounceAsync(async () => {
     }
     else
         obj = { ...cachedCentralInfo.get() || JSON.parse(builtInJson) } // fall back to built-in
+    // older catalogs predate DNS providers; an explicit empty list still disables the built-ins
+    obj.acmeDns ??= JSON.parse(builtInJson).acmeDns
     // merge byVersions info in the main object but collect alerts separately to preserve multiple instances
     const newAlerts: string[] = [obj.alert]
     for (const [ver, more] of Object.entries(popKey(obj, 'byVersion') || {}))

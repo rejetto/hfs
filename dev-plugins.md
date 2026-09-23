@@ -1095,6 +1095,33 @@ Using `HFS._.set` is not necessary, but in this case is convenient, because the 
 
 If you want to override a text regardless of the language, use the special language-code `all`. 
 
+## DNS certificate providers
+
+HFS owns ACME orders, validation, certificate installation and renewal. A plugin can add a DNS provider:
+
+```js
+exports.apiRequired = 13.6
+exports.init = api => {
+    api.registerAcmeDnsProvider('My DNS', {
+        // increment only when saved credentials/configuration become incompatible
+        config_version: 1,
+        fields: { token: { label: "API token", secret: true } },
+        async present({ name, zone, relative, value }, credentials) {
+            const id = await createTxt(zone, name, value, credentials.token)
+            return async function cleanup() {
+                await deleteTxt(zone, id, credentials.token)
+            }
+        }
+    })
+}
+```
+
+`createTxt` and `deleteTxt` above stand for your provider's HTTP implementation. `name` is the full validation name after any CNAME delegation, `zone` comes from SOA discovery, and `relative` is the name relative to that zone. `label` is optional and falls back to the registered ID. Every field is required when issuing a certificate; `secret` selects a password input. Optional `help_url` links to instructions for obtaining credentials. Optional `propagation_timeout` sets the DNS polling limit in seconds (default 300).
+
+`present` must preserve existing TXT values and return a cleanup function that removes only its own record/value. It may be called concurrently for the base domain and wildcard, even on the same DNS name. APIs which replace whole record sets must serialize read/modify/write operations. A provider supporting only one TXT value at a time is not compatible with this interface's concurrent challenges.
+
+Registration returns an unregister function and is also removed automatically when the plugin unloads or initialization fails. IDs must be unique. An in-flight operation retains the provider callbacks it started with; do not invalidate resources required by its cleanup on unload. Failures must not include credentials in messages. Unavailable providers fail renewal visibly; HFS never silently selects another provider.
+
 ## API version history
 
 - 2
@@ -1271,3 +1298,4 @@ If you want to override a text regardless of the language, use the special langu
   - `finalizingLogin`: `via` identifies the login origin
 - 13.6 (v3.4.0)
   - backend event: beforeLog
+  - `api.registerAcmeDnsProvider`

@@ -1,3 +1,6 @@
+import './acme-dns.test'
+import './acme-dns-providers.test'
+import './acme-config.test'
 import './filename-normalization.test'
 import './path-root.test'
 import './update-changelog.test'

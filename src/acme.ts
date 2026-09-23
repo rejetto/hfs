@@ -1,5 +1,5 @@
 import {
-    CFG, Dict, haveTimeout, HOUR, HTTP_FAILED_DEPENDENCY, HTTP_OK, ipForUrl, MINUTE, repeat, formatDate,
+    Dict, haveTimeout, HOUR, HTTP_FAILED_DEPENDENCY, HTTP_OK, ipForUrl, MINUTE, repeat, formatDate,
 } from './misc'
 import { createServer, IncomingMessage, ServerResponse } from 'http'
 import { Middleware } from 'koa'
@@ -9,7 +9,11 @@ import { ApiError } from './apiMiddleware'
 import acme from 'acme-client'
 import { debounceAsync } from './debounceAsync'
 import fs from 'fs/promises'
-import { defineConfig } from './config'
+import { acmeDomain, acmeRenew, acmeChallenge, acmeDns } from './acmeConfig'
+import { certificateNames, getDnsProviders, dnsChallengeRecord, waitForDnsRecord, DnsCleanup } from './acmeDns'
+import { getProjectInfo } from './github'
+import { Resolver } from 'node:dns/promises'
+import { Readable } from 'node:stream'
 import events from './events'
 import { selfCheck } from './selfCheck'
 import { isIP } from 'net'
@@ -46,33 +50,46 @@ repeat(MINUTE, async stop => {
     return client.removeMapping(TEMP_MAP)
 })
 
-async function generateSSLCert(domain: string, email?: string, altNames: string[] = []) {
-    const ipCertificate = [domain, ...altNames].some(isIP)
-    // will answer the challenge through our koa app (if on port 80) or must we spawn a dedicated server?
-    const nat = await getNatInfo()
-    const { http } = await getServerStatus()
-    const tempSrv = nat.externalPort === 80 || http.listening && http.port === 80 ? undefined
-        : createServer((req, res) => acmeListener(req, res) || res.end('HFS')) // also satisfy self-check
-    if (tempSrv)
-        await new Promise<void>(resolve =>
-            tempSrv.listen(80, resolve).on('error', (e: any) => {
-                console.debug("Cannot listen on 80", e.code || e)
-                resolve() // go on anyway
-            }) )
+async function generateSSLCert(names: string[], email?: string) {
+    const domain = names[0]!
+    const method = acmeChallenge.get()
+    const ipCertificate = names.some(isIP)
+    if (!['http-01', 'dns-01'].includes(method)) throw Error("Invalid certificate validation method")
+    if (method === 'http-01' && names.some(n => n.startsWith('*.'))) throw Error("Select a DNS provider for wildcard certificates")
+    if (method === 'dns-01' && ipCertificate) throw Error("DNS validation cannot be used for IP addresses")
+    const config = structuredClone(acmeDns.get()[0])
+    const info = method === 'dns-01' ? await getProjectInfo() : undefined
+    const provider = info && config && getDnsProviders(info.acmeDns).get(config.provider)
+    if (method === 'dns-01') {
+        if (!provider?.available || config?.config_version !== provider.config_version)
+            throw Error("DNS provider unavailable or incompatible; update HFS or reconfigure the provider")
+        if (Object.keys(provider.fields).some(k => !config!.credentials?.[k])) throw Error("Enter the DNS provider credentials")
+    }
+    const resolver = new Resolver({ timeout: 3000, tries: 2 })
+    if (info) resolver.setServers(info.dnsServers)
+    const cleanups = new Map<string, DnsCleanup>()
+    const cleanupErrors: string[] = []
+    let tempSrv: ReturnType<typeof createServer> | undefined
+    let tempMap: Awaited<ReturnType<ReturnType<typeof getUpnpClient>['createMapping']>> | undefined
     acmeOngoing = true
-    console.debug("ACME challenge server ready")
-    let tempMap: any
     try {
-        const checkUrl = `http://${ipForUrl(domain)}`
-        let check = await selfCheck(checkUrl) // some check services may not consider the domain, but we already verified that
-        if (check?.success === false && nat.upnp && !nat.mapped80) {
-            console.debug("Setting temporary port forward")
-            tempMap = await haveTimeout(10_000, getUpnpClient().createMapping(TEMP_MAP)).catch(() => {})
-            check = await selfCheck(checkUrl) // repeat test
+        if (method === 'http-01') {
+            progress("Checking port 80")
+            const nat = await getNatInfo()
+            const { http } = await getServerStatus()
+            if (!(nat.externalPort === 80 || http.listening && http.port === 80)) {
+                tempSrv = createServer((req, res) => acmeListener(req, res) || res.end('HFS'))
+                await new Promise<void>(resolve => tempSrv!.listen(80, resolve).on('error', () => resolve()))
+            }
+            const checkUrl = `http://${ipForUrl(domain)}`
+            let check = await selfCheck(checkUrl)
+            if (check?.success === false && nat.upnp && !nat.mapped80) {
+                tempMap = await haveTimeout(10_000, getUpnpClient().createMapping(TEMP_MAP)).catch(() => undefined)
+                check = await selfCheck(checkUrl)
+            }
+            if (check?.success === false) throw new ApiError(HTTP_FAILED_DEPENDENCY, "port 80 is not working on the specified domain")
         }
-        //if (!check) throw new ApiError(HTTP_FAILED_DEPENDENCY, "couldn't test port 80")
-        if (check?.success === false)
-            throw new ApiError(HTTP_FAILED_DEPENDENCY, "port 80 is not working on the specified domain")
+        progress("Requesting certificate")
         const acmeClient = new acme.Client({
             accountKey: await acme.crypto.createPrivateKey(),
             directoryUrl: acme.directory.letsencrypt.production
@@ -88,19 +105,49 @@ async function generateSSLCert(domain: string, email?: string, altNames: string[
         acme.setLogger(console.debug)
         const [key, csr] = await acme.crypto.createCsr({
             commonName: isIP(domain) ? undefined : domain, // rejected because Boulder doesn't accept IP addresses in the Common Name
-            altNames: [domain, ...altNames],
+            altNames: names,
         })
         const cert = await acmeClient.auto({
             csr,
             email,
-            challengePriority: ['http-01'],
+            challengePriority: [method],
             skipChallengeVerification: true, // on NAT, trying to connect to your external ip will likely get your modem instead of the challenge server
             termsOfServiceAgreed: true,
-            async challengeCreateFn(_, c, ka) { acmeTokens[c.token] = ka },
-            async challengeRemoveFn(_, c) { delete acmeTokens[c.token] },
+            async challengeCreateFn(auth, challenge, value) {
+                if (challenge.type !== method) throw Error("Unsupported ACME challenge")
+                if (method === 'http-01') {
+                    acmeTokens[challenge.token] = value
+                }
+                else {
+                    progress("Creating DNS TXT record", auth.identifier.value)
+                    const record = await dnsChallengeRecord(auth.identifier.value, value, resolver)
+                    cleanups.set(challenge.token, await provider!.present(record, config!.credentials))
+                    progress("Waiting for DNS propagation", auth.identifier.value)
+                    await waitForDnsRecord(record, resolver, provider!.propagation_timeout === undefined ? undefined : provider!.propagation_timeout * 1000)
+                }
+                progress("Validating domain", auth.identifier.value)
+            },
+            async challengeRemoveFn(_, challenge) {
+                delete acmeTokens[challenge.token]
+                const cleanup = cleanups.get(challenge.token)
+                if (cleanup) {
+                    cleanups.delete(challenge.token)
+                    // acme-client suppresses cleanup errors, so keep them visible in the final status
+                    try { await cleanup() }
+                    catch { cleanupErrors.push("Could not remove a DNS challenge TXT record") }
+                }
+            },
         })
         console.log("ACME certificate generated")
-        return { key, cert }
+        return { key, cert, warning: cleanupErrors.join("; ") || undefined }
+    }
+    catch (error) {
+        if (method === 'http-01' && error instanceof Error) {
+            if (error.message.includes('Timeout')) error = Error("ensure your router is forwarding port 80 correctly")
+            else if (error.message.includes('not match this challenge')) error = Error("a different server is responding on port 80 of your domain(s)")
+        }
+        if (cleanupErrors.length) throw Error(`${error instanceof Error ? error.message : error}; ${cleanupErrors.join('; ')}`)
+        throw error
     }
     finally {
         if (tempMap && upnpEnabled.get()) {
@@ -108,29 +155,62 @@ async function generateSSLCert(domain: string, email?: string, altNames: string[
             getUpnpClient().removeMapping(TEMP_MAP).catch(() => {}) // clean after ourselves
         }
         acmeOngoing = false
-        if (tempSrv) await new Promise(res => tempSrv.close(res))
+        if (tempSrv?.listening) await new Promise<void>(res => tempSrv!.close(() => res()))
         console.debug('ACME terminated')
     }
 }
 
-export const makeCert = debounceAsync(async (domain: string, email?: string, altNames?: string[]) => {
-    const res = await generateSSLCert(domain, email, altNames).catch(e => {
-        throw e.message?.includes('Timeout') ? Error("ensure your router is forwarding port 80 correctly")
-            : e.message?.includes('not match this challenge') ? Error("a different server is responding on port 80 of your domain(s)")
-            : e
+export interface AcmeStatus {
+    id: number
+    state: 'idle' | 'running' | 'done' | 'error'
+    message: string
+    domain?: string
+    warning?: string
+}
+let acmeStatus: AcmeStatus = { id: 0, state: 'idle', message: '' }
+export function getAcmeStatus() { return acmeStatus }
+function progress(message: string, domain?: string) {
+    acmeStatus = { ...acmeStatus, message, domain }
+    events.emit('acmeStatus', acmeStatus)
+}
+export function getAcmeStatusEvents() {
+    let off: (() => void) | undefined
+    return new Readable({
+        objectMode: true,
+        read() {
+            if (off) return
+            off = events.on('acmeStatus', status => this.push(status))
+            this.once('close', off)
+            this.push(acmeStatus)
+        },
     })
-    const CERT_FILE = 'acme.cer'
-    const KEY_FILE = 'acme.key'
-    await fs.writeFile(CERT_FILE, res.cert)
-    await fs.writeFile(KEY_FILE, res.key)
-    cert.set(CERT_FILE) // update config
-    privateKey.set(KEY_FILE)
-    acmeRenewError = ''
-})
+}
+export async function makeCert(domain: string, email?: string, altNames: string[] = []) {
+    if (acmeStatus.state === 'running') throw Error("Certificate request already running")
+    acmeStatus = { id: acmeStatus.id + 1, state: 'running', message: '' }
+    progress("Starting certificate request")
+    try {
+        const names = certificateNames([domain, ...altNames])
+        const res = await generateSSLCert(names, email)
+        progress("Installing certificate")
+        const CERT_FILE = 'acme.cer'
+        const KEY_FILE = 'acme.key'
+        await fs.writeFile(KEY_FILE, res.key, { mode: 0o600 })
+        await fs.writeFile(CERT_FILE, res.cert)
+        cert.set(CERT_FILE)
+        privateKey.set(KEY_FILE)
+        acmeRenewError = ''
+        acmeStatus = { ...acmeStatus, state: 'done', warning: res.warning }
+        progress("Certificate created")
+    }
+    catch (error) {
+        acmeStatus = { ...acmeStatus, state: 'error' }
+        progress(error instanceof Error ? error.message : String(error))
+        throw error
+    }
+}
 
 export let acmeRenewError = ''
-const acmeDomain = defineConfig(CFG.acme_domain, '')
-const acmeRenew = defineConfig(CFG.acme_renew, false) // handle config changes
 events.once('httpsReady', () => repeat(HOUR, renewCert))
 
 // checks if the cert is near expiration date, and if so renews it

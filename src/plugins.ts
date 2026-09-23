@@ -1,5 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
+import { registerAcmeDnsProvider } from './acmeDns'
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
@@ -202,6 +203,12 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict, onI
                 }
                 return result
             }
+        },
+        registerAcmeDnsProvider(...args: Parameters<typeof registerAcmeDnsProvider>) {
+            if (unloading) throw Error("Plugin is unloading")
+            const unregister = registerAcmeDnsProvider(...args)
+            cleanups.push(unregister)
+            return unregister
         },
         misc, _,
         customApiCall, notifyClient, addBlock, ctxBelongsTo, getConnections, normalizeFilename,
