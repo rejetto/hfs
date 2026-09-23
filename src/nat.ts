@@ -84,13 +84,13 @@ export const getNatInfo = debounceAsync(async () => {
     const upnp = await upnpEnabled.getWhenReady() ? getUpnpClient() : null
     const gatewayIpPromise = findGateway().catch(() => undefined)
     const gw = upnp && await haveTimeout(10_000, upnp.getGateway()).catch(() => null)
-    const status = await getServerStatus()
     let mappings = gw && await haveTimeout(MAPPINGS_TIMEOUT, upnp.getMappings())?.catch(() => null)
     console.debug(gw ? "Mappings found:" : "Mappings not queried:",
         _.uniq(mappings?.map(x => x.description)).join(', ') || (gw ? "none" : upnp ? "gateway not found" : "UPnP disabled") )
     const localIps = await getIps(false)
     const gatewayIp = await gatewayIpPromise
     const localIp = gw?.address || (gatewayIp ? _.maxBy(localIps, x => inCommon(x, gatewayIp)) : localIps[0])
+    const status = await getServerStatus()
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port || undefined
     let mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
     if (upnp && mappings && localIp && internalPort && !mapped && mappedPort.get())
