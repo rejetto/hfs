@@ -41,7 +41,7 @@ export async function changeBaseUrl() {
                             label: "Custom IP or domain",
                             helperText: md("You can type any address but *you* are responsible to make the address work.\nThis functionality is just to help you copy the link in case you have a domain or a complex network configuration."),
                             value: host,
-                            onChange: v => set(prefix(proto, ipForUrl(v))),
+                            onChange: v => set(/^\s*https?:\/\//i.test(v) ? v.trim().replace(/^https?:/i, s => s.toLowerCase()) : prefix(proto, ipForUrl(v.trim()))),
                             start: h(SelectField as Field<string>, {
                                 value: proto,
                                 onChange: v => host ? set(v + host) : toast("Enter domain first"),
