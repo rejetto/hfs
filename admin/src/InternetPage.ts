@@ -39,7 +39,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     const baseUrl = config.data?.[CFG.base_url]
     const localColor = with_([status.data?.http?.error, status.data?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
-    const nat = useApiEx<typeof adminApis.get_nat>('get_nat', {}, { timeout: 20 })
+    const nat = useApiEx<typeof adminApis.get_nat>('get_nat', {}, { timeout: 30 })
     const { data: publicIps, error: publicIpsError } = useApiEx<typeof adminApis.get_public_ips>('get_public_ips', {}, { timeout: 20 })
     const { data } = nat
     const port = data?.internalPort
@@ -469,7 +469,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     async function mapPort(external: number, msg='', errMsg="Operation failed") {
         setMapping(true)
         try {
-            await apiCall('map_port', { external })
+            await apiCall('map_port', { external }, { timeout: 30 })
             nat.reload()
             if (msg) toast(msg, 'success')
             setCheckResult(undefined) // things have changed, invalidate check result

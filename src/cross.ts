@@ -584,9 +584,8 @@ export function popKey(o: any, k: string) {
     return x
 }
 
-export function patchKey(o: any, k: string, replacer: (was: unknown) => unknown) {
-    o[k] = replacer(o[k])
-    return o
+export function patchKey<T, K extends keyof T>(o: T, k: K, replacer: (was: T[K]) => T[K]) {
+    return o[k] = replacer(o[k])
 }
 
 // retry rejected operations because filesystem resources may be released late

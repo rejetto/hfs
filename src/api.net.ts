@@ -52,6 +52,7 @@ export default {
             return new ApiError(HTTP_SERVICE_UNAVAILABLE, "upnp failed")
         if (!internalPort)
             return new ApiError(HTTP_FAILED_DEPENDENCY, "no internal port")
+        ;(getUpnpClient().getMappings as any).clearRetain() // this method is monkey-patched with debounceAsync
         if (externalPort)
             try { await getUpnpClient().removeMapping({ public: { host: '', port: externalPort } }) }
             catch (e: any) { return new ApiError(HTTP_SERVER_ERROR, "removeMapping failed: " + String(e) ) }

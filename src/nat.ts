@@ -1,7 +1,9 @@
 import { proxy } from 'valtio'
 import { Client } from '@rejetto/nat-upnp'
 import { debounceAsync } from './debounceAsync'
-import { CFG, haveTimeout, HOUR, inCommon, ipForUrl, MINUTE, promiseBestEffort, repeat, wantArray } from './cross'
+import {
+    CFG, haveTimeout, HOUR, inCommon, ipForUrl, MINUTE, patchKey, promiseBestEffort, repeat, wantArray
+} from './cross'
 import { getProjectInfo } from './github'
 import _ from 'lodash'
 import { httpStream, httpString } from './util-http'
@@ -78,13 +80,14 @@ export const getPublicIps = debounceAsync(async () => {
 }, { retain: 10 * MINUTE })
 
 export const getNatInfo = debounceAsync(async () => {
+    const MAPPINGS_TIMEOUT = 15_000 // routers enumerate rules sequentially; a few dozen mappings can take over 5 seconds
     const upnp = await upnpEnabled.getWhenReady() ? getUpnpClient() : null
     const gatewayIpPromise = findGateway().catch(() => undefined)
     const gw = upnp && await haveTimeout(10_000, upnp.getGateway()).catch(() => null)
     const status = await getServerStatus()
-    let mappings = gw && await haveTimeout(5_000, upnp.getMappings())?.catch(() => null)
+    let mappings = gw && await haveTimeout(MAPPINGS_TIMEOUT, upnp.getMappings())?.catch(() => null)
     console.debug(gw ? "Mappings found:" : "Mappings not queried:",
-        mappings?.map(x => x.description).join(', ') || (gw ? "none" : upnp ? "gateway not found" : "UPnP disabled") )
+        _.uniq(mappings?.map(x => x.description)).join(', ') || (gw ? "none" : upnp ? "gateway not found" : "UPnP disabled") )
     const localIps = await getIps(false)
     const gatewayIp = await gatewayIpPromise
     const localIp = gw?.address || (gatewayIp ? _.maxBy(localIps, x => inCommon(x, gatewayIp)) : localIps[0])
@@ -94,9 +97,9 @@ export const getNatInfo = debounceAsync(async () => {
         // restore the HFS-created mapping after routers that forget UPnP state across reboots
         await haveTimeout(5_000, upnp!.createMapping(upnpMappingParam(internalPort, mappedPort.get()))).then(async () => {
             // confirm router state after restore instead of trusting the AddPortMapping result
-            mappings = await haveTimeout(5_000, upnp.getMappings())
+            mappings = await haveTimeout(MAPPINGS_TIMEOUT, upnp.getMappings())
             mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
-        }).catch(e => console.warn('UPnP mapping restore failed:', e?.message || String(e)))
+        }).catch(e => console.warn('UPnP mapping restore failed:', e?.message || e?.errorDescription || String(e)))
     const externalPort = mapped?.public.port
     if (localIp)
         defaultBaseUrl.localIp = localIp
@@ -135,9 +138,11 @@ export function getUpnpClient() {
         throw Error("UPnP disabled")
     if (!upnpClient) {
         upnpClient = new Client({ timeout: 4_000 })
-        const originalMethod = upnpClient.getGateway
         // other client methods call getGateway too, so this will ensure they reuse this same result
-        upnpClient.getGateway = debounceAsync(() => originalMethod.apply(upnpClient), { retain: HOUR, retainFailure: 30_000 })
+        patchKey(upnpClient, 'getGateway',was => debounceAsync(() => was.apply(upnpClient), { retain: HOUR, retainFailure: 30_000 }))
+        const f: any = patchKey(upnpClient, 'getMappings', was => debounceAsync(() => was.apply(upnpClient), { retain: MINUTE }))
+        for (const k of ['createMapping', 'removeMapping']) // these methods must invalidate the cache
+            patchKey(upnpClient, k as any, (was: any) => (...args: any[]) => was.apply(upnpClient, args).finally(f.clearRetain))
     }
     return upnpClient
 }
