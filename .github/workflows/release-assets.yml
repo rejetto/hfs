@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g., v3.0.2)'
-        required: true
+        description: 'Release tag (optional, defaults to v + package.json version)'
+        required: false
         type: string
       signing_policy:
         description: 'SignPath signing policy slug'
@@ -23,6 +23,8 @@ env:
 jobs:
   windows:
     runs-on: windows-latest
+    outputs:
+      version: ${{ steps.pkg_target.outputs.version }}
     permissions:
       actions: write
       contents: read
@@ -36,6 +38,7 @@ jobs:
         run: |
           # keep workflow and package.json aligned by deriving the Windows pkg target from a single source of truth
           $pkg = Get-Content package.json -Raw | ConvertFrom-Json
+          "version=$($pkg.version)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           $target = @($pkg.pkg.targets) | Where-Object { $_ -match '-win-x64$' } | Select-Object -First 1
           if (-not $target) {
             throw "No Windows pkg target (-win-x64) found in package.json"
@@ -292,7 +295,7 @@ jobs:
         id: release_title
         shell: bash
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ inputs.tag || needs.windows.outputs.version }}
         run: |
           tag="$RELEASE_TAG"
           if [[ $tag == [0-9]* ]]; then
@@ -307,7 +310,7 @@ jobs:
           tag_name: ${{ steps.release_title.outputs.tag }}
           name: ${{ steps.release_title.outputs.name }}
           # release tags with a dash are treated as pre-releases so beta-style builds stay separated from stable ones
-          prerelease: ${{ contains(inputs.tag, '-') }}
+          prerelease: ${{ contains(steps.release_title.outputs.tag, '-') }}
           target_commitish: ${{ inputs.commitish || github.event.repository.default_branch }}
           draft: true
           files: release-assets/*.zip
