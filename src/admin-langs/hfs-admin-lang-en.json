@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Include hidden files",
+        "Case-insensitive": "Case-insensitive",
         "non_public_ip_warning": "This is a non-public IP address. It cannot be reached directly from the Internet. Use a public IP address or domain name instead.",
         "Could not remove a DNS challenge TXT record": "Could not remove a DNS challenge TXT record",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "HTTP validation cannot issue wildcard certificates. Select a DNS provider.",

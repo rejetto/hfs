@@ -65,6 +65,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
         ],
         fields: [
             { k: 'username', label: t(isGroup ? "Group name" : "Username"), autoComplete: 'off', required: true, md: isGroup && !pluginAuth ? 12 : 4,
+                helperText: t`Case-insensitive`,
                 getError: v => v !== account.username && apiCall('get_account', { username: v })
                     .then(got => got?.username === account.username ? t`usernames are case-insensitive` : t`already used`, () => false),
             },

@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Gizli dosyaları dahil et",
+        "Case-insensitive": "Büyük/küçük harfe duyarlı değil",
         "non_public_ip_warning": "Bu, genel bir IP adresi değildir. İnternet üzerinden doğrudan erişilemez. Bunun yerine genel bir IP adresi veya alan adı kullanın.",
         "Could not remove a DNS challenge TXT record": "DNS doğrulaması TXT kaydı silinemedi",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "HTTP doğrulaması joker karakterli sertifika veremez. Bir DNS sağlayıcısı seçin.",

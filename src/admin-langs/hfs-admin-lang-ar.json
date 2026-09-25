@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "تضمين الملفات المخفية",
+        "Case-insensitive": "لا يميز بين الأحرف الكبيرة والصغيرة",
         "non_public_ip_warning": "هذا عنوان IP غير عام. لا يمكن الوصول إليه مباشرة من الإنترنت. استخدم عنوان IP عامًا أو اسم نطاق بدلًا منه.",
         "Could not remove a DNS challenge TXT record": "تعذرت إزالة سجل TXT للتحقق عبر DNS",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "لا يمكن للتحقق عبر HTTP إصدار شهادات أحرف البدل. اختر مزود DNS.",

@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Include fișierele ascunse",
+        "Case-insensitive": "Nu face distincție între majuscule și minuscule",
         "non_public_ip_warning": "Aceasta este o adresă IP nepublică. Nu poate fi accesată direct de pe Internet. Folosește o adresă IP publică sau un nume de domeniu.",
         "Could not remove a DNS challenge TXT record": "Nu s-a putut șterge o înregistrare TXT de validare DNS",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "Validarea HTTP nu permite emiterea certificatelor wildcard. Selectează un furnizor DNS.",

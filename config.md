@@ -271,6 +271,7 @@ accounts:
     group1:
 ```
 
+Usernames are case-insensitive.
 As soon as the config is read, HFS will encrypt passwords (if necessary) in a non-reversible way. It means that `password` property is replaced with an encrypted property: `srp`.
 
 As you can see in the example, `group1` has no password. This implies that you cannot log in as `group1`, but still `group1` exists and its purpose is to

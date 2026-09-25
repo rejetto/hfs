@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Uwzględnij ukryte pliki",
+        "Case-insensitive": "Wielkość liter nie ma znaczenia",
         "non_public_ip_warning": "To nie jest publiczny adres IP. Nie można się z nim połączyć bezpośrednio z Internetu. Użyj publicznego adresu IP lub nazwy domeny.",
         "Could not remove a DNS challenge TXT record": "Nie udało się usunąć rekordu TXT weryfikacji DNS",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "Weryfikacja HTTP nie umożliwia wydawania certyfikatów wieloznacznych. Wybierz dostawcę DNS.",

@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "รวมไฟล์ที่ซ่อนอยู่",
+        "Case-insensitive": "ไม่แยกตัวพิมพ์เล็กและตัวพิมพ์ใหญ่",
         "non_public_ip_warning": "นี่ไม่ใช่ที่อยู่ IP สาธารณะ จึงไม่สามารถเข้าถึงได้โดยตรงจากอินเทอร์เน็ต โปรดใช้ที่อยู่ IP สาธารณะหรือชื่อโดเมนแทน",
         "Could not remove a DNS challenge TXT record": "ไม่สามารถลบระเบียน TXT สำหรับการตรวจสอบ DNS ได้",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "การตรวจสอบผ่าน HTTP ไม่สามารถออกใบรับรองไวลด์การ์ดได้ โปรดเลือกผู้ให้บริการ DNS",

@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Inclure les fichiers cachés",
+        "Case-insensitive": "Insensible à la casse",
         "non_public_ip_warning": "Il s’agit d’une adresse IP non publique. Elle ne peut pas être jointe directement depuis Internet. Utilisez plutôt une adresse IP publique ou un nom de domaine.",
         "Could not remove a DNS challenge TXT record": "Impossible de supprimer un enregistrement TXT de validation DNS",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "La validation HTTP ne permet pas d'obtenir des certificats génériques. Sélectionnez un fournisseur DNS.",

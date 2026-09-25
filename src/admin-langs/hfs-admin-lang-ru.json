@@ -3,6 +3,7 @@
     "version": 1,
     "translate": {
         "Include hidden files": "Включать скрытые файлы",
+        "Case-insensitive": "Без учёта регистра",
         "non_public_ip_warning": "Это непубличный IP-адрес. Он недоступен напрямую из Интернета. Используйте публичный IP-адрес или доменное имя.",
         "Could not remove a DNS challenge TXT record": "Не удалось удалить TXT-запись проверки DNS",
         "HTTP validation cannot issue wildcard certificates. Select a DNS provider.": "Проверка HTTP не позволяет выпускать wildcard-сертификаты. Выберите DNS-провайдера.",
