@@ -7,9 +7,9 @@ import { spawn, spawnSync } from 'child_process'
 import {
     CFG, DAY, exists, unzip, prefix, xlate, HOUR, httpStream, httpString, statWithTimeout, repeat, debounceAsync, formatPerc, retrySync
 } from './misc'
-import { createReadStream, createWriteStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
+import { constants, createReadStream, createWriteStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { pluginsWatcher } from './plugins'
-import { chmod, rename, rm } from 'fs/promises'
+import { access, chmod, rename, rm } from 'fs/promises'
 import open from 'open'
 import { configReady, currentVersion, defineConfig, versionToScalar } from './config'
 import { cmdEscape, runningAsWindowsService } from './util-os'
@@ -154,14 +154,17 @@ export function previousAvailable() {
     return exists(PREVIOUS_FN)
 }
 
-export function updateSupported() {
-    return !process.env.DISABLE_UPDATE && (argv.forceupdate || IS_BINARY)
+export function updateNotSupported() {
+    return process.env.DISABLE_UPDATE ? "Automatic updates are disabled"
+        : !(argv.forceupdate || IS_BINARY) ? "Only binary versions support automatic updates"
+        : access(dirname(process.execPath), constants.W_OK | constants.X_OK)
+            .then(() => '', () => `Executable directory is not writable: ${dirname(process.execPath)}`)
 }
 
 export async function update(tagOrUrl: string='') {
-    if (!updateSupported())
-        throw process.env.DISABLE_UPDATE ? "Automatic updates are disabled"
-            : "Only binary versions support automatic updates"
+    const error = await updateNotSupported()
+    if (error)
+        throw error
     let url = tagOrUrl.includes('://') && tagOrUrl
     if (tagOrUrl === PREVIOUS_TAG)
         await rename(PREVIOUS_FN, LOCAL_UPDATE)

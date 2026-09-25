@@ -25,7 +25,7 @@ import { promisify } from 'util'
 import { customHtmlSections, customHtml, saveCustomHtml, disableCustomHtml } from './customHtml'
 import _ from 'lodash'
 import {
-    autoCheckUpdateResult, getUpdates, getVersions, localUpdateAvailable, update, updateSupported, previousAvailable
+    autoCheckUpdateResult, getUpdates, getVersions, localUpdateAvailable, update, updateNotSupported, previousAvailable
 } from './update'
 import { resolve } from 'path'
 import { getErrorSections } from './errorPages'
@@ -158,7 +158,7 @@ export const adminApis = {
             baseUrl: await getBaseUrlOrDefault(),
             roots: roots.get(),
             anyAccountCanLoginAdmin: anyAccountCanLoginAdmin(),
-            updatePossible: !await updateSupported() ? false : (await localUpdateAvailable()) ? 'local' : true,
+            updatePossible: !await updateNotSupported() && (await localUpdateAvailable() ? 'local' : true),
             previousVersionAvailable: await previousAvailable(),
             autoCheckUpdateResult: autoCheckUpdateResult.get(), // in this form, we get the same type of the serialized json
             alerts,
