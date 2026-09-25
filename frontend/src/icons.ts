@@ -12,8 +12,8 @@ Promise.race([documentComplete, document.fonts?.ready]).then(async () => {
     if (!document.fonts)
         return state.iconsReady = true
     const fontTester = '9px fontello'
-    await document.fonts.load(fontTester) // force font to be loaded even if we didn't display anything with it yet
-    state.iconsReady = document.fonts.check(fontTester)
+    const [font] = await document.fonts.load(fontTester) // force font to be loaded even if we didn't display anything with it yet
+    state.iconsReady = font?.status === 'loaded'
 })
 
 export interface IconProps { name:string, className?:string, alt?:string, [rest:string]: any }
