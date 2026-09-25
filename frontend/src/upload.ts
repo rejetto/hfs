@@ -23,6 +23,7 @@ import i18n from './i18n'
 const { t } = i18n
 
 const renameEnabled = getHFS().dontOverwriteUploading
+const canPickFolder = 'webkitdirectory' in document.createElement('input')
 const dropScan = proxy<{ count?: number }>({})
 
 export function showUpload() {
@@ -65,7 +66,7 @@ export function showUpload() {
                                 className: 'upload-files',
                                 onClick: () => pickFiles({ accept: normalizeAccept(props?.accept) })
                             }, t`Pick files`),
-                            !isMobile && h('button', {
+                            canPickFolder && h('button', {
                                 className: 'upload-folder',
                                 onClick: () => pickFiles({ folder: true })
                             }, t`Pick folder`),
