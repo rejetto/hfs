@@ -57,6 +57,14 @@ Additionally, you have the following folders:
 - tests: automated tests with related resources
 - e2e: automated UI tests (first execution will give an error because it's creating screenshots)
 
+# Search ranges
+
+`get_file_list` and `?get=zip` accept `creationMin`, `creationMax`, `mtimeMin`, `mtimeMax`,
+`sizeMin`, and `sizeMax`. Date bounds use ISO timestamps with a timezone; size bounds are
+non-negative integer bytes. Bounds are inclusive and combine with name/comment filters.
+A metadata filter alone searches subfolders too. Entries without the requested metadata
+are excluded; size filters apply to files, not folder totals.
+
 # Known problems
 - vite's proxying server (but also CRA's) doesn't play nicely with SSE, leaving sockets open
 - automatic tests 'upload.interrupted' is subject to race conditions and may occasionally fail

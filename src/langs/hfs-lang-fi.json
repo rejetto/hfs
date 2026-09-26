@@ -126,6 +126,7 @@
         "Reload": "Päivitä",
         "Get list": "Näytä listana",
         "Skip existing files": "Ohita jo olemassa olevat tiedostot",
+        "bytes": "tavua",
         "Size": "Koko",
         "Timestamp": "Aikaleima",
         "Show": "Näytä",
@@ -201,6 +202,9 @@
         "copy_links": "Kopioi linkit",
 
         "Calculate": "Laske",
+        "More filters": "Lisää suodattimia",
+        "Created": "Luotu",
+        "Modified": "Muokattu",
         "Creation": "Luonti",
         "creation": "luonti",
         "required_change_password": "Sinun täytyy vaihtaa salasanasi",

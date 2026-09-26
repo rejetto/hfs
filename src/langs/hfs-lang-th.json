@@ -126,6 +126,7 @@
         "Reload": "โหลดใหม่",
         "Get list": "รับรายการ",
         "Skip existing files": "ข้ามไฟล์ที่มีอยู่",
+        "bytes": "ไบต์",
         "Size": "ขนาด",
         "Timestamp": "แสดงเวลา",
         "Show": "แสดง",
@@ -197,6 +198,9 @@
         "copy_links": "คัดลอกลิงก์",
 
         "Calculate": "คำนวณ",
+        "More filters": "ตัวกรองเพิ่มเติม",
+        "Created": "สร้างเมื่อ",
+        "Modified": "แก้ไขเมื่อ",
         "Creation": "วันที่สร้าง",
         "creation": "การสร้าง",
         "required_change_password": "คุณจำเป็นต้องเปลี่ยนรหัสผ่านของคุณ",

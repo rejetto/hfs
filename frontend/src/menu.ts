@@ -1,11 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state, useSnapState } from './state'
-import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
+import { createElement as h, FormEvent, Fragment, useEffect, useMemo, useState } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, formDialog, toast } from './dialog'
 import {
     err2msg, ErrorMsg, onlyTruthy, prefix, useStateMounted, working, buildUrlQueryString, hIcon,
-    WIKI_URL, HTTP_NOT_FOUND
+    WIKI_URL, HTTP_NOT_FOUND, getHFS, formatBytes
 } from './misc'
 import { loginDialog } from './login'
 import { showOptions } from './options'
@@ -23,6 +23,14 @@ import i18n from './i18n'
 import { ExtractionIndicator } from './extract'
 import { encodeUrlList } from '../../src/urlList'
 const { t, useI18N } = i18n
+
+function searchRanges() {
+    return [
+        { key: 'creation', label: t`Created` },
+        { key: 'mtime', label: t`Modified` },
+        { key: 'size', label: t`Size` },
+    ] as const
+}
 
 export function MenuPanel() {
     const { showFilter, remoteSearch, stopSearch, searchManuallyInterrupted, selected, props } = useSnapState()
@@ -156,7 +164,19 @@ export function MenuPanel() {
             }),
             (stopSearch ? t`Searching` : t`Searched`) + ': ',
             _.map({ search: t`Name`, searchComment: t`Comment` } satisfies { [K in RSK]?: string },
-                (v,k) => prefix(v + ': ', remoteSearch[k as RSK])).filter(Boolean).join(' and '),
+                (v,k) => prefix(v + ': ', remoteSearch[k as RSK])).concat(
+                    searchRanges().flatMap(({ key, label }) => {
+                        if (key === 'size') {
+                            const min = remoteSearch.sizeMin && formatBytes(Number(remoteSearch.sizeMin))
+                            const max = remoteSearch.sizeMax && formatBytes(Number(remoteSearch.sizeMax))
+                            return min || max ? `${label} (${min && max ? `${min} - ${max}` : min ? `${t`Min`} ${min}` : `${t`Max`} ${max}`})` : ''
+                        }
+                        return (['Min', 'Max'] as const).map(suffix => {
+                            const value = remoteSearch[`${key}${suffix}`]
+                            return value ? `${label} ${suffix === 'Min' ? '≥' : '≤'} ${new Date(value).toLocaleString()}` : ''
+                        })
+                    })
+                ).filter(Boolean).join(' and '),
             prefix(' (', searchManuallyInterrupted && t`Interrupted`, ')'),
         ),
     )
@@ -226,33 +246,87 @@ export async function deleteFiles(uris: string[]) {
 }
 
 function searchDialog() {
+    const kb = getHFS().kb
+    const supportsDateTime = Object.assign(document.createElement('input'), { type: 'datetime-local' }).type === 'datetime-local'
     const was = state.remoteSearch
     formDialog({
         title: t`Search`,
         dialogProps: { id: 'search-dialog' },
         Content() {
+            const [showFilters, setShowFilters] = useState(() => Boolean(was?.searchComment) || searchRanges().some(({ key }) => was?.[`${key}Min`] || was?.[`${key}Max`]))
+            const values = _.mapValues(was ?? {}, (value, key) => {
+                if (value && key.startsWith('size')) return String(Number(value) / kb)
+                const date = value && /^(creation|mtime)/.test(key) ? new Date(value) : undefined
+                // datetime-local expects wall time, while shared search URLs store UTC
+                return date && Number.isFinite(date.getTime())
+                    ? new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 23)
+                    : value || ''
+            })
             const style = { width: 0, minWidth: '100%', maxWidth: '100%', boxSizing: 'border-box' }
             return h(Fragment, {},
                 t`search_msg`,
-                h('div', { className: 'field name' },
-                    h('label', { htmlFor: 'name' }, t`Name`),
-                    h('input', { name: 'name', style, autoFocus: true, defaultValue: was?.search }),
+                h('div', { className: 'search-text-fields' },
+                    h('div', { className: 'field name' },
+                        h('label', { htmlFor: 'name' }, t`Name`),
+                        h('input', { id: 'name', name: 'name', style, autoFocus: true, defaultValue: was?.search }),
+                    ),
+                    showFilters && h('div', { className: 'field comment' },
+                        h('label', { htmlFor: 'comment' }, t`Comment`),
+                        h('input', { id: 'comment', name: 'comment', style, defaultValue: was?.searchComment }),
+                    ),
                 ),
-                h('div', { className: 'field comment' },
-                    h('label', { htmlFor: 'comment' }, t`Comment`),
-                    h('input', { name: 'comment', style, defaultValue: was?.searchComment }),
-                ),
-                h('div', { className: 'field wildcards' },
+                h('div', { className: 'field wildcards search-options' },
                     h(Checkbox, { name: 'wild', defaultChecked: !was?.wild }, t`Wildcards`,
                         h('a', { href: `${WIKI_URL}Wildcards`, target: 'doc' }, hIcon('info'))), // uncontrolled
+                    !showFilters && h('button', { type: 'button', onClick: () => setShowFilters(true) }, t`More filters`),
                 ),
+                ...(showFilters ? searchRanges().filter(({ key }) => key === 'size' || supportsDateTime).map(({ key, label }) => h('fieldset', { className: key === 'size' ? 'search-size-range' : undefined },
+                    h('legend', {}, label),
+                    ...(['Min', 'Max'] as const).map(suffix => {
+                        const name = `${key}${suffix}` as const
+                        return h('div', { className: 'field' },
+                            h('label', { htmlFor: name }, suffix === 'Min' ? t`Min` : t`Max`),
+                            h('input', { id: name, name, style, defaultValue: values[name],
+                                onInput(ev: FormEvent<HTMLInputElement>) {
+                                    const input = ev.currentTarget
+                                    const min = input.form!.elements.namedItem(`${key}Min`) as HTMLInputElement
+                                    const max = input.form!.elements.namedItem(`${key}Max`) as HTMLInputElement
+                                    // update the paired constraint immediately, before native form validation
+                                    min.max = max.value
+                                },
+                                type: key === 'size' ? 'number' : 'datetime-local',
+                                min: key === 'size' ? 0 : undefined,
+                                max: suffix === 'Min' && values[`${key}Max`] || undefined, step: key === 'size' ? 1 / kb : 'any' }),
+                        )
+                    }),
+                    key === 'size' && h('div', { className: 'field search-size-unit' },
+                        h('select', { id: 'sizeUnit', name: 'sizeUnit', 'aria-label': t`Size`, defaultValue: String(kb),
+                            onChange(ev: FormEvent<HTMLSelectElement>) {
+                                for (const suffix of ['Min', 'Max'])
+                                    (ev.currentTarget.form!.elements.namedItem('size' + suffix) as HTMLInputElement).step = String(1 / Number(ev.currentTarget.value))
+                            },
+                        },
+                            ...[t`bytes`, 'KB', 'MB', 'GB'].map((unit, index) =>
+                                h('option', { value: String(kb ** index) }, unit))),
+                    ),
+                )) : []),
                 h('div', { className: 'submit' },
                     h('button', {}, t`Continue`)),
             )
         }
     }).then(res => {
         if (!res) return
-        state.remoteSearch = !res.name && !res.comment ? undefined : _.pickBy({
+        const ranges = Object.fromEntries(searchRanges().flatMap(({ key }) =>
+            (['Min', 'Max'] as const).map(suffix => {
+                const name = `${key}${suffix}` as const
+                // preserve active filters that are collapsed or unsupported by this browser
+                return [name, !(name in res) ? was?.[name] : res[name] && (key === 'size'
+                    // input steps enforce whole bytes; round away floating-point conversion errors
+                    ? String(Math.round(Number(res[name]) * Number(res.sizeUnit)))
+                    : new Date(res[name]).toISOString())]
+            })))
+        state.remoteSearch = !res.name && !res.comment && !Object.values(ranges).some(Boolean) ? undefined : _.pickBy({
+            ...ranges,
             search: res.name || undefined,
             searchComment: res.comment || undefined,
             wild: res.wild ? undefined : 'no'

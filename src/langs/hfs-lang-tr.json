@@ -126,6 +126,7 @@
         "Reload": "Yeniden Yükle",
         "Get list": "Listeyi Al",
         "Skip existing files": "Mevcut Dosyaları Atla",
+        "bytes": "bayt",
         "Size": "Boyut",
         "Timestamp": "Zaman Damgası",
         "Show": "Göster",
@@ -197,6 +198,9 @@
         "copy_links": "Bağlantıları kopyala",
 
         "Calculate": "Hesapla",
+        "More filters": "Diğer filtreler",
+        "Created": "Oluşturulma",
+        "Modified": "Değiştirilme",
         "Creation": "Oluşturma",
         "creation": "oluşturma",
         "required_change_password": "Sifrenizi değiştirmeniz gerekiyor",

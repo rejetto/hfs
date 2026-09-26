@@ -301,6 +301,22 @@ describe('basics', () => {
     test('list', reqList('/f1/', { inList:['f2/', 'page/'] }))
     test('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
     test('search root', reqList('/', { inList:['cantListPage/'], outList:['cantListPage/page/'] }, { search:'page' }))
+    test('search metadata ranges and zip', async () => {
+        const st = statSync('tests/alfa.txt')
+        const params = { sizeMin: String(st.size), sizeMax: String(st.size),
+            creationMin: new Date(st.birthtimeMs - 1).toISOString(), creationMax: new Date(st.birthtimeMs + 1).toISOString(),
+            mtimeMin: new Date(st.mtimeMs - 1).toISOString(), mtimeMax: new Date(st.mtimeMs + 1).toISOString() }
+        await reqList('/f1/', { inList: ['f2/alfa.txt'], outList: ['f2/', 'page/', 'page/gpl.png'] }, params)()
+        await reqList('/f1/', { outList: ['f2/alfa.txt'] }, { mtimeMax: new Date(st.mtimeMs - 1).toISOString() })()
+        await reqList('/f1/', { outList: ['f2/alfa.txt'] }, { creationMin: new Date(st.birthtimeMs + 1).toISOString() })()
+        await reqList('/f1/', { outList: ['f2/alfa.txt'] }, { sizeMax: '0' })()
+        for (const invalid of [{ sizeMin: '-1' }, { sizeMax: 'abc' }, { mtimeMin: 'invalid' }, { sizeMin: '2', sizeMax: '1' }])
+            await reqList('/f1/', 400, invalid)()
+        const url = '/f1/?' + new URLSearchParams({ get: 'zip', ...params })
+        const { body } = await httpWithBody(BASE_URL + url, { path: url })
+        const paths = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+        throwIf(!paths.includes('f2/alfa.txt') || paths.some(x => x !== 'f2/alfa.txt'))
+    })
     test('search.fifo order', async () => {
         // deep search queues subdirectory jobs via makeQ; verify results come in FIFO order.
         // tree: root/{d01..d10}/sub/ — with LIFO the sub/ entries reverse relative to parent order (tau≈-1).

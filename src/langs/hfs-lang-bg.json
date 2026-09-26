@@ -124,6 +124,7 @@
     "Reload": "Презареди",
     "Get list": "Вземи списъка",
     "Skip existing files": "Пропусни съществуващи файлове",
+    "bytes": "байтове",
     "Size": "Размер",
     "Timestamp": "Печат на време",
     "Show": "Покажи",
@@ -195,6 +196,9 @@
     "copy_links": "Копирай линкове",
 
     "Calculate": "Изчисли",
+    "More filters": "Още филтри",
+    "Created": "Създаване",
+    "Modified": "Промяна",
     "Creation": "Създаване",
     "creation": "създаване",
     "required_change_password": "Трябва да смените паролата си",

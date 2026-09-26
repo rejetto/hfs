@@ -125,6 +125,7 @@
         "Reload": "Herlaad",
         "Get list": "Laad lijst",
         "Skip existing files": "Sla bestaande bestanden over",
+        "bytes": "bytes",
         "Size": "Grootte",
         "Timestamp": "Timestamp",
         "Show": "Laat zien",
@@ -196,6 +197,9 @@
 		"copy_links": "Kopieer links",
 		
 		"Calculate": "Bereken",
+		"More filters": "Meer filters",
+		"Created": "Aangemaakt",
+		"Modified": "Gewijzigd",
 		"Creation": "Gecreëerd",
 		"creation": "gecreëerd",
 		"required_change_password": "U bent verplicht Uw password te veranderen",
