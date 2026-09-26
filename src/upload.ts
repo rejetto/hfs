@@ -24,6 +24,7 @@ import { onProcessExit, quitting } from './first'
 import { deleteUploadOwner, isUnfinishedUploadOwner, setUploadOwner } from './uploadOwners'
 import { isWebdavLocked } from './webdav'
 import { ctxAdminAccess } from './adminApis'
+import { renameWithFileAttr } from './fileAttr'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>(CFG.delete_unfinished_uploads_after, 86_400)
 export const minAvailableMb = defineConfig(CFG.min_available_mb, 100)
@@ -70,6 +71,10 @@ export function getUploadMeta(path: string): Promise<UploadMeta | undefined> {
 
 export function saveUploadMeta(path: string, meta: UploadMeta) {
     return storeFileAttr(path, ATTR_UPLOADER, meta)
+}
+
+export function publishUpload(temp: string, target: string, meta: UploadMeta) {
+    return renameWithFileAttr(temp, target, ATTR_UPLOADER, meta)
 }
 
 export async function setUploadApproved(path: string, approved: boolean) {
@@ -135,25 +140,8 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
         if (min)
             return fail(HTTP_LENGTH_REQUIRED)
     }
-    else
-        try {
-            // refer to the source of the closest node that actually belongs to the vfs, so that cache is more effective
-            let closestVfsNode = base // if base=root, there's no parent and no original
-            while (closestVfsNode?.parent && !closestVfsNode.original)
-                closestVfsNode = closestVfsNode.parent! // if it's not original, it surely has a parent
-            const dirToCheck = closestVfsNode!.source!
-            const res = diskSpaceCache.try(dirToCheck, () => getDiskSpaceSync(dirToCheck))
-            if (!res) throw 'miss'
-            const { free } = res
-            if (typeof free !== 'number' || isNaN(free))
-                throw JSON.stringify(res)
-            const reservedSpace = _.sumBy(Array.from(uploadingFiles.values()), x => x.size - x.got)
-            if (stillToWrite > free - (min || 0) - reservedSpace)
-                return fail(HTTP_INSUFFICIENT_STORAGE)
-        }
-        catch(e: any) { // warn, but let it through
-            console.warn("Can't check disk size:", e.message || String(e))
-        }
+    else if (!hasUploadSpace(base, stillToWrite))
+        return fail(HTTP_INSUFFICIENT_STORAGE)
     // optionally 'skip'
     if (ctx.query.existing === 'skip' && fs.existsSync(fullPath))
         return fail(HTTP_CONFLICT, 'exists')
@@ -425,4 +413,27 @@ declare module "koa" {
         uploadDestinationPath?: string
         uploadSize?: number
     }
+}
+
+// shared with extraction so uploads keep reserving the bytes they have yet to write
+export function hasUploadSpace(base: VfsNodeWithPath, stillToWrite: number) {
+    try {
+        // refer to the source of the closest node that actually belongs to the vfs, so that cache is more effective
+        let closestVfsNode = base // if base=root, there's no parent and no original
+        while (closestVfsNode?.parent && !closestVfsNode.original)
+            closestVfsNode = closestVfsNode.parent! // if it's not original, it surely has a parent
+        const dirToCheck = closestVfsNode!.source!
+        const res = diskSpaceCache.try(dirToCheck, () => getDiskSpaceSync(dirToCheck))
+        if (!res) throw 'miss'
+        const { free } = res
+        if (typeof free !== 'number' || isNaN(free))
+            throw JSON.stringify(res)
+        const reservedSpace = _.sumBy(Array.from(uploadingFiles.values()), x => x.size - x.got)
+        if (stillToWrite > free - (minAvailableMb.get() * (1 << 20) || 0) - reservedSpace)
+            return false
+    }
+    catch (e) { // retain the upload policy when disk information is unavailable
+        console.warn("Can't check disk size:", String(e))
+    }
+    return true
 }

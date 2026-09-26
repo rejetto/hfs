@@ -3,6 +3,7 @@
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { get_file_list } from './api.get_file_list'
 import { authApis } from './api.auth'
+import { extractionApis } from './extract'
 import events from './events'
 import Koa from 'koa'
 import { isValidFileName } from './util-files'
@@ -34,6 +35,7 @@ const showUploader = defineConfig<Who>(CFG.show_uploader, WHO_ADMIN)
 export const frontEndApis: ApiHandlers = {
     get_file_list,
     ...authApis,
+    ...extractionApis,
 
     get_notifications({ channel }, ctx) {
         apiAssertTypes({ string: { channel } })
