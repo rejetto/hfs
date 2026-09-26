@@ -40,3 +40,41 @@ test('show all plugin columns clears hidden columns and persists across reloads'
     await page.reload()
     await expect(version).toBeVisible()
 })
+
+test('started installation reveals its row in installed plugins', async ({ page }) => {
+    const target = 'rejetto/hfs-zz-target'
+    const localId = 'zz-target'
+    const installed = Array.from({ length: 120 }, (_, i) => ({
+        id: `rejetto/hfs-aa-${String(i).padStart(2, '0')}`,
+        repo: `rejetto/hfs-aa-${String(i).padStart(2, '0')}`,
+        version: 1,
+        started: '2026-09-26T12:00:00Z',
+    })).concat({ id: localId, repo: target, version: 1, started: '2026-09-26T12:00:00Z' })
+    await page.setViewportSize({ width: 1280, height: 500 })
+    await page.route('**/~/api/**', route => {
+        const cmd = route.request().url().split('/').pop()?.split('?')[0]
+        if (cmd === 'download_plugin') return route.fulfill({ json: { id: localId } })
+        if (cmd === 'start_plugin') return route.fulfill({ json: { id: localId, repo: target, version: 1, started: installed.at(-1)!.started } })
+        const rows = cmd === 'get_online_plugins'
+            ? [{ id: target, repo: target, version: 1, description: 'Target plugin' }]
+            : cmd === 'get_plugins' ? installed : []
+        return route.fulfill({ contentType: 'text/event-stream',
+            body: 'data: ' + JSON.stringify([...rows.map(row => ['+', row]), ['ready']]) + '\n\ndata:\n\n' })
+    })
+    await page.goto(url)
+    await page.getByRole('button', { name: 'Install', exact: true }).click()
+    await page.getByRole('button', { name: 'Start', exact: true }).click()
+
+    await expect(page).toHaveURL(/#\/plugins\/installed$/)
+    await expect(page.getByPlaceholder('Search')).toHaveValue(target)
+    const revealed = page.getByRole('row').filter({ hasText: 'zz-target' })
+    await expect(revealed).toBeVisible()
+
+    await page.goto(url)
+    await page.getByRole('button', { name: 'Install', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Start', exact: true })).toBeVisible()
+    await page.evaluate(() => location.hash = '/plugins/installed')
+    await page.getByRole('button', { name: 'Start', exact: true }).click()
+    await expect(page.getByPlaceholder('Search')).toHaveValue(target)
+    await expect(revealed).toBeVisible()
+})

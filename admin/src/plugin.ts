@@ -11,6 +11,24 @@ import { parsePluginConfig, showPluginOptions } from './pluginOptions'
 
 const HFS_GITHUB_ACCOUNT = HFS_REPO.replace(/\/.+/, `/`)
 export const PLUGIN_ERRORS = { ENOTFOUND: "Cannot reach github.com", ECONNREFUSED: "Cannot reach github.com" }
+export type InstalledPluginReveal = { id: string, filter: string }
+export const INSTALLED_PLUGIN_REVEAL_EVENT = 'installed-plugin-reveal'
+let installedPluginToReveal: InstalledPluginReveal | undefined
+
+declare global {
+    interface WindowEventMap {
+        'installed-plugin-reveal': CustomEvent<InstalledPluginReveal>
+    }
+}
+
+export function getInstalledPluginToReveal() {
+    return installedPluginToReveal
+}
+
+export function clearInstalledPluginToReveal(id: string) {
+    if (installedPluginToReveal?.id === id)
+        installedPluginToReveal = undefined
+}
 
 export function renderPluginName({ row, value }: any) {
     const { repo } = row
@@ -64,11 +82,16 @@ export function pluginName(name: string) {
     return name.replace(/^hfs-|-plugin$/g, '')
 }
 
-async function installPlugin(id: string, branch?: string): Promise<any> {
+async function installPlugin(id: string, branch?: string, revealAfterStart=true): Promise<any> {
     try {
         const res = await apiCall('download_plugin', { id, branch, stop: true }, { timeout: false })
         if (await confirmDialog(t("Plugin {id} downloaded", { id: id }), { trueText: t`Start` })) {
             const plugin = await startPlugin(res.id)
+            if (plugin && revealAfterStart) {
+                installedPluginToReveal = { id: res.id, filter: id }
+                window.dispatchEvent(new CustomEvent(INSTALLED_PLUGIN_REVEAL_EVENT, { detail: installedPluginToReveal })) // the event is in case InstalledPlugins is already mounted
+                location.hash = '/plugins/installed'
+            }
             if (plugin?.config)
                 await showPluginOptions(plugin)
         }
@@ -79,11 +102,11 @@ async function installPlugin(id: string, branch?: string): Promise<any> {
             for (const x of e.cause)
                 if (x.error === 'missing') {
                     toast(t("Installing dependency: {repo}", { repo: x.repo }))
-                    await installPlugin(x.repo)
+                    await installPlugin(x.repo, undefined, false)
                     done = true
                 }
         if (done) // try again
-            return installPlugin(id, branch)
+            return installPlugin(id, branch, revealAfterStart)
         throw e
     }
 }

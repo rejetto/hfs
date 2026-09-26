@@ -13,12 +13,15 @@ import {
 } from './misc'
 import { confirmDialog, toast } from './dialog'
 import _ from 'lodash'
-import { PLUGIN_ERRORS, pluginName, renderPluginName, startPlugin } from './plugin'
+import { useEventListener } from 'usehooks-ts'
+import { clearInstalledPluginToReveal, getInstalledPluginToReveal, INSTALLED_PLUGIN_REVEAL_EVENT,
+    PLUGIN_ERRORS, pluginName, renderPluginName, startPlugin } from './plugin'
 import { Btn, IconBtn, iconTooltip, usePauseButton } from './mui'
 import { parsePluginConfig, showPluginOptions } from './pluginOptions'
 
 // updates=true will show the "check updates" version of the page
 export default function InstalledPlugins({ updates }: { updates?: true }) {
+    const [reveal, setReveal] = useState(getInstalledPluginToReveal)
     const { list, error, setList, initializing } = useApiList<any>(updates ? 'get_plugin_updates' : 'get_plugins', {}, {
         map: parsePluginConfig, reconnectGraceSeconds: 60,
     })
@@ -30,6 +33,11 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 x => pluginName(x.repo?.split('/').pop() || x.id).toLowerCase(),
                 x => x.repo?.split('/')[0].toLowerCase()))
     }, [list.length, sortAgain])
+    useEffect(() => {
+        if (reveal && _.some(list, { id: reveal.id })) // consume the handoff only once the installed list confirms the plugin
+            clearInstalledPluginToReveal(reveal.id)
+    }, [list, reveal])
+    useEventListener(INSTALLED_PLUGIN_REVEAL_EVENT, ev => setReveal(ev.detail)) // keep an already-mounted Installed tab in sync with installs finishing elsewhere
     const size = 'small'
     const { pause, pauseButton } = usePauseButton("plugins", () => getSingleConfig(CFG.suspend_plugins).then(x => !x), {
         async onClick() {
@@ -40,6 +48,8 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
         }
     })
     return h(DataTable, {
+        key: reveal?.id,
+        initialState: reveal && { filter: { filterModel: { items: [], quickFilterValues: [reveal.filter] } } },
         error: isPrimitive(error) ? xlate(error, PLUGIN_ERRORS)
             : _.map(error, (v, k) => `Error ${k} for: ${v.join(', ')}`).join('; '), // complex error for updates
         rows: list.length ? list : [], // workaround for DataGrid's bug causing 'no rows' message to be not displayed after 'loading' was also used

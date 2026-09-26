@@ -58,7 +58,7 @@ export function DataTable({
         setGridReady(true)
     }, [])
     const [actionsLength, setActionsLength] = useState(0)
-    const [quickFilterOpen, setQuickFilterOpen] = useState(false)
+    const [quickFilterOpen, setQuickFilterOpen] = useState(Boolean(initialState.filter?.filterModel?.quickFilterValues?.length))
     const [merged, setMerged] = useState(0)
     const manipulatedColumns = useMemo(() => {
         const { localeText } = theme.components?.MuiDataGrid?.defaultProps as any
