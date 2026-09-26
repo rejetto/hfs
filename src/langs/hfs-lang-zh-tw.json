@@ -127,6 +127,7 @@
         "Reload": "重新載入",
         "Get list": "取得清單",
         "Skip existing files": "跳過已存在的檔案",
+        "bytes": "位元組",
         "Size": "大小",
         "Timestamp": "時間戳",
         "Show": "顯示",
@@ -196,6 +197,9 @@
         "copy_links": "複製連結",
 
         "Calculate": "計算",
+        "More filters": "更多篩選條件",
+        "Created": "建立時間",
+        "Modified": "修改時間",
         "Creation": "建立日期",
         "creation": "建立",
         "required_change_password": "您必須更改密碼",

@@ -120,6 +120,7 @@
         "Reload": "Оновити",
         "Get list": "Отримати список",
         "Skip existing files": "Пропуск існуючих файлів",
+        "bytes": "байти",
         "Size": "Розмір",
         "Timestamp": "Дата",
         "Show": "Перегляд файлу",
@@ -190,6 +191,9 @@
         "copy_links": "Копіювати посилання",
 
         "Calculate": "Обчислити",
+        "More filters": "Інші фільтри",
+        "Created": "Створено",
+        "Modified": "Змінено",
         "Creation": "Дата створення",
         "creation": "створення",
         "required_change_password": "Вам необхідно змінити пароль",

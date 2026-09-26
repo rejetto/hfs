@@ -127,6 +127,7 @@
         "Reload": "Reîncarcă",
         "Get list": "Obține lista",
         "Skip existing files": "Sari peste fișierele deja existente",
+        "bytes": "octeți",
         "Size": "Dimensiune",
         "Timestamp": "Data încărcării",
         "Show": "Arată",
@@ -196,6 +197,9 @@
         "copy_links": "Copiază link-uri",
 
         "Calculate": "Calculează",
+        "More filters": "Mai multe filtre",
+        "Created": "Creat",
+        "Modified": "Modificat",
         "Creation": "Dată creare",
         "creation": "creare",
         "required_change_password": "Trebuie să-ți schimbi parola",

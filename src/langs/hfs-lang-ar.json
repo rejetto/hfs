@@ -127,6 +127,7 @@
         "Reload": "إعادة تحميل",
         "Get list": "الحصول على القائمة",
         "Skip existing files": "تخطى الملفات الموجودة",
+        "bytes": "بايت",
         "Size": "الحجم",
         "Timestamp": "الطابع الزمني",
         "Show": "عرض",
@@ -196,6 +197,9 @@
         "copy_links": "نسخ الروابط",
 
         "Calculate": "حساب",
+        "More filters": "المزيد من عوامل التصفية",
+        "Created": "تاريخ الإنشاء",
+        "Modified": "تاريخ التعديل",
         "Creation": "تاريخ الإنشاء",
         "creation": "إنشاء",
         "required_change_password": "يجب عليك تغيير كلمة المرور الخاصة بك",

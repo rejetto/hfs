@@ -127,6 +127,7 @@
 	    "Reload": "새로고침",
         "Get list": "목록으로 출력",
         "Skip existing files": "기존 파일 건너뛰기",
+        "bytes": "바이트",
         "Size": "크기",
         "Timestamp": "수정한 날짜",
         "Show": "보기",
@@ -196,6 +197,9 @@
         "copy_links": "링크 복사",
 
         "Calculate": "계산",
+        "More filters": "추가 필터",
+        "Created": "만든 날짜",
+        "Modified": "수정한 날짜",
         "Creation": "생성일",
         "creation": "생성일",
         "required_change_password": "비밀번호를 변경해야 합니다.",

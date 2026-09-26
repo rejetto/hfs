@@ -16,6 +16,7 @@ import { ctxAdminAccess } from './adminApis'
 import { dontOverwriteUploading } from './upload'
 import { SendListReadable } from './SendList'
 import events from './events'
+import { Stats } from 'fs'
 
 export interface DirEntry { // common properties are single letter to reduce the payload size
     n: string, // name/path
@@ -31,14 +32,37 @@ export interface DirEntry { // common properties are single letter to reduce the
     order?: number
 }
 
-export function paramsToFilter({ search, wild, searchComment, fileMask }: any) {
+export function paramsToFilter({ search, wild, searchComment, fileMask, ...params }: any) {
+    const ranges = (['creation', 'mtime', 'size'] as const).map(key => {
+        const min = bound(key, 'Min')
+        const max = bound(key, 'Max')
+        if (min !== undefined && max !== undefined && min > max)
+            throw new ApiError(400, `Invalid ${key} range`)
+        return { key, min, max }
+    }).filter(({ min, max }) => min !== undefined || max !== undefined)
+    const filterStats = ranges.length ? (st: Stats | void | null, isFolder: boolean | undefined) => ranges.every(({ key, min, max }) => {
+        if (!st || key === 'size' && isFolder) return false
+        const value = Number(st[key === 'creation' ? 'birthtime' : key])
+        return (min === undefined || value >= min) && (max === undefined || value <= max)
+    }) : undefined
     search = String(search || '').toLocaleLowerCase()
     searchComment = String(searchComment || '').toLocaleLowerCase()
     return {
-        depth: search || searchComment ? Infinity : 0,
+        depth: search || searchComment || filterStats ? Infinity : 0,
+        filterStats,
         filterName: search > '' && (wild === 'no' ? (s: string) => s.includes(search) : pattern2filter(search)),
         fileMask: fileMask > '' && pattern2filter(fileMask),
         filterComment: searchComment > '' && (wild === 'no' ? (s: string) => s.includes(searchComment) : pattern2filter(searchComment))
+    }
+
+    function bound(key: 'creation' | 'mtime' | 'size', suffix: 'Min' | 'Max') {
+        const raw = params[key + suffix]
+        if (raw === undefined || raw === '') return
+        const value = key === 'size' ? Number(raw) : Date.parse(raw)
+        if (typeof raw !== 'string' && typeof raw !== 'number' || !Number.isFinite(value)
+        || key === 'size' && (value < 0 || !Number.isSafeInteger(value)))
+            throw new ApiError(400, `Invalid ${key}${suffix}`)
+        return value
     }
 }
 
@@ -56,7 +80,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
         return fail()
     offset = Number(offset)
     limit = Number(limit)
-    const { filterName, filterComment, fileMask, depth } = paramsToFilter(rest)
+    const { filterName, filterComment, filterStats, fileMask, depth } = paramsToFilter(rest)
     const walker = walkNode(node, { ctx: admin ? undefined : ctx, onlyFolders, onlyFiles, depth })
     const onDirEntryHandlers = mapPlugins((plug, id) => plug.onDirEntry && { id, cb: plug.onDirEntry })
     const can_upload = admin || hasPermission(node, 'can_upload', ctx)
@@ -141,6 +165,9 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
                             throw e
                     })
                 ])
+            // compare original timestamps before the payload omits mtime values close to birthtime
+            if (filterStats && !filterStats(st, isFolder))
+                return null
             // permissions of entries are sent as a difference with permissions of parent
             const pl = node.can_list === WHO_NO_ONE ? 'l'
                 : !hasPermission(node, 'can_list', ctx) ? 'L'

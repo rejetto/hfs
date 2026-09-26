@@ -620,9 +620,27 @@ button .icon + .label {
     .submit { text-align: right; }
 }
 #search-dialog form {
+    width: min(34em, calc(94vw - 4em));
     display: flex;
     flex-direction: column;
     gap: 1em;
+    fieldset, .search-text-fields {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75em;
+        min-width: 0;
+        .field { flex: 1 1 14em; min-width: 0; }
+    }
+    fieldset { border: 1px solid var(--mild-contrast); border-radius: .5em; background-color: var(--ghost-contrast); }
+    .search-options {
+        display: flex; flex-wrap: wrap; align-items: center; gap: .75em;
+        button { margin-left: auto; }
+    }
+    .search-size-range {
+        .field { flex-basis: 10em; }
+        .search-size-unit { flex: 0 1 5em; align-self: flex-end; }
+        select { width: 100%; }
+    }
     .submit { text-align: right; }
 }
 

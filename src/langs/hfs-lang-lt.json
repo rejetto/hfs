@@ -126,6 +126,7 @@
         "Reload": "Perkrauti",
         "Get list": "Gauti sąrašą",
         "Skip existing files": "Praleisti esamus failus",
+        "bytes": "baitais",
         "Size": "Dydis",
         "Timestamp": "Laiko žymė",
         "Show": "Rodyti",
@@ -195,6 +196,9 @@
         "copy_links": "Kopijuoti nuorodas",
 
         "Calculate": "Skaičiuoti",
+        "More filters": "Daugiau filtrų",
+        "Created": "Sukurta",
+        "Modified": "Pakeista",
         "Creation": "Pagal sukūrimo datą",
         "creation": "datą",
         "required_change_password": "Privalote pasikeisti slaptažodį",

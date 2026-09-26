@@ -92,6 +92,7 @@
         "Reload": "Muat semula",
         "Get list": "Dapatkan senarai",
         "Skip existing files": "Langkau fail sedia ada",
+        "bytes": "bait",
         "Size": "Saiz",
         "Timestamp": "Cap masa",
         "Show": "Papar",
@@ -160,6 +161,9 @@
         "copy_links": "Salin pautan",
 
         "Calculate": "Kira",
+        "More filters": "Lagi penapis",
+        "Created": "Dicipta",
+        "Modified": "Diubah suai",
         "Creation": "Dicipta",
         "creation": "penciptaan",
         "required_change_password": "Anda perlu menukar kata laluan anda",

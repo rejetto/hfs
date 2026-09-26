@@ -127,6 +127,7 @@
 		"Reload": "Recharger",
 		"Get list": "Lister le contenu",
 		"Skip existing files": "Ignorer les fichiers éxistants",
+		"bytes": "octets",
 		"Size": "Taille",
 		"Timestamp": "Horodatage",
 		"Show": "Afficher",
@@ -200,6 +201,9 @@
 		"copy_links": "Copier les liens",
 
 		"Calculate": "Calculer",
+		"More filters": "Plus de filtres",
+		"Created": "Créé",
+		"Modified": "Modifié",
 		"Creation": "Création",
 		"creation": "création",
 		"required_change_password": "Vous devez changer votre mot de passe",

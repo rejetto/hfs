@@ -127,6 +127,7 @@
         "Reload": "重新加载",
         "Get list": "获取列表",
         "Skip existing files": "跳过已存在的文件",
+        "bytes": "字节",
         "Size": "大小",
         "Timestamp": "时间戳",
         "Show": "显示/播放",
@@ -200,6 +201,9 @@
         "copy_links": "复制链接",
 
         "Calculate": "计算",
+        "More filters": "更多筛选条件",
+        "Created": "创建时间",
+        "Modified": "修改时间",
         "Creation": "创建时间",
         "creation": "创建",
         "required_change_password": "您需要更改密码",

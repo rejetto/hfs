@@ -130,6 +130,7 @@
         "Reload": "Újratöltés",
         "Get list": "Tartalom lista",
         "Skip existing files": "Meglévő fájlok kihagyása",
+        "bytes": "bájt",
         "Size": "Méret",
         "Timestamp": "Időbélyeg",
         "Show": "Megtekintés",
@@ -203,6 +204,9 @@
         "copy_links": "Linkek másolása",
 
         "Calculate": "Számítás",
+        "More filters": "További szűrők",
+        "Created": "Létrehozva",
+        "Modified": "Módosítva",
         "Creation": "Létrehozás",
         "creation": "létrehozás",
         "required_change_password": "Meg kell változtatnia a jelszavát",

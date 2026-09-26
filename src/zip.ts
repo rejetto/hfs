@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getNodeName, hasPermission, nodeIsFolder, nodeIsLink, urlToNode, VfsNode, VfsNodeWithPath, walkNode, statusCodeForMissingPerm } from './vfs'
+import { getNodeName, hasPermission, nodeIsFolder, nodeIsLink, nodeStats, urlToNode, VfsNode, VfsNodeWithPath, walkNode, statusCodeForMissingPerm } from './vfs'
 import Koa from 'koa'
 import { CFG, filterMapGenerator, isWindowsDrive, pathDecodeSegments, safeDecodeURIComponent, statWithTimeout, wantArray } from './misc'
 import { QuickZipStream } from './QuickZipStream'
@@ -25,7 +25,7 @@ export async function zipStreamFromFolder(node: VfsNodeWithPath, ctx: Koa.Contex
         forceDownload(ctx, (isWindowsDrive(name) ? name[0] : (name || 'archive')) + '.zip')
     }
     catch { return ctx.status = 400 }
-    const { filterName, filterComment } = paramsToFilter(ctx.query)
+    const { filterName, filterComment, filterStats } = paramsToFilter(ctx.query)
     const walker = !list ? walkNode(node, { ctx, requiredPerm: 'can_archive' })
         : (async function*(): AsyncIterableIterator<VfsNode> {
             for await (const uri of list) {
@@ -57,6 +57,8 @@ export async function zipStreamFromFolder(node: VfsNodeWithPath, ctx: Koa.Contex
         || filterComment && !filterComment(await getCommentFor(source) || ''))
             return
         try {
+            if (filterStats && !filterStats(await nodeStats(el), nodeIsFolder(el)))
+                return
             if (nodeIsFolder(el))
                 return { path: name + '/' }
             if (!source) return

@@ -127,6 +127,7 @@
         "Reload": "再読み込み",
         "Get list": "リストを入手",
         "Skip existing files": "すでに存在するファイルをスキップする",
+        "bytes": "バイト",
         "Size": "ファイルサイズ",
         "Timestamp": "タイムスタンプ",
         "Show": "表示",
@@ -196,6 +197,9 @@
         "copy_links": "リンクをコピー",
 
         "Calculate": "計算",
+        "More filters": "その他のフィルター",
+        "Created": "作成日時",
+        "Modified": "更新日時",
         "Creation": "作成日時",
         "creation": "作成日時",
         "required_change_password": "パスワードを変更する必要があります",

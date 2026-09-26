@@ -126,6 +126,7 @@
         "Reload": "Recarregar",
         "Get list": "Listar",
         "Skip existing files": "Pular arquivos existentes?",
+        "bytes": "bytes",
         "Size": "Tamanho",
         "Timestamp": "Tempo",
         "Show": "Mostrar",
@@ -195,6 +196,9 @@
         "copy_links": "Copiar links",
 
         "Calculate": "Calcular",
+        "More filters": "Mais filtros",
+        "Created": "Criado",
+        "Modified": "Modificado",
         "Creation": "Criação",
         "creation": "criação",
         "required_change_password": "Você precisa alterar sua senha",
