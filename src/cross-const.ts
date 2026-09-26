@@ -82,3 +82,19 @@ export const HTTP_MESSAGES: Record<number, string> = {
     [HTTP_SERVER_ERROR]: "Server error",
     [HTTP_TOO_MANY_REQUESTS]: "Too many requests",
 }
+
+export const EXTRACT_EXTENSIONS = ['zip']
+
+export interface ExtractionJob {
+    id: string
+    uri: string
+    destination: string
+    username: string
+    progress: number
+    status: 'running' | 'done' | 'stopped' | 'error'
+    entries: { path: string, skipped: boolean }[]
+    truncated: boolean
+    extracted: number
+    skipped: number
+    error?: string
+}
