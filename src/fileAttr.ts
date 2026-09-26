@@ -1,6 +1,6 @@
 import { KvStorage } from '@rejetto/kvstorage'
 import { promisify } from 'util'
-import { access } from 'fs/promises'
+import { access, rename } from 'fs/promises'
 import { onlyTruthy, try_, tryJson } from './cross'
 import { onProcessExit } from './first'
 import { utimes } from 'node:fs/promises'
@@ -22,9 +22,10 @@ const FILE_ATTR_PREFIX = 'user.hfs.' // user. prefix to be linux compatible
 const FILE_ATTR_KEY_SEPARATOR = '|'
 
 /* @param v must be JSON-able or undefined */
-export async function storeFileAttr(path: string, k: string, v: any) {
+export async function storeFileAttr(path: string, k: string, v: any, fallbackPath = path) {
     const s = await statWithTimeout(path).catch(() => null)
     const key = fileAttrKey(path, k)
+    const fallbackKey = fallbackPath === path ? key : fileAttrKey(fallbackPath, k)
     // an empty native value may read back as missing, so store an explicit tombstone
     if (s && await fsx?.set(path, FILE_ATTR_PREFIX + k, JSON.stringify(v ?? null)).then(() => 1, () => 0)) {
         if (IS_WINDOWS)
@@ -32,13 +33,31 @@ export async function storeFileAttr(path: string, k: string, v: any) {
         // a successful native write supersedes any value from a previous fallback
         if (fileAttrDb.isOpen() && fileAttrDb.has(key))
             await fileAttrDb.del(key)?.catch(console.error)
-        return true
+        // replace stale destination metadata so it cannot be read if the new native attribute is unavailable
+        if (fallbackKey === key || !fileAttrDb.isOpen() || !fileAttrDb.has(fallbackKey))
+            return true
     }
-    // fallback to our kv-storage
-    return await fileAttrDb.put(key, v)?.then(() => true, (e: any) => {
+    // a rename waits for metadata, so the normal batch delay would stall every extracted entry
+    return await fileAttrDb.put(fallbackKey, v, fallbackPath === path ? undefined : { delay: 0 })?.then(() => true, (e: any) => {
         console.error("Couldn't store metadata on", path, String(e.message || e))
         return false
     }) ?? true // if put is undefined, the value was already there
+}
+
+export async function renameWithFileAttr(from: string, to: string, k: string, value: unknown) {
+    const key = fileAttrKey(to, k)
+    const previous = fileAttrDb.isOpen() ? await fileAttrDb.get(key) : undefined
+    try {
+        // native attributes follow rename; fallback metadata must already use the final path before replacing any bytes
+        if (!await storeFileAttr(from, k, value, to))
+            throw Error("Could not store file metadata")
+        await rename(from, to)
+    }
+    catch (error) {
+        // a rejected KV write can still change its in-memory value, so preparation failures need rollback too
+        if (fileAttrDb.isOpen()) await fileAttrDb.put(key, previous)
+        throw error
+    }
 }
 
 export async function loadFileAttr(path: string, k: string) {
