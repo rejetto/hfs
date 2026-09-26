@@ -129,6 +129,7 @@
         "Reload": "Làm mới",
         "Get list": "Lấy danh sách qua API",
         "Skip existing files": "Để file có sẳn ở lại",
+        "bytes": "byte",
         "Size": "Kích cỡ",
         "Timestamp": "Mốc thời gian",
         "Show": "Hiện",
@@ -202,6 +203,9 @@
         "copy_links": "Copy đường dẫn",
 		
         "Calculate": "Tính",
+        "More filters": "Bộ lọc khác",
+        "Created": "Ngày tạo",
+        "Modified": "Ngày sửa đổi",
         "Creation": "Ngày tạo",
         "creation": "ngày tạo",
         "required_change_password": "Bạn được yêu cầu đổi ngay cái password",

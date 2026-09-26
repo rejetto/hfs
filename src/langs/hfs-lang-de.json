@@ -119,6 +119,7 @@
         "Reload": "Neu laden",
         "Get list": "Liste abrufen",
         "Skip existing files": "Existierende Dateien überspringen",
+        "bytes": "Bytes",
         "Size": "Größe",
         "Timestamp": "Zeitstempel",
         "Show": "Anzeigen",
@@ -187,6 +188,9 @@
         "copy_links": "Links kopieren",
 
         "Calculate": "Berechnen",
+        "More filters": "Weitere Filter",
+        "Created": "Erstellt",
+        "Modified": "Geändert",
         "Creation": "Erstellung",
         "creation": "Erstellung",
         "required_change_password": "Sie müssen Ihr Passwort ändern.",

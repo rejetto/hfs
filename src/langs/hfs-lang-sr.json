@@ -126,6 +126,7 @@
         "Reload": "Поново учитај",
         "Get list": "Преузми листу",
         "Skip existing files": "Прескочи постојеће датотеке",
+        "bytes": "бајтови",
         "Size": "Величина",
         "Timestamp": "Време",
         "Show": "Прикажи",
@@ -197,6 +198,9 @@
         "copy_links": "Копирај линкове",
 
         "Calculate": "Израчунај",
+        "More filters": "Још филтера",
+        "Created": "Креирано",
+        "Modified": "Измењено",
         "Creation": "Датум креирања",
         "creation": "креирање",
         "required_change_password": "Потребно је да промените лозинку",

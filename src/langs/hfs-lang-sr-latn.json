@@ -126,6 +126,7 @@
         "Reload": "Ponovo učitaj",
         "Get list": "Preuzmi listu",
         "Skip existing files": "Preskoči postojeće datoteke",
+        "bytes": "bajtovi",
         "Size": "Veličina",
         "Timestamp": "Vremenska oznaka",
         "Show": "Prikaži",
@@ -197,6 +198,9 @@
         "copy_links": "Kopiraj linkove",
 
         "Calculate": "Izračunaj",
+        "More filters": "Još filtera",
+        "Created": "Kreirano",
+        "Modified": "Izmenjeno",
         "Creation": "Stvaranje",
         "creation": "stvaranje",
         "required_change_password": "Morate promeniti lozinku",
