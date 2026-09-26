@@ -3656,7 +3656,7 @@ describe('after-login', () => {
         setTimeout(r1.abort, 1500)
         await Promise.all([
             r1.catch(() => {}),
-            wait(100).then(() => reqUpload(`${UPLOAD_ROOT}${UPLOAD_DIR}/free2`, 507, makeReadableThatTakes(500), fakeSize)())
+            wait(100).then(() => req(`${UPLOAD_ROOT}${UPLOAD_DIR}/free2?simulate=${fakeSize}`, 507, { method: 'PUT' })())
         ])
     })
     test('max_dl.account', async () => {
