@@ -23,7 +23,7 @@ export function usePath() {
     return location.pathname // this is encoded, while useLocation returned decoded
 }
 
-const REMOTE_SEARCH_KEYS = ['search', 'searchComment', 'wild'] as const
+const REMOTE_SEARCH_KEYS = ['search', 'searchComment', 'wild', 'creationMin', 'creationMax', 'mtimeMin', 'mtimeMax', 'sizeMin', 'sizeMax'] as const
 
 // allow links with ?search
 let firstListRequest: any
@@ -46,7 +46,7 @@ subscribeKey(state, 'remoteSearch', value => {
 
 function readRemoteSearch(params: Record<string, string>) {
     const ret = _.pickBy(_.pick(params, REMOTE_SEARCH_KEYS))
-    return ret.search || ret.searchComment ? ret : undefined
+    return REMOTE_SEARCH_KEYS.some(key => key !== 'wild' && ret[key]) ? ret : undefined
 }
 
 function syncRemoteSearch(params=Object.fromEntries(new URLSearchParams(location.search))) {
