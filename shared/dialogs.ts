@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, FunctionComponent, isValidElement, ReactNode, useEffect, useRef,
-    HTMLAttributes, useState } from 'react'
+    HTMLAttributes, useState, useLayoutEffect } from 'react'
 import { proxy, ref, useSnapshot } from 'valtio'
 import _ from 'lodash'
 import { domOn, isPrimitive, wait } from '.'
@@ -134,7 +134,7 @@ export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
 function Dialog(d: DialogOptions) {
     const ref = useRef<HTMLElement>(null)
     const [shiftY, setShiftY] = useState(0)
-    useEffect(()=>{
+    useLayoutEffect(()=>{ // initialize focus before users can interact, so delayed autofocus cannot steal their input
         const el = ref.current?.querySelector('.dialog') as HTMLElement | undefined
         if (!el) return
         tabCycle(el) // focus first thing inside dialog. This makes JAWS behave
