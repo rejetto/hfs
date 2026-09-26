@@ -16,8 +16,9 @@ import { inputComment } from './upload'
 import { cut } from './clip'
 import { loginDialog } from './login'
 import { useInterval } from 'usehooks-ts'
-import i18n from './i18n'
 import { frontEndApis } from '../../src/frontEndApis'
+import { canExtract, extractArchive, extractionStatusLabel, useExtractionProgress } from './extract'
+import i18n from './i18n'
 const { t, useI18N } = i18n
 
 interface FileMenuEntry {
@@ -36,7 +37,9 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
     const canList = !entry.p?.match(/L/i)
     const forbidden = entry.cantOpen === DirEntry.FORBIDDEN
     const cantDownload = forbidden || isFolder && !(canRead && entry.canArchive() && canList) // folders needs list+read+archive
+    const extract = canExtract(entry)
     const menu = [
+        extract && { id: 'extract', label: t`Extract`, icon: 'archive', onClick: () => extractArchive(entry) },
         !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download', target: '_blank' },
         state.props?.can_comment && { id: 'comment', label: t`Comment`, icon: 'comment', onClick: () => editComment(entry) },
         ...addToMenu.map(x => {
@@ -103,6 +106,7 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
         restoreFocus: ev.screenY || ev.screenX ? false : undefined,
         Content() {
             const {t} = useI18N()
+            const extraction = useExtractionProgress(extract ? entry.uri : undefined)
             const { data, reload } = useApi<typeof frontEndApis.get_file_details>('get_file_details', { uris: [entry.uri] })
             const details = data?.details?.[0]
             const revoked = details?.upload?.approved === false
@@ -120,7 +124,9 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
                 ),
                 h('div', { className: 'file-menu' },
                     dontBotherWithKeys([
-                        ...menu,
+                        ...menu.map(item => item?.id === 'extract' && extraction.status
+                            ? { ...item, label: `${extractionStatusLabel(extraction.status)} ${extraction.progress}%`, onClick: () => false }
+                            : item),
                         details?.activeContent && {
                             id: 'approve-active-content',
                             label: revoked ? t`Approve active content` : t`Revoke approval`,

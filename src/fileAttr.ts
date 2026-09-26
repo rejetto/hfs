@@ -1,6 +1,6 @@
 import { KvStorage } from '@rejetto/kvstorage'
 import { promisify } from 'util'
-import { access } from 'fs/promises'
+import { access, rename } from 'fs/promises'
 import { onlyTruthy, try_, tryJson } from './cross'
 import { onProcessExit } from './first'
 import { utimes } from 'node:fs/promises'
@@ -22,7 +22,7 @@ const FILE_ATTR_PREFIX = 'user.hfs.' // user. prefix to be linux compatible
 const FILE_ATTR_KEY_SEPARATOR = '|'
 
 /* @param v must be JSON-able or undefined */
-export async function storeFileAttr(path: string, k: string, v: any) {
+export async function storeFileAttr(path: string, k: string, v: any, fallbackPath = path) {
     const s = await statWithTimeout(path).catch(() => null)
     // since we don't have fsx.remove, we simulate it with an empty string
     if (s && await fsx?.set(path, FILE_ATTR_PREFIX + k, v === undefined ? '' : JSON.stringify(v)).then(() => 1, () => 0)) {
@@ -30,10 +30,26 @@ export async function storeFileAttr(path: string, k: string, v: any) {
         return true
     }
     // fallback to our kv-storage
-    return await fileAttrDb.put(fileAttrKey(path, k), v)?.then(() => true, (e: any) => {
+    return await fileAttrDb.put(fileAttrKey(fallbackPath, k), v)?.then(() => true, (e: any) => {
         console.error("Couldn't store metadata on", path, String(e.message || e))
         return false
     }) ?? true // if put is undefined, the value was already there
+}
+
+export async function renameWithFileAttr(from: string, to: string, k: string, value: unknown) {
+    const key = fileAttrKey(to, k)
+    const previous = fileAttrDb.isOpen() ? await fileAttrDb.get(key) : undefined
+    try {
+        // native attributes follow rename; fallback metadata must already use the final path before replacing any bytes
+        if (!await storeFileAttr(from, k, value, to))
+            throw Error("Could not store file metadata")
+        await rename(from, to)
+    }
+    catch (error) {
+        // a rejected KV write can still change its in-memory value, so preparation failures need rollback too
+        if (fileAttrDb.isOpen()) await fileAttrDb.put(key, previous)
+        throw error
+    }
 }
 
 export async function loadFileAttr(path: string, k: string) {

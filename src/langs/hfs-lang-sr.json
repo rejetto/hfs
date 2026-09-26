@@ -1,7 +1,20 @@
 { 
     "author": "Горан", 
     "version": 1.6,
-    "translate": { 
+    "translate": {
+        "Extract": "Распакуј",
+        "Extractions": "Распаковања",
+        "Destination folder": "Одредишна фасцикла",
+        "Leave empty to extract next to the archive": "Оставите празно за распакивање у фасциклу архиве",
+        "Existing files will be overwritten. Files you cannot delete will be skipped.": "Постојеће датотеке ће бити преписане. Датотеке које немате право да обришете биће прескочене.",
+        "Extracting": "Распакивање у току",
+        "Extracted": "Распаковано",
+        "Skipped": "Прескочено",
+        "Stopped": "Заустављено",
+        "Stop": "Заустави",
+        "Completed": "Завршено",
+        "Only the last 100 entries are shown": "Приказано је само последњих 100 ставки",
+        "No extractions": "Нема распаковања",
         "Select": "Изабери", 
         "n_files": "{n,plural, one {# документ} other{# документа}}", 
         "n_folders": "{n,plural, one {# фолдер} other{# фолдера}}", 

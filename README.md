@@ -44,6 +44,7 @@ Runs on: Windows, Linux, macOS, FreeBSD, Android
 - accounts
 - resumable downloads & uploads
 - download folders as zip archive
+- extract ZIP archives on the server, with progress and cancellation
 - delete, move and rename files
 - plug-ins (anti-brute-force, thumbnails, ldap, themes, and more)
 - simple website serving

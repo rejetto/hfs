@@ -20,6 +20,7 @@ import { reloadList } from './useFetchList'
 import { cut } from './clip'
 import { Btn, BtnProps, Checkbox, CustomCode } from './components'
 import i18n from './i18n'
+import { ExtractionIndicator } from './extract'
 import { encodeUrlList } from '../../src/urlList'
 const { t, useI18N } = i18n
 
@@ -140,6 +141,7 @@ export function MenuPanel() {
                     }
                 }
             })),
+            h(ExtractionIndicator),
             h(CustomCode, { name: 'appendMenuBar' }),
         ),
         remoteSearch && h('div', { id: 'searched' },
