@@ -1,4 +1,5 @@
 import './id3.test'
+import './extract.test'
 import './acme-dns.test'
 import './acme-dns-providers.test'
 import './filename-normalization.test'
