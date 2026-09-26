@@ -4,10 +4,10 @@ import { access, chmod, mkdir, readFile, stat } from 'fs/promises'
 import { CFG, Promisable, try_, wait, isWindowsDrive, haveTimeout } from './cross'
 import { defineConfig } from './config'
 import { createWriteStream, mkdirSync, watch, ftruncate, Stats } from 'fs'
-import { basename, dirname } from 'path'
+import { basename, dirname, win32 } from 'path'
 import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
-import { finished } from 'stream/promises'
+import { pipeline } from 'stream/promises'
 import { Readable } from 'stream'
 import { getStatWorker } from './stat'
 import unzipper from 'unzipper'
@@ -90,37 +90,58 @@ export function escapeGlobPath(path: string) {
     return glob.escapePath(path.replace(/\\/g, '/'))
 }
 
-export async function unzip(stream: Readable, cb: (path: string) => Promisable<false | string>) {
+export async function unzip(stream: Readable, cb: (path: string) => Promisable<false | string>, options?: {
+    write: (entry: unzipper.Entry, dest: string) => Promise<void>
+    onInvalid: (path: string) => void
+}) {
     const extracted = new Map<string, string>()
-    let chain: Promise<any> = Promise.resolve()
+    let chain: Promise<unknown> = Promise.resolve()
+    let active: unzipper.Entry | undefined
+    let failure: Error | undefined
     const parser = unzipper.Parse()
     stream.once('error', e => parser.destroy(e)) // pipe doesn't forward source errors, so make the parser reject and release its resources
-    return new Promise((resolve, reject) =>
+    return new Promise((resolve, reject) => {
+        function fail(e: Error) {
+            failure = e
+            active?.destroy(e)
+            stream.destroy()
+            parser.destroy()
+            // wait for the writer cleanup before exposing a failed job as finished
+            void chain.then(() => reject(e), reject)
+        }
         stream.pipe(parser)
-            .on('close', () => chain.then(resolve, reject))
-            .on('error', reject)
-            .on('entry', (entry: any) =>
+            .on('close', () => chain.then(value => failure ? reject(failure) : resolve(value), reject))
+            .on('error', fail)
+            .on('entry', (entry: unzipper.Entry) =>
                 chain = chain.then(async () => {
+                    if (failure) return
+                    active = entry
+                    entry.once('error', () => {}) // the parser can fail before the asynchronous destination callback returns
                     const { path, type } = entry
-                    if (hasDirTraversal(path))
+                    if (hasDirTraversal(path) || win32.isAbsolute(path) || /^[a-z]:/i.test(path)) {
+                        options?.onInvalid(path)
                         return entry.autodrain().promise()
-                    const dest = await try_(() => cb(path), e => console.warn(String(e)))
+                    }
+                    const dest = await (options ? cb(path) : try_(() => cb(path), e => console.warn(String(e))))
+                    if (failure) return
                     if (!dest || type !== 'File')
                         return entry.autodrain().promise()
+                    if (options)
+                        return options.write(entry, dest)
                     extracted.set(path, dest)
                     console.debug('Unzip', dest)
                     // keep writes serialized so archive entries can't race while callers map paths asynchronously
-                    const thisFile = entry.pipe(await createSafeWriteStream(dest))
-                    await finished(thisFile)
-                }))
+                    await pipeline(entry, await createSafeWriteStream(dest))
+                }).catch(fail))
             // unix modes live in the central directory, so we reapply them after the file stream has been written
             .on('entryInCentral', (entry: any) =>
                 chain = chain.then(async () => {
-                    if (entry.type !== 'File') return
+                    if (failure || entry.type !== 'File') return
                     const dest = extracted.get(entry.path)
                     if (dest && entry.unixAttrs)
                         await chmod(dest, entry.unixAttrs).catch(() => {})
-                })) )
+                }))
+    })
 }
 
 export async function ensureParentFolder(path: string, dirnameIt=true) {
