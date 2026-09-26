@@ -311,6 +311,6 @@ jobs:
           name: ${{ steps.release_title.outputs.name }}
           # release tags with a dash are treated as pre-releases so beta-style builds stay separated from stable ones
           prerelease: ${{ contains(steps.release_title.outputs.tag, '-') }}
-          target_commitish: ${{ inputs.commitish || github.event.repository.default_branch }}
+          target_commitish: ${{ inputs.commitish || github.ref_name }}
           draft: true
           files: release-assets/*.zip
