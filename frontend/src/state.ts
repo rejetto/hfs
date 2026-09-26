@@ -23,7 +23,8 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
     patternFilter: string,
     showFilter: boolean,
     selected: { [uri:string]: true }, // by using an object instead of an array, Entry components are not rendered when others get selected
-    remoteSearch: { search?: string, searchComment?: string, wild?: string } | undefined,
+    remoteSearch: { search?: string, searchComment?: string, wild?: string,
+        creationMin?: string, creationMax?: string, mtimeMin?: string, mtimeMax?: string, sizeMin?: string, sizeMax?: string } | undefined,
     isAdmin?: boolean,
     adminUrl?: string,
     loginRequired?: boolean, // force user to login before proceeding
