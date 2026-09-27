@@ -32,10 +32,11 @@ type ArrayFieldProps<T> = FieldProps<Val<T>> & {
     objectK?: string
     saveOn?: 'change' | 'close'
     applyButton?: Partial<ButtonProps> & { onClick: (values: Val<T>) => unknown }
+    hidden?: boolean
 }
 export function ArrayField<T extends object>({
     label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, valuesForAdd, autoRowHeight,
-    dialog, form, details, objectK, saveOn, applyButton, height, error, sx, ...rest
+    dialog, form, details, objectK, saveOn, applyButton, height, hidden, error, sx, ...rest
 }: ArrayFieldProps<T>) {
     const valueA = Array.isArray(value) ? value
         : !objectK || !value ? [] // avoid crash if non-array values are passed, especially developing plugins
@@ -52,6 +53,7 @@ export function ArrayField<T extends object>({
     })
     setApi?.({ isEqual: isOrderedEqual }) // don't rely on stringify, as it wouldn't work with non-json values
     const [undo, setUndo] = useState<typeof valueA>()
+    const compact = !useBreakpoint('sm')
     return h(Fragment, {},
         h(Flex, { rowGap: 0, flexWrap: 'wrap', ml: '2px' },
             label && h(FormLabel, { error: fieldError, sx: { color: fieldError ? undefined : 'text.primary' } }, label),
@@ -59,11 +61,11 @@ export function ArrayField<T extends object>({
         ),
         // field-level error is rendered through helperText, not forwarded to the DOM wrapper
         h(Box, { ...rest, sx: mergeSx({ height }, sx) },
-            h(DataTable, {
+            !hidden && h(DataTable, {
                 rows,
                 details,
                 ...autoRowHeight && { getRowHeight: () => 'auto' as const },
-                ...!useBreakpoint('sm') && { compact: true },
+                ...compact && { compact: true },
                 sx: {
                     '.MuiDataGrid-virtualScroller': { minHeight: '3em' },
                     ...autoRowHeight && { '.MuiDataGrid-cell': { minHeight: '52px !important' } }
