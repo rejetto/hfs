@@ -11,10 +11,14 @@ import _ from 'lodash'
 import { Context } from 'koa'
 import fswin from 'fswin'
 import { statWithTimeout } from './util-files'
+import { getCachedDirectory } from './directoryCache'
+import { ApiError } from './ApiError'
 
 interface DirStreamEntry extends Dirent {
     closingBranch?: Promise<string>
     stats?: Stats
+    hidden?: boolean
+    isLink?: boolean
 }
 
 const MAX_SERIAL_DIRECTORY_HANDLES = 16
@@ -31,15 +35,20 @@ export function isFatalDirectoryWalkError(error: unknown) {
 }
 
 // cb returns void = just go on, null = stop, false = go on but don't recur (in case of depth)
-export async function walkDir(path: string, { depth = 0, hidden = true, parallelizeRecursion = false, ctx, onDirectoryEnd }: {
+export async function walkDir(path: string, { depth = 0, hidden = true, parallelizeRecursion = false, ctx, onDirectoryEnd, useCache = false, diskOnly = false }: {
     depth?: number,
     hidden?: boolean,
     parallelizeRecursion?: boolean,
     ctx?: Context,
     onDirectoryEnd?: (path: string) => void,
+    useCache?: boolean,
+    diskOnly?: boolean,
 }, cb: (e: DirStreamEntry) => Promisable<void | null | false>) {
-    const root = await statWithTimeout(path).catch(ignorePathError)
-    if (!root?.isDirectory()) throw Error('ENOTDIR')
+    const rootCached = useCache && getCachedDirectory(path)
+    if (!rootCached) {
+        const root = await statWithTimeout(path).catch(ignorePathError)
+        if (!root?.isDirectory()) throw Error('ENOTDIR')
+    }
     // suspended consumers must not occupy another request's directory workers
     const dirQ = makeQ(3)
     const done = pendingPromise<void>()
@@ -72,45 +81,59 @@ export async function walkDir(path: string, { depth = 0, hidden = true, parallel
         const subDirsDone = new Set<Promise<unknown>>()
         let last: DirStreamEntry | undefined
 
-        const res = (await events.emitAsync('listDiskFolder', { path: base, ctx, hidden }))?.[0] // consider only first result
+        const res = !diskOnly && (await events.emitAsync('listDiskFolder', { path: base, ctx, hidden }))?.[0] // consider only first result
         const pluginReceiver = _.isFunction(res) && res || null
         const pluginIterator = _.isFunction(res?.[Symbol.asyncIterator] || res?.[Symbol.iterator]) && res as Dir
+        const cached = useCache && !pluginIterator && (relativePath ? getCachedDirectory(base) : rootCached)
 
         let completed = false
         try {
-            // fswin.find cannot pause its callbacks, so pull entries and retain native Windows attributes separately
-            const entries = pluginIterator || (parallelizeRecursion || ancestorPaths.length <= MAX_SERIAL_DIRECTORY_HANDLES
-                ? await opendir(base) : directorySnapshot(base, isStopped))
-            for await (let entry of entries) {
-                if (isStopped()) break
-                const attributes = IS_WINDOWS && !pluginIterator
-                    ? await fswin.getAttributesAsync(join(base, entry.name)) : undefined
-                if (attributes === null) continue
-                if (!hidden && attributes?.IS_HIDDEN) continue
-                if (!hidden && !IS_WINDOWS && entry.name[0] === '.')
-                    continue
-                // stat follows links, so preserve their identity for cycle detection
-                const isSymlink = attributes?.IS_REPARSE_POINT || entry.isSymbolicLink?.()
-                const stats = !attributes && isSymlink && await statWithTimeout(join(base, entry.name)).catch(ignorePathError)
-                if (stats === null) continue
-                if (stats)
-                    entry = new DirentFromStats(entry.name, stats)
-                const expanded: DirStreamEntry = entry
-                if (stats)
-                    expanded.stats = stats
-                else if (attributes) {
-                    expanded.stats = {
-                        size: attributes.SIZE,
-                        birthtime: attributes.CREATION_TIME, birthtimeMs: attributes.CREATION_TIME.getTime(),
-                        mtime: attributes.LAST_WRITE_TIME, mtimeMs: attributes.LAST_WRITE_TIME.getTime(),
-                        isFile: () => !attributes.IS_DIRECTORY,
-                        isDirectory: () => attributes.IS_DIRECTORY,
-                    } as Stats
-                    expanded.isDirectory = () => attributes.IS_DIRECTORY
-                    expanded.isFile = () => !attributes.IS_DIRECTORY
+            if (cached)
+                for (const entry of cached) {
+                    if (isStopped()) break
+                    if (!hidden && entry.hidden) continue
+                    await work(entry, entry.isLink)
                 }
-                await work(expanded, isSymlink)
-                if (isStopped()) break
+            else {
+                // fswin.find cannot pause its callbacks, so pull entries and retain native Windows attributes separately
+                const entries = pluginIterator || (parallelizeRecursion || ancestorPaths.length <= MAX_SERIAL_DIRECTORY_HANDLES
+                    ? await opendir(base) : directorySnapshot(base, isStopped))
+                for await (let entry of entries) {
+                    if (isStopped()) break
+                    const attributes = IS_WINDOWS && !pluginIterator
+                        ? await fswin.getAttributesAsync(join(base, entry.name)) : undefined
+                    if (attributes === null) {
+                        // never publish a cache snapshot that silently omitted entries
+                        if (diskOnly) throw Error("Could not read file attributes: " + join(base, entry.name))
+                        continue
+                    }
+                    if (!hidden && attributes?.IS_HIDDEN) continue
+                    if (!hidden && !IS_WINDOWS && entry.name[0] === '.')
+                        continue
+                    // stat follows links, so preserve their identity for cycle detection
+                    const isSymlink = attributes?.IS_REPARSE_POINT || entry.isSymbolicLink?.()
+                    const stats = !attributes && isSymlink && await statWithTimeout(join(base, entry.name)).catch(ignorePathError)
+                    if (stats === null) continue
+                    if (stats)
+                        entry = new DirentFromStats(entry.name, stats)
+                    const expanded: DirStreamEntry = entry
+                    if (stats)
+                        expanded.stats = stats
+                    else if (attributes) {
+                        expanded.stats = {
+                            size: attributes.SIZE,
+                            birthtime: attributes.CREATION_TIME, birthtimeMs: attributes.CREATION_TIME.getTime(),
+                            mtime: attributes.LAST_WRITE_TIME, mtimeMs: attributes.LAST_WRITE_TIME.getTime(),
+                            isFile: () => !attributes.IS_DIRECTORY,
+                            isDirectory: () => attributes.IS_DIRECTORY,
+                        } as Stats
+                        expanded.hidden = attributes.IS_HIDDEN
+                        expanded.isDirectory = () => attributes.IS_DIRECTORY
+                        expanded.isFile = () => !attributes.IS_DIRECTORY
+                    }
+                    await work(expanded, isSymlink)
+                    if (isStopped()) break
+                }
             }
             completed = !isStopped()
         }
@@ -125,6 +148,8 @@ export async function walkDir(path: string, { depth = 0, hidden = true, parallel
         return { branchDone }
 
         async function work(entry: DirStreamEntry, isSymlink=false) {
+            entry.isLink = isSymlink
+            entry.hidden ??= !IS_WINDOWS && entry.name.startsWith('.')
             entry.path = (relativePath && relativePath + '/') + entry.name
             pluginReceiver?.(entry)
             if (last && closingQ.length) // pending entries
@@ -152,7 +177,7 @@ export async function walkDir(path: string, { depth = 0, hidden = true, parallel
                 readDir(entry.path, depth - 1, [...ancestorPaths, entryPath]) // recur
                     .catch(error => {
                         // resource exhaustion must abort the listing instead of omitting the subtree
-                        if (isFatalDirectoryWalkError(error)) stopWithError(error)
+                        if (error instanceof ApiError || isFatalDirectoryWalkError(error)) stopWithError(error)
                     })
                     .then(res => { // don't await, as readDir must resolve without branch being done
                         if (!res) {

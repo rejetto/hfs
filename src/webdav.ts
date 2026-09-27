@@ -28,6 +28,7 @@ import { XMLParser } from 'fast-xml-parser'
 import _ from 'lodash'
 import { deleteStoredFileAttrs } from './fileAttr'
 import { deleteUploadOwner, getNodeMatchingSource, getSessionId } from './uploadOwners'
+import { invalidateDirectoryCache } from './directoryCache'
 
 const forceWebdavLogin = defineConfig<boolean|string, null|RegExp>(CFG.force_webdav_login, true, compileWebdavAgentRegex)
 const webdavInitialAuth = defineConfig<boolean|string, null|RegExp>(CFG.webdav_initial_auth, 'WebDAVFS', compileWebdavAgentRegex)
@@ -255,6 +256,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
             const node = await urlToNode(resourceKey, ctx)
             if (node?.source)
                 await rm(node.source)
+                    .then(() => invalidateDirectoryCache(node.source!))
                     .then(() => deleteStoredFileAttrs(node.source!))
                     .then(() => deleteUploadOwner(node.vfsPath))
                     .catch(() => {})
@@ -298,6 +300,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         }
         try {
             await mkdir(join(parentNode.source!, name))
+            invalidateDirectoryCache(join(parentNode.source!, name))
             return ctx.status = HTTP_CREATED
         }
         catch(e:any) {
@@ -463,7 +466,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
             yield await renderEntry(node)
             if (isList) {
                 depth = Math.max(0, depth - 1)
-                for await (const n of walkNode(node, { ctx, depth, parallelizeRecursion: false }))
+                for await (const n of walkNode(node, { ctx, depth, parallelizeRecursion: false, useCache: true }))
                     yield await renderEntry(n, true)
             }
             yield `</D:multistatus>`
@@ -644,6 +647,7 @@ async function applyProppatchProp(prop: ProppatchProp, node: VfsNode, path: stri
         if (!ok)
             return HTTP_SERVER_ERROR
     }
+    invalidateDirectoryCache(source)
     return HTTP_OK
 }
 

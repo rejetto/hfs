@@ -21,6 +21,8 @@ import { isFatalDirectoryWalkError, walkDir } from './walkDir'
 import { Readable } from 'node:stream'
 import { ctxAdminAccess } from './adminApis'
 import { canAccessUnfinishedUpload } from './uploadOwners'
+import { getDirectoryCacheState } from './directoryCache'
+import { ApiError } from './ApiError'
 
 const showHiddenFiles = defineConfig(CFG.show_hidden_files, false)
 const sourceNames = new Map<string, string[]>()
@@ -514,6 +516,8 @@ interface WalkNodeOptions {
     onlyFolders?: boolean,
     onlyFiles?: boolean,
     parallelizeRecursion?: boolean,
+    useCache?: boolean,
+    filterName?: (name: string) => boolean,
 }
 // it's the responsibility of the caller to verify you have list permission on parent, as callers have different needs.
 export async function* walkNode(parent: VfsNodeWithPath, {
@@ -524,6 +528,8 @@ export async function* walkNode(parent: VfsNodeWithPath, {
     onlyFolders = false,
     onlyFiles = false,
     parallelizeRecursion = true,
+    useCache = false,
+    filterName,
 }: WalkNodeOptions = {}) {
     let started = false
     let readable: PendingPromise<void> | undefined
@@ -571,7 +577,7 @@ export async function* walkNode(parent: VfsNodeWithPath, {
         await Promise.all([produceDisk(), ...Array.from({ length: probes }, produceChildren)])
         for (const [item, name] of visitLater) {
             if (stream.destroyed || ctx?.isAborted()) break
-            for await (const x of walkNode(item, { depth: depth - 1, prefixPath: name + '/', ctx, requiredPerm, onlyFolders, onlyFiles, parallelizeRecursion })) {
+            for await (const x of walkNode(item, { depth: depth - 1, prefixPath: name + '/', ctx, requiredPerm, onlyFolders, onlyFiles, parallelizeRecursion, useCache, filterName })) {
                 if (ctx?.isAborted()) return stream.push(null)
                 if (!await emit(x)) return
             }
@@ -592,7 +598,7 @@ export async function* walkNode(parent: VfsNodeWithPath, {
             const applyPathMask = parentMaskApplier(parent, true, true)
             const applyRootNameMask = parentMaskApplier(parent, false, true)
             try {
-                await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion,
+                await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion, useCache,
                     onDirectoryEnd: path => { diskFolders.delete(path) },
                 }, async entry => {
                     if (stream.destroyed || ctx?.isAborted())
@@ -613,6 +619,8 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                     if (taken.has(normalizeFilename(name))
                     || takenSources.has(normalizeFilename(prefixPath + path))) // taken by vfs node above
                         return false // false just in case it's a folder
+                    const matches = !filterName || filterName(name)
+                    if (!matches && !isFolder) return
                     const item = setVfsPath({
                         name: virtualName,
                         isFolder,
@@ -631,7 +639,7 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                     if (await cantSee(item, evaluatedParent.node, virtualName, rootMaskProperties)) // can't see: don't produce and don't recur
                         return false
                     item.name = name
-                    if (canEmit(item, isFolder) && !await emit(item))
+                    if (matches && canEmit(item, isFolder) && !await emit(item))
                         return null
                     if (cantRecur(item))
                         return false
@@ -640,7 +648,7 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                 })
             }
             catch(e) {
-                if (isFatalDirectoryWalkError(e)) throw e
+                if (e instanceof ApiError || isFatalDirectoryWalkError(e)) throw e
                 console.debug('walkNode', source, String(e)) // ENOTDIR, or lacking permissions
             }
         }
@@ -651,12 +659,18 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                 const nodeName = getNodeName(child)
                 const name = prefixPath + nodeName
                 const item = setVfsPath({ ...child, original: child, name, parent }, name, parent)
-                if (await cantSee(item, parent, nodeName)) continue
-                if (item.source && !item.children?.length && !item.see_without_probing) // real items must be accessible, unless probing was explicitly disabled
-                    try { await fs.access(item.source) }
-                    catch { continue }
                 const isFolder = nodeIsFolder(child)
-                if (canEmit(item, isFolder) && !await emit(item)) return
+                const matches = !filterName || filterName(name)
+                if (!matches && !isFolder) continue
+                if (await cantSee(item, parent, nodeName)) continue
+                if (item.source && !item.children?.length && !item.see_without_probing) {
+                    const cached = useCache ? getDirectoryCacheState(item.source) : undefined
+                    if (cached === false) continue // a watched parent will retry when an unavailable source appears
+                    if (cached !== true)
+                        try { await statWithTimeout(item.source) }
+                        catch { continue }
+                }
+                if (matches && canEmit(item, isFolder) && !await emit(item)) return
                 if (!depth || !isFolder || cantRecur(item)) continue
                 visitLater.push([item, name]) // prioritize siblings
             }

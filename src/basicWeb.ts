@@ -45,7 +45,7 @@ export async function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
         yield _.map(links, (v,k) => a(k, v)).join(' ') + '\n<ul>\n'
         if (ctx.state.originalPath.length > 1)
             yield '<li>' + a('..' + force, '..') + '\n'
-        for await (const el of walkNode(node, { ctx, depth: 0 })) {
+        for await (const el of walkNode(node, { ctx, depth: 0, useCache: true })) {
             const isFolder = nodeIsFolder(el)
             const name = getNodeName(el) + (isFolder ? '/' : '')
             const forceThis = isFolder && (el.see_without_probing || !await getDefaultFile(el, ctx)) ? force : ''
