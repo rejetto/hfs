@@ -35,7 +35,9 @@ setInterval(() => {
     }
 }, MINUTE)
 
-events.on('checkVfsPermission', ({ node, perm, ctx }: { node: VfsNode, perm: string, ctx: Koa.Context }) => {
+events.on('checkVfsPermission', grantUploadOwnerDelete)
+
+export function grantUploadOwnerDelete({ node, perm, ctx }: { node: VfsNode, perm: string, ctx: Koa.Context }) {
     if (perm !== 'can_delete' || !node.source)
         return
     const { vfsPath } = node
@@ -51,7 +53,7 @@ events.on('checkVfsPermission', ({ node, perm, ctx }: { node: VfsNode, perm: str
     }
     if (matchesOwner(owner, ctx))
         return 0
-})
+}
 
 function matchesOwner(owner: UploadOwner, ctx: Koa.Context) {
     const username = getCurrentUsername(ctx)

@@ -1,4 +1,5 @@
 import Koa from 'koa'
+import { checkDeletePermission } from './deletePermission'
 import { basename, dirname, join } from 'path'
 import { getDefaultFile, getNodeName, nodeIsFolder, statusCodeForMissingPerm, urlToNode, vfs, VfsNodeWithPath, walkNode } from './vfs'
 import { sendErrorPage } from './errorPages'
@@ -108,9 +109,9 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
         const { source } = node
         if (!source)
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
-        if (statusCodeForMissingPerm(node, 'can_delete', ctx))
-            return
         try {
+            if (!await checkDeletePermission(node, ctx))
+                return
             if ((await events.emitAsync('deleting', { node, ctx }))?.isDefaultPrevented())
                 return ctx.status = HTTP_FAILED_DEPENDENCY
             await rm(source, { recursive: true })

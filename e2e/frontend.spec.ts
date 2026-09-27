@@ -582,6 +582,21 @@ test('current breadcrumb uses current folder delete permission', async ({ page }
     await expect(page.locator('#menu-entry-rename')).toBeVisible()
 })
 
+test('folder deletion explains the blocking descendant', async ({ page }) => {
+    await gotoFrontend(page, FRONTEND_URL + 'f1/?lang=en')
+    await expect(page.getByRole('link', { name: 'f2, Folder' })).toBeVisible()
+    await page.route('**/f1/f2/', route => route.request().method() === 'DELETE'
+        ? route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ uri: '/f1/f2/protected.txt' }) })
+        : route.continue())
+    await page.evaluate(() => { (window as any).HFS.state.props.can_delete_children = true })
+    await page.getByRole('listitem').filter({ has: page.getByRole('link', { name: 'f2, Folder' }) })
+        .getByRole('button', { name: 'Menu' }).click()
+    await page.locator('#menu-entry-delete').click()
+    await page.getByRole('button', { name: 'Yes', exact: true }).click()
+    await expect(page.getByRole('alertdialog')).toContainText('/f1/f2/protected.txt')
+    await expect(page.getByRole('alertdialog')).toContainText('Nothing was deleted for this item.')
+})
+
 test('admin1', async ({ page }) => {
     await fs.promises.rm('tests/work/logs', { force: true, recursive: true }) // clear logs to have consistent screenshots
     const isPhone = await loginAdmin(page)

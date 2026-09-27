@@ -1880,6 +1880,165 @@ describe('after-login', () => {
             await rmAny(resolve(UPLOAD_DISK_ROOT, name))
         }
     })
+    test('delete checks descendants before removing anything', async () => {
+        const name = `delete-tree-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        await mkdir(resolve(dir, 'tree/safe'), { recursive: true })
+        await mkdir(resolve(dir, 'tree/restricted'), { recursive: true })
+        await writeFile(resolve(dir, 'tree/safe/ok.txt'), 'keep until authorized')
+        await writeFile(resolve(dir, 'tree/restricted/descript.ion'), 'protected')
+        try {
+            await reqApi('add_vfs', { source: dir, name, can_delete: true,
+                masks: { 'tree/restricted/descript.ion': { can_delete: false } } }, 200, adminReq)()
+            await req(uri + 'tree/', { status: 403, re: /restricted\/descript\.ion/ }, { method: 'delete', ...adminReq })()
+            if (!existsSync(resolve(dir, 'tree/safe/ok.txt')))
+                throw Error('preflight deleted an authorized sibling')
+            await reqApi('rename', { uri: uri + 'tree/', dest: 'renamed' }, 200, adminReq)()
+            await mkdir(resolve(dir, 'destination'))
+            await reqApi('move_files', { uri_from: [uri + 'renamed/'], uri_to: uri + 'destination/' },
+                res => !res?.errors?.some(Boolean), adminReq)()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('delete preflight prunes safe branches and fails closed', async () => {
+        const name = `delete-pruning-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        const previous = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
+        const script = `exports.init = api => {
+            const fs = require('fs/promises')
+            const path = require('path')
+            const original = fs.opendir
+            const opened = []
+            fs.opendir = async function(target, ...args) {
+                const relative = path.relative(${JSON.stringify(dir)}, String(target)).replaceAll('\\\\', '/')
+                if (!relative.startsWith('..')) {
+                    opened.push(relative)
+                    if (relative.endsWith('/unreadable')) throw Object.assign(Error('test EACCES'), { code: 'EACCES' })
+                }
+                return original.call(this, target, ...args)
+            }
+            let off
+            exports.customRest = {
+                delete_probe: () => opened.splice(0),
+                delete_plugin: () => {
+                    off = api.events.on('checkVfsPermission', ({ node, perm }) =>
+                        perm === 'can_delete' && node.source?.replaceAll('\\\\', '/').endsWith('plugin/protected.txt') ? 403 : undefined)
+                    return {}
+                }
+            }
+            return () => { fs.opendir = original; off?.() }
+        }`
+        try {
+            await mkdir(dir, { recursive: true })
+            await reqApi('add_vfs', { source: dir, name, can_delete: true, masks: {
+                'partial/restricted/**/keep.txt': { can_delete: false },
+                'failure/**/keep.txt': { can_delete: false },
+                'objects': { can_delete: { this: true, children: false } },
+                'indirect': { can_delete: 'can_read', masks: { 'keep.txt': { can_read: false } } },
+                'negated': { masks: { '!allowed/ok.txt': { can_delete: false } } },
+                'private': { can_list: false, masks: { 'secret.txt': { can_delete: false } } },
+                'folder-links': { masks: { '*|folders|': { can_delete: false } } },
+            } }, 200, adminReq)()
+            await reqApi('set_config', { values: { server_code: script } }, 200, adminReq)()
+            if (!await waitFor(() => reqApi('_delete_probe', {}, Array.isArray, adminReq)().then(() => true, () => false), { interval: 50, timeout: 3000 }))
+                throw Error('delete probe did not start')
+
+            await mkdir(resolve(dir, 'uniform'))
+            await Promise.all(Array.from({ length: 1000 }, (_, i) => writeFile(resolve(dir, `uniform/${i}.txt`), 'x')))
+            await req(uri + 'uniform/', 200, { method: 'delete', ...adminReq })()
+            await reqApi('_delete_probe', {}, x => x.length === 0, adminReq)()
+
+            await mkdir(resolve(dir, 'partial/safe/deep'), { recursive: true })
+            await mkdir(resolve(dir, 'partial/restricted'), { recursive: true })
+            await writeFile(resolve(dir, 'partial/safe/deep/ok.txt'), 'x')
+            await writeFile(resolve(dir, 'partial/restricted/keep.txt'), 'protected')
+            await req(uri + 'partial/', { status: 403, re: /restricted\/keep.txt/ }, { method: 'delete', ...adminReq })()
+            await reqApi('_delete_probe', {}, x => x.includes('partial') && x.includes('partial/restricted')
+                && !x.some((p: string) => p.startsWith('partial/safe')), adminReq)()
+            if (!existsSync(resolve(dir, 'partial/safe/deep/ok.txt'))) throw Error('partial deletion')
+
+            for (const folder of ['objects', 'indirect', 'negated']) {
+                await mkdir(resolve(dir, folder))
+                await writeFile(resolve(dir, folder, 'keep.txt'), 'protected')
+                await req(uri + folder + '/', 403, { method: 'delete', ...adminReq })()
+                if (!existsSync(resolve(dir, folder, 'keep.txt'))) throw Error('deleted protected ' + folder)
+            }
+            await mkdir(resolve(dir, 'failure/unreadable'), { recursive: true })
+            await writeFile(resolve(dir, 'failure/unreadable/ok.txt'), 'x')
+            await req(uri + 'failure/', 500, { method: 'delete', ...adminReq })()
+            if (!existsSync(resolve(dir, 'failure/unreadable/ok.txt'))) throw Error('deleted after incomplete scan')
+
+            await mkdir(resolve(dir, 'private'))
+            await writeFile(resolve(dir, 'private/secret.txt'), 'protected')
+            await req(uri + 'private/', { status: 403, cb: data => {
+                if (data.uri !== uri + 'private') throw Error(JSON.stringify(data))
+            } },
+                { method: 'delete', ...adminReq })()
+
+            if (process.platform !== 'win32') {
+                await mkdir(resolve(dir, 'folder-links'))
+                await symlink(resolve(dir, 'private'), resolve(dir, 'folder-links/link'))
+                await req(uri + 'folder-links/link/', 403, { method: 'delete', ...adminReq })()
+                await req(uri + 'folder-links/', 403, { method: 'delete', ...adminReq })()
+                await symlink(resolve(dir, 'failure'), resolve(dir, 'link'))
+                await req(uri + 'link/', 200, { method: 'delete', ...adminReq })()
+                if (!existsSync(resolve(dir, 'failure/unreadable/ok.txt'))) throw Error('followed root symlink')
+                await mkdir(resolve(dir, 'links'))
+                await symlink(resolve(dir, 'missing'), resolve(dir, 'links/dangling'))
+                await req(uri + 'links/', 200, { method: 'delete', ...adminReq })()
+            }
+            await mkdir(resolve(dir, 'explicit/deep'), { recursive: true })
+            await writeFile(resolve(dir, 'explicit/deep/keep.txt'), 'protected')
+            await reqApi('set_vfs', { uri, props: { masks: { explicit: { children: [
+                { name: 'protected', source: resolve(dir, 'explicit/deep/keep.txt') },
+            ] } } } }, 200, adminReq)()
+            await req(uri + 'explicit/', { status: 403, re: /protected/ }, { method: 'delete', ...adminReq })()
+            await mkdir(resolve(dir, 'plugin'))
+            await writeFile(resolve(dir, 'plugin/protected.txt'), 'protected')
+            await reqApi('_delete_plugin', {}, 200, adminReq)()
+            await req(uri + 'plugin/', { status: 403, re: /protected.txt/ }, { method: 'delete', ...adminReq })()
+        }
+        finally {
+            await reqApi('set_config', { values: previous }, 200, adminReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('folder owner cannot delete files owned by another uploader', async () => {
+        const name = `delete-owner-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/`
+        const other = `delete-other-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        try {
+            await mkdir(dir, { recursive: true })
+            await reqApi('add_vfs', { source: dir, name, can_upload: ['admins'], can_delete: false,
+                masks: { 'owned/protected.txt': { can_see: false } } }, 200, adminReq)()
+            await reqApi('add_account', { username: other, password: pass, belongs: ['admins'] }, 200, adminReq)()
+            await reqApi('create_folder', { uri, name: 'owned' }, 200, adminReq)()
+            await req(uri + 'owned/protected.txt', 200, { method: 'PUT', body: 'protected',
+                auth: `${other}:${pass}`, jar: {} })()
+            await req(uri + 'owned/', { status: 403, cb: data => {
+                if (data.uri !== uri + 'owned') throw Error(JSON.stringify(data))
+            } }, { method: 'delete', ...adminReq })()
+            if (!existsSync(resolve(dir, 'owned/protected.txt'))) throw Error('owner grant deleted another user file')
+            await reqApi('create_folder', { uri, name: 'empty' }, 200, adminReq)()
+            await req(uri + 'empty/', 200, { method: 'delete', ...adminReq })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: other }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
     test('upload owner can delete without delete permission', async () => {
         const name = `owner-delete-${randomId(6)}`
         const otherUser = `owner-other-${randomId(6)}`.toLowerCase()

@@ -362,7 +362,7 @@ export function hasPermission(node: VfsNode, perm: keyof VfsPerms, ctx: Koa.Cont
    return !statusCodeForMissingPerm(node, perm, ctx, false)
 }
 
-export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ctx: Koa.Context, assign=true) {
+export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ctx: Koa.Context, assign=true, checkListeners=true) {
     const ret = getCode()
     if (ret && assign) {
         ctx.status = ret
@@ -393,7 +393,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
         } while (1)
         if (isWhoObject(who) || isWhoVfsPerms(who))
             throw Error(`permission type-guard: ${JSON.stringify(who)}`)
-        const first = _.max(events.emit('checkVfsPermission', { who, node, perm, ctx }))
+        const first = checkListeners ? _.max(events.emit('checkVfsPermission', { who, node, perm, ctx })) : undefined
         if (first !== undefined)
             return first
 
@@ -600,7 +600,7 @@ function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename=getNodeNam
         item.masks = Object.assign(o, item.masks) // don't change item.masks object as it is the same object of item.original
 }
 
-function renameUnderPath(rename:undefined | Record<string,string>, path: string) {
+export function renameUnderPath(rename:undefined | Record<string,string>, path: string) {
     if (!rename) return rename
     const sameName = isSameFilenameAs(path)
     rename = Object.fromEntries(Object.entries(rename).map(([k, v]) => {

@@ -57,6 +57,11 @@ export class BetterEventEmitter {
     anyListener(event: string) {
         return Boolean(this.listeners.get(event)?.size)
     }
+    hasOtherListeners(event: string, mine: Listener) {
+        for (const x of this.listeners.get(event) || [])
+            if (x !== mine) return true
+        return false
+    }
     emit(event: string, ...args: any[]) {
         let cbs = this.listeners.get(event)
         if (!cbs?.size) return

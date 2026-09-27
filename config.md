@@ -217,6 +217,10 @@ Valid keys in a node are:
 - `can_list`: specify who can see the content of a folder. Default is `can_read`.
 - `can_archive`: specify who can get the zip a folder or a set of files. Default is `can_read`.
 - `can_delete`: specify who can delete. Applies to folders with a source. Default is `"admin"`.
+  Deleting a folder requires permission to delete its contents too. HFS checks before deleting anything;
+  a denied descendant aborts the request and is identified in the error when visible to the user.
+  Renaming or moving a folder only checks the folder itself and the operation's destination requirements.
+  Filesystem errors after deletion starts can still leave a partially deleted folder.
 - `masks`: maps a file mask to a set of properties as the one documented in this section. E.g.
   ```
   myfile.txt:
