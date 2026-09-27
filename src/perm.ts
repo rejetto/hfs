@@ -7,6 +7,7 @@ import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
 import { getCurrentUsername } from './auth'
 import Koa from 'koa'
+import { renewSessionStamp, sessionStampsReady, syncSessionStamps } from './sessionStamp'
 
 // for all the Account fields, falsy values must be equivalent to undefined. If this changes in the future, please adjust addAccount and setAccount
 export interface Account {
@@ -86,6 +87,7 @@ const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 
 type Changer = (account:Account)=> void | Promise<void>
 export async function updateAccount(account: Account, change: Partial<Account> | Changer) {
+    await sessionStampsReady
     const jsonWas = JSON.stringify(account)
     const { username: usernameWas } = account
     if (typeof change === 'function')
@@ -127,9 +129,29 @@ export async function updateAccount(account: Account, change: Partial<Account> |
         saveAccountsAsap()
 }
 
-const saveAccountsAsap = saveConfigAsap
+function reconcileAccountSessions() {
+    syncSessionStamps(_.mapKeys(accounts.get(), (_account, username) => normalizeUsername(username)))
+}
+
+function saveAccountsAsap() {
+    // API callers need the updated stamp before preserving their own session in the response
+    reconcileAccountSessions()
+    saveConfigAsap()
+}
+
+export function invalidateAccountSessions(account: Account | string) {
+    const found = typeof account === 'string' ? getAccount(account) : account
+    if (!found) return false
+    renewSessionStamp(found.username)
+    return true
+}
 
 export const accounts = defineConfig(CFG.accounts, {} as Accounts)
+accounts.sub(async () => {
+    await sessionStampsReady
+    // do not debounce: removing and recreating a username must not be coalesced into one change
+    reconcileAccountSessions()
+})
 accounts.sub(_.debounce(obj => {
     // consider some validation here, in case of manual edit of the config
     _.each(obj, (rec,k) => {
@@ -210,16 +232,16 @@ export function addAccount(username: string, props: Partial<Account>, updateExis
     let account = getAccount(username, false)
     if (account && !updateExisting) return
     account = setHidden(account || {}, { username })  // hidden so that stringification won't include it
-    Object.assign(account, _.pickBy(props, Boolean))
     accounts.set(was =>
         Object.assign(was, { [username]: account }))
-    return updateAccount(account, account).then(() => account!)
+    return updateAccount(account, _.pickBy(props, Boolean)).then(() => account!)
 }
 
 export function delAccount(username: string) {
     if (!getAccount(username))
         return false
-    accounts.set(was => _.omit(was, normalizeUsername(username)) )
+    username = normalizeUsername(username)
+    accounts.set(was => _.omit(was, username) )
     saveAccountsAsap()
     return true
 }

@@ -8,7 +8,8 @@ import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, accounts, getAccount, getFromAccount, normalizeUsername } from './perm'
 import { Connection, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
-import { clearTextLogin, invalidateSessionBefore, setLoggedIn } from './auth'
+import { clearTextLogin, setLoggedIn } from './auth'
+import { getSessionStamp } from './sessionStamp'
 import { constants } from 'zlib'
 import { baseUrl, getHttpsWorkingPort } from './listen'
 import { roots } from './roots'
@@ -117,8 +118,11 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     }
     const s = ctx.session
     if (s?.username) {
-        if (s.ts < invalidateSessionBefore.get(s?.username)!)
+        const account = getAccount(s.username, false)
+        if (!account || !s.stamp || s.stamp !== getSessionStamp(s.username)) {
             delete s.username
+            delete s.stamp
+        }
         s.maxAge = sessionDuration.compiled()
     }
     // explicit credentials and existing sessions must take precedence, so a matching IP cannot override a chosen account
@@ -205,6 +209,12 @@ declare module "koa" {
         safeUrl: string // url with credentials removed
         connection: Connection
         whenProxyDetected?: Date
+    }
+}
+
+declare module "koa-session" {
+    interface Session {
+        stamp?: string
     }
 }
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {

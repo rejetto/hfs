@@ -36,6 +36,7 @@ import { get_dynamic_dns_error } from './ddns'
 import { addBlock, BlockingRule, isBlocked } from './block'
 import { alerts, blacklistedInstalledPlugins, getProjectInfo } from './github'
 import { acmeRenewError } from './acme'
+import { quit } from './first'
 
 export const adminApis = {
 
@@ -137,7 +138,7 @@ export const adminApis = {
     },
 
     quit() {
-        setTimeout(() => process.exit())
+        setTimeout(quit) // let the API response finish before starting ordered cleanup
         return {}
     },
 

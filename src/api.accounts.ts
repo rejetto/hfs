@@ -3,11 +3,12 @@
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import {
     Account, accountCanLoginAdmin, accountHasLoginMethod, accountHasPassword, accounts, addAccount, delAccount, getAccount,
-    updateAccount, accountCanLogin, accountCanChangePassword, normalizeUsername
+    updateAccount, accountCanLogin, accountCanChangePassword, normalizeUsername, invalidateAccountSessions
 } from './perm'
 import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
-import { getCurrentUsername, invalidateSessionBefore } from './auth'
+import { getCurrentUsername } from './auth'
+import { getSessionStamp } from './sessionStamp'
 import { apiAssertTypes, objFromKeys, onlyTruthy, with_ } from './misc'
 import { pickProps } from './api.vfs'
 
@@ -22,7 +23,7 @@ function serializeAccount(ac: Account | undefined) {
         adminActualAccess: accountCanLoginAdmin(ac),
         canLogin: hasLogin ? accountCanLogin(ac) : undefined,
         canChangePassword: accountCanChangePassword(ac),
-        invalidated: invalidateSessionBefore.get(ac.username),
+        invalidated: Number(getSessionStamp(ac.username)?.split('.')[0]) || undefined,
         directMembers: Object.values(accounts.get()).filter(a => a.belongs?.includes(ac.username)).map(x => x.username),
         members: with_(Object.values(accounts.get()), accounts => {
             const ret: string[] = []
@@ -66,18 +67,22 @@ export default  {
         if (!acc)
             return new ApiError(HTTP_BAD_REQUEST)
         await updateAccount(acc, pickProps(changes, ALLOWED_KEYS))
-        if (changes.username && ctx.session?.username === normalizeUsername(username)) // update session if necessary
+        if (ctx.session?.username === normalizeUsername(username)) { // preserve only the session making its own account change
             ctx.session!.username = acc.username
+            ctx.session!.stamp = getSessionStamp(acc.username)
+        }
         return _.pick(acc, 'username')
     },
 
-    async add_account({ overwrite, username, ...rest }) {
+    async add_account({ overwrite, username, ...rest }, ctx) {
         apiAssertTypes({ string: { username } })
         const existing = getAccount(username)
         rest = pickProps(rest, ALLOWED_KEYS)
         if (existing) {
             if (!overwrite) return new ApiError(HTTP_CONFLICT)
             await updateAccount(existing, rest)
+            if (ctx.session?.username === existing.username)
+                ctx.session.stamp = getSessionStamp(existing.username)
             return _.pick(existing, 'username')
         }
         const acc = await addAccount(username, rest)
@@ -95,7 +100,7 @@ export default  {
 
     invalidate_sessions({ username }) {
         apiAssertTypes({ string: { username } })
-        invalidateSessionBefore.set(normalizeUsername(username), Date.now())
+        invalidateAccountSessions(username)
         return {}
     },
 

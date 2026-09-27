@@ -274,7 +274,7 @@ test('select all resets when the list reloads', async ({ page }) => {
         ;(window as any).selectionChecks = 0
         document.addEventListener('hfs.enableEntrySelection', () => ++(window as any).selectionChecks)
     })
-    await page.evaluate(() => new Promise<void>(resolve => {
+    await page.evaluate(() => new Promise(resolve => {
         const { state } = (window as any).HFS
         state.list = [...state.list]
         requestAnimationFrame(() => requestAnimationFrame(resolve))

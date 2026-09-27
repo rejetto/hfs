@@ -1712,6 +1712,60 @@ describe('sessions', () => {
             await reqApi('set_config', { values: oldConfig }, 200, adminReq)()
         }
     })
+    test('password changes during finalizingLogin cannot mint a new session', async () => {
+        const user = `revoked-login-${randomId(6)}`.toLowerCase()
+        let pass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        const oldConfig = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
+        const script = `exports.init = api => {
+            let release, waiting = false
+            api.events.on('finalizingLogin', ({ username }) => {
+                if (username !== ${JSON.stringify(user)}) return
+                waiting = true
+                return new Promise(resolve => { release = resolve })
+            })
+            exports.customRest = { session_gate: ({ resume }) => {
+                if (resume) { release?.(); waiting = false }
+                return { ready: true, waiting }
+            } }
+            return () => release?.()
+        }`
+        try {
+            await reqApi('add_account', { username: user, password: pass }, 200, adminReq)()
+            await reqApi('set_config', { values: { server_code: script } }, 200, adminReq)()
+            if (!await waitFor(() => reqApi('_session_gate', {}, x => x?.ready, adminReq)().catch(() => false),
+                { interval: 50, timeout: 3000 })) throw Error('session gate did not start')
+            for (const via of ['body', 'srp']) {
+                const jar = {}
+                let endpoint = 'login'
+                let body: object = { username: user, password: pass }
+                if (via === 'srp') {
+                    const { salt, pubKey } = await reqApi('loginSrp1', { username: user }, 200, { jar })()
+                    const client = await srpClientPart(srp, user, pass, salt, pubKey)
+                    endpoint = 'loginSrp2'
+                    body = { pubKey: String(client.A), proof: String(client.M1) }
+                }
+                const pending = httpWithBody(BASE_URL + API + endpoint, {
+                    body: JSON.stringify(body), headers: { 'x-hfs-anti-csrf': '1' }, jar, httpThrow: false,
+                })
+                try {
+                    if (!await waitFor(() => reqApi('_session_gate', {}, 200, adminReq)().then(x => x.waiting),
+                        { interval: 50, timeout: 3000 })) throw Error('login did not reach session gate')
+                    pass = randomId(12)
+                    await reqApi('set_account', { username: user, changes: { password: pass } }, 200, adminReq)()
+                }
+                finally {
+                    await reqApi('_session_gate', { resume: true }, 200, adminReq)()
+                }
+                if ((await pending).statusCode !== 401) throw Error('revoked login minted a fresh session')
+                await reqApi('refresh_session', {}, x => !x.username, { jar })()
+            }
+        }
+        finally {
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
     test('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw "in" }, () => {}))
     test('allow_net.canLogin', () => login(username))
     test('allow_net.cantLogin', () => {
@@ -1845,6 +1899,86 @@ describe('sessions', () => {
         async function makeSrpChange(username: string, password=`next-${randomId(8)}`) {
             const res = await srp.createVerifierAndSalt(srp6aNimbusRoutines, username, password)
             return { salt: String(res.s), verifier: String(res.v), username }
+        }
+    })
+    test('account credential changes preserve only the current session and recreation rejects old cookies', async () => {
+        const user = `session-lifecycle-${randomId(6)}`.toLowerCase()
+        const pass = `pw-${randomId(8)}`
+        const jar = {}
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: user, password: pass }, 200, adminReq)()
+            await srpClientSequence(srp, user, pass, (cmd: string, params: any) =>
+                reqApi(cmd, params, (_x, res) => res.statusCode < 400, { jar })())
+            const otherJar = structuredClone(jar)
+            const changed = await makeSrpChange(user)
+            await reqApi('change_srp', changed, 200, { jar })()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar })()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: otherJar })()
+
+            const adminChange = await makeSrpChange(user)
+            await reqApi('change_srp', adminChange, 200, adminReq)()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar })()
+            const oldJar = {}
+            await srpClientSequence(srp, user, adminChange.password, (cmd: string, params: any) =>
+                reqApi(cmd, params, (_x, res) => res.statusCode < 400, { jar: oldJar })())
+            await reqApi('del_account', { username: user }, 200, adminReq)()
+            await reqApi('add_account', { username: user, password: randomId(12) }, 200, adminReq)()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: oldJar })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+
+        async function makeSrpChange(username: string) {
+            const password = `next-${randomId(8)}`
+            const res = await srp.createVerifierAndSalt(srp6aNimbusRoutines, username, password)
+            return { salt: String(res.s), verifier: String(res.v), username, password }
+        }
+    })
+    test('self account updates preserve the current session without reviving cookies on rename', async () => {
+        const user = `self-update-${randomId(6)}`.toLowerCase()
+        const renamed = user + '-renamed'
+        const pass = randomId(12)
+        const jar = {}
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: user, password: pass, admin: true }, 200, adminReq)()
+            await reqApi('login', { username: user, password: pass }, 200, { jar })()
+            for (const api of ['set_account', 'add_account']) {
+                const oldJar = structuredClone(jar)
+                const password = randomId(12)
+                await reqApi(api, api === 'set_account' ? { username: user, changes: { password } }
+                    : { username: user, overwrite: true, password }, 200, { jar })()
+                await reqApi('refresh_session', {}, res => res?.username === user, { jar })()
+                await reqApi('refresh_session', {}, res => !res?.username, { jar: oldJar })()
+            }
+            const beforeRename = structuredClone(jar)
+            await reqApi('set_account', { username: user, changes: { username: renamed } }, 200, { jar })()
+            await reqApi('refresh_session', {}, res => res?.username === renamed, { jar })()
+            await reqApi('set_account', { username: renamed, changes: { username: user } }, 200, { jar })()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar })()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: beforeRename })()
+        }
+        finally {
+            await reqApi('del_account', { username: [user, renamed] }, 200, adminReq)().catch(() => {})
+        }
+    })
+    test('password changes invalidate pending SRP logins', async () => {
+        const user = `pending-srp-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const jar = {}
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: user, password: pass }, 200, adminReq)()
+            const { salt, pubKey } = await reqApi('loginSrp1', { username: user }, 200, { jar })()
+            const client = await srpClientPart(srp, user, pass, salt, pubKey)
+            await reqApi('set_account', { username: user, changes: { password: randomId(12) } }, 200, adminReq)()
+            await reqApi('loginSrp2', { pubKey: String(client.A), proof: String(client.M1) }, 401, { jar })()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
         }
     })
 })
