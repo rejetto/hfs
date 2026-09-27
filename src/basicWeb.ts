@@ -34,7 +34,7 @@ export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
     if (!shouldBeBasic(ctx)) return
     ctx.type = 'html'
     const force = get === 'basic' ? '?get=basic' : ''
-    const walker = walkNode(node, { ctx, depth: 0 })
+    const walker = walkNode(node, { ctx, depth: 0, useCache: true })
     const stream = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
         const isFolder = nodeIsFolder(el)
         const name = getNodeName(el) + (isFolder ? '/' : '')
