@@ -185,7 +185,10 @@ export default function OptionsPage() {
 
                 { k: CFG.proxies, comp: NumberField, xs: 6, md: 3, max: 9, label: "Number of incoming HTTP proxies", placeholder: "none",
                     error: proxyWarning(values, status),
-                    helperText: "Necessary to detect users' IP"
+                    helperText: values.proxies > 0
+                        ? h(Box<'span'>, { component: 'span', sx: { color: 'warning.main' } },
+                            "Configure your firewall to allow only trusted proxies to connect to HFS.")
+                        : "Necessary to detect users' IP"
                 },
                 { k: CFG.outbound_interface, comp: SelectField, xs: 6, md: 3,
                     options: [{ label: "automatic", value: '' }, ...status?.ips?.map(value => ({ value })) || []] },
