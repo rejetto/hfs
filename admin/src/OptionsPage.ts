@@ -343,9 +343,11 @@ export default function OptionsPage() {
                     continue
                 }
                 fieldTabs[field.k] = sectionIndex
+                const hidden = sectionIndex !== tab
                 groupedFields.push({
                     ...field,
-                    parentProps: { ...field.parentProps, hidden: sectionIndex !== tab },
+                    ...field.comp === ArrayField && { hidden },
+                    parentProps: { ...field.parentProps, hidden },
                 })
             }
         }
