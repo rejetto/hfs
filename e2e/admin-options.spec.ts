@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, Page, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import yaml from 'yaml'
 
@@ -30,16 +30,7 @@ test('proxy firewall reminder is shown only for a positive count', async ({ page
 })
 
 test('comment encoding follows storage mode despite the enabled legacy setting', async ({ page }) => {
-    await page.route('**/~/api/get_config', route => route.fulfill({ json: {
-        port: 80, https_port: -1, descript_ion: true,
-        comments_storage: 'attr', descript_ion_encoding: 'utf8',
-        server_code: '', mime: {}, block: [],
-    } }))
-    await page.route('**/~/api/get_status', route => route.fulfill({ json: {
-        http: { listening: true, port: 80 }, https: {}, ips: [], connectionAddress: '127.0.0.1',
-    } }))
-    await page.route('**/~/api/get_admins', route => route.fulfill({ json: { list: [] } }))
-    await page.goto(url)
+    await openOptions(page)
     const encoding = page.getByRole('combobox', { name: /^Encoding of file DESCRIPT\.ION/ })
     const storage = page.getByRole('combobox', { name: /^Comments storage/ })
     await expect(encoding).toBeDisabled()
@@ -52,3 +43,23 @@ test('comment encoding follows storage mode despite the enabled legacy setting',
     await page.getByRole('option', { name: 'in file attributes', exact: true }).click()
     await expect(encoding).toBeDisabled()
 })
+
+test('only mounts tables in the active tab', async ({ page }) => {
+    await openOptions(page)
+    const tables = page.locator('.MuiDataGrid-root')
+    await tables.first().waitFor()
+    expect(await tables.count()).toBe(2)
+})
+
+async function openOptions(page: Page) {
+    await page.route('**/~/api/get_config', route => route.fulfill({ json: {
+        port: 80, https_port: -1, descript_ion: true,
+        comments_storage: 'attr', descript_ion_encoding: 'utf8',
+        server_code: '', mime: {}, block: [],
+    } }))
+    await page.route('**/~/api/get_status', route => route.fulfill({ json: {
+        http: { listening: true, port: 80 }, https: {}, ips: [], connectionAddress: '127.0.0.1',
+    } }))
+    await page.route('**/~/api/get_admins', route => route.fulfill({ json: { list: [] } }))
+    await page.goto(url)
+}
