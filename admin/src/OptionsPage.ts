@@ -286,9 +286,8 @@ export default function OptionsPage() {
                     )
                 },
 
-                { k: CFG.open_browser_at_start, comp: BoolField, label: t`Open Admin-panel at start`, xs: 12, sm: 6, md: 3,
-                    helperText: t`Browser is automatically launched with HFS`
-                },
+                { k: CFG.open_browser_at_start, comp: BoolField, label: t`Open browser on startup`, xs: 12, sm: 6, md: 3,
+                    helperText: t`Automatically opens the admin-panel` },
                 { k: CFG.zip_calculate_size_for_seconds, comp: NumberField, xs: 12, sm: 6, md: 3, unit: "seconds", required: true,
                     label: t`Calculate ZIP size for`, helperText: t`download_progress_time_hint` },
                 { k: CFG.mime, comp: ArrayField, label: t`Custom MIME types`, reorder: true, prepend: true, xs: 12, sm: 12, md: 6,
