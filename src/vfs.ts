@@ -442,7 +442,6 @@ export async function* walkNode(parent: VfsNodeWithPath, {
             started = true
             const { source } = parent
             const taken = new Set()
-            const maskApplier = parentMaskApplier(parent)
             const visitLater: [VfsNodeWithPath, string][] = []
             const childrenWorking = parent.children?.length && Promise.all(parent.children.map(async child => {
                 if (ctx?.isAborted()) return
@@ -450,15 +449,14 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                 const name = prefixPath + nodeName
                 taken?.add(normalizeFilename(name))
                 const item = setVfsPath({ ...child, original: child, name, parent }, name, parent)
-                if (await cantSee(item)) return
+                if (await cantSee(item, parent, nodeName)) return
                 if (item.source && !item.children?.length && !item.see_without_probing) // real items must be accessible, unless probing was explicitly disabled
                     try { await fs.access(item.source) }
                     catch { return }
                 const isFolder = nodeIsFolder(child)
-                if (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
+                if (canEmit(item, isFolder))
                     stream.push(item)
                 if (!depth || !isFolder || cantRecur(item)) return
-                inheritMasks(item, parent)
                 visitLater.push([item, name]) // prioritize siblings
             }))
 
@@ -470,7 +468,10 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                     && !masksCouldGivePermission(parent.masks, requiredPerm))
                     return
 
-                const pathMaskApplier = parentMaskApplier(parent, true)
+                const diskFolders = new Map<string, { node: VfsNodeWithPath, virtualPath: string }>()
+                diskFolders.set('', { node: parent, virtualPath: '' })
+                const applyPathMask = parentMaskApplier(parent, true, true)
+                const applyRootNameMask = parentMaskApplier(parent, false, true)
                 try {
                     await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion }, async entry => {
                         if (ctx?.isAborted())
@@ -479,21 +480,38 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                             return
                         const {path} = entry // this path is not the original deprecated property: we are overwriting/reusing it
                         const isFolder = entry.isDirectory()
-                        let renamed = parent.rename?.[path]
-                        if (renamed) {
-                            const dir = dirname(path) // if `path` isn't just the name, copy its dir in renamed
-                            if (dir !== '.')
-                                renamed = dir + '/' + renamed
-                        }
-                        const name = prefixPath + (renamed || path)
-                        if (taken?.has(normalizeFilename(name))) // taken by vfs node above
+                        const parentPath = dirname(path) === '.' ? '' : dirname(path)
+                        const evaluatedParent = diskFolders.get(parentPath)
+                        if (!evaluatedParent) return false
+                        const physicalName = basename(path)
+                        const virtualName = evaluatedParent.node.rename?.[physicalName] || physicalName
+                        const virtualPath = evaluatedParent.virtualPath
+                            ? evaluatedParent.virtualPath + '/' + virtualName
+                            : virtualName
+                        const name = prefixPath + virtualPath
+                        if (taken.has(normalizeFilename(name))) // taken by vfs node above
                             return false // false just in case it's a folder
-                        const item = setVfsPath({ name, isFolder, source: join(source, path), parent, stats: entry.stats }, name, parent)
-                        // masks containing '/' must be matched against the relative path while keeping walkDir recursion enabled
-                        await pathMaskApplier(item, renamed || path)
-                        if (await cantSee(item)) // can't see: don't produce and don't recur
+                        const item = setVfsPath({
+                            name: virtualName,
+                            isFolder,
+                            source: join(source, path),
+                            parent: evaluatedParent.node,
+                            rename: renameUnderPath(evaluatedParent.node.rename, physicalName),
+                            stats: entry.stats,
+                        }, virtualName, evaluatedParent.node)
+                        const rootMaskProperties: VfsNode = { isFolder }
+                        const exceptions = applyPathMask(rootMaskProperties, virtualPath)
+                        for (const key of applyRootNameMask(rootMaskProperties, virtualName))
+                            exceptions.add(key)
+                        for (const key of exceptions)
+                            if (!(key in rootMaskProperties))
+                                rootMaskProperties[key] = parent[key]
+                        if (await cantSee(item, evaluatedParent.node, virtualName, rootMaskProperties)) // can't see: don't produce and don't recur
                             return false
-                        if (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
+                        if (isFolder)
+                            diskFolders.set(path, { node: item, virtualPath })
+                        item.name = name
+                        if (canEmit(item, isFolder))
                             stream.push(item)
                         if (cantRecur(item))
                             return false
@@ -518,10 +536,17 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                 return ctx && !hasPermission(item, 'can_list', ctx)
             }
 
+            function canEmit(item: VfsNodeWithPath, isFolder: boolean | undefined) {
+                return !(requiredPerm && ctx && !hasPermission(item, requiredPerm, ctx))
+                    && (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
+            }
+
             // item will be changed, so be sure to pass a temp node
-            async function cantSee(item: VfsNodeWithPath) {
-                await maskApplier(item)
+            async function cantSee(item: VfsNodeWithPath, itemParent: VfsNodeWithPath, virtualName: string, pathPermissions?: VfsPerms) {
+                inheritMasks(item, itemParent, virtualName)
+                await parentMaskApplier(itemParent)(item, virtualName)
                 inheritFromParent(item)
+                Object.assign(item, pathPermissions)
                 if (ctx && !hasPermission(item, 'can_see', ctx)) return true
                 item.isTemp = true
             }
@@ -540,7 +565,7 @@ export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof V
         props[perm] || masksCouldGivePermission(props.masks, perm))
 }
 
-export function parentMaskApplier(parent: VfsNode, pathBased=false) {
+export function parentMaskApplier(parent: VfsNode, pathBased=false, trackExceptions=false) {
     // rules are met in the parent.masks object from nearest to farthest, but since we finally apply with _.defaults, the nearest has precedence in the final result
     const matchers = onlyTruthy(_.map(parent.masks, (mods, mask) => {
         if (!mods) return
@@ -554,30 +579,39 @@ export function parentMaskApplier(parent: VfsNode, pathBased=false) {
         })()
         if (pathBased) {
             if (!mask.includes('/')) return
-            // avoid evaluating twice masks like **/*.png because parentMaskApplier already handles them by basename
-            const m = /^(!?)\*\*\//.exec(mask)
-            // this keeps the fast basename path as source-of-truth for patterns that collapse to a filename after **/
-            if (m && !mask.slice(m[0].length).includes('/')) return
         }
         else {
             const m = /^(!?)\*\*\//.exec(mask) // ** globstar matches also zero subfolders, so this mask must be applied here too
             mask = m ? m[1] + mask.slice(m[0].length) : !mask.includes('/') ? mask : ''
             if (!mask) return
         }
-        return mask && { matcher: makeMatcher(mask), mods, mustBeFolder }
+        return mask && {
+            matcher: makeMatcher(mask),
+            exceptionMatcher: trackExceptions && mask.startsWith('!') ? makeMatcher(mask.slice(1)) : undefined,
+            mods,
+            mustBeFolder,
+        }
     }))
     return (item: VfsNode, virtualName=(pathBased ? _.identity : basename)(getNodeName(item))!) => {
         // depth traversal passes full relative paths, while node traversal still matches only basenames
+        const exceptions = new Set<keyof VfsPerms>()
         let isFolder: boolean | undefined = undefined
-        for (const { matcher, mods, mustBeFolder } of matchers) {
+        for (const { matcher, exceptionMatcher, mods, mustBeFolder } of matchers) {
             if (mustBeFolder !== undefined) {
                 isFolder ??= nodeIsFolder(item)
                 if (mustBeFolder !== isFolder) continue
             }
-            if (!matcher(virtualName)) continue
+            if (!matcher(virtualName)) {
+                if (exceptionMatcher?.(virtualName))
+                    for (const key of PERM_KEYS)
+                        if (mods[key] !== undefined && !(key in item))
+                            exceptions.add(key)
+                continue
+            }
             item.masks &&= _.merge(_.cloneDeep(mods.masks), item.masks) // item.masks must take precedence
             _.defaults(item, mods)
         }
+        return exceptions
     }
 }
 
@@ -587,7 +621,7 @@ function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename=getNodeNam
     if (!masks) return
     const o: Masks = {}
     for (const [k,v] of Object.entries(masks)) {
-        if (k.startsWith('**')) {
+        if (/^!?\*\*/.test(k)) {
             o[k] = v
             continue
         }

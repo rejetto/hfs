@@ -216,7 +216,7 @@ Valid keys in a node are:
   Value uses the same permission descriptor described above. Default is `can_read`.
 - `can_upload`: specify who can upload. Applies to folders with a source. Default is `"admin"`.
 - `can_list`: specify who can see the content of a folder. Default is `can_read`.
-- `can_archive`: specify who can get the zip a folder or a set of files. Default is `can_read`.
+- `can_archive`: specify who can include this entry in a ZIP download. Default is `can_read`.
 - `can_delete`: specify who can delete. Applies to folders with a source. Default is `"admin"`.
   Deleting a folder requires permission to delete its contents too. HFS checks before deleting anything;
   a denied descendant aborts the request and is identified in the error when visible to the user.

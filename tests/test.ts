@@ -604,6 +604,66 @@ describe('basics', () => {
         status: 200,
         cb: data => !data.includes('page/gpl.png') && data.includes('gpl-visible.png'),
     }))
+    test('zip preserves disk subfolder permissions', async () => {
+        const name = `zip-permissions-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        await mkdir(resolve(dir, 'private'), { recursive: true })
+        await writeFile(resolve(dir, 'public.txt'), 'public')
+        await writeFile(resolve(dir, 'private/secret.txt'), 'secret')
+        try {
+            await reqApi('add_vfs', {
+                source: dir,
+                name,
+                can_read: true,
+                can_list: true,
+                masks: { private: { can_archive: false } },
+            }, 200, adminReq)()
+            await req(uri + 'private/?get=zip', 403, { jar: {} })()
+            const { body } = await httpWithBody(BASE_URL + uri + '?get=zip', { path: uri + '?get=zip', jar: {} })
+            const paths = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+            if (!paths.includes('public.txt') || paths.includes('private/secret.txt'))
+                throw Error('archive bypassed subfolder permissions: ' + paths)
+            await reqApi('set_vfs', { uri, props: { masks: { '*|folders|': { can_archive: false } } } }, 200, adminReq)()
+            const foldersOnly = await httpWithBody(BASE_URL + uri + '?get=zip', { path: uri + '?get=zip', jar: {} })
+            const folderMaskPaths = (await unzipper.Open.buffer(foldersOnly.body!)).files.map(x => x.path)
+            if (!folderMaskPaths.includes('public.txt') || folderMaskPaths.includes('private/secret.txt'))
+                throw Error('folder-only mask applied to a file: ' + folderMaskPaths)
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('zip preserves negated path masks', async () => {
+        const adminReq = { auth, jar: {} }
+        for (const [suffix, mask] of [['path', '!private/allowed.txt'], ['globstar', '!**/allowed.txt']]) {
+            const name = `zip-negated-${suffix}-${randomId(6)}`
+            const dir = resolve(UPLOAD_DISK_ROOT, name)
+            const uri = `/${name}/`
+            await mkdir(resolve(dir, 'private'), { recursive: true })
+            await writeFile(resolve(dir, 'private/allowed.txt'), 'allowed')
+            await writeFile(resolve(dir, 'private/denied.txt'), 'denied')
+            try {
+                await reqApi('add_vfs', {
+                    source: dir,
+                    name,
+                    can_read: true,
+                    can_list: true,
+                    masks: { [mask]: { can_archive: false } },
+                }, 200, adminReq)()
+                const { body } = await httpWithBody(BASE_URL + uri + '?get=zip', { path: uri + '?get=zip', jar: {} })
+                const paths = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+                if (!paths.includes('private/allowed.txt') || paths.includes('private/denied.txt'))
+                    throw Error(`${mask} was not preserved: ` + paths)
+            }
+            finally {
+                await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+                await rmAny(dir)
+            }
+        }
+    })
     test('zip.alfa is forbidden', req('/protectFromAbove/child/?get=zip&list=alfa.txt//renamed', { empty: true, length:134 }, { method:'HEAD' }))
     test('zip.cantReadPage', req('/cantReadPage/?get=zip', { length: 4832 }, { method:'HEAD' }))
 
