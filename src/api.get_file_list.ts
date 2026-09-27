@@ -66,7 +66,7 @@ export function paramsToFilter({ search, wild, searchComment, fileMask, ...param
     }
 }
 
-export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onlyFolders, onlyFiles, admin, ...rest }, ctx) => {
+export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onlyFolders, onlyFiles, admin, cache, ...rest }, ctx) => {
     apiAssertTypes({ string: { uri }})
     const node = await urlToNode(uri, ctx)
     const list = ctx.get('accept') === 'text/event-stream' ? new SendListReadable() : undefined
@@ -81,7 +81,10 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     offset = Number(offset)
     limit = Number(limit)
     const { filterName, filterComment, filterStats, fileMask, depth } = paramsToFilter(rest)
-    const walker = walkNode(node, { ctx: admin ? undefined : ctx, onlyFolders, onlyFiles, depth })
+    const walker = walkNode(node, {
+        ctx: admin ? undefined : ctx, onlyFolders, onlyFiles, depth, useCache: cache !== 'no',
+        filterName: filterName ? name => filterName(basename(name)) : undefined,
+    })
     const onDirEntryHandlers = mapPlugins((plug, id) => plug.onDirEntry && { id, cb: plug.onDirEntry })
     const can_upload = admin || hasPermission(node, 'can_upload', ctx)
     const can_delete = admin || hasPermission(node, 'can_delete', ctx)

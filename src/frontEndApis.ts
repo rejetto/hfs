@@ -28,6 +28,7 @@ import { SendListReadable } from './SendList'
 import { ctxAdminAccess } from './adminApis'
 import _ from 'lodash'
 import { isWebdavLocked } from './webdav'
+import { invalidateDirectoryCache } from './directoryCache'
 
 const partialFolderSize: any = {}
 const showUploader = defineConfig<Who>(CFG.show_uploader, WHO_ADMIN)
@@ -101,6 +102,7 @@ export const frontEndApis: ApiHandlers = {
             return new ApiError(ctx.status)
         try {
             await mkdir(dest)
+            invalidateDirectoryCache(dest)
             await setUploadOwner(destUri, ctx, dest)
             return {}
         }
@@ -230,8 +232,10 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
             const destUri = destChild?.vfsPath || joinVfs(destNode!.vfsPath, pathEncode(visibleName))
             if (isWebdavLocked(destUri, ctx))
                 return ctx.status
-            if (_.isFunction(override))
-                return override?.(srcNode, dest)
+            if (_.isFunction(override)) {
+                try { return await override(srcNode, dest) }
+                finally { invalidateDirectoryCache(dest) }
+            }
             const upload = await getUploadMeta(src)
             return statusCodeForMissingPerm(srcNode, 'can_delete', ctx)
                 || rename(src, dest).catch(async e => {
@@ -244,7 +248,10 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
                         }
                         await unlink(src)
                     })
-                }).then(() => moveStoredFileAttrs(src, dest))
+                }).then(() => {
+                    invalidateDirectoryCache(src, dest)
+                    return moveStoredFileAttrs(src, dest)
+                })
                     .then(() => moveUploadOwner(srcNode.vfsPath, destUri, dest))
                     .catch(e => e.code || String(e))
         }))
@@ -283,6 +290,7 @@ export async function requestedRename(node: VfsNodeWithPath | undefined, newName
             && !await isSameFilePath(node.source, destNode.source)
         try {
             await rename(node.source, destSource!)
+            invalidateDirectoryCache(node.source, destSource!)
             await moveStoredFileAttrs(node.source, destSource!)
             // one VFS key cannot preserve ownership while overwriting a different physical alias
             if (overwritesAliasedEntry)
