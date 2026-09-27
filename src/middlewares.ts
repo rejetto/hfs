@@ -3,14 +3,16 @@
 import compress from 'koa-compress'
 import Koa from 'koa'
 import { API_URI, DEV, HTTP_UNAUTHORIZED } from './const'
-import { ALLOW_SESSION_IP_CHANGE, CFG, DAY, hasDirTraversal, isLocalHost, netMatches, splitAt, stream2string, try_, tryJson } from './misc'
+import { ALLOW_SESSION_IP_CHANGE, CFG, DAY, hasDirTraversal, isLocalHost, netMatches, normalizeHost, splitAt, stream2string, try_, tryJson } from './misc'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, accounts, getAccount, getFromAccount, normalizeUsername } from './perm'
 import { Connection, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
 import { clearTextLogin, invalidateSessionBefore, setLoggedIn } from './auth'
 import { constants } from 'zlib'
-import { getHttpsWorkingPort } from './listen'
+import { baseUrl, getHttpsWorkingPort } from './listen'
+import { roots } from './roots'
+import { isIP } from 'node:net'
 import { defineConfig } from './config'
 import session from 'koa-session'
 import { app } from './index'
@@ -162,6 +164,14 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     }
 
     function autoLogin() {
+        const host = ctx.host.toLowerCase()
+        const hostname = normalizeHost(host)
+        // a rebinding page uses the victim's real IP, but retains the attacker's hostname
+        if (hostname !== 'localhost' && !isIP(hostname)
+            // URL normalization matches browsers' default-port removal and internationalized domain names
+            && host !== (baseUrl.get() && try_(() => new URL(baseUrl.get()).host.toLowerCase()))
+            && roots.compiled()(host) === undefined)
+            return
         via = 'net'
         // keep the mask direct so group inheritance cannot make identity depend on account order
         return Object.values(accounts.get()).find(a =>

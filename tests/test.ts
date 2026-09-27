@@ -1672,6 +1672,50 @@ describe('sessions', () => {
             await reqApi('del_account', { username: u }, 200, adminReq)().catch(() => {})
         }
     })
+    test('auto_login_net rejects rebinding hosts but preserves configured addresses and credentials', async () => {
+        const user = `auto-host-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        const previous = await reqApi('get_config', { only: ['base_url', 'roots', 'proxies'] }, 200, adminReq)()
+        try {
+            await reqApi('set_config', { values: { base_url: '', roots: {}, proxies: 0 } }, 200, adminReq)()
+            await reqApi('add_account', { username: user, password: pass, auto_login_net: '::1' }, 200, adminReq)()
+            for (const host of ['attacker.example', 'localhost.attacker.example', '127.0.0.1.attacker.example'])
+                await check(host, false)
+            for (const host of ['localhost', 'LOCALHOST:8081', '127.0.0.1:8081', '[::1]:8081'])
+                await check(host, true)
+            const loginReq = { jar: {}, headers: { host: 'attacker.example', 'x-hfs-anti-csrf': '1' } }
+            await reqApi('refresh_session', {}, res => res?.username === user,
+                { ...loginReq, auth: `${user}:${pass}` })()
+            await reqApi('refresh_session', {}, res => res?.username === user, loginReq)()
+            await reqApi('set_config', { values: { base_url: 'http://hfs.example:8081/files/' } }, 200, adminReq)()
+            await check('hfs.example:8081', true)
+            await check('hfs.example.attacker.example:8081', false)
+            for (const base_url of ['http://hfs.example:80/', 'https://hfs.example:443/', 'http://caffè.example/']) {
+                await reqApi('set_config', { values: { base_url } }, 200, adminReq)()
+                await check(new URL(base_url).host, true)
+            }
+            await reqApi('set_config', { values: { base_url: 'http://hfs.example:8081/' } }, 200, adminReq)()
+            await reqApi('set_config', { values: { roots: { 'files.example:8081': '', '*.home.example:8081': '/' } } }, 200, adminReq)()
+            await check('files.example:8081', true)
+            await check('nas.home.example:8081', true)
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: {},
+                headers: { host: 'attacker.example', 'x-forwarded-host': 'localhost', 'x-hfs-anti-csrf': '1' } })()
+            await reqApi('set_config', { values: { proxies: 1 } }, 200, adminReq)()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: {},
+                headers: { host: 'localhost', 'x-forwarded-host': 'attacker.example', 'x-hfs-anti-csrf': '1' } })()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar: {},
+                headers: { host: 'proxy.internal', 'x-forwarded-host': 'hfs.example:8081', 'x-hfs-anti-csrf': '1' } })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+            await reqApi('set_config', { values: previous }, 200, adminReq)().catch(() => {})
+        }
+        function check(host: string, allowed: boolean) {
+            return reqApi('refresh_session', {}, { status: 200, cb: res => allowed ? res?.username === user : !res?.username },
+                { jar: {}, headers: { host, 'x-hfs-anti-csrf': '1' } })()
+        }
+    })
     test('auto_login_net.canLogin', async () => {
         const user = `auto-login-${randomId(6)}`.toLowerCase()
         const adminReq = { auth, jar: {} }

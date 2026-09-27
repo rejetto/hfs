@@ -35,6 +35,22 @@ test('selecting another account in multiple groups avoids a self-deletion warnin
     await expect.poll(() => deleted).toEqual(['member'])
 })
 
+test('IP auto-login explains the hostname requirement', async ({ page }) => {
+    await page.setViewportSize({ width: 1400, height: 900 })
+    await page.route('**/~/api/get_accounts', route => route.fulfill({ json: { list: [{
+        username: 'member', hasPassword: true, isGroup: false, canLogin: true,
+        canChangePassword: true, members: [], directMembers: [],
+    }] } }))
+    await page.goto(process.env.ADMIN_ACCOUNTS_URL || `http://localhost:${port}/~/admin/#/accounts`)
+    await page.getByRole('treeitem', { name: 'member', exact: true }).click()
+    await expect(page.getByText('Using a hostname? Configure it first.', { exact: false })).toBeVisible()
+    await page.getByRole('button', { name: 'Learn more', exact: true }).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toContainText('IP addresses and localhost work without additional configuration.')
+    await expect(dialog).toContainText('Internet → Address')
+    await expect(dialog).toContainText('login with credentials remains available')
+})
+
 test('account selection survives switching from dialog to side panel', async ({ page }) => {
     await page.setViewportSize({ width: 700, height: 900 })
     await page.route('**/~/api/get_accounts', route => route.fulfill({ json: { list: [{

@@ -6,7 +6,7 @@ import { Alert, Box } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, useDialogBarColors } from './dialog'
 import { apiNewPassword, formatTimestamp, isModifiedConfig, prefix, reactJoin, useIsMobile, wantArray } from './misc'
-import { Btn, Flex, IconBtn, NetmaskField, propsForModifiedValues } from './mui'
+import { Btn, Flex, IconBtn, LinkBtn, NetmaskField, propsForModifiedValues } from './mui'
 import { type Account } from './AccountsPage'
 import { AutoDelete, Delete } from '@mui/icons-material'
 import { state, useSnapState } from './state'
@@ -111,7 +111,16 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             },
 
             { k: 'allow_net', comp: NetmaskField, label: "Allowed network address", sm: 6, lg: 4, placeholder: "any address" },
-            !isGroup && { k: 'auto_login_net', comp: NetmaskField, label: "Auto-login by IP address", sm: 6, lg: 4, placeholder: "none" },
+            !isGroup && { k: 'auto_login_net', comp: NetmaskField, label: "Auto-login by IP address", sm: 6, lg: 4, placeholder: "none",
+                helperText: h(LinkBtn, {
+                    onClick: () => alertDialog(
+                        "IP addresses and localhost work without additional configuration."
+                        + "\nIf you access HFS using a hostname, configure it under Internet → Address, as the Main address or in Domain roots. Include the port if it appears in the address."
+                        + "\nThis prevents a malicious website from using your browser's authorized IP address to log in through DNS rebinding. Only configure domains you trust; avoid overly broad Domain roots wildcards."
+                        + "\nFor other hostnames, automatic login is skipped, but login with credentials remains available.",
+                        { title: "Auto-login by IP address" })
+                }, "May require additional configuration")
+            },
             { k: 'redirect', comp: VfsPathField, placeholder: "no", sm: 6, lg: 4,
                 helperText: "If you want this account to be redirected to a specific folder/address (or even file) at login time" },
 
