@@ -5,7 +5,7 @@
 This project is the HFS (HTTP File Server) monorepo. The goal of this file is to give an AI coding agent the concise, practical knowledge needed to be productive immediately.
 
 Key facts
-- **Runtime:** Node.js (requirement enforced in `src/index.ts`) — minimum `18.15.0` (see `package.json`).
+- **Runtime:** Node.js (requirement enforced in `src/index.ts`) — minimum `19.6.0` (see `package.json`).
 - **Workspaces:** Root `package.json` uses npm workspaces: `admin`, `frontend`, `shared`, `mui-grid-form`.
 - **Language:** TypeScript for server and parts of frontend; built outputs are emitted to `dist/`.
 

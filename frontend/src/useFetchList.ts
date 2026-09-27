@@ -80,7 +80,8 @@ export default function useFetchList() {
             return
         }
 
-        const params = { uri, ...remoteSearch, ...firstListRequest }
+        const cache = new URLSearchParams(location.search).get('cache') === 'no' ? 'no' : undefined
+        const params = { uri, ...remoteSearch, ...firstListRequest, cache }
         if (snap.listReloader === lastReloader.current && _.isEqual(params, lastParams.current)) return
         const selected = previous === uri && snap.listReloader !== lastReloader.current ? state.selected : {}
         lastParams.current = params
@@ -114,6 +115,7 @@ export default function useFetchList() {
                     }
         }
         const timer = setInterval(flush, 1000)
+        const started = Date.now()
         const src = apiEvents('get_file_list', params, (type, data) => {
             if (!isMounted()) return
             switch (type) {
@@ -182,6 +184,7 @@ export default function useFetchList() {
             }
         })
         state.stopSearch = () => {
+            console.log(`get_file_list took ${(Date.now() - started).toLocaleString()} ms`)
             state.stopSearch = undefined
             buffer.length = 0
             state.loading = false

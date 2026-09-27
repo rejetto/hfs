@@ -49,6 +49,7 @@ export default function OptionsPage() {
     const snap = useSnapState()
     const { changes } = useSnapshot(pageState)
     const statusApi  = useApiEx<typeof adminApis.get_status>(data && 'get_status')
+    const cacheApi = useApiEx<typeof adminApis.get_directory_cache_status>(data && 'get_directory_cache_status')
     const status = statusApi.data
     const reloadStatus = statusApi.reload
     const makeCert = () => suggestMakingCert(saved => {
@@ -58,6 +59,7 @@ export default function OptionsPage() {
         setTimeout(reloadStatus, 2000) // try again in case it's very slow
     })
     useEffect(() => void reloadStatus(), [data]) //eslint-disable-line
+    useEffect(() => void cacheApi.reload(), [data]) //eslint-disable-line
     const sm = useBreakpoint('sm')
     const saveBtnRef = useRef<HTMLButtonElement>(null)
     const tabsSticky = useFixSticky()
@@ -272,9 +274,23 @@ export default function OptionsPage() {
                         [t`in file attributes + load DESCRIPT.ION`]: 'attr+ion',
                     } },
 
-                { k: CFG.keep_session_alive, comp: BoolField, sm: 6, md: 6, helperText: t`frontend_page_open_session_hint` },
+                { k: CFG.keep_session_alive, comp: BoolField, sm: 3, helperText: t`frontend_page_open_session_hint` },
                 { k: CFG.session_duration, comp: NumberField, sm: 3, md: 3, min: 5, unit: "seconds", required: true },
                 { k: CFG.size_1024, label: t`KB size`, comp: SelectField, sm: 3, options: { 1000: false, 1024: true } },
+                { k: CFG.directory_cache, comp: SelectField, sm: 3, label: t`Directory cache`, options: [
+                        { label: t`Never`, value: 0 },
+                        { label: t`At start`, value: -1 },
+                        { label: t`Every 1 hour`, value: 1 },
+                        { label: t`Every 4 hours`, value: 4 },
+                        { label: t`Every 24 hours`, value: 24 },
+                    ], helperText: h('span', { style: { display: 'flex', flexWrap: 'wrap', gap: '0.5em' } },
+                        values[CFG.directory_cache] === -1 && Boolean(cacheApi.data?.networkPaths.length)
+                        && h('span', {}, t`Periodic refresh is recommended`, ' ', wikiLink('Directory-cache', t`Why?`)),
+                        cacheApi.data?.enabled && values[CFG.directory_cache] && h(LinkBtn, {
+                            onClick: () => apiCall('refresh_directory_cache').then(() => toast(t`Refresh requested`), alertDialog),
+                        }, t`Refresh now`),
+                    )
+                },
 
                 { k: CFG.open_browser_at_start, comp: BoolField, label: t`Open Admin-panel at start`, xs: 12, sm: 6, md: 3,
                     helperText: t`Browser is automatically launched with HFS`
@@ -400,6 +416,8 @@ export default function OptionsPage() {
         if (onHttps && certChange && !await confirmDialog(t`You may disrupt https service, kicking you out`))
             return
         await apiCall('set_config', { values: toSave })
+        if (CFG.directory_cache in toSave)
+            cacheApi.reload()
         if (CFG.split_uploads in toSave)
             await alertDialog(t`split_uploads_reload_notice`, 'warning')
         const ip = ipForUrl(loc.hostname)
