@@ -21,6 +21,7 @@ import { getBaseUrlOrDefault, getServerStatus } from './listen'
 import { SendListReadable } from './SendList'
 import { walkDir } from './walkDir'
 import { roots } from './roots'
+import { invalidateDirectoryCache } from './directoryCache'
 
 // to manipulate the tree we need the original node
 async function urlToNodeOriginal(uri: string) {
@@ -196,6 +197,7 @@ export default {
 
     async mkdir({ path }) {
         await mkdir(path, { recursive: true })
+        invalidateDirectoryCache(path)
         return {}
     },
 

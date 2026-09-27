@@ -147,6 +147,13 @@ Some properties use a `Who` descriptor, with one of these values:
   Entries explicitly added to the VFS are not handled by this option.
   To hide an entry from listings while still allowing downloads, use `can_see: false` instead.
 - `show_uploader` who can see who uploaded files. Value is a `Who` descriptor. Default is `"admin"`.
+- `directory_cache` caches physical directory listings and file metadata in RAM for browsing and search. Default is `0` (Never).
+  Set `-1` for At start, or `1`, `4`, `24` for a refresh every that many hours.
+  All enabled modes scan at startup and keep the cache updated with recursive filesystem watchers.
+  Refresh runs in the background, replacing complete directory listings while the previous data remains available.
+  VFS permissions are applied for each request; downloads, ZIP creation and other file operations continue to read the filesystem.
+  Admin can request a manual refresh. Periodic refresh is recommended for network filesystems, where watcher events may be missed.
+  See [Directory cache](https://github.com/rejetto/hfs/wiki/Directory-cache).
 - `update_to_beta` includes beta versions searching for updates. Default is false.
 - `share_usage_stats` opts in to sharing a random installation ID, HFS version, and installed plugin repositories, versions, and enabled states once a day. Default is false.
 - `roots` maps hosts (or mask of hosts) to a root different from the home folder. Default is none. E.g.

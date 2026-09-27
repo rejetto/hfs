@@ -20,6 +20,7 @@ import { DESCRIPT_ION, DESCRIPT_ION_ALT, usingDescriptIon } from './comments'
 import { walkDir } from './walkDir'
 import { Readable } from 'node:stream'
 import { ctxAdminAccess } from './adminApis'
+import { getDirectoryCacheState } from './directoryCache'
 
 const showHiddenFiles = defineConfig(CFG.show_hidden_files, false)
 const sourceNames = new Map<string, string[]>()
@@ -497,6 +498,8 @@ interface WalkNodeOptions {
     onlyFolders?: boolean,
     onlyFiles?: boolean,
     parallelizeRecursion?: boolean,
+    useCache?: boolean,
+    filterName?: (name: string) => boolean,
 }
 // it's the responsibility of the caller to verify you have list permission on parent, as callers have different needs.
 export async function* walkNode(parent: VfsNodeWithPath, {
@@ -507,6 +510,8 @@ export async function* walkNode(parent: VfsNodeWithPath, {
     onlyFolders = false,
     onlyFiles = false,
     parallelizeRecursion = true,
+    useCache = false,
+    filterName,
 }: WalkNodeOptions = {}) {
     let started = false
     const stream = new Readable({
@@ -527,12 +532,18 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                 for (const sourceName of getSourceNames(child, parent))
                     takenSources.add(normalizeFilename(prefixPath + sourceName))
                 const item = setVfsPath({ ...child, original: child, name, parent }, name, parent)
-                if (await cantSee(item)) return
-                if (item.source && !item.children?.length && !item.see_without_probing) // real items must be accessible, unless probing was explicitly disabled
-                    try { await fs.access(item.source) }
-                    catch { return }
                 const isFolder = nodeIsFolder(child)
-                if (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
+                const matches = !filterName || filterName(name)
+                if (!matches && !isFolder) return
+                if (await cantSee(item)) return
+                if (item.source && !item.children?.length && !item.see_without_probing) {
+                    const cached = useCache ? getDirectoryCacheState(item.source) : undefined
+                    if (cached === false) return // a watched parent will retry when an unavailable source appears
+                    if (cached !== true)
+                        try { await statWithTimeout(item.source) }
+                        catch { return }
+                }
+                if (matches && (onlyFiles ? !isFolder : (!onlyFolders || isFolder)))
                     stream.push(item)
                 if (!depth || !isFolder || cantRecur(item)) return
                 inheritMasks(item, parent)
@@ -549,7 +560,7 @@ export async function* walkNode(parent: VfsNodeWithPath, {
 
                 const pathMaskApplier = parentMaskApplier(parent, true)
                 try {
-                    await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion }, async entry => {
+                    await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion, useCache }, async entry => {
                         if (ctx?.isAborted())
                             return null
                         if (usingDescriptIon() && (entry.name === DESCRIPT_ION || entry.name === DESCRIPT_ION_ALT))
@@ -566,12 +577,14 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                         if (taken.has(normalizeFilename(name))
                         || takenSources.has(normalizeFilename(prefixPath + path))) // taken by vfs node above
                             return false // false just in case it's a folder
+                        const matches = !filterName || filterName(name)
+                        if (!matches && !isFolder) return
                         const item = setVfsPath({ name, isFolder, source: join(source, path), parent, stats: entry.stats }, name, parent)
                         // masks containing '/' must be matched against the relative path while keeping walkDir recursion enabled
                         await pathMaskApplier(item, renamed || path)
                         if (await cantSee(item)) // can't see: don't produce and don't recur
                             return false
-                        if (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
+                        if (matches && (onlyFiles ? !isFolder : (!onlyFolders || isFolder)))
                             stream.push(item)
                         if (cantRecur(item))
                             return false
@@ -584,7 +597,7 @@ export async function* walkNode(parent: VfsNodeWithPath, {
             finally {
                 await childrenWorking
                 for (const [item, name] of visitLater)
-                    for await (const x of walkNode(item, { depth: depth - 1, prefixPath: name + '/', ctx, requiredPerm, onlyFolders, onlyFiles, parallelizeRecursion })) {
+                    for await (const x of walkNode(item, { depth: depth - 1, prefixPath: name + '/', ctx, requiredPerm, onlyFolders, onlyFiles, parallelizeRecursion, useCache, filterName })) {
                         if (ctx?.isAborted())
                             return stream.push(null)
                         stream.push(x)

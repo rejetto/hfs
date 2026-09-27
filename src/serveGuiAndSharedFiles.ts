@@ -27,6 +27,7 @@ import { roots } from './roots'
 import XXH from 'xxhashjs'
 import fs from 'fs'
 import { rm } from 'fs/promises'
+import { invalidateDirectoryCache } from './directoryCache'
 import { setCommentFor } from './comments'
 import { basicWeb, detectBasicAgent } from './basicWeb'
 import { customizedIcons, ICONS_FOLDER } from './icons'
@@ -114,6 +115,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
             if ((await events.emitAsync('deleting', { node, ctx }))?.isDefaultPrevented())
                 return ctx.status = HTTP_FAILED_DEPENDENCY
             await rm(source, { recursive: true })
+            invalidateDirectoryCache(source)
             await deleteStoredFileAttrs(source)
             deleteUploadOwner(node.vfsPath)
             void setCommentFor(source, '') // necessary only to clean a possible descript.ion or kvstorage
@@ -177,7 +179,7 @@ async function sendFolderList(node: VfsNodeWithPath, ctx: Koa.Context) {
         // redo the encoding our way, keeping unicode chars unchanged. decode each segment separately because decodeURI preserves reserved escapes like %3A, which pathEncode would double-encode
         prepend = base + pathDecodeSegments(path, pathEncode)
     }
-    const walker = walkNode(node, { ctx, depth: depth === '*' ? Infinity : Number(depth), parallelizeRecursion: false }) // parallelization produces out-of-order results, and we don't want it like that here
+    const walker = walkNode(node, { ctx, depth: depth === '*' ? Infinity : Number(depth), parallelizeRecursion: false, useCache: true }) // parallelization produces out-of-order results, and we don't want it like that here
     ctx.body = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
         const isFolder = nodeIsFolder(el)
         return !folders && isFolder ? undefined

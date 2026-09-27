@@ -36,6 +36,7 @@ import { get_dynamic_dns_error } from './ddns'
 import { addBlock, BlockingRule, isBlocked } from './block'
 import { alerts, blacklistedInstalledPlugins, getProjectInfo } from './github'
 import { acmeRenewError } from './acme'
+import { getDirectoryCacheStatus, refreshDirectoryCache } from './directoryCache'
 
 export const adminApis = {
 
@@ -48,6 +49,11 @@ export const adminApis = {
     ...logApis,
     ...certApis,
     get_dynamic_dns_error,
+    get_directory_cache_status: getDirectoryCacheStatus,
+    refresh_directory_cache() {
+        refreshDirectoryCache()
+        return {}
+    },
 
     async set_config({ values }) {
         apiAssertTypes({ object: { values } })
