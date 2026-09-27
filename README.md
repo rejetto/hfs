@@ -100,7 +100,7 @@ To uninstall, remove the files you unzipped and the configuration/data directory
 
 If you can't or don't want to run our binary versions, you can try this:
 
-1. [Install Node.js](https://nodejs.org) version 18 to 24
+1. [Install Node.js](https://nodejs.org) version 19.6 to 24 (24 is recommended)
 2. Run at the command line `npx hfs@latest`
 
 The `@latest` part is optional, and ensures that you are always up to date.

@@ -26,7 +26,7 @@ export const CFG = constMap([
     'authorization_header', 'auto_basic', 'auto_check_update', 'auto_play_seconds',
     'base_url', 'block', 'cache_control_disk_files', 'cert', 'comments_storage',
     'create-admin', 'debug', 'delete_unfinished_uploads_after',
-    'descript_ion_encoding', 'disable_custom_html', 'disableTranslation', 'dont_log_net',
+    'descript_ion_encoding', 'directory_cache', 'disable_custom_html', 'disableTranslation', 'dont_log_net',
     'dont_overwrite_uploading', 'dynamic_dns_url', 'enable_plugins', 'error_log',
     'favicon', 'file_menu_on_link', 'file_timeout', 'folders_first', 'force_address',
     'force_https', 'force_lang', 'force_webdav_login',
