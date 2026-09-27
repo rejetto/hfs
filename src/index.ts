@@ -30,14 +30,16 @@ import events from './events'
 import { trackIpsMw } from './ips'
 import './outboundProxy'
 import './pluginUsage'
+import { initDirectoryCache } from './directoryCache'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints, don't clash
 
-if (new Version(process.versions.node).olderThan('18.15.0')) {
-    console.error("Node.js 18.15+ is required, please update")
+if (new Version(process.versions.node).olderThan('19.6.0')) {
+    console.error("Node.js 19.6+ is required, please update")
     process.exit(2)
 }
 
+initDirectoryCache()
 process.title = 'HFS ' + VERSION
 httpStream.defaultUA = 'HFS'
 const keys = process.env.COOKIE_SIGN_KEYS?.split(',')

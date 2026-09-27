@@ -17,6 +17,7 @@ import { hasUploadSpace, isUploading, publishUpload, whileUploadMetaPending } fr
 import { isWebdavLocked } from './webdav'
 import { SendListReadable } from './SendList'
 import { setUploadOwner } from './uploadOwners'
+import { invalidateDirectoryCache } from './directoryCache'
 
 interface ExtractEntry { path: string, size: number, stream: Readable }
 interface ExtractCallbacks {
@@ -110,6 +111,7 @@ export const extractionApis: ApiHandlers = {
             console.debug("Extraction started:", source, "->", destination.source)
             try {
                 await mkdir(destination.source!, { recursive: true })
+                invalidateDirectoryCache(destination.source!)
                 await extractor!(source, {
                     space(size) { remainingSize = size; checkSpace(size) },
                     progress(percent) { data.progress = percent },
@@ -138,6 +140,7 @@ export const extractionApis: ApiHandlers = {
                         // streaming ZIPs can omit local sizes, so reserve the remaining admitted total in that case
                         checkSpace(size || remainingSize)
                         await mkdir(folder.source!, { recursive: true })
+                        invalidateDirectoryCache(folder.source!)
                         // each job writes to its own sibling, preserving the old file on failure and allowing atomic replacement
                         const temp = join(folder.source!, `${UPLOAD_TEMP_PREFIX}extract-${randomUUID()}`)
                         try {
