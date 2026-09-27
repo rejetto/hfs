@@ -51,7 +51,9 @@ exports.init = api => {
                 await runInLane(getLane(laneByIp, ip), () =>
                     runInLane(getLane(laneByAccount, account), async () => {
                         const now = Date.now()
-                        const wait = Math.max(0, ipRec.next - now, accountRec.next - now)
+                        // accumulated delays must not outlive the failures that caused them
+                        const wait = Math.max(0, Math.min(ipRec.next, ipRec.expires) - now,
+                            Math.min(accountRec.next, accountRec.expires) - now)
                         if (wait <= 0) return
                         api.log('delaying', ip, 'for', Math.round(wait / 1000))
                         ctx.set('x-anti-brute-force', wait)
@@ -96,11 +98,8 @@ exports.init = api => {
         },
         login(ctx) {
             if (ctx.state.account) {
-                const { ip } = ctx
                 const account = getAccountKey(ctx.state.account.username)
-                resetRecord(byIp, ip)
                 resetRecord(byAccount, account)
-                dropLaneIfIdle(laneByIp, ip)
                 dropLaneIfIdle(laneByAccount, account)
             }
         }
@@ -109,8 +108,13 @@ exports.init = api => {
     function getRecord(container, key) {
         let rec = container.get(key)
         if (!rec) {
-            rec = { failures: 0, next: 0, waiting: 0 }
+            rec = { failures: 0, next: 0, expires: 0, waiting: 0 }
             container.set(key, rec)
+        }
+        // successful attempts may keep the record alive, but must not extend its penalties
+        if (rec.expires <= Date.now()) {
+            rec.failures = 0
+            rec.next = 0
         }
         return rec
     }
@@ -120,6 +124,7 @@ exports.init = api => {
         const max = api.getConfig('max') * 1000
         const delay = Math.min(max, attempts * api.getConfig('increment') * 1000)
         rec.next = Math.max(now, rec.next) + delay
+        rec.expires = now + 24 * HOUR
         return attempts
     }
 
@@ -130,7 +135,7 @@ exports.init = api => {
             if (rec.waiting)
                 return armCleanup(records, key, rec)
             records.delete(key)
-        }, 24 * HOUR) // no memory leak
+        }, 24 * HOUR) // idle memory cleanup, independent of penalty expiry
     }
 
     function runGate(job) {
@@ -173,8 +178,10 @@ exports.init = api => {
             // successful login must clear penalties without dropping admission counters still needed by concurrent requests
             rec.failures = 0
             rec.next = 0
+            rec.expires = 0
             return
         }
+        clearTimeout(rec.timer) // an old timer must not delete a replacement record for the same account
         container.delete(key)
     }
 

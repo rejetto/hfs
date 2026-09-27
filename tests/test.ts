@@ -1,4 +1,5 @@
 import './filename-normalization.test'
+import './antibrute-expiry.test'
 import './path-root.test'
 import './update-changelog.test'
 import './shutdown.test'
