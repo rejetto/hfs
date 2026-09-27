@@ -80,7 +80,6 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
         connect()
 
         function connect() {
-            setError(undefined)
             setLoading(true)
             setConnecting(true)
             setInitializing(true)
@@ -97,6 +96,7 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
                             src.close()
                             return connect()
                         }
+                        setError(undefined)
                         setConnecting(false)
                         return setTimeout(() => apply.flush()) // this trick we'll cause first entries to be rendered almost immediately, while the rest will be subject to normal debouncing
                     case 'error':
