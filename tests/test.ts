@@ -4335,6 +4335,101 @@ describe('after-login', () => {
 })
 
 describe('admin', () => {
+    test('directory cache watches disk while VFS permissions and file access stay live', async () => {
+        const name = `directory-cache-${randomId(6)}`
+        const uri = `/${name}/`
+        const dir = await mkdtemp(join(tmpdir(), name + '-'))
+        const initial = join(dir, 'initial.txt')
+        const watched = join(dir, 'watched.txt')
+        const casedDir = join(dir, 'Docs')
+        const lateParent = await mkdtemp(join(tmpdir(), name + '-late-'))
+        const lateSource = join(lateParent, 'media', 'FILM')
+        const lateName = name + '-late'
+        const lateUri = `/${lateName}/`
+        const adminReq = { auth, jar: {} }
+        const oldConfig = await reqApi('get_config', { only: ['directory_cache'] }, 200, adminReq)()
+        await writeFile(initial, 'before')
+        if (process.platform === 'win32') {
+            await mkdir(casedDir)
+            await writeFile(join(casedDir, 'initial.txt'), 'before')
+        }
+        try {
+            await reqApi('set_config', { values: { directory_cache: 0 } }, 200, adminReq)()
+            await mkdir(lateSource, { recursive: true })
+            await writeFile(join(lateSource, 'mounted.txt'), 'mounted')
+            await reqApi('add_vfs', { source: lateSource, name: lateName, can_list: true }, 200, adminReq)()
+            await rm(join(lateParent, 'media'), { recursive: true, force: true })
+            await reqApi('set_config', { values: { directory_cache: -1 } }, 200, adminReq)()
+            const baseline = await waitFor(async () => {
+                const status = await reqApi('get_directory_cache_status', {}, 200, adminReq)()
+                return status.enabled && status.directories || undefined
+            }, { timeout: 5000 })
+            if (!baseline)
+                throw Error('directory cache did not start')
+            await reqList('/', { outList: [lateName + '/'] }, { search: lateName }, { jar: {} })()
+            await reqApi('add_vfs', { source: dir, name, can_list: ['admins'], can_upload: ['admins'], can_delete: ['admins'] }, 200, adminReq)()
+            if (!await waitFor(async () => {
+                const status = await reqApi('get_directory_cache_status', {}, 200, adminReq)()
+                return status.directories > baseline
+            }, { timeout: 5000 }))
+                throw Error('directory cache did not scan the added VFS source')
+
+            await reqList(uri, 401, undefined, { jar: {} })()
+            await reqApi('set_vfs', { uri, props: { can_list: true } }, 200, adminReq)()
+            await reqList(uri, { inList: ['initial.txt'] }, undefined, { jar: {} })()
+            const cached = await reqApi('get_file_list', { uri, search: 'initial' }, 200, { jar: {} })()
+            const uncached = await reqApi('get_file_list', { uri, search: 'initial', cache: 'no' }, 200, { jar: {} })()
+            if (!_.isEqual(cached, uncached))
+                throw Error('cached and uncached searches differ')
+
+            await writeFile(initial, 'after')
+            await req(uri + 'initial.txt', /^after$/, { jar: {} })()
+
+            await req(uri + 'initial.txt', 207, {
+                method: 'PROPPATCH', auth, jar: {},
+                headers: { 'content-type': 'text/xml', 'user-agent': WEBDAV_UA },
+                body: WEBDAV_PROPPATCH_BODY,
+            })()
+            await req(uri, /Mon, 04 May 2026 10:00:00 GMT/, {
+                method: 'PROPFIND', auth, jar: {}, headers: { depth: '1' },
+            })()
+
+            await writeFile(watched, 'seen through watcher')
+            if (!await waitFor(async () => {
+                const list = await reqApi('get_file_list', { uri }, 200, { jar: {} })()
+                return isInList(list, 'watched.txt')
+            }, { interval: 50, timeout: 5000 }))
+                throw Error('directory cache did not apply a filesystem event')
+
+            await reqApi('create_folder', { uri, name: 'created-through-api' }, 200, adminReq)()
+            await reqList(uri, { inList: ['created-through-api/'] }, undefined, { jar: {} })()
+            await reqApi('mkdir', { path: join(dir, 'created-through-admin-api') }, 200, adminReq)()
+            await reqList(uri, { inList: ['created-through-admin-api/'] }, undefined, { jar: {} })()
+
+            if (process.platform === 'win32') {
+                await reqList(uri + 'Docs/', { inList: ['initial.txt'] }, undefined, { jar: {} })()
+                await reqApi('create_folder', { uri: uri + 'docs/', name: 'created-with-other-case' }, 200, adminReq)()
+                await reqList(uri + 'Docs/', { inList: ['created-with-other-case/'] }, undefined, { jar: {} })()
+            }
+
+            await wait(500) // the source must appear after its initial cache attempt
+            const beforeMount = await reqApi('get_directory_cache_status', {}, 200, adminReq)()
+            await mkdir(lateSource, { recursive: true })
+            await writeFile(join(lateSource, 'mounted.txt'), 'mounted')
+            if (!await waitFor(async () => {
+                const status = await reqApi('get_directory_cache_status', {}, 200, adminReq)()
+                return status.directories > beforeMount.directories
+            }, { timeout: 5000 }))
+                throw Error('directory cache did not detect an appearing source')
+            await reqList(lateUri, { inList: ['mounted.txt'] }, undefined, { jar: {} })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [uri, lateUri] }, 200, adminReq)().catch(() => {})
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)().catch(() => {})
+            await reqApi('get_directory_cache_status', {}, 200, adminReq)().catch(() => {})
+            await Promise.all([dir, lateParent].map(path => rm(path, { recursive: true, force: true })))
+        }
+    })
     test('folder size avoids symlink cycles', { skip: process.platform === 'win32' }, async () => {
         const root = await mkdtemp(resolve(UPLOAD_DISK_ROOT, 'walk-cycle-'))
         try {

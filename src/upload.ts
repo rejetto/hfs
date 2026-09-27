@@ -25,6 +25,7 @@ import { deleteUploadOwner, isUnfinishedUploadOwner, setUploadOwner } from './up
 import { isWebdavLocked } from './webdav'
 import { ctxAdminAccess } from './adminApis'
 import { renameWithFileAttr } from './fileAttr'
+import { invalidateDirectoryCache } from './directoryCache'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>(CFG.delete_unfinished_uploads_after, 86_400)
 export const minAvailableMb = defineConfig(CFG.min_available_mb, 100)
@@ -73,8 +74,9 @@ export function saveUploadMeta(path: string, meta: UploadMeta) {
     return storeFileAttr(path, ATTR_UPLOADER, meta)
 }
 
-export function publishUpload(temp: string, target: string, meta: UploadMeta) {
-    return renameWithFileAttr(temp, target, ATTR_UPLOADER, meta)
+export async function publishUpload(temp: string, target: string, meta: UploadMeta) {
+    await renameWithFileAttr(temp, target, ATTR_UPLOADER, meta)
+    invalidateDirectoryCache(temp, target)
 }
 
 export async function setUploadApproved(path: string, approved: boolean) {

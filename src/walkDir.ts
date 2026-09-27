@@ -9,25 +9,31 @@ import _ from 'lodash'
 import { Context } from 'koa'
 import fswin from 'fswin'
 import { isDirectory, statWithTimeout } from './util-files'
+import { getCachedDirectory } from './directoryCache'
 
 interface DirStreamEntry extends Dirent {
     closingBranch?: Promise<string>
     stats?: Stats
+    hidden?: boolean
+    isLink?: boolean
 }
 
 const dirQ = makeQ(3)
 
 // cb returns void = just go on, null = stop, false = go on but don't recur (in case of depth)
-export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRecursion = false, ctx }: {
+export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRecursion = false, ctx, useCache = false, diskOnly = false }: {
     depth?: number,
     hidden?: boolean,
     parallelizeRecursion?: boolean,
-    ctx?: Context
+    ctx?: Context,
+    useCache?: boolean,
+    diskOnly?: boolean,
 }, cb: (e: DirStreamEntry) => Promisable<void | null | false>) {
     let stopped = false
     const closingQ: string[] = []
+    const rootCached = useCache && getCachedDirectory(path)
     return new Promise(async (resolve, reject) => {
-        if (!await isDirectory(path))
+        if (!rootCached && !await isDirectory(path))
             return reject(Error('ENOTDIR'))
         dirQ.add(() => readDir('', depth, [path])
             .then(res => { // don't make the job await for it, but use it to know it's over
@@ -43,11 +49,19 @@ export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRec
         let n = 0
         let last: DirStreamEntry | undefined
 
-        const res = (await events.emitAsync('listDiskFolder', { path: base, ctx, hidden }))?.[0] // consider only first result
+        const res = !diskOnly && (await events.emitAsync('listDiskFolder', { path: base, ctx, hidden }))?.[0] // consider only first result
         const pluginReceiver = _.isFunction(res) && res || null
         const pluginIterator = _.isFunction(res?.[Symbol.asyncIterator] || res?.[Symbol.iterator]) && res as Dir
+        const cached = useCache && !pluginIterator && (relativePath ? getCachedDirectory(base) : rootCached)
 
-        if (IS_WINDOWS && !pluginIterator) { // use native apis to read the 'hidden' attribute
+        if (cached) {
+            for (const entry of cached) {
+                if (stopped) break
+                if (!hidden && entry.hidden) continue
+                await work(entry, entry.isLink)
+            }
+        }
+        else if (IS_WINDOWS && !pluginIterator && !diskOnly) { // use native apis to read the 'hidden' attribute
             // fswin callbacks cannot await, so track their work before closing the branch
             const entriesWorking: Promise<unknown>[] = []
             const direntMethods = {
@@ -67,6 +81,7 @@ export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRec
                 entriesWorking.push(work(Object.assign(Object.create(direntMethods), {
                     isDir: f.IS_DIRECTORY,
                     name: f.LONG_NAME,
+                    hidden: f.IS_HIDDEN,
                     stats: {
                         size: f.SIZE,
                         birthtime: f.CREATION_TIME, birthtimeMs: f.CREATION_TIME.getTime(),
@@ -90,6 +105,16 @@ export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRec
             const expanded: DirStreamEntry = entry
             if (stats)
                 expanded.stats = stats
+            if (IS_WINDOWS && diskOnly) {
+                // cache snapshots need opendir's read errors; fswin.find cannot distinguish failure from an empty result
+                const attributes = await new Promise<fswin.Attributes | null>(resolve => {
+                    if (!fswin.getAttributes(join(base, entry.name), attributes => resolve(attributes || null)))
+                        resolve(null)
+                })
+                if (!attributes)
+                    throw Error("Could not read file attributes: " + join(base, entry.name))
+                expanded.hidden = attributes.IS_HIDDEN
+            }
             await work(expanded, isSymlink)
         }
         pluginReceiver?.(!stopped)
@@ -102,6 +127,8 @@ export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRec
         return { branchDone, n }
 
         async function work(entry: DirStreamEntry, isSymlink=false) {
+            entry.isLink = isSymlink
+            entry.hidden ??= !IS_WINDOWS && entry.name.startsWith('.')
             entry.path = (relativePath && relativePath + '/') + entry.name
             pluginReceiver?.(entry)
             if (last && closingQ.length) // pending entries
