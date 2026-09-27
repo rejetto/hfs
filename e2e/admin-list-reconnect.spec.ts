@@ -42,9 +42,13 @@ test('list retries preserve complete snapshots only within their window', async 
         await message([['+', { id: 'saved' }], ['ready']])
         await expect(page.getByTestId('list')).toContainText('saved')
         await disconnect()
+        await expect(page.getByTestId('error')).toHaveText('Connection error')
         await page.clock.runFor(windowMs === 1000 ? 500 : 1000)
+        await expect(page.getByTestId('error')).toHaveText('Connection error')
         expect(await skipInitial(), cmd).toBe(windowMs ? 'true' : null)
         await expect(page.getByTestId('list')).toHaveText(windowMs ? '[{"id":"saved"}]' : '[]')
+        await page.evaluate(() => window.sources.at(-1)!.onopen?.())
+        await expect(page.getByTestId('error')).toBeEmpty()
         if (!windowMs) continue
         // repeated failures cannot restart the timeout
         await disconnect()
