@@ -141,6 +141,37 @@ describe('basics', () => {
             'x-hfs-anti-csrf': '1',
             host: 'proxy.example',
         } }))
+    test('blocked IP is rejected before credential side effects', async () => {
+        const adminReq = { auth, jar: {} }
+        const user = `blocked-login-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const blockedIp = '198.51.100.19'
+        const old = await reqApi('get_config', { only: ['block', 'proxies'] }, 200, adminReq)()
+        const loginReq = {
+            auth: `${user}:${pass}`,
+            headers: { 'x-forwarded-for': blockedIp, 'x-hfs-anti-csrf': '1' },
+            jar: {},
+        }
+        try {
+            await reqApi('add_account', { username: user, password: pass, days_to_live: 1 }, 200, adminReq)()
+            await reqApi('set_config', { values: {
+                proxies: 1,
+                block: [...old.block, { ip: blockedIp }],
+            } }, 200, adminReq)()
+            await httpWithBody(`${BASE_URL}${API}refresh_session`, loginReq)
+                .then(() => { throw Error('blocked login was not disconnected') }, e => {
+                    if (e.code !== 'ECONNRESET') throw e
+                })
+            await reqApi('get_account', { username: user }, res => !res.expire, adminReq)()
+            await reqApi('set_config', { values: { block: old.block } }, 200, adminReq)()
+            await reqApi('refresh_session', {}, res => res.username === user, loginReq)()
+            await reqApi('get_account', { username: user }, res => Boolean(res.expire), adminReq)()
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
     test('loopback address classification rejects IPv6 suffixes', () => {
         if (!isIpLocalHost('127.0.0.1') || !isIpLocalHost('::ffff:127.0.0.1')
         || isIpLocalHost('2001:db8::127.0.0.1'))

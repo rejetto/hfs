@@ -10,7 +10,7 @@ import { frontEndApis } from './frontEndApis'
 import { logMw } from './log'
 import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
-import { headRequests, gzipper, someSecurity, prepareState, paramsDecoder, sessionMiddleware } from './middlewares'
+import { blockFilter, headRequests, gzipper, someSecurity, prepareConnection, prepareState, paramsDecoder, sessionMiddleware } from './middlewares'
 import { serveSharedFiles, guiFilesMiddleware } from './serveGuiAndSharedFiles'
 import { webdav } from './webdav'
 import './listen'
@@ -45,8 +45,10 @@ export const app = new Koa({ keys })
 app.use(sessionMiddleware)
     .use(selfCheckMiddleware)
     .use(acmeMiddleware)
-    .use(prepareState)
+    .use(prepareConnection)
+    .use(blockFilter) // denied clients must not reach credential verification or its session/account side effects
     .use(geoFilter)
+    .use(prepareState)
     .use(trackIpsMw)
     .use(gzipper)
     .use(paramsDecoder) // must be done before plugins, so they can manipulate params

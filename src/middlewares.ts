@@ -54,8 +54,6 @@ export let cloudflareDetected: undefined | Date
 export const someSecurity: Koa.Middleware = (ctx, next) => {
     enforceSessionIp(ctx)
 
-    if (!ctx.state.skipFilters && applyBlock(ctx.socket, ctx.ip))
-        return
     const decodedPath = try_(() => decodeURI(ctx.path))
     if (!decodedPath || hasDirTraversal(decodedPath))
         return
@@ -71,6 +69,17 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
     }
     return next()
 }
+
+export const prepareConnection: Koa.Middleware = (ctx, next) => {
+    // normalize once so auth, filters and logging agree on the same client address
+    ctx.request.ip = normalizeIp(ctx.ip)
+    ctx.state.connection = socket2connection(ctx.socket)!
+    updateConnectionForCtx(ctx)
+    return next()
+}
+
+export const blockFilter: Koa.Middleware = (ctx, next) =>
+    !ctx.state.skipFilters && applyBlock(ctx.socket, ctx.ip) || next()
 
 function enforceSessionIp(ctx: Koa.Context) {
     const s = ctx.session
@@ -91,8 +100,6 @@ export function getProxyDetected() {
 }
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {
-    // normalize once so auth, filters and logging agree on the same client address
-    ctx.request.ip = normalizeIp(ctx.ip)
     // invalidate before account resolution; someSecurity calls again to bind logins made below
     enforceSessionIp(ctx)
     // rootsMiddleware consults proxy-aware admin access before someSecurity runs
@@ -114,8 +121,6 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
             delete s.username
         s.maxAge = sessionDuration.compiled()
     }
-    // calculate these once and for all
-    ctx.state.connection = socket2connection(ctx.socket)!
     // explicit credentials and existing sessions must take precedence, so a matching IP cannot override a chosen account
     let via: 'url' | 'header' | 'net' | undefined
     let a = await urlLogin() || await getHttpAccount() || !s?.username && autoLogin()
@@ -139,7 +144,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
         }
 
     ctx.state.revProxyPath = ctx.get('x-forwarded-prefix')
-    updateConnectionForCtx(ctx)
+    updateConnectionForCtx(ctx) // publish the resolved account after the initial pre-auth connection update
     await next()
 
     function urlLogin() {
