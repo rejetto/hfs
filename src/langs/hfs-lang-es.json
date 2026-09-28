@@ -1,7 +1,6 @@
 {
     "author": "Eidy Estupiñan Varona, Arturo Fernández Rivas",
     "version": 1.3,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Seleccionar",
         "n_files": "{n,plural,one{# archivo} other {# archivos}}",

@@ -1,7 +1,6 @@
 {
     "author": "cbr00t",
     "version": 1.0,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Seç",
         "n_files": "{n,plural,one{# dosya} other{# dosya}}",

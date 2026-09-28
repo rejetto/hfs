@@ -1,7 +1,6 @@
 { 
     "author": "Горан", 
     "version": 1.6,
-    "hfs_version": "0.57.5",
     "translate": { 
         "Select": "Изабери", 
         "n_files": "{n,plural, one {# документ} other{# документа}}", 

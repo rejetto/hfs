@@ -1,7 +1,6 @@
 {
     "author": "Kuruton8",
     "version": 1.1,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "選択",
         "n_files": "{n,plural,one{# ファイル} other{# ファイル}}",

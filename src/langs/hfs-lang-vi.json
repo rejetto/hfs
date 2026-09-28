@@ -2,7 +2,6 @@
     "_comment_": "This is Vietnamese translation for HFS (Đây là file ngôn ngữ tiếng việt của HFS)",
     "author": "thenoppy12 (Nguyễn Văn Ngu)",
     "version": 3.1,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Chọn",
         "n_files": "{n,plural,one{# tập tin} other{# tập tin}}",

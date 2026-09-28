@@ -7,7 +7,7 @@ import { defineConfig } from './config'
 import { expiringCache } from './expiringCache'
 import ADMIN_TRANSLATIONS from './admin-langs/embedded'
 import { EMBEDDED_LANGUAGE } from './const'
-import { code2file, file2code, normalizeLangCode } from './lang'
+import { code2file, file2code, langCodeForLookup, normalizeLangCode } from './lang'
 import glob from 'fast-glob'
 import _ from 'lodash'
 
@@ -17,7 +17,7 @@ export async function getAdminLangs() {
         .filter(code => normalizeLangCode(code) === code)])
 }
 
-export const adminLang = defineConfig(CFG.admin_lang, '', normalizeLangCode)
+export const adminLang = defineConfig(CFG.admin_lang, '', v => langCodeForLookup(normalizeLangCode(v)))
 
 const cache = expiringCache<Dict>(3_000)
 export function getAdminLangData(ctx: Koa.Context, langs: string[]) {
@@ -37,10 +37,12 @@ export function invalidateAdminLang(code: string) {
 function browserAdminLang(ctx: Koa.Context | undefined, langs: string[]) {
     const accepted = ctx?.get('Accept-Language') || ''
     for (const raw of accepted.split(',')) {
-        const code = normalizeLangCode(raw)
-        if (langs.includes(code)) return code
-        const base = code.split('-')[0] || ''
-        if (langs.includes(base)) return base
+        let code = normalizeLangCode(raw)
+        while (code) {
+            const candidate = langCodeForLookup(code)
+            if (langs.includes(candidate)) return candidate
+            code = code.substring(0, code.lastIndexOf('-'))
+        }
     }
     return EMBEDDED_LANGUAGE
 }

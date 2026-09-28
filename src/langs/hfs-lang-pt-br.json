@@ -1,7 +1,6 @@
 {
     "author": "OgamiWK",
     "version": 1.2,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Selecionar",
         "n_files": "{n,plural,one{# Arquivo} other{# Arquivos}}",

@@ -7,7 +7,7 @@ import sr from './hfs-lang-sr.json'
 import sr_latn from './hfs-lang-sr-latn.json'
 import ko from './hfs-lang-ko.json'
 import ms from './hfs-lang-ms.json'
-import zh_tw from './hfs-lang-zh-tw.json'
+import zh_hant from './hfs-lang-zh-hant.json'
 import fr from './hfs-lang-fr.json'
 import pl from './hfs-lang-pl.json'
 import pt_br from './hfs-lang-pt-br.json'
@@ -26,4 +26,4 @@ import ar from './hfs-lang-ar.json'
 import lt from './hfs-lang-lt.json'
 import bg from './hfs-lang-bg.json'
 
-export default { en, it, zh, ru, sr, 'sr-latn': sr_latn, ko, ms, 'zh-tw': zh_tw, fr, pl, 'pt-br': pt_br, vi, es, nl, el, de, fi, hu, ja, ro, tr, th, uk, ar, lt, bg }
+export default { en, it, zh, ru, sr, 'sr-latn': sr_latn, ko, ms, 'zh-hant': zh_hant, fr, pl, 'pt-br': pt_br, vi, es, nl, el, de, fi, hu, ja, ro, tr, th, uk, ar, lt, bg }

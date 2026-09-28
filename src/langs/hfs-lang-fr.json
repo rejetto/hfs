@@ -1,7 +1,6 @@
 {	
 	"author":	"Club Microtel Vernon",
 	"version":	"1.5",
-	"hfs_version":	"0.56.0",
 	"translate": {
 		"Select": "Selectionner",
 		"n_files": "{n,plural, one{# fichier} other{# fichiers}}",

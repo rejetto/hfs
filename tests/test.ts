@@ -121,6 +121,24 @@ describe('http utilities', () => {
 })
 
 describe('languages', () => {
+    test('language aliases and subtags select closest catalog', async () => {
+        const adminReq = { auth, jar: {} }
+        try {
+            await req('/', /\"zh-hant\": \{/, {
+                headers: { 'accept-language': 'zh-TW', 'user-agent': 'Mozilla/5.0' }, jar: {}
+            })()
+            await req('/~/admin/', /\"sr-latn\": \{/, {
+                headers: { 'accept-language': 'sr-Latn-RS', 'user-agent': 'Mozilla/5.0' }, jar: {}
+            })()
+            await reqApi('set_config', { values: { force_lang: 'zh-tw' } }, 200, adminReq)()
+            await req('/', /\"zh-hant\": \{/, {
+                headers: { 'accept-language': 'en', 'user-agent': 'Mozilla/5.0' }, jar: {}
+            })()
+        }
+        finally {
+            await reqApi('set_config', { values: { force_lang: '' } }, 200, adminReq)()
+        }
+    })
     test('uploaded admin languages support selection, replacement and isolated deletion', async () => {
         const code = `zz-${randomId(6).toLowerCase()}`
         const adminReq = { auth, jar: {} }

@@ -1,7 +1,6 @@
 {
     "author": "<0x1g3n>",
     "version": 1.0,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Selectează",
         "n_files": "{n,plural,one{# fișier} other{# fișiere}}",

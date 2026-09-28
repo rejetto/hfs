@@ -1,7 +1,6 @@
 {
     "author": "killersolyom",
     "version": 0.6,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Kiválasztás",
         "n_files": "{n,többes szám,egy{# file} egyéb{# file}}",

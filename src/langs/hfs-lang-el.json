@@ -1,7 +1,6 @@
 {
     "author": "Konstantinos (konmaz)",
     "version": 1.0,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Επιλογή",
         "n_files": "{n,plural,one{# αρχείο} other{# αρχεία}}",

@@ -17,6 +17,10 @@ export function normalizeLangCode(code: string) {
     return /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/.test(code) ? code : ''
 }
 
+export function langCodeForLookup(code: string) {
+    return ['zh-tw', 'zh-hk', 'zh-mo'].includes(code) ? 'zh-hant' : code
+}
+
 export function code2file(code: string, admin=false) {
     return (admin ? 'hfs-admin-lang-' : 'hfs-lang-') + code.toLowerCase() + SUFFIX
 }
@@ -36,7 +40,7 @@ export async function getLangData(ctxOrLangCsv: Koa.Context | string) {
     }
     const csv = ctxOrLangCsv.toLowerCase()
     return cache.try(csv, async () => {
-        const langs = csv.split(',').map(normalizeLangCode).filter(Boolean)
+        const langs = csv.split(',').map(normalizeLangCode).map(langCodeForLookup).filter(Boolean)
         if (!langs.includes(EMBEDDED_LANGUAGE))
             langs.push(EMBEDDED_LANGUAGE)
         const ret: Dict = {}
@@ -72,6 +76,7 @@ export async function getLangData(ctxOrLangCsv: Koa.Context | string) {
 let forceLangData: any
 let undo: any
 defineConfig(CFG.force_lang, '', v => {
+    v = langCodeForLookup(v)
     undo?.()
     if (!v)
         return forceLangData = undefined

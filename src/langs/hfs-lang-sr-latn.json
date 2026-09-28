@@ -1,7 +1,6 @@
 {
     "author": "ByteAfterlife",
     "version": 1.0,
-    "hfs_version": "3.0.0",
     "translate": {
         "Select": "Izaberi",
         "n_files": "{n,plural,one{# datoteka} other{# datoteke}}",

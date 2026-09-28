@@ -1,7 +1,6 @@
 {
     "author": "Hussein M. Alghazal (hmg3099)",
     "version": 1.0,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "اختر",
         "n_files": "{n,plural,one{# file} other{# files}}",

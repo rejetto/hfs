@@ -1,7 +1,6 @@
 {
     "author": "Uwe Wennmann",
     "version": 0.1,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Auswählen",
         "n_files": "{n,plural,one{# Datei} other{# Dateien}}",

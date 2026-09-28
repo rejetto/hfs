@@ -1,7 +1,6 @@
 {
     "author": "Mantas Veselis - www.helgi.online",
     "version": 1.0,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Pasirinkti",
         "n_files": "{n,plural,one{# failas} few{# failai} other{# failų}}",

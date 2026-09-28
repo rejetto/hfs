@@ -1,7 +1,6 @@
 {
     "author": "H.F.P. Pit - PH5HP",
     "version": 1.0,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Selecteer",
         "n_files": "{n,plural,one{# bestand} other{# bestanden}}",
