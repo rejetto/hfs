@@ -107,6 +107,11 @@ export async function isSameFilePath(a: string, b: string) {
     if (normalizeFilename(resolve(a)) === normalizeFilename(resolve(b)))
         return true
     try {
+        if (IS_WINDOWS) { // pkg's realpath preserves 8.3 names; expanding them here also preserves junction identity
+            const [longA, longB] = await Promise.all([convertWindowsPath(a, true), convertWindowsPath(b, true)])
+            if (longA && longB && normalizeFilename(resolve(longA)) === normalizeFilename(resolve(longB)))
+                return true
+        }
         const stats = await Promise.all([fs.lstat(a), fs.lstat(b)])
         if (stats.some(x => x.isSymbolicLink()))
             return false

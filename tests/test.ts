@@ -3715,7 +3715,40 @@ describe('admin', () => {
             await reqApi('del_vfs', { uris: ['/'+name] }, data => data?.errors?.[0] === 0, { auth })() // remove
         }
     })
-    test('windows short names preserve VFS permissions', { skip: process.platform !== 'win32' }, async t => {
+    for (const useJunction of [false, true])
+    test('windows subfolders remain browsable' + (useJunction ? ' through junction' : ''), { skip: process.platform !== 'win32' }, async t => {
+        const root = await mkdtemp(join(tmpdir(), 'hfs-junction-'))
+        const target = join(root, 'Administrator', 'Music')
+        const folder = useJunction ? join(root, 'Music Junction') : target
+        const name = `junction-${randomId(6)}`
+        try {
+            for (const album of ['Album One', 'Album Two']) {
+                await mkdir(join(target, album), { recursive: true })
+                await writeFile(join(target, album, 'track.txt'), 'music')
+            }
+            if (useJunction)
+                await symlink(target, folder, 'junction')
+            const short = fswin.convertPathSync(folder)
+            if (!short || short === folder)
+                return t.skip('volume does not provide an 8.3 alias')
+            for (const source of [folder, short]) {
+                await reqApi('add_vfs', { source, name }, 200, { auth })()
+                await reqList(`/${name}/`, { inList: ['Album One/', 'Album Two/'] })()
+                for (const album of ['Album One', 'Album Two']) {
+                    const uri = `/${name}/${pathEncode(album)}/`
+                    await reqList(uri, { inList: ['track.txt'] })()
+                    await req(uri + 'track.txt', /music/)()
+                }
+                await reqApi('del_vfs', { uris: [`/${name}/`] }, 200, { auth })()
+            }
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [`/${name}/`] }, 200, { auth })().catch(() => {})
+            await rmAny(root)
+        }
+    })
+    for (const junction of [false, true])
+    test('windows short names preserve VFS permissions' + (junction ? ' through junction' : ''), { skip: process.platform !== 'win32' }, async t => {
         const parentName = `short-name-${randomId(6)}`
         const childName = `Very Secret Directory ${randomId(6)}`
         const virtualName = `Private ${randomId(6)}`
@@ -3724,7 +3757,13 @@ describe('admin', () => {
         const renamedName = `Renamed Secret ${randomId(6)}`
         const renamedDisplay = `Private ${randomId(6)}`
         const parentUri = `/${parentName}/`
-        const parentPath = resolve(tmpdir(), parentName)
+        const root = resolve(tmpdir(), parentName)
+        const parentPath = junction ? join(root, 'Music Junction') : root
+        if (junction) {
+            const target = join(root, 'Music Storage')
+            await mkdir(target, { recursive: true })
+            await symlink(target, parentPath, 'junction')
+        }
         const childPath = join(parentPath, childName)
         const collisionPath = join(parentPath, collisionName)
         const publicPath = join(parentPath, publicName)
@@ -3779,7 +3818,7 @@ describe('admin', () => {
         }
         finally {
             await reqApi('del_vfs', { uris: [parentUri] }, 200, { auth })().catch(() => {})
-            await rmAny(parentPath)
+            await rmAny(root)
         }
     })
     test('add_vfs source without name', async () => {
