@@ -246,10 +246,15 @@ export async function getNodeByName(name: string, parent: VfsNodeWithPath, assum
         ret.source = join(parent.source, onDisk)
         ret.original = undefined // this will overwrite the 'original' set in applyParentToChild, so we know this is not part of the vfs
         await setIsFolder(ret)
+        if (ret.isFolder === false && isCommentsFileName(onDisk)) return // implicit comment storage contains metadata for files the requester may not be allowed to see
         if (assumeMissingToBeFolder)
             ret.isFolder ??= true
         return ret
     }
+}
+
+function isCommentsFileName(name: string) {
+    return usingDescriptIon() && [DESCRIPT_ION, DESCRIPT_ION_ALT].some(isSameFilenameAs(name))
 }
 
 const smartUncFolderDetection = defineConfig(CFG.smart_unc_folder_detection, false)
@@ -476,10 +481,10 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                     await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion }, async entry => {
                         if (ctx?.isAborted())
                             return null
-                        if (usingDescriptIon() && (entry.name === DESCRIPT_ION || entry.name === DESCRIPT_ION_ALT))
-                            return
                         const {path} = entry // this path is not the original deprecated property: we are overwriting/reusing it
                         const isFolder = entry.isDirectory()
+                        if (!isFolder && isCommentsFileName(entry.name))
+                            return
                         const parentPath = dirname(path) === '.' ? '' : dirname(path)
                         const evaluatedParent = diskFolders.get(parentPath)
                         if (!evaluatedParent) return false

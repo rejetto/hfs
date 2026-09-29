@@ -411,6 +411,67 @@ describe('basics', () => {
             await rm(dir, { recursive: true, force: true })
         }
     })
+    test('descript.ion is private unless explicitly shared', async () => {
+        const name = `comments-${randomId(6)}`
+        const source = resolve(__dirname, 'tmp', name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['comments_storage'] }, 200, adminReq)()
+        await mkdir(source, { recursive: true })
+        await writeFile(join(source, 'visible.txt'), 'public')
+        await writeFile(join(source, 'secret.txt'), 'private')
+        await writeFile(join(source, 'descript.ion'), 'visible.txt public note\nsecret.txt confidential note\n')
+        try {
+            await reqApi('set_config', { values: { comments_storage: '' } }, 200, adminReq)()
+            await reqApi('add_vfs', { name, source, masks: { 'secret.txt': { can_see: false, can_read: false } } }, 200, adminReq)()
+            await reqList(uri, res => res?.list?.length === 1 && res.list[0].comment === 'public note')()
+            for (const file of ['descript.ion', 'DESCRIPT.ION', 'DeScRiPt.IoN', '%64escript.ion'])
+                await req(uri + file, 404, { jar: {} })()
+            await req(uri + 'descript.ion', 404, { jar: {}, method: 'HEAD' })()
+            await req(uri + 'descript.ion', 404, { ...adminReq, method: 'PROPFIND', headers: { depth: '0' } })()
+            for (const query of ['?get=zip', '?get=zip&list=descript.ion']) {
+                const path = uri + query
+                const { body } = await httpWithBody(BASE_URL + path, { path, jar: {} })
+                const files = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+                if (files.includes('descript.ion')) throw Error('comment storage included in ZIP')
+            }
+            await reqApi('set_vfs', { uri, props: { rename: { 'descript.ion': 'notes.txt' } } }, 200, adminReq)()
+            await req(uri + 'notes.txt', 404, { jar: {} })()
+            await reqApi('add_vfs', { parent: uri, name: 'published.txt', source: join(source, 'descript.ion') }, 200, adminReq)()
+            await req(uri + 'published.txt', /confidential note/, { jar: {} })()
+            await reqApi('set_config', { values: { comments_storage: 'attr+ion' } }, 200, adminReq)()
+            await req(uri + 'notes.txt', 404, { jar: {} })()
+            await reqApi('set_config', { values: { comments_storage: 'attr' } }, 200, adminReq)()
+            await req(uri + 'notes.txt', /confidential note/, { jar: {} })()
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)()
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)()
+            await rmAny(source)
+        }
+    })
+    test('a folder named descript.ion remains browsable and archivable', async () => {
+        const name = `comments-folder-${randomId(6)}`
+        const source = resolve(__dirname, 'tmp', name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        await mkdir(join(source, 'descript.ion'), { recursive: true })
+        await writeFile(join(source, 'descript.ion', 'visible.txt'), 'public content')
+        try {
+            await reqApi('add_vfs', { name, source }, 200, adminReq)()
+            await req(uri + 'descript.ion/visible.txt', /public content/, { jar: {} })()
+            await reqList(uri, { inList: ['descript.ion/'] })()
+            await reqList(uri + 'descript.ion/', { inList: ['visible.txt'] })()
+            const path = uri + '?get=zip'
+            const { body } = await httpWithBody(BASE_URL + path, { path, jar: {} })
+            const files = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+            if (!files.includes('descript.ion/visible.txt')) throw Error('folder contents missing from ZIP')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)()
+            await rmAny(source)
+        }
+    })
     test('not-found.default page', req('/missing-default-404', /found<\/h1>/))
     test('not-found.custom page overrides default', () =>
         withCustomHtml({ 404: '<strong>custom 404 $MESSAGE</strong>' }, () =>
@@ -2162,7 +2223,7 @@ describe('after-login', () => {
         try {
             await reqApi('add_vfs', { source: dir, name, can_delete: true,
                 masks: { 'tree/restricted/descript.ion': { can_delete: false } } }, 200, adminReq)()
-            await req(uri + 'tree/', { status: 403, re: /restricted\/descript\.ion/ }, { method: 'delete', ...adminReq })()
+            await req(uri + 'tree/', { status: 403, cb: res => res.uri === uri + 'tree/restricted' }, { method: 'delete', ...adminReq })()
             if (!existsSync(resolve(dir, 'tree/safe/ok.txt')))
                 throw Error('preflight deleted an authorized sibling')
             await reqApi('rename', { uri: uri + 'tree/', dest: 'renamed' }, 200, adminReq)()
