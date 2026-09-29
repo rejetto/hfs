@@ -851,6 +851,8 @@
         "Show more": "Mehr anzeigen",
         "Show tree": "Baum anzeigen",
         "Show uploader to": "Uploader anzeigen für",
+        "Treat as interface asset": "Als Oberflächenressource behandeln",
+        "Excluded from download limits; logged only when interface logging is enabled": "Von Download-Limits ausgenommen; wird nur bei aktivierter Oberflächenprotokollierung protokolliert",
         "Show without probing disk source": "Ohne Prüfung der Festplattenquelle anzeigen",
         "since_timestamp": "Seit: {timestamp}",
         "size": "Größe",

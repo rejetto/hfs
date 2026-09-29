@@ -117,6 +117,8 @@
         "Timestamp": "タイムスタンプ",
         "Show": "表示",
         "Loading failed": "読み込みに失敗",
+        "Download limit reached": "ダウンロード数の上限に達しました",
+        "Retry": "再試行",
         "Rename": "名前の編集",
         "Tiles mode:": "タイルモード:",
         "off": "オフ",

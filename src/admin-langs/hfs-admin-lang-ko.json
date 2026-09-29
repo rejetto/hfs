@@ -851,6 +851,8 @@
         "Show more": "더 보기",
         "Show tree": "트리 표시",
         "Show uploader to": "업로더 표시 대상:",
+        "Treat as interface asset": "인터페이스 자산으로 처리",
+        "Excluded from download limits; logged only when interface logging is enabled": "다운로드 제한에서 제외되며 인터페이스 로깅이 활성화된 경우에만 기록됩니다",
         "Show without probing disk source": "디스크 소스를 조사하지 않고 표시",
         "since_timestamp": "이후: {timestamp}",
         "size": "크기",

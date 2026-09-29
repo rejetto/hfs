@@ -111,6 +111,8 @@
         "Timestamp": "修改時間",
         "Show": "顯示",
         "Loading failed": "載入失敗",
+        "Download limit reached": "已達下載數量上限",
+        "Retry": "重試",
         "Rename": "重新命名",
         "Tiles mode:": "磚塊模式：",
         "off": "關閉",

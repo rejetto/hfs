@@ -117,6 +117,8 @@
 		"Timestamp": "Horodatage",
 		"Show": "Afficher",
 		"Loading failed": "Le chargement a échoué",
+		"Download limit reached": "Limite de téléchargements atteinte",
+		"Retry": "Réessayer",
 		"Rename": "Renommer",
 		"Tiles mode:": "Mode tuiles:",
 		"off": "Désactivé",

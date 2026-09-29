@@ -116,6 +116,8 @@
         "Timestamp": "Timestamp",
         "Show": "Laat zien",
         "Loading failed": "Laden mislukt",
+        "Download limit reached": "Downloadlimiet bereikt",
+        "Retry": "Opnieuw proberen",
         "Rename": "Herbenoemen",
         "Tiles mode:": "Tegels mode:",
         "off": "uit",

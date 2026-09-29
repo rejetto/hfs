@@ -24,8 +24,6 @@ const maxDownloads = downloadLimiter(defineConfig(CFG.max_downloads, 0), () => t
 const maxDownloadsPerIp = downloadLimiter(defineConfig(CFG.max_downloads_per_ip, 0), ctx => ctx.ip)
 const maxDownloadsPerAccount = downloadLimiter(defineConfig(CFG.max_downloads_per_account, 0), ctx => getCurrentUsername(ctx) || undefined)
 
-const GUI_ASSET_MIME = /^(image\/|audio\/|video\/|font\/|text\/css$|(?:text|application)\/(?:javascript|ecmascript)$|application\/x-javascript$)/i
-
 function toAsciiEquivalent(s: string) {
     return iconv.encode(iconv.decode(Buffer.from(s), 'utf-8'), 'ascii').toString().replaceAll('?', '')
 }
@@ -63,11 +61,7 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
         if (isUploading(source) || upload && upload.approved !== true)
             return sendErrorPage(ctx, HTTP_FORBIDDEN)
     }
-    const fetchDest = ctx.get('sec-fetch-dest')
-    ctx.state.considerAsGui ??= !download && ctx.get('referer')?.endsWith('/')
-        && (fetchDest ? fetchDest !== 'document' && fetchDest !== 'empty' // modern clients
-            // legacy clients often send Accept: */* for archive downloads, so the served mime is a safer signal than request headers here
-            : GUI_ASSET_MIME.test(effectiveMime))
+    // shared files count even when embedded: client headers cannot grant exemptions from limits or logging
     await serveFile(ctx, source||'', effectiveMime)
 
     await enforceDownloadLimits(ctx)

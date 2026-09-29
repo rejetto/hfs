@@ -116,6 +116,8 @@
         "Timestamp": "Tempo",
         "Show": "Mostrar",
         "Loading failed": "Falha ao carregar",
+        "Download limit reached": "Limite de downloads atingido",
+        "Retry": "Tentar novamente",
         "Rename": "Renomear",
         "Tiles mode:": "Modo ladrilho:",
         "off": "desligado",

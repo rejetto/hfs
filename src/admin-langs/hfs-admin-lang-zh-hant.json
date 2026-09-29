@@ -851,6 +851,8 @@
         "Show more": "顯示更多",
         "Show tree": "顯示樹狀結構",
         "Show uploader to": "向以下對象顯示上傳者",
+        "Treat as interface asset": "視為介面資源",
+        "Excluded from download limits; logged only when interface logging is enabled": "不計入下載限制；僅在啟用介面記錄時寫入日誌",
         "Show without probing disk source": "顯示時不探測磁碟來源",
         "since_timestamp": "自：{timestamp}",
         "size": "大小",

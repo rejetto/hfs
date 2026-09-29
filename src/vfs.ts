@@ -40,6 +40,7 @@ export interface VfsNodeStored extends VfsPerms {
     comment?: string
     icon?: string
     order?: number
+    gui_asset?: boolean
     see_without_probing?: boolean // show this folder in its parent without waking its disk source
 }
 export interface VfsNode extends VfsNodeStored { // include fields that are only filled at run-time
@@ -90,6 +91,7 @@ function inheritFromParent(child: VfsNode) {
         if (parent.mime) child.mime ??= parent.mime
     if (parent.accept) child.accept ??= parent.accept
     if (parent.default) child.default ??= parent.default
+    child.gui_asset ??= parent.gui_asset
     return child
 }
 

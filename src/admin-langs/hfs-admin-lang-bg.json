@@ -851,6 +851,8 @@
         "Show more": "Покажи повече",
         "Show tree": "Покажи дърво",
         "Show uploader to": "Показване на качилия пред",
+        "Treat as interface asset": "Третирай като ресурс на интерфейса",
+        "Excluded from download limits; logged only when interface logging is enabled": "Изключено от ограниченията за изтегляне; записва се само когато е включено регистрирането на интерфейса",
         "Show without probing disk source": "Показване без проверка на източника на диска",
         "since_timestamp": "От: {timestamp}",
         "size": "размер",

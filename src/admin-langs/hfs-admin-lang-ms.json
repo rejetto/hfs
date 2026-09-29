@@ -851,6 +851,8 @@
         "Show more": "Tunjukkan lagi",
         "Show tree": "Tunjukkan pokok",
         "Show uploader to": "Tunjukkan pemuat naik ke",
+        "Treat as interface asset": "Anggap sebagai aset antara muka",
+        "Excluded from download limits; logged only when interface logging is enabled": "Dikecualikan daripada had muat turun; dilog hanya apabila log antara muka didayakan",
         "Show without probing disk source": "Tunjukkan tanpa menyelidik sumber cakera",
         "since_timestamp": "Sejak: {timestamp}",
         "size": "saiz",

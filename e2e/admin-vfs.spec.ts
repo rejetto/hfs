@@ -2,7 +2,7 @@ import { expect, Page, test } from '@playwright/test'
 import { ADMIN_URL, clickAdminMenu, username, password, clickIconBtn } from './common'
 
 async function selectVfsNode(page: Page, name: string, expectedId: string) {
-    await page.getByRole('treeitem', { name, exact: true }).click()
+    await page.getByRole('treeitem', { name, exact: true }).locator('.MuiTreeItem-content').first().click()
     await expect.poll(() => page.evaluate(() => (window as any).state?.selectedFiles?.[0]?.id || ''))
         .toBe(expectedId)
 }
@@ -28,6 +28,54 @@ async function applyVfsForm(page: Page) {
     if (await apply.isVisible())
         await apply.click()
 }
+
+test('GUI asset setting is inherited and can be overridden', async ({ page }) => {
+    await page.goto(ADMIN_URL)
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('textbox', { name: 'Password' }).press('Enter')
+    await clickAdminMenu(page, /Shared files/)
+    await page.getByText('f1', { exact: true }).waitFor({ timeout: 10_000 })
+
+    await selectVfsNode(page, 'f1', '/f1/')
+    const guiAsset = page.getByRole('switch', { name: 'Treat as interface asset' })
+    await guiAsset.check()
+    await applyVfsForm(page)
+    await expect.poll(() => page.evaluate(() => (window as any).state.selectedFiles[0].gui_asset)).toBe(true)
+
+    await expandVfsNode(page, '/f1/')
+    await selectVfsNode(page, 'page', '/f1/page/')
+    await expect(guiAsset).toBeChecked()
+    await guiAsset.uncheck()
+    await applyVfsForm(page)
+    await expect.poll(() => page.evaluate(() => (window as any).state.selectedFiles[0].gui_asset)).toBe(false)
+
+    // restore the fixture through the same inherited transitions used above
+    await guiAsset.check()
+    await applyVfsForm(page)
+    await expect.poll(() => page.evaluate(() => (window as any).state.selectedFiles[0].gui_asset ?? null)).toBe(null)
+
+    await selectVfsNode(page, 'f1', '/f1/')
+    const masks = page.getByRole('textbox', { name: 'Masks' })
+    await masks.fill('page:\n    gui_asset: false')
+    await masks.blur()
+    await expect.poll(() => page.evaluate(() => (window as any).state.selectedFiles[0].masks?.page?.gui_asset)).toBe(false)
+    await clickIconBtn('Save', page)
+    await clickIconBtn('Reload', page)
+    await page.getByText('f1', { exact: true }).waitFor()
+    await expandVfsNode(page, '/f1/')
+    await selectVfsNode(page, 'page', '/f1/page/')
+    await expect(page.getByRole('switch', { name: /Treat as interface asset.*from masks/ })).not.toBeChecked()
+
+    await selectVfsNode(page, 'f1', '/f1/')
+    await masks.fill('')
+    await masks.blur()
+    await expect.poll(() => page.evaluate(() => (window as any).state.selectedFiles[0].masks ?? null)).toBe(null)
+    await guiAsset.uncheck()
+    await applyVfsForm(page)
+    await expect.poll(() => page.evaluate(() => (window as any).state.selectedFiles[0].gui_asset ?? null)).toBe(null)
+    await clickIconBtn('Save', page)
+})
 
 test('move via cut/paste keeps node visible', async ({ page }) => {
     await page.goto(ADMIN_URL)

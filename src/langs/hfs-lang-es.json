@@ -117,6 +117,8 @@
         "Timestamp": "Fecha - Hora",
         "Show": "Visualizar",
         "Loading failed": "Carga fallida",
+        "Download limit reached": "Límite de descargas alcanzado",
+        "Retry": "Reintentar",
         "Rename": "Renombrar",
         "Tiles mode:": "Cantidad elementos",
         "off": "Apagado",

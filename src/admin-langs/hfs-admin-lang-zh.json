@@ -851,6 +851,8 @@
         "Show more": "显示更多",
         "Show tree": "显示树",
         "Show uploader to": "向以下对象显示上传者",
+        "Treat as interface asset": "视为界面资源",
+        "Excluded from download limits; logged only when interface logging is enabled": "不计入下载限制；仅在启用界面日志时记录",
         "Show without probing disk source": "显示时不探测磁盘来源",
         "since_timestamp": "自：{timestamp}",
         "size": "大小",

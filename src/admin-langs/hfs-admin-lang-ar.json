@@ -851,6 +851,8 @@
         "Show more": "عرض المزيد",
         "Show tree": "عرض الشجرة",
         "Show uploader to": "إظهار القائم بالتحميل إلى",
+        "Treat as interface asset": "التعامل كأصل للواجهة",
+        "Excluded from download limits; logged only when interface logging is enabled": "مستثنى من حدود التنزيل؛ يُسجل فقط عند تمكين تسجيل الواجهة",
         "Show without probing disk source": "إظهار دون التحقق من مصدر القرص",
         "since_timestamp": "منذ: {timestamp}",
         "size": "مقاس",

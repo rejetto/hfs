@@ -77,7 +77,7 @@ export type VfsNodeAdminSend = {
     birthtime?: Date
     mtime?: Date
     website?: true
-    byMasks?: VfsPerms
+    byMasks?: VfsPerms & Pick<VfsNodeStored, 'gui_asset'>
     inherited?: VfsPerms
     children?: VfsNodeAdminSend[]
 } & Omit<VfsNodeStored, 'children'>
@@ -85,7 +85,7 @@ export type VfsNodeAdminSend = {
 export const PERM_KEYS = typedKeys(defaultPerms)
 
 export const VFS_STORED_KEYS: (keyof VfsNodeStored)[] = ['name', 'source', 'masks', 'default', 'accept', 'rename',
-    'mime', 'url', 'target', 'comment', 'icon', 'order', 'see_without_probing', 'children', ...PERM_KEYS]
+    'mime', 'url', 'target', 'comment', 'icon', 'order', 'gui_asset', 'see_without_probing', 'children', ...PERM_KEYS]
 
 export function isWhoObject(v: undefined | WhoVfs): v is WhoObject {
     return v !== null && typeof v === 'object' && !Array.isArray(v)

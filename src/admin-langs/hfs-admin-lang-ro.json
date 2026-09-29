@@ -851,6 +851,8 @@
         "Show more": "Arată mai multe",
         "Show tree": "Arată arborele",
         "Show uploader to": "Afișați utilizatorul de încărcare la",
+        "Treat as interface asset": "Tratează ca resursă a interfeței",
+        "Excluded from download limits; logged only when interface logging is enabled": "Exclus din limitele de descărcare; înregistrat doar când jurnalizarea interfeței este activată",
         "Show without probing disk source": "Afișați fără a verifica sursa discului",
         "since_timestamp": "De la: {timestamp}",
         "size": "dimensiune",

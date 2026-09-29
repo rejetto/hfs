@@ -116,6 +116,8 @@
         "Timestamp": "Znacznik czasu",
         "Show": "Pokaż",
         "Loading failed": "Nieudane ładowanie",
+        "Download limit reached": "Osiągnięto limit pobierania",
+        "Retry": "Spróbuj ponownie",
         "Rename": "Zmień nazwę",
         "Tiles mode:": "Tryb kafelków:",
         "off": "wyłączony",

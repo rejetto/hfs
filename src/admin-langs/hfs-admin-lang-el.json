@@ -851,6 +851,8 @@
         "Show more": "Εμφάνιση περισσότερων",
         "Show tree": "Εμφάνιση δέντρου",
         "Show uploader to": "Εμφάνιση του χρήστη που ανέβασε σε",
+        "Treat as interface asset": "Χρήση ως πόρος διεπαφής",
+        "Excluded from download limits; logged only when interface logging is enabled": "Εξαιρείται από τα όρια λήψεων· καταγράφεται μόνο όταν είναι ενεργή η καταγραφή διεπαφής",
         "Show without probing disk source": "Εμφάνιση χωρίς ανίχνευση πηγής δίσκου",
         "since_timestamp": "Από: {timestamp}",
         "size": "μέγεθος",

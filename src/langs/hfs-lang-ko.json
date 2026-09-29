@@ -117,6 +117,8 @@
         "Timestamp": "수정한 날짜",
         "Show": "보기",
         "Loading failed": "불러오기 실패",
+        "Download limit reached": "다운로드 한도에 도달했습니다",
+        "Retry": "다시 시도",
         "Rename": "이름 바꾸기",
         "Tiles mode:": "표시 모드:",
         "off": "꺼짐",

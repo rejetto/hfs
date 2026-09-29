@@ -117,6 +117,8 @@
         "Timestamp": "แสดงเวลา",
         "Show": "แสดง",
         "Loading failed": "การโหลดล้มเหลว",
+        "Download limit reached": "ถึงขีดจำกัดการดาวน์โหลดแล้ว",
+        "Retry": "ลองอีกครั้ง",
         "Rename": "เปลี่ยนชื่อ",
         "Tiles mode:": "Tiles mode:",
         "off": "ปิด",

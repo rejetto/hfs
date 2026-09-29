@@ -108,6 +108,12 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
 
             const [loading, setLoading] = useState(false)
             const [failed, setFailed] = useState<false | string>(false)
+            const [limited, setLimited] = useState(false)
+            const [reload, setReload] = useState(0)
+            const [checking, setChecking] = useState(false)
+            const retried = useRef(false)
+            const probe = useMemo(() => ({ controller: new AbortController(), pending: false }), [cur, reload])
+            useEffect(() => () => probe.controller.abort(), [probe]) // cancel only this attempt, not a new file's probe started before cleanup
             const containerRef = useRef<HTMLDivElement>()
             const mainRef = useRef<HTMLDivElement>()
             useEffect(() => { scrollY(-1E9) }, [cur])
@@ -124,7 +130,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                 const showElement = getShowElement()
                 const playOnOpen = justOpen
                 justOpen = false
-                if (!showElement || !autoPlaying && !playOnOpen) return
+                if (!showElement || failed || checking || !autoPlaying && !playOnOpen) return
                 if (showElement instanceof HTMLMediaElement) {
                     showElement.play().catch(playFailed)
                     if (autoPlaying)
@@ -135,7 +141,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                 // we are supposedly showing an image
                 const h = setTimeout(goNext, state.auto_play_seconds * 1000)
                 return () => clearTimeout(h)
-            }, [autoPlaying, cur])
+            }, [autoPlaying, cur, reload, failed, checking])
             const {mediaSession} = navigator
             mediaSession?.setActionHandler('nexttrack', goNext)
             mediaSession?.setActionHandler('previoustrack', goPrev)
@@ -199,13 +205,15 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                     failed === cur.n ? h(FlexV, { alignItems: 'center', textAlign: 'center' },
                         hIcon('error', { style: { fontSize: '20vh' } }),
                         h('div', {}, cur.name),
-                        t`Loading failed`
+                        h('div', {}, limited ? t`Download limit reached` : t`Loading failed`),
+                        limited && h(Btn, { label: t`Retry`, onClick: retry })
                     ) : h('div', { className: 'showing-container', ref: containerRef },
                         h('div', {
                             className: 'cover ' + (cover ? '' : 'none'),
                             style: { backgroundImage: cover && `url("${cover}")` }
                         }),
                         component && h(component, {
+                            key: reload,
                             src: cur.uri,
                             className: 'showing',
                             onLoad() {
@@ -267,7 +275,38 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                 next ? goTo(next) : close()
             }
 
-            function onError() {
+            async function onError() {
+                if (!component) return loadingFailed()
+                const { controller } = probe
+                if (probe.pending || controller.signal.aborted) return
+                probe.pending = true
+                setChecking(true)
+                // media error events hide HTTP status; HEAD checks the current limit without downloading the file
+                const response = await fetch(cur.uri, { method: 'HEAD', cache: 'no-store', signal: controller.signal }).catch(() => undefined)
+                if (controller.signal.aborted || getCur() !== cur) return
+                probe.pending = false
+                setChecking(false)
+                if (response?.status === 429) {
+                    setAutoPlaying(false)
+                    setLoading(false)
+                    setLimited(true)
+                    setFailed(cur.n)
+                }
+                else if (response?.ok && !retried.current) {
+                    retried.current = true // a slot may have freed up, but a broken file must not cause endless retries
+                    retry()
+                }
+                else loadingFailed()
+            }
+
+            function retry() {
+                setFailed(false)
+                setLimited(false)
+                setLoading(true)
+                setReload(x => x + 1)
+            }
+
+            function loadingFailed() {
                 const mediaError = (document.querySelector('.showing-container .showing') as any)?.error?.code // only present in video/audio elements
                 if (mediaError === 2) return // happens when chrome fails to fetch cover for videos. We don't skip the file for this reason. Tested on chrome129/windows
                 if (cur !== lastGood.current)
@@ -344,6 +383,10 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             }
 
             function goTo(to: typeof cur) {
+                if (to !== cur) probe.controller.abort()
+                setChecking(false)
+                retried.current = false
+                setLimited(false)
                 setFailed(false)
                 setLoading(to !== lastGood.current)
                 setCur(to)

@@ -120,6 +120,8 @@
         "Timestamp": "Időbélyeg",
         "Show": "Megtekintés",
         "Loading failed": "Betöltés sikertelen",
+        "Download limit reached": "Elérte a letöltési korlátot",
+        "Retry": "Újrapróbálkozás",
         "Rename": "Átnevezés",
         "Tiles mode:": "Csempemód:",
         "off": "ki",

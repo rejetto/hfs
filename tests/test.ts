@@ -1865,9 +1865,113 @@ describe('webdav', () => {
 // do this before login, or max_dl.accounts config will override max_dl
 describe('limits', () => {
     const fn = ROOT + 'big'
-    before(() => writeFile(fn, BIG_CONTENT))
+    const fnLimited = ROOT + 'big-limited'
+    before(() => Promise.all([fn, fnLimited].map(x => writeFile(x, BIG_CONTENT))))
     test('max_dl', () => testMaxDl('/' + fn, 1, 2, { jar: {} }))
     test('max_dl.zip', () => testMaxDl('/tests/?get=zip&list=big', 1, 2, { jar: {} }))
+    test('declared GUI assets inherit the download-limit exemption and can override it', async () => {
+        const name = `gui-assets-${randomId(6)}`
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_vfs', {
+                name, source: resolve(ROOT), gui_asset: true,
+                children: [{ name: 'limited', source: resolve(fnLimited), gui_asset: false }],
+            }, 200, adminReq)()
+            await testMaxDl(`/${name}/big`, 3, 0, { jar: {} })
+            await testMaxDl(`/${name}/limited`, 1, 2, { jar: {} })
+        }
+        finally {
+            await reqApi('del_vfs', { uris: ['/' + name] }, 200, adminReq)()
+        }
+    })
+    test('GUI asset masks are exposed to Admin and override inheritance', async () => {
+        const name = `gui-mask-${randomId(6)}`
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_vfs', {
+                name, source: resolve(ROOT), gui_asset: true,
+                masks: { big: { gui_asset: false } },
+                children: [{ source: resolve(fn) }],
+            }, 200, adminReq)()
+            await testMaxDl(`/${name}/big`, 1, 2, { jar: {} })
+            await reqApi('get_vfs', {}, res => {
+                const parent = _.find(res?.root?.children, { name })
+                const child = _.find(parent?.children, { name: 'big' })
+                throwIf(child?.byMasks?.gui_asset === false ? '' : 'GUI asset mask not exposed')
+            }, adminReq)()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: ['/' + name] }, 200, adminReq)()
+        }
+    })
+    test('HEAD detects a full download limit while HFS assets remain accessible', async () => {
+        const download = await httpStream(BASE_URL + '/tests/big', { jar: {} })
+        try {
+            await req('/tests/big', (_data, response) => {
+                if (response.statusCode !== 429 || response.headers['retry-after'] !== '60')
+                    throw Error('HEAD did not report the occupied download slot')
+            }, { method: 'HEAD', jar: {}, headers: { 'cache-control': 'no-cache' } })()
+            await req('/~/frontend/fontello.css', 200, { jar: {} })()
+        }
+        finally {
+            download.destroy()
+        }
+        if (!await waitFor(() => req('/tests/big', 200, { method: 'HEAD', jar: {} })().then(() => true, () => false)))
+            throw Error('HEAD did not observe the released slot')
+    })
+    for (const key of ['max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account'])
+    test(`${key} includes shared previews regardless of request headers`, async () => {
+        const adminReq = { auth, jar: {} }
+        const values = { max_downloads: 0, max_downloads_per_ip: 0, max_downloads_per_account: 0 }
+        const old = await reqApi('get_config', { only: Object.keys(values) }, 200, adminReq)()
+        const name = `preview-limit-${randomId(6)}`
+        try {
+            await reqApi('add_vfs', { name, source: resolve(fn), mime: 'image/png' }, 200, adminReq)()
+            await reqApi('set_config', { values: { ...values, [key]: 1 } }, 200, adminReq)()
+            for (const headers of [{ referer: BASE_URL + '/' }, { referer: BASE_URL + '/', 'sec-fetch-dest': 'image' }])
+                await testMaxDl('/' + name, 1, 2, {
+                    jar: {}, headers, ...(key === 'max_downloads_per_account' ? { auth } : {}),
+                })
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)()
+            await reqApi('del_vfs', { uris: ['/' + name] }, 200, adminReq)()
+        }
+    })
+    test('max_dl includes shared default HTML pages', async () => {
+        const name = `website-limit-${randomId(6)}`
+        const source = resolve(__dirname, 'tmp', name)
+        const adminReq = { auth, jar: {} }
+        await mkdir(source, { recursive: true })
+        await writeFile(join(source, 'index.html'), BIG_CONTENT)
+        try {
+            await reqApi('add_vfs', { name, source, default: 'index.html' }, 200, adminReq)()
+            await testMaxDl('/' + name + '/', 1, 2, { jar: {} })
+        }
+        finally {
+            await reqApi('del_vfs', { uris: ['/' + name] }, 200, adminReq)()
+            await rmAny(source)
+        }
+    })
+    test('default document can override its GUI asset folder', async () => {
+        const name = `gui-website-${randomId(6)}`
+        const source = resolve(__dirname, 'tmp', name)
+        const index = join(source, 'index.html')
+        const adminReq = { auth, jar: {} }
+        await mkdir(source, { recursive: true })
+        await writeFile(index, BIG_CONTENT)
+        try {
+            await reqApi('add_vfs', {
+                name, source, default: 'index.html', gui_asset: true,
+                children: [{ source: index, gui_asset: false }],
+            }, 200, adminReq)()
+            await testMaxDl('/' + name + '/', 1, 2, { jar: {} })
+        }
+        finally {
+            await reqApi('del_vfs', { uris: ['/' + name] }, 200, adminReq)()
+            await rmAny(source)
+        }
+    })
     test('aborted request before stat does not consume a download slot', async () => {
         const adminReq = { auth, jar: {} }
         const oldConfig = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
@@ -1913,7 +2017,7 @@ describe('limits', () => {
             await reqApi('set_config', { values: oldConfig }, 200, adminReq)().catch(() => {})
         }
     })
-    after(() => rm(fn))
+    after(() => Promise.all([fn, fnLimited].map(x => rm(x))))
 })
 
 describe('sessions', () => {
@@ -4304,6 +4408,69 @@ exports.init = api => {
 })
 
 describe('logging', () => {
+    test('plugin public files follow interface logging without trusting request headers', async () => {
+        const id = 'list-uploader'
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['dont_log_net', 'log_gui'] }, 200, adminReq)()
+        const logPath = resolve(__dirname, 'work/logs/access.log')
+        const hiddenUri = `/~/plugins/${id}/main.js?hidden=${randomId(8)}`
+        const loggedUri = `/~/plugins/${id}/main.js?logged=${randomId(8)}`
+        try {
+            await reqApi('start_plugin', { id }, 200, adminReq)()
+            await reqApi('set_config', { values: { dont_log_net: '', log_gui: false } }, 200, adminReq)()
+            await req(hiddenUri, 200, { jar: {} })()
+            await wait(300)
+            if (existsSync(logPath) && readFileSync(logPath, 'utf8').includes(hiddenUri))
+                throw Error('plugin GUI asset ignored the interface logging setting')
+            await reqApi('set_config', { values: { dont_log_net: '', log_gui: true } }, 200, adminReq)()
+            await req(loggedUri, 200, { jar: {} })()
+            if (!await waitFor(() => existsSync(logPath) && readFileSync(logPath, 'utf8').includes(loggedUri), { timeout: 2000 }))
+                throw Error('plugin GUI asset was not logged with interface logging enabled')
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)()
+            await reqApi('stop_plugin', { id }, 200, adminReq)().catch(() => {})
+        }
+    })
+    test('declared GUI assets follow interface logging', async () => {
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['dont_log_net', 'log_gui'] }, 200, adminReq)()
+        const name = `gui-log-${randomId(6)}`
+        const logPath = resolve(__dirname, 'work/logs/access.log')
+        const hiddenUri = `/${name}?hidden=${randomId(8)}`
+        const loggedUri = `/${name}?logged=${randomId(8)}`
+        try {
+            await reqApi('add_vfs', { name, source: resolve(ROOT + 'page/gpl.png'), gui_asset: true }, 200, adminReq)()
+            await reqApi('set_config', { values: { dont_log_net: '', log_gui: false } }, 200, adminReq)()
+            await req(hiddenUri, 200, { jar: {} })()
+            await wait(300)
+            if (existsSync(logPath) && readFileSync(logPath, 'utf8').includes(hiddenUri))
+                throw Error('GUI asset ignored the interface logging setting')
+            await reqApi('set_config', { values: { dont_log_net: '', log_gui: true } }, 200, adminReq)()
+            await req(loggedUri, 200, { jar: {} })()
+            if (!await waitFor(() => existsSync(logPath) && readFileSync(logPath, 'utf8').includes(loggedUri), { timeout: 2000 }))
+                throw Error('GUI asset was not logged with interface logging enabled')
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)()
+            await reqApi('del_vfs', { uris: ['/' + name] }, 200, adminReq)()
+        }
+    })
+    test('shared previews are logged even when GUI logging is disabled', async () => {
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['dont_log_net', 'log_gui'] }, 200, adminReq)()
+        const uri = `/f1/page/gpl.png?preview-log=${randomId(8)}`
+        const logPath = resolve(__dirname, 'work/logs/access.log')
+        try {
+            await reqApi('set_config', { values: { dont_log_net: '', log_gui: false } }, 200, adminReq)()
+            await req(uri, 200, { jar: {}, headers: { referer: BASE_URL + '/', 'sec-fetch-dest': 'image' } })()
+            if (!await waitFor(() => existsSync(logPath) && readFileSync(logPath, 'utf8').includes(uri), { timeout: 2000 }))
+                throw Error('shared preview bypassed access logging')
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)()
+        }
+    })
     test('url login password is not written to the access log', async () => {
         const logPath = resolve(__dirname, 'work/logs/access.log')
         const safeUri = `/url-login-log-${randomId(8)}`

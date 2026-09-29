@@ -851,6 +851,8 @@
         "Show more": "Pokaži više",
         "Show tree": "Prikaži drvo",
         "Show uploader to": "Prikaži otpremaoca",
+        "Treat as interface asset": "Tretiraj kao resurs interfejsa",
+        "Excluded from download limits; logged only when interface logging is enabled": "Izuzeto od ograničenja preuzimanja; beleži se samo kada je uključeno beleženje interfejsa",
         "Show without probing disk source": "Prikaži bez sondiranja izvora diska",
         "since_timestamp": "Od: {timestamp}",
         "size": "veličina",

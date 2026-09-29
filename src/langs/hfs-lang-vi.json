@@ -120,6 +120,8 @@
         "Timestamp": "Mốc thời gian",
         "Show": "Hiện",
         "Loading failed": "Load thất bại (?)",
+        "Download limit reached": "Đã đạt giới hạn tải xuống",
+        "Retry": "Thử lại",
         "Rename": "Đổi tên",
         "Tiles mode:": "Chia ô:",
         "off": "Tắt",

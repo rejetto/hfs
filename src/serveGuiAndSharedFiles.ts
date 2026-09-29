@@ -123,11 +123,11 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
             return ctx.status = HTTP_SERVER_ERROR
         }
     }
-    if (path.endsWith('/') && !get) { // final slash needed on browsers to make resource urls working with html pages
-        const found = await getDefaultFile(node, ctx)
-        if (found && /\.html?/i.test(getNodeName(node = found)))
-            ctx.state.considerAsGui = true
-    }
+    if (path.endsWith('/') && !get) // final slash needed on browsers to make resource urls working with html pages
+        node = await getDefaultFile(node, ctx) || node
+    // classify the resolved default so a file can override its folder's GUI status
+    if (node.gui_asset)
+        ctx.state.considerAsGui = true
     if (get === 'icon')
         return serveFile(ctx, node.icon || '|') // pipe to cause not-found
     if (!nodeIsFolder(node))

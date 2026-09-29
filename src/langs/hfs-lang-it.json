@@ -111,6 +111,8 @@
         "Timestamp": "Data/ora",
         "Show": "Show",
         "Loading failed": "Caricamento fallito",
+        "Download limit reached": "Limite di download raggiunto",
+        "Retry": "Riprova",
         "Rename": "Rinomina",
         "Tiles mode:": "Griglia:",
         "off": "no",

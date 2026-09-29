@@ -851,6 +851,8 @@
         "Show more": "Show more",
         "Show tree": "Show tree",
         "Show uploader to": "Show uploader to",
+        "Treat as interface asset": "Treat as interface asset",
+        "Excluded from download limits; logged only when interface logging is enabled": "Excluded from download limits; logged only when interface logging is enabled",
         "Show without probing disk source": "Show without probing disk source",
         "since_timestamp": "Since: {timestamp}",
         "size": "size",

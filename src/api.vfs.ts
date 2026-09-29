@@ -46,8 +46,9 @@ export default {
             const inherited = node.parent && permsFromParent(node.parent, {})
             const byMasks = node.original && _.pickBy(node, (v,k) =>
                 v !== (node.original as any)[k] // something is changing me...
-                && !(inherited && k in inherited) // ...and it's not inheritance...
-                && PERM_KEYS.includes(k as any)) // ...must be masks. Please limit this to perms
+                && (k === 'gui_asset'
+                    ? v !== node.parent?.gui_asset // gui_asset inherits outside the permission helpers
+                    : !(inherited && k in inherited) && PERM_KEYS.includes(k as any))) // ...must be masks
             return {
                 ...copyStats,
                 ...node.original || node,

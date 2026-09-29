@@ -117,6 +117,8 @@
         "Timestamp": "Data încărcării",
         "Show": "Arată",
         "Loading failed": "Încărcare eșuată",
+        "Download limit reached": "Limita de descărcări a fost atinsă",
+        "Retry": "Reîncearcă",
         "Rename": "Redenumește",
         "Tiles mode:": "Dimensiunea iconițelor:",
         "off": "0",

@@ -851,6 +851,8 @@
         "Show more": "Mutass többet",
         "Show tree": "Mutasd a fát",
         "Show uploader to": "Feltöltő megjelenítése",
+        "Treat as interface asset": "Kezelés felületi erőforrásként",
+        "Excluded from download limits; logged only when interface logging is enabled": "Nem számít bele a letöltési korlátokba; csak engedélyezett felületnaplózásnál kerül naplózásra",
         "Show without probing disk source": "Megjelenítés lemezforrás vizsgálata nélkül",
         "since_timestamp": "óta: {timestamp}",
         "size": "méret",

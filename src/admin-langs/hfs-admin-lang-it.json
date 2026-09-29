@@ -851,6 +851,8 @@
         "Show more": "Mostra di più",
         "Show tree": "Mostra albero",
         "Show uploader to": "Mostra l'autore dell'upload a",
+        "Treat as interface asset": "Tratta come risorsa dell’interfaccia",
+        "Excluded from download limits; logged only when interface logging is enabled": "Esclusa dai limiti di download; registrata solo se è abilitato il log dell’interfaccia",
         "Show without probing disk source": "Mostra senza sondare l'origine del disco",
         "since_timestamp": "Dal: {timestamp}",
         "size": "misurare",

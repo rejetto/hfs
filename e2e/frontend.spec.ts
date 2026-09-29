@@ -973,6 +973,89 @@ test('file show does not advance ended media while auto-play is off', async ({ p
     }
 })
 
+test('file show stays on a limited file and can retry', async ({ page }) => {
+    let limited = true
+    let probes = 0
+    await page.route('**/tests/page/gpl.png', route => {
+        if (route.request().method() === 'HEAD') probes++
+        return limited ? route.fulfill({ status: 429, headers: { 'Retry-After': '60' } }) : route.continue()
+    })
+    await gotoFrontend(page, `${FRONTEND_URL}tests/page/`)
+    await page.getByRole('link', { name: 'gpl.png', exact: true }).click()
+    await page.getByRole('link', { name: 'Show' }).click()
+    await expect(page.getByText('Download limit reached', { exact: true })).toBeVisible()
+    expect(probes).toBe(1)
+    await expect(page.locator('.file-show .filename')).toContainText('gpl.png')
+    limited = false
+    await page.getByRole('button', { name: 'Retry', exact: true }).click()
+    await expect.poll(() => page.locator('.file-show img').evaluate(el => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
+})
+
+test('file show retries once when the limit has already cleared', async ({ page }) => {
+    let downloads = 0
+    let probes = 0
+    await page.route('**/tests/page/gpl.png', route => {
+        if (route.request().method() === 'HEAD') {
+            probes++
+            return route.continue()
+        }
+        return ++downloads === 1 ? route.fulfill({ status: 429 }) : route.continue()
+    })
+    await gotoFrontend(page, `${FRONTEND_URL}tests/page/`)
+    await page.getByRole('link', { name: 'gpl.png', exact: true }).click()
+    await page.getByRole('link', { name: 'Show' }).click()
+    await expect.poll(() => page.locator('.file-show img').evaluate(el => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
+    expect(probes).toBe(1)
+    expect(downloads).toBe(2)
+})
+
+for (const extension of ['mp3', 'mp4'])
+test(`file show reports the download limit for ${extension}`, async ({ page }) => {
+    const name = `show-limited.${extension}`
+    fs.mkdirSync('tests/tmp', { recursive: true })
+    fs.writeFileSync(`tests/tmp/${name}`, 'not transferred')
+    try {
+        await page.route(`**/for-admins/upload/${name}`, route => route.fulfill({ status: 429 }))
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/`)
+        await page.getByRole('link', { name, exact: true }).click()
+        await page.getByRole('link', { name: 'Show' }).click()
+        await expect(page.getByText('Download limit reached', { exact: true })).toBeVisible()
+        await page.getByRole('button', { name: 'Retry', exact: true }).click()
+        await expect(page.getByText('Download limit reached', { exact: true })).toBeVisible()
+        await expect(page.locator('.file-show .filename')).toContainText(name)
+    }
+    finally {
+        fs.rmSync(`tests/tmp/${name}`, { force: true })
+    }
+})
+
+test('file show ignores a limit probe after closing', async ({ page }) => {
+    let release!: () => void
+    const pending = new Promise<void>(resolve => { release = resolve })
+    let probing = false
+    await page.route('**/tests/page/gpl.png', async route => {
+        if (route.request().method() === 'HEAD') {
+            probing = true
+            await pending
+        }
+        await route.fulfill({ status: 429 }).catch(() => {}) // closing cancels the probe
+    })
+    await gotoFrontend(page, `${FRONTEND_URL}tests/page/`)
+    await page.getByRole('link', { name: 'gpl.png', exact: true }).click()
+    await page.getByRole('link', { name: 'Show' }).click()
+    await expect.poll(() => probing).toBe(true)
+    await page.locator('.file-show').getByRole('button', { name: 'Close', exact: true }).click()
+    release()
+    await expect(page.locator('.file-show')).toHaveCount(0)
+    await expect(page.getByText('Download limit reached', { exact: true })).toHaveCount(0)
+})
+
 test('file show keeps direction when skipping a broken image', async ({ page, browserName }) => {
     if (browserName !== 'chromium') return
     const names = ['show-prev-a.png', 'show-prev-b.png', 'show-prev-c.png']

@@ -110,6 +110,8 @@
         "Timestamp": "Zeitstempel",
         "Show": "Anzeigen",
         "Loading failed": "Laden fehlgeschlagen",
+        "Download limit reached": "Download-Limit erreicht",
+        "Retry": "Erneut versuchen",
         "Rename": "Umbenennen",
         "Tiles mode:": "Kachel-Modus:",
         "off": "aus",

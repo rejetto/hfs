@@ -851,6 +851,8 @@
         "Show more": "Näytä lisää",
         "Show tree": "Näytä puu",
         "Show uploader to": "Näytä lähettäjä käyttäjälle",
+        "Treat as interface asset": "Käsittele käyttöliittymän resurssina",
+        "Excluded from download limits; logged only when interface logging is enabled": "Ei kuulu latausrajoihin; kirjataan vain, kun käyttöliittymän kirjaus on käytössä",
         "Show without probing disk source": "Näytä ilman levylähdettä",
         "since_timestamp": "Alkaen: {timestamp}",
         "size": "koko",

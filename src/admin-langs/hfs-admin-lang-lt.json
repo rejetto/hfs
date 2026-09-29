@@ -851,6 +851,8 @@
         "Show more": "Rodyti daugiau",
         "Show tree": "Rodyti medį",
         "Show uploader to": "Rodyti įkėlusį naudotoją",
+        "Treat as interface asset": "Laikyti sąsajos ištekliumi",
+        "Excluded from download limits; logged only when interface logging is enabled": "Netaikomi atsisiuntimo apribojimai; registruojama tik įjungus sąsajos žurnalą",
         "Show without probing disk source": "Rodyti be disko šaltinio",
         "since_timestamp": "Nuo: {timestamp}",
         "size": "dydis",

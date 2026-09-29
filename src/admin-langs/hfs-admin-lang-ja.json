@@ -851,6 +851,8 @@
         "Show more": "もっと見る",
         "Show tree": "ショーツリー",
         "Show uploader to": "アップローダーを表示する",
+        "Treat as interface asset": "インターフェースのアセットとして扱う",
+        "Excluded from download limits; logged only when interface logging is enabled": "ダウンロード制限の対象外。インターフェースのログが有効な場合のみ記録されます",
         "Show without probing disk source": "ディスクソースを調査せずに表示する",
         "since_timestamp": "以降: {timestamp}",
         "size": "サイズ",

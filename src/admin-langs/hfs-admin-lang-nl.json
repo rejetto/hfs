@@ -851,6 +851,8 @@
         "Show more": "Laat meer zien",
         "Show tree": "Boom laten zien",
         "Show uploader to": "Uploader tonen aan",
+        "Treat as interface asset": "Behandelen als interfacebestand",
+        "Excluded from download limits; logged only when interface logging is enabled": "Uitgesloten van downloadlimieten; alleen gelogd als interfacelogging is ingeschakeld",
         "Show without probing disk source": "Weergeven zonder de schijfbron te onderzoeken",
         "since_timestamp": "Sinds: {timestamp}",
         "size": "maat",

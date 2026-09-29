@@ -118,6 +118,8 @@
         "Timestamp": "Timestamp",
         "Show": "Show",
         "Loading failed": "Loading failed",
+        "Download limit reached": "Download limit reached",
+        "Retry": "Retry",
         "Rename": "Rename",
         "Tiles mode:": "Tiles mode:",
         "off": "off",

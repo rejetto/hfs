@@ -52,6 +52,17 @@ export default function FileForm({ file, addToBar, statusApi, accountsApi, done,
             p = p.parent
         }
     }, [file])
+    const inheritedGuiAsset = useMemo(() => {
+        let p = file.parent
+        while (p) {
+            if (p.gui_asset != null)
+                return p.gui_asset
+            if (p.byMasks?.gui_asset != null)
+                return p.byMasks.gui_asset
+            p = p.parent
+        }
+    }, [file])
+    const implicitGuiAsset = byMasks?.gui_asset ?? inheritedGuiAsset
     const { source } = file
     const isDir = file.type === 'folder'
     const isUnknown = !file.type && source && file.size! < 0 // the type is lost
@@ -96,7 +107,7 @@ export default function FileForm({ file, addToBar, statusApi, accountsApi, done,
             stickyBar: true,
             addToBar: actions,
             save: {
-                ...propsForModifiedValues(isModifiedConfig(values, rest)),
+                ...propsForModifiedValues(isModifiedConfig(values, rest) || values.gui_asset !== rest.gui_asset),
                 children: t`Apply`,
                 startIcon: h(Check),
                 async onClick() {
@@ -166,6 +177,13 @@ export default function FileForm({ file, addToBar, statusApi, accountsApi, done,
                 value: values.default ?? inheritedDefault,
                 toField: Boolean, fromField: (v:boolean) => v && !inheritedDefault ? 'index.html' : v ? null : false,
                 helperText: md(t`...instead of showing list of files`)
+            },
+            {
+                k: 'gui_asset', comp: BoolField, xl: 6,
+                label: t`Treat as interface asset` + (byMasks?.gui_asset === undefined ? '' : ` (${t`from masks`})`),
+                value: values.gui_asset ?? implicitGuiAsset ?? false,
+                fromField: (v: boolean) => v === Boolean(implicitGuiAsset) ? null : v,
+                helperText: t`Excluded from download limits; logged only when interface logging is enabled`,
             },
             { k: 'comment', label: t`Comment`, multiline: true, xl: true },
             isDir && hasSource && { k: 'see_without_probing', comp: BoolField, xl: 6,

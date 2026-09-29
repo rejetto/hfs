@@ -851,6 +851,8 @@
         "Show more": "แสดงเพิ่มเติม",
         "Show tree": "โชว์ต้นไม้",
         "Show uploader to": "แสดงผู้อัปโหลดไปที่",
+        "Treat as interface asset": "ถือเป็นทรัพยากรของส่วนติดต่อ",
+        "Excluded from download limits; logged only when interface logging is enabled": "ไม่รวมในขีดจำกัดการดาวน์โหลด และบันทึกเฉพาะเมื่อเปิดการบันทึกส่วนติดต่อ",
         "Show without probing disk source": "แสดงโดยไม่ต้องตรวจสอบแหล่งที่มาของดิสก์",
         "since_timestamp": "ตั้งแต่: {timestamp}",
         "size": "ขนาด",

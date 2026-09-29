@@ -155,9 +155,12 @@ Some properties use a `Who` descriptor, with one of these values:
     music.domain.com: /music
     image.domain.com: /image
   ``` 
-- `max_downloads` limit the number of concurrent downloads on the whole server. Default is unlimited.
-- `max_downloads_per_ip` limit the number of concurrent downloads for the same IP address. Default is unlimited.
-- `max_downloads_per_account` limit the number of concurrent downloads for each account. This is enforced only for connections that are logged in and will override other similar settings. Default is unlimited.
+- `max_downloads` limits the total number of concurrent downloads across the server. Shared files count even when viewed or
+  embedded (images, audio, video and web pages); GUI assets do not. You can mark shared files and folders as GUI assets.
+  This also applies to the per-IP and per-account limits below. Default is unlimited.
+- `max_downloads_per_ip` limits the number of concurrent downloads for the same IP address. Default is unlimited.
+- `max_downloads_per_account` limits the number of concurrent downloads for each account.
+  This is enforced only for connections that are logged in and will override other similar settings. Default is unlimited.
 - `geo_enable` when enabled, country is determined for each request/connection. The necessary database will be downloaded every month (2MB).
 - `geo_ignore_net` IP mask ignored by Geo IP filtering. Default is none.
 - `geo_allow` set true if `geo_list` should be treated as whitelist, set false for blacklist. Default will ignore the list.
@@ -220,6 +223,7 @@ Valid keys in a node are:
   The value must be the name of the file to serve. E.g.: `index.html`. 
   The value must be an absolute or relative path in the VFS, not a path on the disk. It works also with other types of files.
   Using this will make `mime` default to "auto".
+- `gui_asset`: mark this entry and its descendants as interface assets. They are excluded from concurrent download limits, and access logging follows `log_gui`. A child can set this to `false` to override inheritance. Default is `false`.
 - `can_read`: specify who can download this entry. Value is a `Who` descriptor, or a VFS-specific extension. Default is `true`.
 
   VFS permissions also accept these extra forms:

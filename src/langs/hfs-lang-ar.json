@@ -117,6 +117,8 @@
         "Timestamp": "الطابع الزمني",
         "Show": "عرض",
         "Loading failed": "فشل التحميل",
+        "Download limit reached": "تم بلوغ حد التنزيلات",
+        "Retry": "إعادة المحاولة",
         "Rename": "إعادة تسمية",
         "Tiles mode:": "وضع الشبكة:",
         "off": "إيقاف",

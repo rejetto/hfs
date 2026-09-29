@@ -117,6 +117,8 @@
         "Timestamp": "Zaman Damgası",
         "Show": "Göster",
         "Loading failed": "Yükleme başarısız",
+        "Download limit reached": "İndirme sınırına ulaşıldı",
+        "Retry": "Yeniden dene",
         "Rename": "Yeniden Adlandır",
         "Tiles mode:": "Döşeme (Tiles) modu:",
         "off": "kapalı",

@@ -851,6 +851,8 @@
         "Show more": "Daha fazlasını göster",
         "Show tree": "Ağacı göster",
         "Show uploader to": "Yükleyiciyi şuraya göster:",
+        "Treat as interface asset": "Arayüz kaynağı olarak değerlendir",
+        "Excluded from download limits; logged only when interface logging is enabled": "İndirme sınırlarından hariç tutulur; yalnızca arayüz günlük kaydı etkinse kaydedilir",
         "Show without probing disk source": "Disk kaynağını araştırmadan göster",
         "since_timestamp": "Şu tarihten beri: {timestamp}",
         "size": "boyut",

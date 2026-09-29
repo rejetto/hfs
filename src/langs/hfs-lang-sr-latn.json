@@ -117,6 +117,8 @@
         "Timestamp": "Vremenska oznaka",
         "Show": "Prikaži",
         "Loading failed": "Učitavanje nije uspelo",
+        "Download limit reached": "Dostignuto je ograničenje preuzimanja",
+        "Retry": "Pokušaj ponovo",
         "Rename": "Preimenuj",
         "Tiles mode:": "Režim pločica:",
         "off": "isključeno",

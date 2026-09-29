@@ -269,8 +269,8 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
             const a = path.substring(PLUGINS_PUB_URI.length).split('/')
             const name = a.shift()!
             if (plugins.has(name)) { // do it only if the plugin is loaded
-                if (ctx.get('referer')?.endsWith('/'))
-                    ctx.state.considerAsGui = true
+                // this server-owned route is GUI content; client headers must not grant the exemption
+                ctx.state.considerAsGui = true
                 await serveFile(ctx, plugins.get(name)!.folder + '/public/' + a.join('/'), MIME_AUTO)
             }
             return

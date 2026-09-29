@@ -851,6 +851,8 @@
         "Show more": "Hiển thị thêm",
         "Show tree": "Hiển thị cây",
         "Show uploader to": "Hiển thị người tải lên",
+        "Treat as interface asset": "Xử lý như tài nguyên giao diện",
+        "Excluded from download limits; logged only when interface logging is enabled": "Không tính vào giới hạn tải xuống; chỉ ghi nhật ký khi bật ghi nhật ký giao diện",
         "Show without probing disk source": "Hiển thị mà không cần thăm dò nguồn đĩa",
         "since_timestamp": "Kể từ: {timestamp}",
         "size": "kích cỡ",

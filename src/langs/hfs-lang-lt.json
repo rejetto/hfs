@@ -116,6 +116,8 @@
         "Timestamp": "Laiko žymė",
         "Show": "Rodyti",
         "Loading failed": "Nepavyko įkelti",
+        "Download limit reached": "Pasiektas atsisiuntimų limitas",
+        "Retry": "Bandyti dar kartą",
         "Rename": "Pervadinti",
         "Tiles mode:": "Plytelių režimas:",
         "off": "išjungta",

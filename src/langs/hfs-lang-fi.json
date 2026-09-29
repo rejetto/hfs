@@ -117,6 +117,8 @@
         "Timestamp": "Aikaleima",
         "Show": "Näytä",
         "Loading failed": "Lataaminen epäonnistui",
+        "Download limit reached": "Latausraja saavutettu",
+        "Retry": "Yritä uudelleen",
         "Rename": "Nimeä uudelleen",
         "Tiles mode:": "Kuvakkeiden koko:",
         "off": "pienin",
