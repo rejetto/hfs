@@ -764,14 +764,16 @@ This section is still partially documented, and you may need to have a look at t
 - `attemptingLogin` called when the login process starts
   - parameters: { ctx, username, via? }
     - via?: string
-      - `'url'` if login is attempted via `?login=...`, or `'header'` if it's "Basic" authentication
-        (which includes credentials using the @-syntax in the URL), otherwise it's standard SRP login. 
+      - `'url'` for `?login=...`, `'header'` for "Basic" authentication (including credentials using the
+        @-syntax in the URL), `'api'` for clear-text API login, or `'srp'`
   - async supported
   - preventable
 - `failedLogin`
   - parameters: { ctx, username, via? }
+- `loginAttemptFinished` called when a clear-text login attempt finishes
+  - parameters: { ctx, username, via, success }
 - `clearTextLogin` give plugins the chance to authenticate users
-  - parameters: { ctx, username, password, via: 'url' | 'header' }
+  - parameters: { ctx, username, password, via: 'url' | 'header' | 'api' }
   - async supported
   - return: `true` to consider authentication done
 - `finalizingLogin`
@@ -1299,3 +1301,5 @@ Registration returns an unregister function and is also removed automatically wh
 - 13.6 (v3.4.0)
   - backend event: beforeLog
   - `api.registerAcmeDnsProvider`
+- 13.7 (v3.4.0)
+  - backend event: loginAttemptFinished

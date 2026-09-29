@@ -1,6 +1,6 @@
-exports.version = 3.2
+exports.version = 3.3
 exports.description = "Introduce increasing delays between login attempts."
-exports.apiRequired = 9.6 // addBlock
+exports.apiRequired = 13.7 // loginAttemptFinished
 
 exports.config = {
     increment: { type: 'number', min: 1, defaultValue: 5, unit: "seconds", helperText: "How longer user must wait for each login attempt" },
@@ -20,6 +20,7 @@ const byIp = new Map()
 const byAccount = new Map()
 const laneByIp = new Map()
 const laneByAccount = new Map()
+const activeAttempts = new WeakMap()
 const UNKNOWN_ACCOUNT = 'unknown\t'
 
 exports.init = api => {
@@ -29,7 +30,7 @@ exports.init = api => {
     let waitingGlobal = 0
     const QUEUE_FULL = Symbol('queue_full')
     api.events.multi({
-        async attemptingLogin({ ctx, username }) {
+        async attemptingLogin({ ctx, username, via }) {
             const { ip } = ctx
             const account = getAccountKey(username)
             const ipRec = getRecord(byIp, ip)
@@ -47,16 +48,14 @@ exports.init = api => {
                     waitingGlobal++
                     admitted = true
                 })
-                // serialize waits per ip and per account so parallel bursts can't consume the same penalty window
-                await runInLane(getLane(laneByIp, ip), () =>
-                    runInLane(getLane(laneByAccount, account), async () => {
-                        const now = Date.now()
-                        const wait = Math.max(0, ipRec.next - now, accountRec.next - now)
-                        if (wait <= 0) return
-                        api.log('delaying', ip, 'for', Math.round(wait / 1000))
-                        ctx.set('x-anti-brute-force', wait)
-                        await new Promise(resolve => setTimeout(resolve, wait))
-                    }))
+                const lanes = [getLane(laneByIp, ip), getLane(laneByAccount, account)]
+                if (via === 'srp')
+                    await runInLanes(lanes, () => waitForPenalty(ctx, ipRec, accountRec))
+                else {
+                    // hold the lanes through credential verification so a parallel burst observes each preceding result
+                    await enterAttempt(ctx, lanes, { ip, account, ipRec, accountRec })
+                    admitted = false
+                }
             }
             catch (e) {
                 if (e === QUEUE_FULL) {
@@ -76,6 +75,15 @@ exports.init = api => {
                 dropLaneIfIdle(laneByIp, ip)
                 dropLaneIfIdle(laneByAccount, account)
             }
+        },
+        loginAttemptFinished({ ctx, success }) {
+            const attempt = activeAttempts.get(ctx)
+            if (!attempt) return
+            activeAttempts.delete(ctx)
+            if (success)
+                resetRecord(byAccount, attempt.account)
+            finishAdmission(attempt)
+            attempt.release()
         },
         failedLogin({ ctx, username }) {
             const { ip } = ctx
@@ -158,6 +166,44 @@ exports.init = api => {
                 catch (e) { reject(e) }
             })
         })
+    }
+
+    function runInLanes([lane, ...rest], job) {
+        return lane ? runInLane(lane, () => runInLanes(rest, job)) : job()
+    }
+
+    function enterAttempt(ctx, lanes, attempt) {
+        return new Promise((resolve, reject) => {
+            let release
+            const held = runInLanes(lanes, async () => {
+                await waitForPenalty(ctx, attempt.ipRec, attempt.accountRec)
+                await new Promise(done => {
+                    release = done
+                    activeAttempts.set(ctx, { ...attempt, release })
+                    resolve()
+                })
+            })
+            held.catch(reject).finally(() => {
+                dropLaneIfIdle(laneByIp, attempt.ip)
+                dropLaneIfIdle(laneByAccount, attempt.account)
+            })
+        })
+    }
+
+    async function waitForPenalty(ctx, ipRec, accountRec) {
+        const wait = Math.max(0, ipRec.next - Date.now(), accountRec.next - Date.now())
+        if (wait <= 0) return
+        api.log('delaying', ctx.ip, 'for', Math.round(wait / 1000))
+        ctx.set('x-anti-brute-force', wait)
+        await new Promise(resolve => setTimeout(resolve, wait))
+    }
+
+    function finishAdmission({ ip, account, ipRec, accountRec }) {
+        ipRec.waiting--
+        accountRec.waiting--
+        waitingGlobal--
+        armCleanup(byIp, ip, ipRec)
+        armCleanup(byAccount, account, accountRec)
     }
 
     function dropLaneIfIdle(container, key) {

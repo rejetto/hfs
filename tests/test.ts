@@ -4141,6 +4141,15 @@ exports.init = api => {
             if (burst.some(x => x.delay !== 0)) throw `unexpected delay in x100 valid burst: ${burst.map(x => x.delay)}`
         })
     })
+    test('antibrute.valid basic burst waits only once after a failure', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
+            const burst = await Promise.all(_.times(3, () => reqBasicAuth('/for-admins/', auth)))
+            const delayed = burst.filter(x => x.delay > 0)
+            if (burst.some(x => x.status !== 200)) throw `unexpected statuses in valid burst: ${burst.map(x => x.status)}`
+            if (delayed.length !== 1) throw `valid burst waited ${delayed.length} times: ${burst.map(x => x.delay)}`
+        })
+    })
     test('antibrute.failed basic auth escalates delay', async () => {
         await withPluginConfig('antibrute', antibruteCfg, async () => {
             const first = await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
@@ -4191,7 +4200,9 @@ exports.init = api => {
                 log() {},
                 addBlock() {},
             })
-            await handlers.attemptingLogin({ ctx: { ip: '127.0.0.1', set() {} }, username: '__proto__' })
+            const ctx = { ip: '127.0.0.1', set() {} }
+            await handlers.attemptingLogin({ ctx, username: '__proto__' })
+            handlers.loginAttemptFinished({ ctx, success: false })
             if (Object.hasOwn(proto, 'timer')) {
                 let yamlError = ''
                 try { yaml.stringify({ accounts: { victim: {} } }) }
@@ -4254,7 +4265,7 @@ exports.init = api => {
             if (afterReset.delay !== 0) throw `delay not reset after successful login: ${afterReset.delay}`
         })
     })
-    test('antibrute.burst serializes wrong logins with delays', async () => {
+    test('antibrute.burst serializes wrong logins from a clean state', async () => {
         await withPluginConfig('antibrute', {
             ...antibruteCfg,
             increment: 1,
@@ -4263,16 +4274,14 @@ exports.init = api => {
             maxQueuePerAccount: 3,
             maxQueueGlobal: 3,
         }, async () => {
-            // seed penalty so the first burst request keeps queue slots busy
-            await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
             const started = Date.now()
             const burst = await Promise.all(_.times(3, () => reqBasicAuth('/for-admins/', `${username}:wrong-password`)))
             const elapsed = Date.now() - started
             const delays = burst.map(x => x.delay)
             if (burst.some(x => x.status !== 401)) throw `unexpected statuses in burst: ${burst.map(x => x.status)}`
-            if (delays.some(x => x <= 0)) throw `missing delay in burst: ${delays.join(',')}`
+            if (delays.filter(x => x > 0).length !== 2) throw `wrong delays in burst: ${delays.join(',')}`
             // the wall clock check proves requests waited in series instead of sharing one penalty window
-            if (elapsed < 2500) throw `burst was not serialized: ${elapsed}`
+            if (elapsed < 1500) throw `burst was not serialized: ${elapsed}`
         })
     })
     test('antibrute.queue limit rejects overflowing logins before credentials are checked', async () => {

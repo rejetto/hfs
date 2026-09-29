@@ -41,12 +41,18 @@ export function getCurrentUsername(ctx: Context): string {
 
 export async function clearTextLogin(ctx: Context, u: string, p: string, via: string) {
     if (!p) return
-    if ((await events.emitAsync('attemptingLogin', { ctx, username: u, via }))?.isDefaultPrevented()) return
-    const plugins = await events.emitAsync('clearTextLogin', { ctx, username: u, password: p, via }) // provide clear password to plugins
-    const a = plugins?.some(x => x === true) ? getAccount(u) : await srpCheck(u, p)
-    if (!a && u)
-        events.emit('failedLogin', { ctx, username: u, via })
-    return a
+    let account: Account | undefined
+    try {
+        if ((await events.emitAsync('attemptingLogin', { ctx, username: u, via }))?.isDefaultPrevented()) return
+        const plugins = await events.emitAsync('clearTextLogin', { ctx, username: u, password: p, via }) // provide clear password to plugins
+        account = plugins?.some(x => x === true) ? getAccount(u) : await srpCheck(u, p)
+        if (!account && u)
+            events.emit('failedLogin', { ctx, username: u, via })
+        return account
+    }
+    finally {
+        events.emit('loginAttemptFinished', { ctx, username: u, via, success: Boolean(account) })
+    }
 }
 
 // centralized log-in state

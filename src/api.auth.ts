@@ -73,7 +73,7 @@ export const authApis = {
             return new ApiError(HTTP_SERVER_ERROR)
         if (account?.plugin?.auth) // tell client to do clear-text login, before firing attemptingLogin, before triggering anti-brute
             return new ApiError(HTTP_METHOD_NOT_ALLOWED)
-        if ((await events.emitAsync('attemptingLogin', { ctx, username }))?.isDefaultPrevented()) return
+        if ((await events.emitAsync('attemptingLogin', { ctx, username, via: 'srp' }))?.isDefaultPrevented()) return
         if (account && !accountCanLogin(account)) {
             ctx.logExtra({ u: username })
             ctx.state.dontLog = false // log even if log_api is false
