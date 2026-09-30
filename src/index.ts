@@ -10,7 +10,7 @@ import { frontEndApis } from './frontEndApis'
 import { logMw } from './log'
 import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
-import { blockFilter, headRequests, gzipper, someSecurity, prepareConnection, prepareState, paramsDecoder, sessionMiddleware } from './middlewares'
+import { blockFilter, gzipper, someSecurity, prepareConnection, prepareState, paramsDecoder, sessionMiddleware } from './middlewares'
 import { serveSharedFiles, guiFilesMiddleware } from './serveGuiAndSharedFiles'
 import { webdav } from './webdav'
 import './listen'
@@ -56,7 +56,6 @@ app.use(sessionMiddleware)
     .use(logMw)
     .use(someSecurity)
     .use(paramsDecoder) // must be done before plugins, so they can manipulate params
-    .use(headRequests)
     .use(rootsMiddleware)
     .use(throttler)
     .use(pluginsMiddleware)

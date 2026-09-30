@@ -4,7 +4,6 @@ import compress from 'koa-compress'
 import Koa from 'koa'
 import { API_URI, DEV, HTTP_TEMPORARY_REDIRECT_KEEP_METHOD, HTTP_UNAUTHORIZED } from './const'
 import { ALLOW_SESSION_IP_CHANGE, CFG, DAY, escapeHTML, hasDirTraversal, isLocalHost, netMatches, normalizeHost, normalizeIp, readRequestBodyLimited, splitAt, try_, tryJson } from './misc'
-import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, accounts, getAccount, getFromAccount } from './perm'
 import { Connection, socket2connection, updateConnectionForCtx } from './connections'
@@ -38,20 +37,6 @@ export const gzipper = compress({
         return /text|javascript|style/i.test(type)
     },
 })
-
-export const headRequests: Koa.Middleware = async (ctx, next) => {
-    const head = ctx.method === 'HEAD'
-    if (head)
-        ctx.method = 'GET' // let other middlewares work, so we can collect the size at the end
-    await next()
-    if (!head || ctx.body === undefined) return
-    const { length, status } = ctx.response
-    if (ctx.body)
-        ctx.body = Readable.from('') // empty the body for this is a HEAD request. Using Readable avoids koa from trying to set length to 0
-    ctx.status = status
-    if (length)
-        ctx.response.length = length
-}
 
 let proxyDetected: undefined | Koa.Context
 export let cloudflareDetected: undefined | Date
@@ -145,6 +130,7 @@ export function getProxyDetected() {
 }
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {
+    ctx.state.getOrHead = ctx.method === 'GET' || ctx.method === 'HEAD'
     // invalidate before account resolution; someSecurity calls again to bind logins made below
     enforceSessionIp(ctx)
     // rootsMiddleware consults proxy-aware admin access before someSecurity runs
@@ -275,6 +261,7 @@ export function failAllowNet(ctx: Koa.Context, a: Account | undefined) {
 declare module "koa" {
     interface DefaultState {
         params: Record<string, any>
+        getOrHead: boolean
         account?: Account // user logged in
         revProxyPath: string // must not have final slash
         safeUrl: string // url with credentials removed

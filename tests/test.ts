@@ -203,6 +203,40 @@ describe('languages', () => {
 })
 
 describe('basics', () => {
+    test('HEAD preserves the method for plugins and serves GET headers without a body', async () => {
+        const adminReq = { auth, jar: {} }
+        const previous = await reqApi('get_config', { only: ['server_code', 'favicon'] }, 200, adminReq)()
+        const script = `exports.middleware = ctx => {
+            ctx.set('x-request-method', ctx.method)
+            ctx.set('x-get-or-head', String(ctx.state.getOrHead))
+            if (ctx.path === '/head-probe') {
+                ctx.body = "plugin response"
+                ctx.stop()
+            }
+        }`
+        try {
+            await reqApi('set_config', { values: { server_code: script, favicon: SAMPLE_FILE_PATH } }, 200, adminReq)()
+            // server_code loads asynchronously; wait for its middleware before checking HEAD
+            const ready = await waitFor(() => req('/head-probe', /plugin response/, { jar: {} })()
+                .then(() => true, () => false), { interval: 50, timeout: 3000 })
+            if (!ready) throw Error('HEAD probe plugin did not start')
+            for (const uri of ['/head-probe', '/', '/~/frontend/fontello.css', '/tests/page/gpl.png', '/favicon.ico']) {
+                const get = await httpWithBody(BASE_URL + uri, { headers: { 'accept-encoding': 'identity' } })
+                await req(uri, (data, res) => {
+                    if (res.statusCode !== get.statusCode || data || res.headers['x-request-method'] !== 'HEAD'
+                        || res.headers['x-get-or-head'] !== 'true')
+                        throw Error(`incorrect HEAD response for ${uri}`)
+                    for (const header of ['content-type', 'content-length', 'etag', 'last-modified']) {
+                        if (res.headers[header] !== get.headers[header])
+                            throw Error(`HEAD ${header} differs from GET for ${uri}`)
+                    }
+                }, { method: 'HEAD', jar: {} })()
+            }
+        }
+        finally {
+            await reqApi('set_config', { values: previous }, 200, adminReq)()
+        }
+    })
     //before(async () => appStarted)
     test('frontend', req('/', /<body>/, { headers: { accept: '*/*' } })) // workaround: 'accept' is necessary when running server-for-test-dev, still don't know why
     test('frontend config defaults', reqApi('get_config', { only: Object.keys(FRONTEND_OPTIONS) },
@@ -859,7 +893,7 @@ describe('basics', () => {
     })
     test('zip preserves negated path masks', async () => {
         const adminReq = { auth, jar: {} }
-        for (const [suffix, mask] of [['path', '!private/allowed.txt'], ['globstar', '!**/allowed.txt']]) {
+        for (const [suffix, mask] of [['path', '!private/allowed.txt'], ['globstar', '!**/allowed.txt']] as const) {
             const name = `zip-negated-${suffix}-${randomId(6)}`
             const dir = resolve(UPLOAD_DISK_ROOT, name)
             const uri = `/${name}/`
@@ -1181,6 +1215,10 @@ describe('webdav', () => {
         headers: { 'user-agent': OFFICE_WEBDAV_UA },
         jar: {},
     }))
+    test('webdav force login.scope head', req('/f1/protected', {
+        status: 401, empty: true,
+        cb: (_data, res) => res.headers?.['www-authenticate'] === BASIC_AUTHENTICATE_HEADER,
+    }, { method: 'HEAD', headers: { 'user-agent': OFFICE_WEBDAV_UA }, jar: {} }))
     test('webdav.get keeps webdav challenge after denied read', async () => {
         const user = `wd-read-${randomId(6)}`.toLowerCase()
         const pass = `pw-${randomId(8)}`

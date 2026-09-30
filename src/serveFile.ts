@@ -108,7 +108,7 @@ export async function serveFile(ctx: Koa.Context, filePath:string, mime?:string,
         ctx.set({ Allow: 'OPTIONS, GET, HEAD' })
         return
     }
-    if (ctx.method !== 'GET')
+    if (!ctx.state.getOrHead)
         return ctx.status = HTTP_METHOD_NOT_ALLOWED
     try {
         const stats = cached?.stats || await promisify(stat)(filePath) // using fs's function instead of fs/promises, because only the former is supported by pkg

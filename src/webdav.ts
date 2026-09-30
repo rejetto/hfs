@@ -157,7 +157,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
     const isCorsPreflight = ctx.method === 'OPTIONS' && ctx.get('Access-Control-Request-Method')
     const isKnownWebdavAgent = KNOWN_UA.test(ua) || webdavDetectedAgents.has(webdavAgentKey(ctx, ua))
     const isWebdavAuthRequest = !isCorsPreflight && (ctx.method === 'OPTIONS' || WEBDAV_METHODS.has(ctx.method) || WEBDAV_HINT_HEADERS.some(h => ctx.get(h))
-        || ctx.method === 'GET' && isKnownWebdavAgent
+        || ctx.state.getOrHead && isKnownWebdavAgent
     )
     if (isWebdavAuthRequest)
         ctx.state.webdavDetected = true
@@ -173,7 +173,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         return
     if (ctx.method === 'OPTIONS')
         return handleOptions()
-    if (ctx.method === 'GET' && isWebdavAuthRequest)
+    if (ctx.state.getOrHead && isWebdavAuthRequest)
         return handleGet()
     switch (ctx.method) {
         case 'PUT': return handlePut()

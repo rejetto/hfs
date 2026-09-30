@@ -45,10 +45,10 @@ function serveStatic(uri: string): Koa.Middleware {
             ctx.state.dontLog = true
         if(ctx.method === 'OPTIONS') {
             ctx.status = HTTP_NO_CONTENT
-            ctx.set({ Allow: 'OPTIONS, GET' })
+            ctx.set({ Allow: 'OPTIONS, GET, HEAD' })
             return
         }
-        if (ctx.method !== 'GET')
+        if (!ctx.state.getOrHead)
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
         const serveApp = shouldServeApp(ctx)
         const fullPath = join(root, serveApp ? '/index.html': ctx.path)
