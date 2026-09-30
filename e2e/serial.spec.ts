@@ -328,7 +328,7 @@ test('dropped folder scan blocks upload actions until staging completes', async 
                 name: folderName,
                 createReader() {
                     let done = false
-                    return { readEntries(callback: (entries: typeof entries) => void) {
+                    return { readEntries(callback: (batchEntries: typeof entries) => void) {
                         callback(done ? [] : (done = true, entries))
                     } }
                 },
@@ -418,7 +418,7 @@ test('failed folder entry releases the upload scan lock', async ({ page }) => {
             name: 'nested',
             createReader() {
                 let done = false
-                return { readEntries(callback: (entries: typeof entries) => void) {
+                return { readEntries(callback: (batchEntries: typeof entries) => void) {
                     callback(done ? [] : (done = true, entries))
                 } }
             },
@@ -499,7 +499,7 @@ test('dropped folder keeps its upload policy while batching updates', async ({ p
             name: 'nested',
             createReader() {
                 let done = false
-                return { readEntries(callback: (entries: typeof entries) => void) {
+                return { readEntries(callback: (batchEntries: typeof entries) => void) {
                     callback(done ? [] : (done = true, entries))
                 } }
             },

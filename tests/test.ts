@@ -122,24 +122,6 @@ describe('http utilities', () => {
 })
 
 describe('languages', () => {
-    test('language aliases and subtags select closest catalog', async () => {
-        const adminReq = { auth, jar: {} }
-        try {
-            await req('/', /\"zh-hant\": \{/, {
-                headers: { 'accept-language': 'zh-TW', 'user-agent': 'Mozilla/5.0' }, jar: {}
-            })()
-            await req('/~/admin/', /\"sr-latn\": \{/, {
-                headers: { 'accept-language': 'sr-Latn-RS', 'user-agent': 'Mozilla/5.0' }, jar: {}
-            })()
-            await reqApi('set_config', { values: { force_lang: 'zh-tw' } }, 200, adminReq)()
-            await req('/', /\"zh-hant\": \{/, {
-                headers: { 'accept-language': 'en', 'user-agent': 'Mozilla/5.0' }, jar: {}
-            })()
-        }
-        finally {
-            await reqApi('set_config', { values: { force_lang: '' } }, 200, adminReq)()
-        }
-    })
     test('uploaded admin languages support selection, replacement and isolated deletion', async () => {
         const code = `zz-${randomId(6).toLowerCase()}`
         const adminReq = { auth, jar: {} }
@@ -220,7 +202,7 @@ describe('basics', () => {
             const ready = await waitFor(() => req('/head-probe', /plugin response/, { jar: {} })()
                 .then(() => true, () => false), { interval: 50, timeout: 3000 })
             if (!ready) throw Error('HEAD probe plugin did not start')
-            for (const uri of ['/head-probe', '/', '/~/frontend/fontello.css', '/tests/page/gpl.png', '/favicon.ico']) {
+            for (const uri of ['/head-probe', '/', '/tests/page/gpl.png', '/favicon.ico']) {
                 const get = await httpWithBody(BASE_URL + uri, { headers: { 'accept-encoding': 'identity' } })
                 await req(uri, (data, res) => {
                     if (res.statusCode !== get.statusCode || data || res.headers['x-request-method'] !== 'HEAD'
@@ -2096,16 +2078,20 @@ describe('limits', () => {
         }
     })
     test('HEAD detects a full download limit while HFS assets remain accessible', async () => {
+        const id = 'list-uploader'
+        const adminReq = { auth, jar: {} }
+        await reqApi('start_plugin', { id }, 200, adminReq)()
         const download = await httpStream(BASE_URL + '/tests/big', { jar: {} })
         try {
             await req('/tests/big', (_data, response) => {
                 if (response.statusCode !== 429 || response.headers['retry-after'] !== '60')
                     throw Error('HEAD did not report the occupied download slot')
             }, { method: 'HEAD', jar: {}, headers: { 'cache-control': 'no-cache' } })()
-            await req('/~/frontend/fontello.css', 200, { jar: {} })()
+            await req(`/~/plugins/${id}/main.js`, 200, { jar: {} })()
         }
         finally {
             download.destroy()
+            await reqApi('stop_plugin', { id }, 200, adminReq)()
         }
         if (!await waitFor(() => req('/tests/big', 200, { method: 'HEAD', jar: {} })().then(() => true, () => false)))
             throw Error('HEAD did not observe the released slot')

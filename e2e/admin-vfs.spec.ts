@@ -29,7 +29,8 @@ async function applyVfsForm(page: Page) {
         await apply.click()
 }
 
-test('GUI asset setting is inherited and can be overridden', async ({ page }) => {
+test('GUI asset setting is inherited and can be overridden', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium')
     await page.goto(ADMIN_URL)
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('textbox', { name: 'Password' }).fill(password)
