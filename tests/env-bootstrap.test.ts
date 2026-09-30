@@ -68,8 +68,7 @@ test('HFS_ENV_BOOTSTRAP preserves existing configuration and accounts', { timeou
     assert.equal(response.status, 200)
     assert.equal((await response.json()).title, config.title)
     // startup saves the version even without configuration edits; inspect that completed write
-    await persisted(cwd, saved => Boolean(saved.version))
-    const saved = yaml.parse(await readFile(join(cwd, 'config.yaml'), 'utf8'))
+    const saved = await persisted(cwd, saved => Boolean(saved.version))
     assert.equal(saved.title, config.title)
     assert.deepEqual(saved.accounts, config.accounts)
 })
@@ -265,7 +264,7 @@ async function persisted(cwd: string, check: (saved: { version?: string, account
     // wait for the debounced write before stopping the server or inspecting persisted values
     for (let i = 0; i < 50; i++) {
         const saved = await readFile(join(cwd, 'config.yaml'), 'utf8').then(text => yaml.parse(text), () => undefined)
-        if (saved && check(saved)) return
+        if (saved && check(saved)) return saved
         await delay(100)
     }
     assert.fail('expected configuration was not persisted')
