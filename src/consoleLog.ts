@@ -1,5 +1,5 @@
 import events from './events'
-import { formatTime, formatTimestamp } from './cross'
+import { formatDate, formatTime, formatTimestamp } from './cross'
 import { createWriteStream } from 'fs'
 import { argv } from './argv'
 
@@ -11,6 +11,7 @@ f?.on('error', err => {
     console.error("Cannot write console file", argv.consoleFile, String(err))
 })
 let terminalOutputBroken = false
+let lastTerminalDate = ''
 for (const stream of [process.stdout, process.stderr])
     stream.on('error', err => {
         if (!isBrokenTerminalOutput(err))
@@ -34,6 +35,9 @@ for (const k of ['log','warn','error','debug'] as const) {
         events.emit('console', rec)
         f?.write(`${formatTimestamp(ts)} [${k}] ${msg}\n`)
         if (!terminalOutputBroken) {
+            const date = formatDate(ts)
+            if (date !== lastTerminalDate)
+                (console.log as any).original(lastTerminalDate = date)
             try { return original(formatTime(ts), ...args) } // bundled nodejs doesn't have locales (and apparently uses en-US)
             catch (err) {
                 if (!isBrokenTerminalOutput(err))
