@@ -2,6 +2,10 @@
     "author": "Automatic translation",
     "version": 1,
     "translate": {
+        "Using a hostname? Configure it first.": "ホスト名を使用しますか？先に設定してください。",
+        "Learn more": "詳細",
+        "auto_login_net_help": "IP アドレスと localhost は追加設定なしで動作します。\nホスト名で HFS にアクセスする場合は、インターネット → アドレスでメインアドレスまたはドメインルートとして設定してください。アドレスにポートが含まれる場合は、それも指定します。\nこれにより、悪意のあるサイトがブラウザーで許可された IP アドレスを DNS リバインディングでログインに使用することを防ぎます。信頼できるドメインのみを設定し、ドメインルートで広すぎるワイルドカードを避けてください。\nその他のホスト名では自動ログインを行いませんが、認証情報によるログインは引き続き利用できます。",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "信頼できるプロキシだけが HFS に接続できるようにファイアウォールを設定してください。",
         "Include hidden files": "隠しファイルを含める",
         "Case-insensitive": "大文字と小文字を区別しません",
         "non_public_ip_warning": "これはパブリックIPアドレスではありません。インターネットから直接アクセスすることはできません。代わりにパブリックIPアドレスまたはドメイン名を使用してください。",

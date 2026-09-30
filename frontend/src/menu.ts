@@ -217,7 +217,8 @@ export async function deleteFiles(uris: string[]) {
     void alertDialog(h(Fragment, {},
         msg, e > 0 && t('delete_failed', {n:e}),
         h('div', { style: { textAlign: 'left', marginTop: '1em', } },
-            ...errors.map(e => h(ErrorMsg, { err: t(err2msg(e.err)) + ': ' + e.uri }))
+            ...errors.map(e => h(ErrorMsg, { err: t(err2msg(e.err)) + ': ' + (e.err.data?.uri || e.uri)
+                + (e.err.data?.uri ? '. ' + t`Nothing was deleted for this item.` : '') }))
         )
     ))
 }

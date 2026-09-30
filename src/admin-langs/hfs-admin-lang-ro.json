@@ -2,6 +2,10 @@
     "author": "Automatic translation",
     "version": 1,
     "translate": {
+        "Using a hostname? Configure it first.": "Folosiți un nume de gazdă? Configurați-l mai întâi.",
+        "Learn more": "Aflați mai multe",
+        "auto_login_net_help": "Adresele IP și localhost funcționează fără configurare suplimentară.\nDacă accesați HFS folosind un nume de gazdă, configurați-l în Internet → Adresă ca adresă principală sau în rădăcinile domeniilor. Includeți portul dacă apare în adresă.\nAceasta împiedică un site rău intenționat să folosească adresa IP autorizată a browserului pentru autentificare prin DNS rebinding. Configurați numai domenii de încredere și evitați metacaracterele prea largi.\nPentru alte nume de gazdă, autentificarea automată este omisă, dar autentificarea cu acreditări rămâne disponibilă.",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "Configurați paravanul de protecție astfel încât numai proxy-urile de încredere să se poată conecta la HFS.",
         "Include hidden files": "Include fișierele ascunse",
         "Case-insensitive": "Nu face distincție între majuscule și minuscule",
         "non_public_ip_warning": "Aceasta este o adresă IP nepublică. Nu poate fi accesată direct de pe Internet. Folosește o adresă IP publică sau un nume de domeniu.",

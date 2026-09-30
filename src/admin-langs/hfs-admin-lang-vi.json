@@ -2,6 +2,10 @@
     "author": "Automatic translation",
     "version": 1,
     "translate": {
+        "Using a hostname? Configure it first.": "Đang dùng tên máy chủ? Hãy cấu hình trước.",
+        "Learn more": "Tìm hiểu thêm",
+        "auto_login_net_help": "Địa chỉ IP và localhost hoạt động mà không cần cấu hình thêm.\nNếu truy cập HFS bằng tên máy chủ, hãy cấu hình tên đó trong Internet → Địa chỉ dưới dạng địa chỉ chính hoặc trong gốc miền. Thêm cổng nếu có trong địa chỉ.\nĐiều này ngăn trang web độc hại dùng địa chỉ IP đã được trình duyệt cho phép để đăng nhập qua DNS rebinding. Chỉ cấu hình các miền tin cậy và tránh ký tự đại diện quá rộng.\nVới các tên máy chủ khác, đăng nhập tự động bị bỏ qua nhưng đăng nhập bằng thông tin xác thực vẫn khả dụng.",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "Cấu hình tường lửa để chỉ các proxy tin cậy có thể kết nối với HFS.",
         "Include hidden files": "Bao gồm các tệp ẩn",
         "Case-insensitive": "Không phân biệt chữ hoa chữ thường",
         "non_public_ip_warning": "Đây không phải là địa chỉ IP công cộng. Không thể truy cập trực tiếp từ Internet. Hãy sử dụng địa chỉ IP công cộng hoặc tên miền.",

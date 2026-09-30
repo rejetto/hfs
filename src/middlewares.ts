@@ -2,22 +2,25 @@
 
 import compress from 'koa-compress'
 import Koa from 'koa'
-import { API_URI, DEV, HTTP_UNAUTHORIZED, HTTP_TEMPORARY_REDIRECT_KEEP_METHOD } from './const'
-import { normalizeIp, ALLOW_SESSION_IP_CHANGE, CFG, DAY, escapeHTML, hasDirTraversal, isLocalHost, netMatches, readRequestBodyLimited, splitAt, try_, tryJson } from './misc'
-import { randomUUID } from 'node:crypto'
-import { getLangData } from './lang'
-import { i18nFromTranslations } from './i18n'
+import { API_URI, DEV, HTTP_TEMPORARY_REDIRECT_KEEP_METHOD, HTTP_UNAUTHORIZED } from './const'
+import { ALLOW_SESSION_IP_CHANGE, CFG, DAY, escapeHTML, hasDirTraversal, isLocalHost, netMatches, normalizeHost, normalizeIp, readRequestBodyLimited, splitAt, try_, tryJson } from './misc'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, accounts, getAccount, getFromAccount } from './perm'
 import { Connection, socket2connection, updateConnectionForCtx } from './connections'
-import { clearTextLogin, invalidateSessionBefore, setLoggedIn } from './auth'
+import { clearTextLogin, setLoggedIn } from './auth'
+import { getSessionStamp } from './sessionStamp'
 import { constants } from 'zlib'
-import { getHttpsWorkingPort } from './listen'
+import { baseUrl, getHttpsWorkingPort } from './listen'
+import { roots } from './roots'
+import { isIP } from 'node:net'
 import { defineConfig } from './config'
 import session from 'koa-session'
 import { app } from './index'
 import events from './events'
+import { randomUUID } from 'node:crypto'
+import { getLangData } from './lang'
+import { i18nFromTranslations } from './i18n'
 
 const forceHttps = defineConfig(CFG.force_https, true)
 defineConfig(CFG.ignore_proxies, false)
@@ -55,8 +58,6 @@ export let cloudflareDetected: undefined | Date
 export const someSecurity: Koa.Middleware = (ctx, next) => {
     enforceSessionIp(ctx)
 
-    if (!ctx.state.skipFilters && applyBlock(ctx.socket, ctx.ip))
-        return
     const decodedPath = try_(() => decodeURI(ctx.path))
     if (!decodedPath || hasDirTraversal(decodedPath))
         return
@@ -114,6 +115,17 @@ async function sendPage(ctx: Koa.Context, titleKey: string, content: (t: Transla
         </style></head><body><h1>${escapeHTML(title)}</h1>${content(t)}</body></html>`
 }
 
+export const prepareConnection: Koa.Middleware = (ctx, next) => {
+    // normalize once so auth, filters and logging agree on the same client address
+    ctx.request.ip = normalizeIp(ctx.ip)
+    ctx.state.connection = socket2connection(ctx.socket)!
+    updateConnectionForCtx(ctx)
+    return next()
+}
+
+export const blockFilter: Koa.Middleware = (ctx, next) =>
+    !ctx.state.skipFilters && applyBlock(ctx.socket, ctx.ip) || next()
+
 function enforceSessionIp(ctx: Koa.Context) {
     const s = ctx.session
     if (!s?.username || s[ALLOW_SESSION_IP_CHANGE]) return
@@ -133,8 +145,6 @@ export function getProxyDetected() {
 }
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {
-    // normalize once so auth, filters and logging agree on the same client address
-    ctx.request.ip = normalizeIp(ctx.ip)
     // invalidate before account resolution; someSecurity calls again to bind logins made below
     enforceSessionIp(ctx)
     // rootsMiddleware consults proxy-aware admin access before someSecurity runs
@@ -152,12 +162,13 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     }
     const s = ctx.session
     if (s?.username) {
-        if (s.ts < invalidateSessionBefore.get(s?.username)!)
+        const account = getAccount(s.username, false)
+        if (!account || !s.stamp || s.stamp !== getSessionStamp(s.username)) {
             delete s.username
+            delete s.stamp
+        }
         s.maxAge = sessionDuration.compiled()
     }
-    // calculate these once and for all
-    ctx.state.connection = socket2connection(ctx.socket)!
     // explicit credentials and existing sessions must take precedence, so a matching IP cannot override a chosen account
     let via: 'url' | 'header' | 'net' | undefined
     const urlAccount = await urlLogin()
@@ -183,7 +194,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
         }
 
     ctx.state.revProxyPath = ctx.get('x-forwarded-prefix')
-    updateConnectionForCtx(ctx)
+    updateConnectionForCtx(ctx) // publish the resolved account after the initial pre-auth connection update
     await next()
 
     async function urlLogin() {
@@ -238,6 +249,14 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     }
 
     function autoLogin() {
+        const host = ctx.host.toLowerCase()
+        const hostname = normalizeHost(host)
+        // a rebinding page uses the victim's real IP, but retains the attacker's hostname
+        if (hostname !== 'localhost' && !isIP(hostname)
+            // URL normalization matches browsers' default-port removal and internationalized domain names
+            && host !== (baseUrl.get() && try_(() => new URL(baseUrl.get()).host.toLowerCase()))
+            && roots.compiled()(host) === undefined)
+            return
         via = 'net'
         // keep the mask direct so group inheritance cannot make identity depend on account order
         return Object.values(accounts.get()).find(a =>
@@ -268,6 +287,7 @@ declare module "koa" {
 declare module "koa-session" {
     interface Session {
         urlLoginConfirmation?: { token: string, username: string, expires: number }
+        stamp?: string
     }
 }
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {

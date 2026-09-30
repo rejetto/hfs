@@ -2,6 +2,10 @@
     "author": "Automatic translation",
     "version": 1,
     "translate": {
+        "Using a hostname? Configure it first.": "Używasz nazwy hosta? Najpierw ją skonfiguruj.",
+        "Learn more": "Dowiedz się więcej",
+        "auto_login_net_help": "Adresy IP i localhost działają bez dodatkowej konfiguracji.\nJeśli korzystasz z HFS przez nazwę hosta, skonfiguruj ją w Internet → Adres jako adres główny lub w korzeniach domen. Dodaj port, jeśli występuje w adresie.\nZapobiega to użyciu przez złośliwą witrynę autoryzowanego adresu IP przeglądarki do logowania przez DNS rebinding. Konfiguruj tylko zaufane domeny i unikaj zbyt szerokich symboli wieloznacznych w korzeniach domen.\nDla innych nazw hostów automatyczne logowanie jest pomijane, ale logowanie danymi uwierzytelniającymi pozostaje dostępne.",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "Skonfiguruj zaporę tak, aby tylko zaufane serwery proxy mogły łączyć się z HFS.",
         "Include hidden files": "Uwzględnij ukryte pliki",
         "Case-insensitive": "Wielkość liter nie ma znaczenia",
         "non_public_ip_warning": "To nie jest publiczny adres IP. Nie można się z nim połączyć bezpośrednio z Internetu. Użyj publicznego adresu IP lub nazwy domeny.",

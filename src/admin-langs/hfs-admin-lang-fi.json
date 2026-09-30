@@ -2,6 +2,10 @@
     "author": "Automatic translation",
     "version": 1,
     "translate": {
+        "Using a hostname? Configure it first.": "Käytätkö isäntänimeä? Määritä se ensin.",
+        "Learn more": "Lisätietoja",
+        "auto_login_net_help": "IP-osoitteet ja localhost toimivat ilman lisämäärityksiä.\nJos käytät HFS:ää isäntänimellä, määritä se kohdassa Internet → Osoite pääosoitteeksi tai toimialuejuuriin. Lisää portti, jos se näkyy osoitteessa.\nTämä estää haitallista sivustoa käyttämästä selaimen hyväksyttyä IP-osoitetta kirjautumiseen DNS-uudelleensidonnalla. Määritä vain luotettuja toimialueita ja vältä liian laajoja jokerimerkkejä.\nMuilla isäntänimillä automaattinen kirjautuminen ohitetaan, mutta kirjautuminen tunnuksilla on edelleen käytettävissä.",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "Määritä palomuuri sallimaan vain luotettujen välityspalvelimien yhteydet HFS:ään.",
         "Include hidden files": "Sisällytä piilotetut tiedostot",
         "Case-insensitive": "Kirjainkoolla ei ole merkitystä",
         "non_public_ip_warning": "Tämä IP-osoite ei ole julkinen. Siihen ei voi muodostaa yhteyttä suoraan internetistä. Käytä julkista IP-osoitetta tai verkkotunnusta.",

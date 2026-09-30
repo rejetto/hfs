@@ -2,6 +2,10 @@
     "author": "Hug3O",
     "version": 1.2,
     "translate": {
+        "Using a hostname? Configure it first.": "正在使用主机名？请先进行配置。",
+        "Learn more": "了解更多",
+        "auto_login_net_help": "IP 地址和 localhost 无需额外配置即可使用。\n如果通过主机名访问 HFS，请在“互联网 → 地址”中将其配置为主地址或域根。若地址中包含端口，也请一并填写。\n这样可防止恶意网站利用浏览器已授权的 IP 地址通过 DNS 重绑定登录。只配置可信域名，并避免在域根中使用过宽的通配符。\n对于其他主机名，将跳过自动登录，但仍可使用凭据登录。",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "请配置防火墙，只允许受信任的代理连接到 HFS。",
         "Include hidden files": "包含隐藏文件",
         "Case-insensitive": "不区分大小写",
         "non_public_ip_warning": "这是一个非公网 IP 地址，无法直接从互联网访问。请改用公网 IP 地址或域名。",

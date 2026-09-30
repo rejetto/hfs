@@ -2,6 +2,10 @@
     "author": "Automatic translation",
     "version": 1,
     "translate": {
+        "Using a hostname? Configure it first.": "Bir ana bilgisayar adı mı kullanıyorsunuz? Önce yapılandırın.",
+        "Learn more": "Daha fazla bilgi",
+        "auto_login_net_help": "IP adresleri ve localhost ek yapılandırma olmadan çalışır.\nHFS’ye bir ana bilgisayar adıyla erişiyorsanız bunu İnternet → Adres altında Ana adres veya Etki alanı köklerinde yapılandırın. Adreste görünüyorsa bağlantı noktasını da ekleyin.\nBu, kötü amaçlı bir sitenin tarayıcınızın yetkili IP adresini DNS rebinding ile oturum açmak için kullanmasını önler. Yalnızca güvendiğiniz etki alanlarını yapılandırın ve Etki alanı köklerinde aşırı geniş jokerlerden kaçının.\nDiğer ana bilgisayar adlarında otomatik oturum açma atlanır, ancak kimlik bilgileriyle oturum açma kullanılabilir.",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "Güvenlik duvarınızı yalnızca güvenilir proxy’lerin HFS’ye bağlanmasına izin verecek şekilde yapılandırın.",
         "Include hidden files": "Gizli dosyaları dahil et",
         "Case-insensitive": "Büyük/küçük harfe duyarlı değil",
         "non_public_ip_warning": "Bu, genel bir IP adresi değildir. İnternet üzerinden doğrudan erişilemez. Bunun yerine genel bir IP adresi veya alan adı kullanın.",

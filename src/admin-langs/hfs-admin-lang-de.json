@@ -2,6 +2,10 @@
     "author": "Automatic translation",
     "version": 1,
     "translate": {
+        "Using a hostname? Configure it first.": "Verwenden Sie einen Hostnamen? Konfigurieren Sie ihn zuerst.",
+        "Learn more": "Mehr erfahren",
+        "auto_login_net_help": "IP-Adressen und localhost funktionieren ohne zusätzliche Konfiguration.\nWenn Sie über einen Hostnamen auf HFS zugreifen, konfigurieren Sie ihn unter Internet → Adresse als Hauptadresse oder in den Domain-Wurzeln. Geben Sie den Port an, falls er in der Adresse erscheint.\nDies verhindert, dass eine bösartige Website die autorisierte IP-Adresse Ihres Browsers für eine Anmeldung per DNS-Rebinding verwendet. Konfigurieren Sie nur vertrauenswürdige Domains und vermeiden Sie zu weit gefasste Platzhalter in den Domain-Wurzeln.\nBei anderen Hostnamen wird die automatische Anmeldung übersprungen; die Anmeldung mit Zugangsdaten bleibt verfügbar.",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "Konfigurieren Sie Ihre Firewall so, dass nur vertrauenswürdige Proxys eine Verbindung zu HFS herstellen können.",
         "Include hidden files": "Versteckte Dateien einschließen",
         "Case-insensitive": "Groß-/Kleinschreibung wird nicht unterschieden",
         "non_public_ip_warning": "Dies ist eine nicht öffentliche IP-Adresse. Sie ist nicht direkt über das Internet erreichbar. Verwenden Sie stattdessen eine öffentliche IP-Adresse oder einen Domainnamen.",

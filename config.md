@@ -96,6 +96,7 @@ Some properties use a `Who` descriptor, with one of these values:
 - `enable_plugins` if a plugin is not present in this list, it won't run. Defaults is `[ antibrute ]`.
 - `localhost_admin` should Admin be accessed without credentials when on localhost. Default is true.
 - `proxies` number of proxies between server and clients to be trusted about providing clients' IP addresses. Default is 0.
+  When enabled, HFS trusts forwarded IP addresses from any connection. Restrict direct access to trusted proxies, set the count correctly, and ensure the proxies sanitize forwarded headers.
 - `delete_unfinished_uploads_after` should unfinished uploads be deleted after a number of seconds. 0 for immediate, empty for never. Default is 1 day.
 - `own_upload_delete_hours` for how many hours an uploader can delete their own uploaded file. 0 disables. Default is 24.
 - `favicon` path to file to be used as favicon. Default is none.
@@ -238,8 +239,12 @@ Valid keys in a node are:
   Value uses the same permission descriptor described above. Default is `can_read`.
 - `can_upload`: specify who can upload. Applies to folders with a source. Default is `"admin"`.
 - `can_list`: specify who can see the content of a folder. Default is `can_read`.
-- `can_archive`: specify who can get the zip a folder or a set of files. Default is `can_read`.
+- `can_archive`: specify who can include this entry in a ZIP download. Default is `can_read`.
 - `can_delete`: specify who can delete. Applies to folders with a source. Default is `"admin"`.
+  Deleting a folder requires permission to delete its contents too. HFS checks before deleting anything;
+  a denied descendant aborts the request and is identified in the error when visible to the user.
+  Renaming or moving a folder only checks the folder itself and the operation's destination requirements.
+  Filesystem errors after deletion starts can still leave a partially deleted folder.
 - `masks`: maps a file mask to a set of properties as the one documented in this section. E.g.
   ```
   myfile.txt:
@@ -283,6 +288,10 @@ gather multiple accounts and refer to them collectively as `group1`, so you can 
 
 For each account entry, this is the list of properties you can have:
 
+- `auto_login_net` automatically logs in clients whose IP matches this net-mask. Default is none.
+  To prevent DNS rebinding, the requested host must be a literal IP address, `localhost`, the host in `base_url`, or a match in `roots` (including the port, when present).
+  Configure hostnames under Admin → Internet → Address. Only trust domains you control; broad `roots` wildcards broaden this trust.
+  Other hosts skip automatic login; explicit credentials and existing sessions are unaffected. With `proxies` enabled, the effective host can come from `X-Forwarded-Host`, which your trusted proxy must sanitize.
 - `ignore_limits` to ignore speed limits. Default is `false`.
 - `redirect` provide a URL if you want the user to be redirected upon login. Default is none.
 - `admin` set `true` if you want to let this account log in to the Admin-panel. Default is `false`.

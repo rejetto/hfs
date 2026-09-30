@@ -2,6 +2,10 @@
     "author": "Automatic translation",
     "version": 1,
     "translate": {
+        "Using a hostname? Configure it first.": "Naudojate pagrindinio kompiuterio vardą? Pirmiausia jį sukonfigūruokite.",
+        "Learn more": "Sužinoti daugiau",
+        "auto_login_net_help": "IP adresai ir localhost veikia be papildomos konfigūracijos.\nJei HFS pasiekiate naudodami pagrindinio kompiuterio vardą, sukonfigūruokite jį Internetas → Adresas kaip pagrindinį adresą arba domenų šaknyse. Įtraukite prievadą, jei jis yra adrese.\nTai neleidžia kenkėjiškai svetainei naudoti naršyklės įgalioto IP adreso prisijungti per DNS rebinding. Konfigūruokite tik patikimus domenus ir venkite pernelyg plačių pakaitos ženklų.\nKitiems vardams automatinis prisijungimas praleidžiamas, bet prisijungimas su kredencialais lieka prieinamas.",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "Sukonfigūruokite užkardą, kad prie HFS galėtų jungtis tik patikimi tarpiniai serveriai.",
         "Include hidden files": "Įtraukti paslėptus failus",
         "Case-insensitive": "Didžiosios ir mažosios raidės neskiriamos",
         "non_public_ip_warning": "Tai neviešas IP adresas. Jo negalima tiesiogiai pasiekti iš interneto. Naudokite viešą IP adresą arba domeno vardą.",

@@ -2,6 +2,10 @@
     "author": "Automatic translation",
     "version": 1,
     "translate": {
+        "Using a hostname? Configure it first.": "Gebruikt u een hostnaam? Configureer die eerst.",
+        "Learn more": "Meer informatie",
+        "auto_login_net_help": "IP-adressen en localhost werken zonder extra configuratie.\nAls u HFS via een hostnaam benadert, configureer die dan onder Internet → Adres, als Hoofdadres of in Domeinroots. Neem de poort op als die in het adres voorkomt.\nDit voorkomt dat een schadelijke website het geautoriseerde IP-adres van uw browser gebruikt om via DNS-rebinding in te loggen. Configureer alleen vertrouwde domeinen en vermijd te brede jokertekens in Domeinroots.\nVoor andere hostnamen wordt automatisch aanmelden overgeslagen, maar aanmelden met referenties blijft beschikbaar.",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "Configureer uw firewall zodat alleen vertrouwde proxy’s verbinding met HFS kunnen maken.",
         "Include hidden files": "Verborgen bestanden opnemen",
         "Case-insensitive": "Niet hoofdlettergevoelig",
         "non_public_ip_warning": "Dit is een niet-openbaar IP-adres. Het is niet rechtstreeks bereikbaar via internet. Gebruik een openbaar IP-adres of een domeinnaam.",

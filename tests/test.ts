@@ -2,6 +2,7 @@ import './acme-dns.test'
 import './acme-dns-providers.test'
 import './acme-config.test'
 import './filename-normalization.test'
+import './antibrute-expiry.test'
 import './path-root.test'
 import './update-changelog.test'
 import './plugin-catalog.test'
@@ -211,6 +212,37 @@ describe('basics', () => {
             'x-hfs-anti-csrf': '1',
             host: 'proxy.example',
         } }))
+    test('blocked IP is rejected before credential side effects', async () => {
+        const adminReq = { auth, jar: {} }
+        const user = `blocked-login-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const blockedIp = '198.51.100.19'
+        const old = await reqApi('get_config', { only: ['block', 'proxies'] }, 200, adminReq)()
+        const loginReq = {
+            auth: `${user}:${pass}`,
+            headers: { 'x-forwarded-for': blockedIp, 'x-hfs-anti-csrf': '1' },
+            jar: {},
+        }
+        try {
+            await reqApi('add_account', { username: user, password: pass, days_to_live: 1 }, 200, adminReq)()
+            await reqApi('set_config', { values: {
+                proxies: 1,
+                block: [...old.block, { ip: blockedIp }],
+            } }, 200, adminReq)()
+            await httpWithBody(`${BASE_URL}${API}refresh_session`, loginReq)
+                .then(() => { throw Error('blocked login was not disconnected') }, e => {
+                    if (e.code !== 'ECONNRESET') throw e
+                })
+            await reqApi('get_account', { username: user }, res => !res.expire, adminReq)()
+            await reqApi('set_config', { values: { block: old.block } }, 200, adminReq)()
+            await reqApi('refresh_session', {}, res => res.username === user, loginReq)()
+            await reqApi('get_account', { username: user }, res => Boolean(res.expire), adminReq)()
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
     test('loopback address classification rejects IPv6 suffixes', () => {
         if (!isIpLocalHost('127.0.0.1') || !isIpLocalHost('::ffff:127.0.0.1')
         || isIpLocalHost('2001:db8::127.0.0.1'))
@@ -447,6 +479,67 @@ describe('basics', () => {
         }
         finally {
             await rm(dir, { recursive: true, force: true })
+        }
+    })
+    test('descript.ion is private unless explicitly shared', async () => {
+        const name = `comments-${randomId(6)}`
+        const source = resolve(__dirname, 'tmp', name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['comments_storage'] }, 200, adminReq)()
+        await mkdir(source, { recursive: true })
+        await writeFile(join(source, 'visible.txt'), 'public')
+        await writeFile(join(source, 'secret.txt'), 'private')
+        await writeFile(join(source, 'descript.ion'), 'visible.txt public note\nsecret.txt confidential note\n')
+        try {
+            await reqApi('set_config', { values: { comments_storage: '' } }, 200, adminReq)()
+            await reqApi('add_vfs', { name, source, masks: { 'secret.txt': { can_see: false, can_read: false } } }, 200, adminReq)()
+            await reqList(uri, res => res?.list?.length === 1 && res.list[0].comment === 'public note')()
+            for (const file of ['descript.ion', 'DESCRIPT.ION', 'DeScRiPt.IoN', '%64escript.ion'])
+                await req(uri + file, 404, { jar: {} })()
+            await req(uri + 'descript.ion', 404, { jar: {}, method: 'HEAD' })()
+            await req(uri + 'descript.ion', 404, { ...adminReq, method: 'PROPFIND', headers: { depth: '0' } })()
+            for (const query of ['?get=zip', '?get=zip&list=descript.ion']) {
+                const path = uri + query
+                const { body } = await httpWithBody(BASE_URL + path, { path, jar: {} })
+                const files = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+                if (files.includes('descript.ion')) throw Error('comment storage included in ZIP')
+            }
+            await reqApi('set_vfs', { uri, props: { rename: { 'descript.ion': 'notes.txt' } } }, 200, adminReq)()
+            await req(uri + 'notes.txt', 404, { jar: {} })()
+            await reqApi('add_vfs', { parent: uri, name: 'published.txt', source: join(source, 'descript.ion') }, 200, adminReq)()
+            await req(uri + 'published.txt', /confidential note/, { jar: {} })()
+            await reqApi('set_config', { values: { comments_storage: 'attr+ion' } }, 200, adminReq)()
+            await req(uri + 'notes.txt', 404, { jar: {} })()
+            await reqApi('set_config', { values: { comments_storage: 'attr' } }, 200, adminReq)()
+            await req(uri + 'notes.txt', /confidential note/, { jar: {} })()
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)()
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)()
+            await rmAny(source)
+        }
+    })
+    test('a folder named descript.ion remains browsable and archivable', async () => {
+        const name = `comments-folder-${randomId(6)}`
+        const source = resolve(__dirname, 'tmp', name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        await mkdir(join(source, 'descript.ion'), { recursive: true })
+        await writeFile(join(source, 'descript.ion', 'visible.txt'), 'public content')
+        try {
+            await reqApi('add_vfs', { name, source }, 200, adminReq)()
+            await req(uri + 'descript.ion/visible.txt', /public content/, { jar: {} })()
+            await reqList(uri, { inList: ['descript.ion/'] })()
+            await reqList(uri + 'descript.ion/', { inList: ['visible.txt'] })()
+            const path = uri + '?get=zip'
+            const { body } = await httpWithBody(BASE_URL + path, { path, jar: {} })
+            const files = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+            if (!files.includes('descript.ion/visible.txt')) throw Error('folder contents missing from ZIP')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)()
+            await rmAny(source)
         }
     })
     test('not-found.default page', req('/missing-default-404', /found<\/h1>/))
@@ -732,6 +825,66 @@ describe('basics', () => {
         status: 200,
         cb: data => !data.includes('page/gpl.png') && data.includes('gpl-visible.png'),
     }))
+    test('zip preserves disk subfolder permissions', async () => {
+        const name = `zip-permissions-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        await mkdir(resolve(dir, 'private'), { recursive: true })
+        await writeFile(resolve(dir, 'public.txt'), 'public')
+        await writeFile(resolve(dir, 'private/secret.txt'), 'secret')
+        try {
+            await reqApi('add_vfs', {
+                source: dir,
+                name,
+                can_read: true,
+                can_list: true,
+                masks: { private: { can_archive: false } },
+            }, 200, adminReq)()
+            await req(uri + 'private/?get=zip', 403, { jar: {} })()
+            const { body } = await httpWithBody(BASE_URL + uri + '?get=zip', { path: uri + '?get=zip', jar: {} })
+            const paths = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+            if (!paths.includes('public.txt') || paths.includes('private/secret.txt'))
+                throw Error('archive bypassed subfolder permissions: ' + paths)
+            await reqApi('set_vfs', { uri, props: { masks: { '*|folders|': { can_archive: false } } } }, 200, adminReq)()
+            const foldersOnly = await httpWithBody(BASE_URL + uri + '?get=zip', { path: uri + '?get=zip', jar: {} })
+            const folderMaskPaths = (await unzipper.Open.buffer(foldersOnly.body!)).files.map(x => x.path)
+            if (!folderMaskPaths.includes('public.txt') || folderMaskPaths.includes('private/secret.txt'))
+                throw Error('folder-only mask applied to a file: ' + folderMaskPaths)
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('zip preserves negated path masks', async () => {
+        const adminReq = { auth, jar: {} }
+        for (const [suffix, mask] of [['path', '!private/allowed.txt'], ['globstar', '!**/allowed.txt']]) {
+            const name = `zip-negated-${suffix}-${randomId(6)}`
+            const dir = resolve(UPLOAD_DISK_ROOT, name)
+            const uri = `/${name}/`
+            await mkdir(resolve(dir, 'private'), { recursive: true })
+            await writeFile(resolve(dir, 'private/allowed.txt'), 'allowed')
+            await writeFile(resolve(dir, 'private/denied.txt'), 'denied')
+            try {
+                await reqApi('add_vfs', {
+                    source: dir,
+                    name,
+                    can_read: true,
+                    can_list: true,
+                    masks: { [mask]: { can_archive: false } },
+                }, 200, adminReq)()
+                const { body } = await httpWithBody(BASE_URL + uri + '?get=zip', { path: uri + '?get=zip', jar: {} })
+                const paths = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+                if (!paths.includes('private/allowed.txt') || paths.includes('private/denied.txt'))
+                    throw Error(`${mask} was not preserved: ` + paths)
+            }
+            finally {
+                await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+                await rmAny(dir)
+            }
+        }
+    })
     test('zip.alfa is forbidden', req('/protectFromAbove/child/?get=zip&list=alfa.txt//renamed', { empty: true, length:134 }, { method:'HEAD' }))
     test('zip.cantReadPage', req('/cantReadPage/?get=zip', { length: 4832 }, { method:'HEAD' }))
 
@@ -2080,6 +2233,60 @@ describe('sessions', () => {
             await reqApi('set_config', { values: oldConfig }, 200, adminReq)()
         }
     })
+    test('password changes during finalizingLogin cannot mint a new session', async () => {
+        const user = `revoked-login-${randomId(6)}`.toLowerCase()
+        let pass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        const oldConfig = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
+        const script = `exports.init = api => {
+            let release, waiting = false
+            api.events.on('finalizingLogin', ({ username }) => {
+                if (username !== ${JSON.stringify(user)}) return
+                waiting = true
+                return new Promise(resolve => { release = resolve })
+            })
+            exports.customRest = { session_gate: ({ resume }) => {
+                if (resume) { release?.(); waiting = false }
+                return { ready: true, waiting }
+            } }
+            return () => release?.()
+        }`
+        try {
+            await reqApi('add_account', { username: user, password: pass }, 200, adminReq)()
+            await reqApi('set_config', { values: { server_code: script } }, 200, adminReq)()
+            if (!await waitFor(() => reqApi('_session_gate', {}, x => x?.ready, adminReq)().catch(() => false),
+                { interval: 50, timeout: 3000 })) throw Error('session gate did not start')
+            for (const via of ['body', 'srp']) {
+                const jar = {}
+                let endpoint = 'login'
+                let body: object = { username: user, password: pass }
+                if (via === 'srp') {
+                    const { salt, pubKey } = await reqApi('loginSrp1', { username: user }, 200, { jar })()
+                    const client = await srpClientPart(srp, user, pass, salt, pubKey)
+                    endpoint = 'loginSrp2'
+                    body = { pubKey: String(client.A), proof: String(client.M1) }
+                }
+                const pending = httpWithBody(BASE_URL + API + endpoint, {
+                    body: JSON.stringify(body), headers: { 'x-hfs-anti-csrf': '1' }, jar, httpThrow: false,
+                })
+                try {
+                    if (!await waitFor(() => reqApi('_session_gate', {}, 200, adminReq)().then(x => x.waiting),
+                        { interval: 50, timeout: 3000 })) throw Error('login did not reach session gate')
+                    pass = randomId(12)
+                    await reqApi('set_account', { username: user, changes: { password: pass } }, 200, adminReq)()
+                }
+                finally {
+                    await reqApi('_session_gate', { resume: true }, 200, adminReq)()
+                }
+                if ((await pending).statusCode !== 401) throw Error('revoked login minted a fresh session')
+                await reqApi('refresh_session', {}, x => !x.username, { jar })()
+            }
+        }
+        finally {
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
     test('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw "in" }, () => {}))
     test('allow_net.canLogin', () => login(username))
     test('allow_net.cantLogin', () => {
@@ -2216,6 +2423,50 @@ describe('sessions', () => {
             }, 200, adminReq)().catch(() => {})
         }
     })
+    test('auto_login_net rejects rebinding hosts but preserves configured addresses and credentials', async () => {
+        const user = `auto-host-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        const previous = await reqApi('get_config', { only: ['base_url', 'roots', 'proxies'] }, 200, adminReq)()
+        try {
+            await reqApi('set_config', { values: { base_url: '', roots: {}, proxies: 0 } }, 200, adminReq)()
+            await reqApi('add_account', { username: user, password: pass, auto_login_net: '::1' }, 200, adminReq)()
+            for (const host of ['attacker.example', 'localhost.attacker.example', '127.0.0.1.attacker.example'])
+                await check(host, false)
+            for (const host of ['localhost', 'LOCALHOST:8081', '127.0.0.1:8081', '[::1]:8081'])
+                await check(host, true)
+            const loginReq = { jar: {}, headers: { host: 'attacker.example', 'x-hfs-anti-csrf': '1' } }
+            await reqApi('refresh_session', {}, res => res?.username === user,
+                { ...loginReq, auth: `${user}:${pass}` })()
+            await reqApi('refresh_session', {}, res => res?.username === user, loginReq)()
+            await reqApi('set_config', { values: { base_url: 'http://hfs.example:8081/files/' } }, 200, adminReq)()
+            await check('hfs.example:8081', true)
+            await check('hfs.example.attacker.example:8081', false)
+            for (const base_url of ['http://hfs.example:80/', 'https://hfs.example:443/', 'http://caffè.example/']) {
+                await reqApi('set_config', { values: { base_url } }, 200, adminReq)()
+                await check(new URL(base_url).host, true)
+            }
+            await reqApi('set_config', { values: { base_url: 'http://hfs.example:8081/' } }, 200, adminReq)()
+            await reqApi('set_config', { values: { roots: { 'files.example:8081': '', '*.home.example:8081': '/' } } }, 200, adminReq)()
+            await check('files.example:8081', true)
+            await check('nas.home.example:8081', true)
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: {},
+                headers: { host: 'attacker.example', 'x-forwarded-host': 'localhost', 'x-hfs-anti-csrf': '1' } })()
+            await reqApi('set_config', { values: { proxies: 1 } }, 200, adminReq)()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: {},
+                headers: { host: 'localhost', 'x-forwarded-host': 'attacker.example', 'x-hfs-anti-csrf': '1' } })()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar: {},
+                headers: { host: 'proxy.internal', 'x-forwarded-host': 'hfs.example:8081', 'x-hfs-anti-csrf': '1' } })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+            await reqApi('set_config', { values: previous }, 200, adminReq)().catch(() => {})
+        }
+        function check(host: string, allowed: boolean) {
+            return reqApi('refresh_session', {}, { status: 200, cb: res => allowed ? res?.username === user : !res?.username },
+                { jar: {}, headers: { host, 'x-hfs-anti-csrf': '1' } })()
+        }
+    })
     test('auto_login_net.canLogin', async () => {
         const user = `auto-login-${randomId(6)}`.toLowerCase()
         const adminReq = { auth, jar: {} }
@@ -2253,6 +2504,86 @@ describe('sessions', () => {
         async function makeSrpChange(username: string, password=`next-${randomId(8)}`) {
             const res = await srp.createVerifierAndSalt(srp6aNimbusRoutines, username, password)
             return { salt: String(res.s), verifier: String(res.v), username }
+        }
+    })
+    test('account credential changes preserve only the current session and recreation rejects old cookies', async () => {
+        const user = `session-lifecycle-${randomId(6)}`.toLowerCase()
+        const pass = `pw-${randomId(8)}`
+        const jar = {}
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: user, password: pass }, 200, adminReq)()
+            await srpClientSequence(srp, user, pass, (cmd: string, params: any) =>
+                reqApi(cmd, params, (_x, res) => res.statusCode < 400, { jar })())
+            const otherJar = structuredClone(jar)
+            const changed = await makeSrpChange(user)
+            await reqApi('change_srp', changed, 200, { jar })()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar })()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: otherJar })()
+
+            const adminChange = await makeSrpChange(user)
+            await reqApi('change_srp', adminChange, 200, adminReq)()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar })()
+            const oldJar = {}
+            await srpClientSequence(srp, user, adminChange.password, (cmd: string, params: any) =>
+                reqApi(cmd, params, (_x, res) => res.statusCode < 400, { jar: oldJar })())
+            await reqApi('del_account', { username: user }, 200, adminReq)()
+            await reqApi('add_account', { username: user, password: randomId(12) }, 200, adminReq)()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: oldJar })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+
+        async function makeSrpChange(username: string) {
+            const password = `next-${randomId(8)}`
+            const res = await srp.createVerifierAndSalt(srp6aNimbusRoutines, username, password)
+            return { salt: String(res.s), verifier: String(res.v), username, password }
+        }
+    })
+    test('self account updates preserve the current session without reviving cookies on rename', async () => {
+        const user = `self-update-${randomId(6)}`.toLowerCase()
+        const renamed = user + '-renamed'
+        const pass = randomId(12)
+        const jar = {}
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: user, password: pass, admin: true }, 200, adminReq)()
+            await reqApi('login', { username: user, password: pass }, 200, { jar })()
+            for (const api of ['set_account', 'add_account']) {
+                const oldJar = structuredClone(jar)
+                const password = randomId(12)
+                await reqApi(api, api === 'set_account' ? { username: user, changes: { password } }
+                    : { username: user, overwrite: true, password }, 200, { jar })()
+                await reqApi('refresh_session', {}, res => res?.username === user, { jar })()
+                await reqApi('refresh_session', {}, res => !res?.username, { jar: oldJar })()
+            }
+            const beforeRename = structuredClone(jar)
+            await reqApi('set_account', { username: user, changes: { username: renamed } }, 200, { jar })()
+            await reqApi('refresh_session', {}, res => res?.username === renamed, { jar })()
+            await reqApi('set_account', { username: renamed, changes: { username: user } }, 200, { jar })()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar })()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: beforeRename })()
+        }
+        finally {
+            await reqApi('del_account', { username: [user, renamed] }, 200, adminReq)().catch(() => {})
+        }
+    })
+    test('password changes invalidate pending SRP logins', async () => {
+        const user = `pending-srp-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const jar = {}
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: user, password: pass }, 200, adminReq)()
+            const { salt, pubKey } = await reqApi('loginSrp1', { username: user }, 200, { jar })()
+            const client = await srpClientPart(srp, user, pass, salt, pubKey)
+            await reqApi('set_account', { username: user, changes: { password: randomId(12) } }, 200, adminReq)()
+            await reqApi('loginSrp2', { pubKey: String(client.A), proof: String(client.M1) }, 401, { jar })()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
         }
     })
 })
@@ -2484,6 +2815,165 @@ describe('after-login', () => {
             await reqApi('set_config', { values: { own_upload_delete_hours: 24 } }, 200)().catch(() => {})
             await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
             await rmAny(resolve(UPLOAD_DISK_ROOT, name))
+        }
+    })
+    test('delete checks descendants before removing anything', async () => {
+        const name = `delete-tree-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        await mkdir(resolve(dir, 'tree/safe'), { recursive: true })
+        await mkdir(resolve(dir, 'tree/restricted'), { recursive: true })
+        await writeFile(resolve(dir, 'tree/safe/ok.txt'), 'keep until authorized')
+        await writeFile(resolve(dir, 'tree/restricted/descript.ion'), 'protected')
+        try {
+            await reqApi('add_vfs', { source: dir, name, can_delete: true,
+                masks: { 'tree/restricted/descript.ion': { can_delete: false } } }, 200, adminReq)()
+            await req(uri + 'tree/', { status: 403, cb: res => res.uri === uri + 'tree/restricted' }, { method: 'delete', ...adminReq })()
+            if (!existsSync(resolve(dir, 'tree/safe/ok.txt')))
+                throw Error('preflight deleted an authorized sibling')
+            await reqApi('rename', { uri: uri + 'tree/', dest: 'renamed' }, 200, adminReq)()
+            await mkdir(resolve(dir, 'destination'))
+            await reqApi('move_files', { uri_from: [uri + 'renamed/'], uri_to: uri + 'destination/' },
+                res => !res?.errors?.some(Boolean), adminReq)()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('delete preflight prunes safe branches and fails closed', async () => {
+        const name = `delete-pruning-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        const previous = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
+        const script = `exports.init = api => {
+            const fs = require('fs/promises')
+            const path = require('path')
+            const original = fs.opendir
+            const opened = []
+            fs.opendir = async function(target, ...args) {
+                const relative = path.relative(${JSON.stringify(dir)}, String(target)).replaceAll('\\\\', '/')
+                if (!relative.startsWith('..')) {
+                    opened.push(relative)
+                    if (relative.endsWith('/unreadable')) throw Object.assign(Error('test EACCES'), { code: 'EACCES' })
+                }
+                return original.call(this, target, ...args)
+            }
+            let off
+            exports.customRest = {
+                delete_probe: () => opened.splice(0),
+                delete_plugin: () => {
+                    off = api.events.on('checkVfsPermission', ({ node, perm }) =>
+                        perm === 'can_delete' && node.source?.replaceAll('\\\\', '/').endsWith('plugin/protected.txt') ? 403 : undefined)
+                    return {}
+                }
+            }
+            return () => { fs.opendir = original; off?.() }
+        }`
+        try {
+            await mkdir(dir, { recursive: true })
+            await reqApi('add_vfs', { source: dir, name, can_delete: true, masks: {
+                'partial/restricted/**/keep.txt': { can_delete: false },
+                'failure/**/keep.txt': { can_delete: false },
+                'objects': { can_delete: { this: true, children: false } },
+                'indirect': { can_delete: 'can_read', masks: { 'keep.txt': { can_read: false } } },
+                'negated': { masks: { '!allowed/ok.txt': { can_delete: false } } },
+                'private': { can_list: false, masks: { 'secret.txt': { can_delete: false } } },
+                'folder-links': { masks: { '*|folders|': { can_delete: false } } },
+            } }, 200, adminReq)()
+            await reqApi('set_config', { values: { server_code: script } }, 200, adminReq)()
+            if (!await waitFor(() => reqApi('_delete_probe', {}, Array.isArray, adminReq)().then(() => true, () => false), { interval: 50, timeout: 3000 }))
+                throw Error('delete probe did not start')
+
+            await mkdir(resolve(dir, 'uniform'))
+            await Promise.all(Array.from({ length: 1000 }, (_, i) => writeFile(resolve(dir, `uniform/${i}.txt`), 'x')))
+            await req(uri + 'uniform/', 200, { method: 'delete', ...adminReq })()
+            await reqApi('_delete_probe', {}, x => x.length === 0, adminReq)()
+
+            await mkdir(resolve(dir, 'partial/safe/deep'), { recursive: true })
+            await mkdir(resolve(dir, 'partial/restricted'), { recursive: true })
+            await writeFile(resolve(dir, 'partial/safe/deep/ok.txt'), 'x')
+            await writeFile(resolve(dir, 'partial/restricted/keep.txt'), 'protected')
+            await req(uri + 'partial/', { status: 403, re: /restricted\/keep.txt/ }, { method: 'delete', ...adminReq })()
+            await reqApi('_delete_probe', {}, x => x.includes('partial') && x.includes('partial/restricted')
+                && !x.some((p: string) => p.startsWith('partial/safe')), adminReq)()
+            if (!existsSync(resolve(dir, 'partial/safe/deep/ok.txt'))) throw Error('partial deletion')
+
+            for (const folder of ['objects', 'indirect', 'negated']) {
+                await mkdir(resolve(dir, folder))
+                await writeFile(resolve(dir, folder, 'keep.txt'), 'protected')
+                await req(uri + folder + '/', 403, { method: 'delete', ...adminReq })()
+                if (!existsSync(resolve(dir, folder, 'keep.txt'))) throw Error('deleted protected ' + folder)
+            }
+            await mkdir(resolve(dir, 'failure/unreadable'), { recursive: true })
+            await writeFile(resolve(dir, 'failure/unreadable/ok.txt'), 'x')
+            await req(uri + 'failure/', 500, { method: 'delete', ...adminReq })()
+            if (!existsSync(resolve(dir, 'failure/unreadable/ok.txt'))) throw Error('deleted after incomplete scan')
+
+            await mkdir(resolve(dir, 'private'))
+            await writeFile(resolve(dir, 'private/secret.txt'), 'protected')
+            await req(uri + 'private/', { status: 403, cb: data => {
+                if (data.uri !== uri + 'private') throw Error(JSON.stringify(data))
+            } },
+                { method: 'delete', ...adminReq })()
+
+            if (process.platform !== 'win32') {
+                await mkdir(resolve(dir, 'folder-links'))
+                await symlink(resolve(dir, 'private'), resolve(dir, 'folder-links/link'))
+                await req(uri + 'folder-links/link/', 403, { method: 'delete', ...adminReq })()
+                await req(uri + 'folder-links/', 403, { method: 'delete', ...adminReq })()
+                await symlink(resolve(dir, 'failure'), resolve(dir, 'link'))
+                await req(uri + 'link/', 200, { method: 'delete', ...adminReq })()
+                if (!existsSync(resolve(dir, 'failure/unreadable/ok.txt'))) throw Error('followed root symlink')
+                await mkdir(resolve(dir, 'links'))
+                await symlink(resolve(dir, 'missing'), resolve(dir, 'links/dangling'))
+                await req(uri + 'links/', 200, { method: 'delete', ...adminReq })()
+            }
+            await mkdir(resolve(dir, 'explicit/deep'), { recursive: true })
+            await writeFile(resolve(dir, 'explicit/deep/keep.txt'), 'protected')
+            await reqApi('set_vfs', { uri, props: { masks: { explicit: { children: [
+                { name: 'protected', source: resolve(dir, 'explicit/deep/keep.txt') },
+            ] } } } }, 200, adminReq)()
+            await req(uri + 'explicit/', { status: 403, re: /protected/ }, { method: 'delete', ...adminReq })()
+            await mkdir(resolve(dir, 'plugin'))
+            await writeFile(resolve(dir, 'plugin/protected.txt'), 'protected')
+            await reqApi('_delete_plugin', {}, 200, adminReq)()
+            await req(uri + 'plugin/', { status: 403, re: /protected.txt/ }, { method: 'delete', ...adminReq })()
+        }
+        finally {
+            await reqApi('set_config', { values: previous }, 200, adminReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('folder owner cannot delete files owned by another uploader', async () => {
+        const name = `delete-owner-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/`
+        const other = `delete-other-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        try {
+            await mkdir(dir, { recursive: true })
+            await reqApi('add_vfs', { source: dir, name, can_upload: ['admins'], can_delete: false,
+                masks: { 'owned/protected.txt': { can_see: false } } }, 200, adminReq)()
+            await reqApi('add_account', { username: other, password: pass, belongs: ['admins'] }, 200, adminReq)()
+            await reqApi('create_folder', { uri, name: 'owned' }, 200, adminReq)()
+            await req(uri + 'owned/protected.txt', 200, { method: 'PUT', body: 'protected',
+                auth: `${other}:${pass}`, jar: {} })()
+            await req(uri + 'owned/', { status: 403, cb: data => {
+                if (data.uri !== uri + 'owned') throw Error(JSON.stringify(data))
+            } }, { method: 'delete', ...adminReq })()
+            if (!existsSync(resolve(dir, 'owned/protected.txt'))) throw Error('owner grant deleted another user file')
+            await reqApi('create_folder', { uri, name: 'empty' }, 200, adminReq)()
+            await req(uri + 'empty/', 200, { method: 'delete', ...adminReq })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: other }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
         }
     })
     test('upload owner can delete without delete permission', async () => {

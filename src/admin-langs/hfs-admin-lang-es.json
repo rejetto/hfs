@@ -2,6 +2,10 @@
     "author": "Automatic translation",
     "version": 1,
     "translate": {
+        "Using a hostname? Configure it first.": "¿Usas un nombre de host? Configúralo primero.",
+        "Learn more": "Más información",
+        "auto_login_net_help": "Las direcciones IP y localhost funcionan sin configuración adicional.\nSi accedes a HFS mediante un nombre de host, configúralo en Internet → Dirección, como Dirección principal o en Raíces de dominio. Incluye el puerto si aparece en la dirección.\nEsto impide que un sitio malicioso use la dirección IP autorizada de tu navegador para iniciar sesión mediante DNS rebinding. Configura solo dominios de confianza y evita comodines demasiado amplios en Raíces de dominio.\nPara otros nombres de host se omite el inicio de sesión automático, pero sigue disponible el acceso con credenciales.",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "Configura el cortafuegos para permitir que solo los proxies de confianza se conecten a HFS.",
         "Include hidden files": "Incluir archivos ocultos",
         "Case-insensitive": "No distingue entre mayúsculas y minúsculas",
         "non_public_ip_warning": "Esta es una dirección IP no pública. No se puede acceder a ella directamente desde Internet. Usa una dirección IP pública o un nombre de dominio.",

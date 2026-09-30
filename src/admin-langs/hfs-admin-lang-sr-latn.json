@@ -2,6 +2,10 @@
     "author": "Automatic translation",
     "version": 1,
     "translate": {
+        "Using a hostname? Configure it first.": "Koristite naziv hosta? Prvo ga podesite.",
+        "Learn more": "Saznajte više",
+        "auto_login_net_help": "IP adrese i localhost rade bez dodatnog podešavanja.\nAko HFS-u pristupate preko naziva hosta, podesite ga u Internet → Adresa kao glavnu adresu ili u korenima domena. Uključite port ako se nalazi u adresi.\nOvo sprečava zlonameran sajt da koristi odobrenu IP adresu pregledača za prijavu putem DNS rebindinga. Podesite samo pouzdane domene i izbegavajte preširoke džokere.\nZa druge nazive hosta automatska prijava se preskače, ali prijava akreditivima ostaje dostupna.",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "Podesite zaštitni zid tako da samo pouzdani proksiji mogu da se povežu na HFS.",
         "Include hidden files": "Uključi skrivene datoteke",
         "Case-insensitive": "Ne razlikuje velika i mala slova",
         "non_public_ip_warning": "Ovo nije javna IP adresa. Nije joj moguće pristupiti direktno sa interneta. Koristite javnu IP adresu ili naziv domena.",

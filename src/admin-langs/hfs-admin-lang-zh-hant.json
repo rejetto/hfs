@@ -2,6 +2,10 @@
     "author": "Hug3O",
     "version": 1.2,
     "translate": {
+        "Using a hostname? Configure it first.": "正在使用主機名稱？請先進行設定。",
+        "Learn more": "瞭解更多",
+        "auto_login_net_help": "IP 位址和 localhost 無需額外設定即可使用。\n如果透過主機名稱存取 HFS，請在「網際網路 → 位址」中將其設定為主要位址或網域根。若位址中包含連接埠，也請一併填寫。\n這可防止惡意網站利用瀏覽器已授權的 IP 位址透過 DNS 重新綁定登入。只設定可信任的網域，並避免在網域根中使用過寬的萬用字元。\n對於其他主機名稱，將略過自動登入，但仍可使用憑證登入。",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "請設定防火牆，只允許受信任的代理伺服器連線至 HFS。",
         "Include hidden files": "包含隱藏檔案",
         "Case-insensitive": "不區分大小寫",
         "non_public_ip_warning": "這是一個非公網 IP 位址，無法直接從網際網路存取。請改用公網 IP 位址或網域。",

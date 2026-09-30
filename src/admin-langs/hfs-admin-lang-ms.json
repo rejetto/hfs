@@ -2,6 +2,10 @@
     "author": "Automatic translation",
     "version": 1,
     "translate": {
+        "Using a hostname? Configure it first.": "Menggunakan nama hos? Konfigurasikannya dahulu.",
+        "Learn more": "Ketahui lebih lanjut",
+        "auto_login_net_help": "Alamat IP dan localhost berfungsi tanpa konfigurasi tambahan.\nJika anda mengakses HFS menggunakan nama hos, konfigurasikannya di Internet → Alamat sebagai alamat utama atau dalam akar domain. Sertakan port jika terdapat dalam alamat.\nIni menghalang laman berniat jahat daripada menggunakan alamat IP yang dibenarkan pelayar untuk log masuk melalui DNS rebinding. Konfigurasikan hanya domain yang dipercayai dan elakkan kad bebas yang terlalu luas.\nUntuk nama hos lain, log masuk automatik dilangkau, tetapi log masuk dengan kelayakan masih tersedia.",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "Konfigurasikan tembok api supaya hanya proksi dipercayai boleh bersambung ke HFS.",
         "Include hidden files": "Sertakan fail tersembunyi",
         "Case-insensitive": "Tidak membezakan huruf besar dan kecil",
         "non_public_ip_warning": "Ini ialah alamat IP bukan awam. Ia tidak boleh dicapai secara terus dari Internet. Gunakan alamat IP awam atau nama domain.",

@@ -2,6 +2,10 @@
     "author": "Automatic translation",
     "version": 1,
     "translate": {
+        "Using a hostname? Configure it first.": "Állomásnevet használ? Előbb állítsa be.",
+        "Learn more": "További információ",
+        "auto_login_net_help": "Az IP-címek és a localhost további beállítás nélkül működnek.\nHa állomásnévvel éri el a HFS-t, állítsa be az Internet → Cím alatt fő címként vagy a tartománygyökerek között. Ha a címben port szerepel, azt is adja meg.\nEz megakadályozza, hogy egy rosszindulatú webhely a böngésző engedélyezett IP-címét DNS rebinding alapú bejelentkezésre használja. Csak megbízható tartományokat állítson be, és kerülje a túl tág helyettesítő karaktereket.\nMás állomásneveknél az automatikus bejelentkezés kimarad, de a hitelesítő adatokkal történő bejelentkezés elérhető marad.",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "Állítsa be a tűzfalat úgy, hogy csak megbízható proxyk kapcsolódhassanak a HFS-hez.",
         "Include hidden files": "Rejtett fájlok megjelenítése",
         "Case-insensitive": "Nem különbözteti meg a kis- és nagybetűket",
         "non_public_ip_warning": "Ez nem nyilvános IP-cím. Az internetről közvetlenül nem érhető el. Használj helyette nyilvános IP-címet vagy domainnevet.",

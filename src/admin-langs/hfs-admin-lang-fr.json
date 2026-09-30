@@ -2,6 +2,10 @@
     "author": "Automatic translation",
     "version": 1,
     "translate": {
+        "Using a hostname? Configure it first.": "Vous utilisez un nom d’hôte ? Configurez-le d’abord.",
+        "Learn more": "En savoir plus",
+        "auto_login_net_help": "Les adresses IP et localhost fonctionnent sans configuration supplémentaire.\nSi vous accédez à HFS avec un nom d’hôte, configurez-le dans Internet → Adresse, comme Adresse principale ou dans les Racines de domaine. Incluez le port s’il apparaît dans l’adresse.\nCela empêche un site malveillant d’utiliser l’adresse IP autorisée de votre navigateur pour se connecter par DNS rebinding. Ne configurez que des domaines fiables et évitez les jokers trop larges dans les Racines de domaine.\nPour les autres noms d’hôte, la connexion automatique est ignorée, mais la connexion avec des identifiants reste disponible.",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "Configurez votre pare-feu pour que seuls les proxys de confiance puissent se connecter à HFS.",
         "Include hidden files": "Inclure les fichiers cachés",
         "Case-insensitive": "Insensible à la casse",
         "non_public_ip_warning": "Il s’agit d’une adresse IP non publique. Elle ne peut pas être jointe directement depuis Internet. Utilisez plutôt une adresse IP publique ou un nom de domaine.",

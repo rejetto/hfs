@@ -5,6 +5,30 @@ import yaml from 'yaml'
 const port = yaml.parse(readFileSync('tests/config.yaml', 'utf8')).port
 const url = process.env.ADMIN_OPTIONS_URL || `http://localhost:${port}/~/admin/#/options/others`
 
+test('proxy firewall reminder is shown only for a positive count', async ({ page }) => {
+    await page.route('**/~/api/get_config', route => route.fulfill({ json: {
+        port: 80, https_port: -1, proxies: 0, server_code: '', mime: {}, block: [],
+    } }))
+    await page.route('**/~/api/get_status', route => route.fulfill({ json: {
+        http: { listening: true, port: 80 }, https: {}, ips: [], connectionAddress: '127.0.0.1',
+    } }))
+    await page.route('**/~/api/get_admins', route => route.fulfill({ json: { list: [] } }))
+    await page.goto(url.replace('/others', '/net'))
+    const count = page.getByRole('spinbutton', { name: 'Number of incoming HTTP proxies' })
+    const reminder = page.getByText('Configure your firewall to allow only trusted proxies to connect to HFS.', { exact: true })
+    await expect(count).toBeVisible()
+    await expect(reminder).toHaveCount(0)
+    await count.fill('1')
+    await count.blur()
+    await expect(reminder).toBeVisible()
+    await count.fill('0')
+    await count.blur()
+    await expect(reminder).toHaveCount(0)
+    await count.fill('')
+    await count.blur()
+    await expect(reminder).toHaveCount(0)
+})
+
 test('comment encoding follows storage mode despite the enabled legacy setting', async ({ page }) => {
     await page.route('**/~/api/get_config', route => route.fulfill({ json: {
         port: 80, https_port: -1, descript_ion: true,

@@ -7,7 +7,7 @@ import { Alert, Box } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, useDialogBarColors } from './dialog'
 import { apiNewPassword, formatTimestamp, isModifiedConfig, prefix, reactJoin, useIsMobile, wantArray } from './misc'
-import { Btn, Flex, IconBtn, NetmaskField, propsForModifiedValues } from './mui'
+import { Btn, Flex, IconBtn, LinkBtn, NetmaskField, propsForModifiedValues } from './mui'
 import { type Account } from './AccountsPage'
 import { AutoDelete, Delete } from '@mui/icons-material'
 import { state, useSnapState } from './state'
@@ -116,8 +116,15 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             },
 
             { k: 'allow_net', comp: NetmaskField, label: t`Allowed network address`, sm: 6, lg: 4, placeholder: t`any address` },
-            !isGroup && { k: 'auto_login_net', comp: NetmaskField, label: t`Auto-login by IP address`, sm: 6, lg: 4, placeholder: t`none` },
-            { k: 'redirect', label: t`Redirect`, comp: VfsPathField, placeholder: t`no`, sm: 6, lg: 4,
+            !isGroup && { k: 'auto_login_net', comp: NetmaskField, label: t`Auto-login by IP address`, sm: 6, lg: 4, placeholder: t`none`,
+                helperText: [
+                    t`Using a hostname? Configure it first.`,
+                    h(LinkBtn, {
+                        onClick: () => alertDialog(t`auto_login_net_help`, { title: t`Auto-login by IP address` })
+                    }, t`Learn more`)
+                ]
+            },
+            { k: 'redirect', comp: VfsPathField, label: t`Redirect`, placeholder: t`no`, sm: 6, lg: 4,
                 helperText: t`account_redirect_hint` },
 
             { k: 'expire', label: t`Expiration`, sm: 6, lg: 4, comp: DateTimeField, toField: x => x && new Date(x),

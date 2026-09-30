@@ -2,6 +2,10 @@
     "author": "HFS contributors",
     "version": 1,
     "translate": {
+        "Using a hostname? Configure it first.": "Using a hostname? Configure it first.",
+        "Learn more": "Learn more",
+        "auto_login_net_help": "IP addresses and localhost work without additional configuration.\nIf you access HFS using a hostname, configure it under Internet → Address, as the Main address or in Domain roots. Include the port if it appears in the address.\nThis prevents a malicious website from using your browser's authorized IP address to log in through DNS rebinding. Only configure domains you trust; avoid overly broad Domain roots wildcards.\nFor other hostnames, automatic login is skipped, but login with credentials remains available.",
+        "Configure your firewall to allow only trusted proxies to connect to HFS.": "Configure your firewall to allow only trusted proxies to connect to HFS.",
         "Include hidden files": "Include hidden files",
         "Case-insensitive": "Case-insensitive",
         "non_public_ip_warning": "This is a non-public IP address. It cannot be reached directly from the Internet. Use a public IP address or domain name instead.",
