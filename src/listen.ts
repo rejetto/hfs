@@ -23,7 +23,7 @@ import { defaultBaseUrl } from './nat'
 import { storedMap } from './persistence'
 import { argv } from './argv'
 import { consoleHint } from './consoleLog'
-import { onProcessExit, quitting } from './first'
+import { onProcessExit } from './first'
 import { fileAttrDb } from './fileAttr'
 import { uploadOwners } from './uploadOwners'
 import { sessionStampsReady } from './sessionStamp'
@@ -33,7 +33,12 @@ let httpSrv: undefined | http.Server & ServerExtra
 let httpsSrv: undefined | http.Server & ServerExtra
 
 // the update relaunch can keep a bridge process alive, so we proactively close listeners here to release ports before the next binary binds; do it before (5) the storage file is closed, because sockets write there
-onProcessExit(() => Promise.all([stopServer(httpSrv), stopServer(httpsSrv)]), 5)
+onProcessExit(() => {
+    const stopped = Promise.all([stopServer(httpSrv), stopServer(httpsSrv)])
+    for (const { socket } of getConnections()) // closeAllConnections misses TCP sockets awaiting TLS and connections upgraded by plugins
+        socket.destroy()
+    return stopped
+}, 5)
 
 const openBrowserAtStart = defineConfig(CFG.open_browser_at_start, true)
 
@@ -285,8 +290,6 @@ export function stopServer(srv?: http.Server) {
                 console.debug("Failed to stop server", String(err))
             resolve(err)
         })
-        if (quitting)
-            srv.closeAllConnections()
     })
 }
 

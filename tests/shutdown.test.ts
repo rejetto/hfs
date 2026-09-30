@@ -1,11 +1,15 @@
 import test, { TestContext } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFile } from 'node:child_process'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { execFile, spawn } from 'node:child_process'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
 import { promisify } from 'node:util'
 import { KvStorage } from '@rejetto/kvstorage'
+import { pki } from 'node-forge'
+import { connect } from 'node:net'
+import { once } from 'node:events'
+import { setTimeout as delay } from 'node:timers/promises'
 
 const exec = promisify(execFile)
 
@@ -107,5 +111,57 @@ test('shutdown: storage close flushes a pending write before the next group', as
     }
     finally {
         await storage.close()
+    }
+})
+
+test('shutdown: quit closes HTTPS sockets before their TLS handshake', { timeout: 15000 }, async t => {
+    const cwd = await mkdtemp(join(tmpdir(), 'hfs-https-shutdown-'))
+    const keys = pki.rsa.generateKeyPair(2048)
+    const cert = pki.createCertificate()
+    cert.publicKey = keys.publicKey
+    cert.serialNumber = '01'
+    cert.validity.notAfter.setDate(cert.validity.notBefore.getDate() + 1)
+    cert.setSubject([{ name: 'commonName', value: 'localhost' }])
+    cert.setIssuer(cert.subject.attributes)
+    cert.sign(keys.privateKey)
+    await writeFile(join(cwd, 'cert.pem'), pki.certificateToPem(cert))
+    await writeFile(join(cwd, 'key.pem'), pki.privateKeyToPem(keys.privateKey))
+    await writeFile(join(cwd, 'config.yaml'), JSON.stringify({
+        port: -1, https_port: 0, listen_interface: '127.0.0.1',
+        cert: 'cert.pem', private_key: 'key.pem', enable_plugins: [],
+        open_browser_at_start: false, log: '', error_log: '', auto_check_update: false, upnp_enabled: false,
+        // observe acceptance through the public event, before asking the console to quit
+        server_code: 'exports.init = api => { api.events.on("connection", () => console.log("Test TCP accepted")) }',
+    }))
+    const child = spawn(process.execPath, ['--import', 'tsx', resolve(__dirname, '../src/index.ts'),
+        '--cwd', cwd, '--no-central'], { cwd: resolve(__dirname, '..'), stdio: ['pipe', 'pipe', 'pipe'] })
+    const stopped = once(child, 'exit')
+    t.after(async () => {
+        child.kill('SIGKILL')
+        await stopped
+        await rm(cwd, { recursive: true, force: true })
+    })
+    let output = ''
+    child.stdout.on('data', chunk => output += chunk)
+    child.stderr.on('data', chunk => output += chunk)
+    await until(() => /Serving on https:\/\/127\.0\.0\.1:\d+/.test(output))
+    const port = Number(/Serving on https:\/\/127\.0\.0\.1:(\d+)/.exec(output)![1])
+    // a real TCP client can connect to HTTPS without ever starting TLS
+    const socket = connect(port, '127.0.0.1')
+    socket.on('error', () => {}) // shutdown deliberately resets the connection
+    t.after(() => socket.destroy())
+    await once(socket, 'connect')
+    await until(() => output.includes('Test TCP accepted'))
+    child.stdin.write('quit\n')
+    await until(() => child.exitCode !== null)
+    assert.equal((await stopped)[0], 0, output)
+
+    async function until(check: () => boolean) {
+        for (let i = 0; i < 100; i++) {
+            if (check()) return
+            assert.equal(child.signalCode, null, output)
+            await delay(50)
+        }
+        assert.fail(output)
     }
 })
