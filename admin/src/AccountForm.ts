@@ -118,10 +118,10 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             { k: 'allow_net', comp: NetmaskField, label: t`Allowed network address`, sm: 6, lg: 4, placeholder: t`any address` },
             !isGroup && { k: 'auto_login_net', comp: NetmaskField, label: t`Auto-login by IP address`, sm: 6, lg: 4, placeholder: t`none`,
                 helperText: [
-                    t`Using a hostname? Configure it first.`,
+                    t`Using a hostname?`, ' ',
                     h(LinkBtn, {
                         onClick: () => alertDialog(t`auto_login_net_help`, { title: t`Auto-login by IP address` })
-                    }, t`Learn more`)
+                    }, t`Configure it first`)
                 ]
             },
             { k: 'redirect', comp: VfsPathField, label: t`Redirect`, placeholder: t`no`, sm: 6, lg: 4,
