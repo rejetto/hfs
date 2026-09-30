@@ -766,9 +766,12 @@ test('admin1', async ({ page }) => {
     await page.getByRole('tab', { name: 'Get more' }).click()
     await page.getByRole('tab', { name: 'updates' }).click()
     await clickAdminMenu(page, 'Custom HTML')
-    await expect(page.getByRole('combobox', { name: 'Section Style' })).toBeVisible() // wait for data to be loaded
-    await screenshot(page)
+    const section = page.getByRole('combobox', { name: /^Section / })
+    await expect(section).toBeVisible() // wait for data to be loaded
+    await section.click()
+    await page.getByRole('option', { name: 'Style', exact: true }).click()
     await page.getByRole('main').click()
+    await screenshot(page)
     await clickAdminMenu(page, 'Internet')
     await expect(page.getByText(`port ${TEST_PORT}`)).toBeVisible({ timeout: 15000 }) // wait for data (get_nat can be very slow)
     await page.mouse.click(1, 1) // avoid focus inconsistencies

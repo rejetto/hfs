@@ -33,7 +33,7 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
         setEnabled(data.enabled)
     }, [data])
     const options = useMemo(() => {
-        const keys = _.sortBy(Object.keys(all), isNumeric) // http codes at the bottom
+        const keys = _.sortBy(Object.keys(all), [isNumeric, x=>x]) // http codes at the bottom
         if (keys.length && !keys.includes(section))
             state.customHtmlSection = _.findKey(all, Boolean) || keys?.[0] || '' // prefer any key with content
         return keys.map(x => ({

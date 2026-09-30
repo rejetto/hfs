@@ -703,6 +703,8 @@ This is a list of available frontend-events, with respective object parameter an
   - `afterFolderStats` between folder-stats and filter-bar
   - `afterFilter` at the input of the filter-bar
   - `afterList` at the end of the files list
+  - `beforeOptions` at the beginning of the options dialog
+  - `afterOptions` at the end of the options dialog
   - `footer` at the bottom of the screen, even after the clipboard-bar (when visible)
   - `unauthorized` displayed behind the login dialog accessing a protected folder
   - `userPanelAfterInfo` visible to logged-in users, after the click on the button with their username, between user-info and buttons
@@ -1301,5 +1303,6 @@ Registration returns an unregister function and is also removed automatically wh
 - 13.6 (v3.4.0)
   - backend event: beforeLog
   - `api.registerAcmeDnsProvider`
-- 13.7 (v3.4.0)
+- 13.71 (v3.4.0)
   - backend event: loginAttemptFinished
+  - frontend events: beforeOptions, afterOptions

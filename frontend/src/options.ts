@@ -3,7 +3,7 @@
 import { newDialog } from './dialog'
 import { state, useSnapState } from './state'
 import { createElement as h, Fragment } from 'react'
-import { Checkbox, FlexV, Select } from './components'
+import { Checkbox, CustomCode, FlexV, Select } from './components'
 import { getHFS, hIcon, MAX_TILE_SIZE, SORT_BY_OPTIONS, THEME_OPTIONS } from './misc'
 import { MenuLink } from './menu'
 import _ from 'lodash'
@@ -22,6 +22,8 @@ export function showOptions (){
         const snap = useSnapState()
         const {t} = useI18N()
         return h(FlexV, { gap: '1.5em' },
+            h(CustomCode, { name: 'beforeOptions' }),
+
             snap.adminUrl && h(MenuLink, {
                 id: 'admin-link',
                 icon: 'admin',
@@ -83,6 +85,8 @@ export function showOptions (){
                     i18n.state.disabled = state.disableTranslation = v
                 }
             }, "English"),
+
+            h(CustomCode, { name: 'afterOptions' }),
         )
     }
 }

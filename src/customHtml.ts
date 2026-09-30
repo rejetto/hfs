@@ -7,8 +7,9 @@ import _ from 'lodash'
 
 const FILE = 'custom.html'
 
-export const customHtmlSections: ReadonlyArray<string> = ['style', 'script', 'beforeHeader', 'afterHeader', 'afterMenuBar', 'afterList',
-    'footer', 'top', 'bottom', 'afterEntryName', 'beforeLogin', 'unauthorized', 'htmlHead', 'userPanelAfterInfo']
+export const customHtmlSections: ReadonlyArray<string> = ['style', 'script', 'beforeHeader', 'afterHeader', 'afterMenuBar',
+    'footer', 'top', 'bottom', 'afterEntryName', 'beforeLogin', 'unauthorized', 'htmlHead', 'userPanelAfterInfo',
+    'afterList', 'beforeOptions', 'afterOptions']
 
 export const customHtml = watchLoadCustomHtml()
 export const disableCustomHtml = defineConfig(CFG.disable_custom_html, false)
