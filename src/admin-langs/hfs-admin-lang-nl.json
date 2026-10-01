@@ -756,6 +756,8 @@
         "dynamic_dns_url_help": "Raadpleeg uw DNS-serviceprovider om te weten welke URL uw domein automatisch up-to-date kan houden. Ondersteunde symbolen zijn $IP4, $IP6, $IPX. Optioneel kunt u “>” toevoegen, gevolgd door een reguliere expressie om een ​​succesvol antwoord te bepalen, anders wordt de statuscode gebruikt.",
         "Reinstall previous version": "Installeer de vorige versie opnieuw",
         "Reject uploads that don't comply": "Weiger uploads die niet voldoen",
+        "Require approval for uploaded HTML/SVG": "Goedkeuring vereisen voor geüploade HTML/SVG-bestanden",
+        "Prevents running scripts on your website": "Voorkomt dat scripts op uw website worden uitgevoerd",
         "release": "uitgave",
         "Reload": "Herladen",
         "Remove": "Verwijderen",

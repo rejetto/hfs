@@ -41,7 +41,7 @@ export const CFG = constMap([
     'smart_unc_folder_detection', 'sort_by', 'sort_numerics', 'split_uploads',
     'suspend_plugins', 'theme', 'tile_size', 'title', 'title_with_path', 'track_ips',
     'update_to_beta', 'upnp_enabled', 'version', 'vfs', 'webdav_initial_auth',
-    'zip_calculate_size_for_seconds', 'https_port'
+    'zip_calculate_size_for_seconds', 'https_port', 'require_upload_approval_for_active_content',
 ])
 
 function constMap<T extends string>(a: T[]): { [K in T]: K } {

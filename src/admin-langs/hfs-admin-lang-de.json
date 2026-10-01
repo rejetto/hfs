@@ -756,6 +756,8 @@
         "dynamic_dns_url_help": "Wenden Sie sich an Ihren DNS-Dienstanbieter, um zu erfahren, welche URL Ihre Domain automatisch auf dem neuesten Stand halten kann. Unterstützte Symbole sind $IP4, $IP6, $IPX. Optional können Sie „>“ gefolgt von einem regulären Ausdruck anhängen, um eine erfolgreiche Antwort zu ermitteln. Andernfalls wird der Statuscode verwendet.",
         "Reinstall previous version": "Vorherige Version neu installieren",
         "Reject uploads that don't comply": "Lehnen Sie Uploads ab, die nicht den Anforderungen entsprechen",
+        "Require approval for uploaded HTML/SVG": "Genehmigung für hochgeladene HTML-/SVG-Dateien verlangen",
+        "Prevents running scripts on your website": "Verhindert die Ausführung von Skripten auf Ihrer Website",
         "release": "freigeben",
         "Reload": "Neu laden",
         "Remove": "Entfernen",

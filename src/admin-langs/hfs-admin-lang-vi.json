@@ -756,6 +756,8 @@
         "dynamic_dns_url_help": "Hãy tham khảo nhà cung cấp dịch vụ DNS của bạn để biết URL nào có thể tự động cập nhật miền của bạn. Các ký hiệu được hỗ trợ là $IP4, $IP6, $IPX. Theo tùy chọn, bạn có thể thêm “>” theo sau là biểu thức chính quy để xác định câu trả lời thành công, nếu không thì mã trạng thái sẽ được sử dụng.",
         "Reinstall previous version": "Cài đặt lại phiên bản trước",
         "Reject uploads that don't comply": "Từ chối tải lên không tuân thủ",
+        "Require approval for uploaded HTML/SVG": "Yêu cầu phê duyệt HTML/SVG đã tải lên",
+        "Prevents running scripts on your website": "Ngăn chạy tập lệnh trên trang web của bạn",
         "release": "giải phóng",
         "Reload": "Tải lại",
         "Remove": "Di dời",

@@ -752,6 +752,8 @@
         "dynamic_dns_url_help": "ドメインを自動的に更新できる URL については、DNS サービス プロバイダーにお問い合わせください。サポートされているシンボルは、$IP4、$IP6、$IPX です。必要に応じて、「>」の後に正規表現を追加して、成功したかどうかを判断できます。それ以外の場合は、ステータス コードが使用されます。",
         "Reinstall previous version": "以前のバージョンを再インストールする",
         "Reject uploads that don't comply": "準拠していないアップロードを拒否する",
+        "Require approval for uploaded HTML/SVG": "アップロードされたHTML/SVGに承認を必須にする",
+        "Prevents running scripts on your website": "サイト上でのスクリプト実行を防ぎます",
         "release": "リリース",
         "Reload": "リロード",
         "Remove": "取り除く",

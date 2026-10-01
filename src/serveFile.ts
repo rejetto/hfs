@@ -20,6 +20,7 @@ import iconv from 'iconv-lite'
 import { getUploadMeta, isUploading } from './upload'
 
 const allowedReferer = defineConfig(CFG.allowed_referer, '')
+const requireUploadApprovalForActiveContent = defineConfig(CFG.require_upload_approval_for_active_content, true)
 const maxDownloads = downloadLimiter(defineConfig(CFG.max_downloads, 0), () => true)
 const maxDownloadsPerIp = downloadLimiter(defineConfig(CFG.max_downloads_per_ip, 0), ctx => ctx.ip)
 const maxDownloadsPerAccount = downloadLimiter(defineConfig(CFG.max_downloads_per_account, 0), ctx => getCurrentUsername(ctx) || undefined)
@@ -57,8 +58,8 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     const download = 'dl' in ctx.query
     disposition(ctx, name, download)
     if (!download && source && isActiveContentMime(effectiveMime)) {
-        const upload = await getUploadMeta(source)
-        if (isUploading(source) || upload?.approved === false)
+        if (isUploading(source)
+        || requireUploadApprovalForActiveContent.get() && (await getUploadMeta(source))?.approved === false)
             return sendErrorPage(ctx, HTTP_FORBIDDEN)
     }
     // shared files count even when embedded: client headers cannot grant exemptions from limits or logging

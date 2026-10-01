@@ -756,6 +756,8 @@
         "dynamic_dns_url_help": "Kysy DNS-palveluntarjoajaltasi, mikä URL-osoite voi pitää verkkotunnuksesi automaattisesti päivitettynä. Tuetut symbolit ovat $IP4, $IP6, $IPX. Vaihtoehtoisesti voit lisätä ”>” ja sen jälkeen säännöllisen lausekkeen onnistuneen vastauksen määrittämiseksi, muuten tilakoodia käytetään.",
         "Reinstall previous version": "Asenna edellinen versio uudelleen",
         "Reject uploads that don't comply": "Hylkää vaatimustenvastaiset lähetykset",
+        "Require approval for uploaded HTML/SVG": "Vaadi hyväksyntä ladatuille HTML/SVG-tiedostoille",
+        "Prevents running scripts on your website": "Estää komentosarjojen suorittamisen sivustollasi",
         "release": "vapauttaa",
         "Reload": "Lataa uudelleen",
         "Remove": "Poistaa",

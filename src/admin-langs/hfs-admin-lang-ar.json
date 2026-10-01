@@ -756,6 +756,8 @@
         "dynamic_dns_url_help": "ارجع إلى مزود خدمة DNS الخاص بك لمعرفة عنوان URL الذي يمكنه تحديث نطاقك تلقائيًا. الرموز المدعومة هي $IP4، $IP6، $IPX. اختياريًا، يمكنك إلحاق \">\" متبوعًا بتعبير عادي لتحديد الإجابة الناجحة، وإلا سيتم استخدام رمز الحالة.",
         "Reinstall previous version": "إعادة تثبيت الإصدار السابق",
         "Reject uploads that don't comply": "رفض التحميلات التي لا تلتزم",
+        "Require approval for uploaded HTML/SVG": "طلب موافقة المسؤول على ملفات HTML/SVG المرفوعة",
+        "Prevents running scripts on your website": "يمنع تشغيل النصوص البرمجية على موقعك",
         "release": "يطلق",
         "Reload": "إعادة تحميل",
         "Remove": "يزيل",

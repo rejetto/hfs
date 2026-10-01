@@ -756,6 +756,8 @@
         "dynamic_dns_url_help": "Kreipkitės į savo DNS paslaugų teikėją, kad sužinotumėte, koks URL gali automatiškai atnaujinti jūsų domeną. Palaikomi simboliai yra $IP4, $IP6, $IPX. Jei norite nustatyti sėkmingą atsakymą, galite pridėti „>“, po kurio – reguliariąją išraišką, kitaip bus naudojamas būsenos kodas.",
         "Reinstall previous version": "Iš naujo įdiekite ankstesnę versiją",
         "Reject uploads that don't comply": "Atmeskite įkėlimus, kurie neatitinka reikalavimų",
+        "Require approval for uploaded HTML/SVG": "Reikalauti įkeltų HTML/SVG failų patvirtinimo",
+        "Prevents running scripts on your website": "Neleidžia vykdyti scenarijų jūsų svetainėje",
         "release": "paleisti",
         "Reload": "Įkelti iš naujo",
         "Remove": "Pašalinti",

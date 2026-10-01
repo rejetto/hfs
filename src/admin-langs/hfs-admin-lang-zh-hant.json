@@ -756,6 +756,8 @@
         "dynamic_dns_url_help": "請參考你的 DNS 服務提供商，了解哪個 URL 可以自動保持網域更新。支援的符號有 $IP4、$IP6、$IPX。你還可以附加「>」，後跟正規表示式以確定成功回應，否則將使用狀態碼。",
         "Reinstall previous version": "重裝上一個版本",
         "Reject uploads that don't comply": "拒絕不符合要求的上傳",
+        "Require approval for uploaded HTML/SVG": "要求核准已上傳的 HTML/SVG",
+        "Prevents running scripts on your website": "防止在您的網站上執行指令碼",
         "release": "版本",
         "Reload": "重新載入",
         "Remove": "移除",

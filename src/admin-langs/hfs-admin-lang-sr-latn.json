@@ -756,6 +756,8 @@
         "dynamic_dns_url_help": "Obratite se svom dobavljaču DNS usluga da biste saznali koja URL adresa može automatski da ažurira vaš domen. Podržani simboli su $IP4, $IP6, $IPX. Opciono, možete dodati „>“ praćen regularnim izrazom da biste utvrdili uspešan odgovor, inače će se koristiti statusni kod.",
         "Reinstall previous version": "Ponovo instalirajte prethodnu verziju",
         "Reject uploads that don't comply": "Odbijte otpremanja koja nisu usklađena",
+        "Require approval for uploaded HTML/SVG": "Zahtevaj odobrenje za otpremljene HTML/SVG datoteke",
+        "Prevents running scripts on your website": "Sprečava izvršavanje skripti na vašem sajtu",
         "release": "oslobađanje",
         "Reload": "Ponovo učitaj",
         "Remove": "Ukloni",

@@ -756,6 +756,8 @@
         "dynamic_dns_url_help": "도메인을 자동으로 업데이트할 수 있는 URL이 무엇인지 알아보려면 DNS 서비스 제공업체에 문의하세요. 지원되는 기호는 $IP4, $IP6, $IPX입니다. 선택적으로 \">\" 뒤에 정규 표현식을 추가하여 성공적인 답변을 결정할 수 있습니다. 그렇지 않으면 상태 코드가 사용됩니다.",
         "Reinstall previous version": "이전 버전 다시 설치",
         "Reject uploads that don't comply": "준수하지 않는 업로드 거부",
+        "Require approval for uploaded HTML/SVG": "업로드된 HTML/SVG에 승인 필요",
+        "Prevents running scripts on your website": "웹사이트에서 스크립트가 실행되지 못하게 합니다",
         "release": "풀어 주다",
         "Reload": "새로고침",
         "Remove": "제거하다",

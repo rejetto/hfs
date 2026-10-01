@@ -756,6 +756,8 @@
         "dynamic_dns_url_help": "Hangi URL'nin alan adınızı otomatik olarak güncel tutabileceğini öğrenmek için DNS servis sağlayıcınıza başvurun. Desteklenen semboller $IP4, $IP6, $IPX'tir. İsteğe bağlı olarak, başarılı bir yanıt belirlemek için “>” ve ardından normal bir ifade ekleyebilirsiniz, aksi takdirde durum kodu kullanılacaktır.",
         "Reinstall previous version": "Önceki sürümü yeniden yükleyin",
         "Reject uploads that don't comply": "Uygun olmayan yüklemeleri reddet",
+        "Require approval for uploaded HTML/SVG": "Yüklenen HTML/SVG dosyaları için onay iste",
+        "Prevents running scripts on your website": "Sitenizde betik çalıştırılmasını engeller",
         "release": "serbest bırakmak",
         "Reload": "Yeniden yükle",
         "Remove": "Kaldırmak",

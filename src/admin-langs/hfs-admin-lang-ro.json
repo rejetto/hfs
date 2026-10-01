@@ -756,6 +756,8 @@
         "dynamic_dns_url_help": "Consultați furnizorul dvs. de servicii DNS pentru a afla ce adresă URL vă poate menține automat domeniul actualizat. Simbolurile acceptate sunt $IP4, $IP6, $IPX. Opțional, puteți adăuga „>” urmat de o expresie obișnuită pentru a determina un răspuns de succes, altfel va fi folosit codul de stare.",
         "Reinstall previous version": "Reinstalați versiunea anterioară",
         "Reject uploads that don't comply": "Respinge încărcările care nu respectă",
+        "Require approval for uploaded HTML/SVG": "Solicită aprobarea fișierelor HTML/SVG încărcate",
+        "Prevents running scripts on your website": "Împiedică rularea scripturilor pe site-ul dvs.",
         "release": "eliberare",
         "Reload": "Reîncărcați",
         "Remove": "Elimina",

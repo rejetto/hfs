@@ -773,6 +773,8 @@ test('admin2', async ({ page, browserName }) => {
     await page.getByRole('spinbutton', { name: 'Auto-play seconds delay' }).fill('0')
     await page.getByRole('tab', { name: 'Uploads' }).click()
     await expect(page).toHaveURL(/#\/options\/uploads$/)
+    await expect(page.getByRole('switch', { name: 'Require approval for uploaded HTML/SVG' })).toBeChecked()
+    await expect(page.getByText('Prevents running scripts on your website')).toBeVisible()
     await page.locator('button.saveBtn').click()
     await expect(page.getByText('Please review errors')).toBeVisible()
     await page.keyboard.press('Escape')

@@ -756,6 +756,8 @@
         "dynamic_dns_url_help": "Rujuk kepada pembekal perkhidmatan DNS anda untuk mengetahui URL yang boleh memastikan domain anda dikemas kini secara automatik. Simbol yang disokong ialah $IP4, $IP6, $IPX. Secara pilihan, anda boleh menambahkan “>” diikuti dengan ungkapan biasa untuk menentukan jawapan yang berjaya, jika tidak, kod status akan digunakan.",
         "Reinstall previous version": "Pasang semula versi sebelumnya",
         "Reject uploads that don't comply": "Tolak muat naik yang tidak mematuhi",
+        "Require approval for uploaded HTML/SVG": "Wajibkan kelulusan untuk HTML/SVG yang dimuat naik",
+        "Prevents running scripts on your website": "Menghalang skrip daripada dijalankan di laman anda",
         "release": "lepaskan",
         "Reload": "Muat semula",
         "Remove": "Alih keluar",

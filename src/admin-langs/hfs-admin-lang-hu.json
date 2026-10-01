@@ -756,6 +756,8 @@
         "dynamic_dns_url_help": "Forduljon DNS-szolgáltatójához, hogy megtudja, melyik URL tudja automatikusan frissíteni a domainjét. A támogatott szimbólumok: $IP4, $IP6, $IPX. Opcionálisan hozzáfűzheti a „>” jelet, majd egy reguláris kifejezést a sikeres válasz meghatározásához, ellenkező esetben a rendszer állapotkódot használ.",
         "Reinstall previous version": "Telepítse újra az előző verziót",
         "Reject uploads that don't comply": "A nem megfelelő feltöltések elutasítása",
+        "Require approval for uploaded HTML/SVG": "Jóváhagyás megkövetelése a feltöltött HTML/SVG-fájlokhoz",
+        "Prevents running scripts on your website": "Megakadályozza a parancsfájlok futtatását a webhelyén",
         "release": "kiadás",
         "Reload": "Újratöltés",
         "Remove": "Távolítsa el",
