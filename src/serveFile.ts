@@ -58,7 +58,7 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     disposition(ctx, name, download)
     if (!download && source && isActiveContentMime(effectiveMime)) {
         const upload = await getUploadMeta(source)
-        if (isUploading(source) || upload && upload.approved !== true)
+        if (isUploading(source) || upload?.approved === false)
             return sendErrorPage(ctx, HTTP_FORBIDDEN)
     }
     // shared files count even when embedded: client headers cannot grant exemptions from limits or logging

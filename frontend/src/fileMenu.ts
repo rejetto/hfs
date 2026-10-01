@@ -105,6 +105,7 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
             const {t} = useI18N()
             const { data, reload } = useApi<typeof frontEndApis.get_file_details>('get_file_details', { uris: [entry.uri] })
             const details = data?.details?.[0]
+            const revoked = details?.upload?.approved === false
             const showProps = [ ...props,
                 with_(renderUploaderFromDetails(details), value =>
                     value && { id: 'uploader', label: t`Uploader`, value })
@@ -122,12 +123,12 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
                         ...menu,
                         details?.activeContent && {
                             id: 'approve-active-content',
-                            label: details.upload.approved ? t`Revoke approval` : t`Approve active content`,
-                            icon: details.upload.approved ? 'cancel' : 'check',
+                            label: revoked ? t`Approve active content` : t`Revoke approval`,
+                            icon: revoked ? 'check' : 'cancel',
                             async onClick() {
                                 await apiCall('set_upload_approved', {
                                     uri: entry.uri,
-                                    approved: !details.upload.approved,
+                                    approved: revoked,
                                 }, { modal: working })
                                 operationSuccessful()
                                 reload()

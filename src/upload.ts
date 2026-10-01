@@ -81,7 +81,7 @@ function fillUploadMeta(path: string, ctx: Koa.Context) {
     return saveUploadMeta(path, {
         username: getCurrentUsername(ctx) || undefined,
         ip: ctx.ip,
-        approved: ctxAdminAccess(ctx) || undefined,
+        approved: Boolean(ctxAdminAccess(ctx)),
     })
 }
 

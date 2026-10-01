@@ -2749,6 +2749,7 @@ describe('after-login', () => {
             await req(tempUri, 403)()
             await reqUpload(uri, (x, res) => res.statusCode === 200 && x?.uri === uri, body, undefined, 0, { jar: anonJar })()
             await req(uri, 403)()
+            await reqApi('get_file_details', { uris: [uri] }, res => res?.details?.[0]?.upload?.approved === false)()
             await req(uri + '?dl', { status: 200, re: /uploaded/ })()
             await reqApi('copy_files', { uri_from: [uri], uri_to: copyFolderUri }, res => !res?.errors?.[0])()
             await req(copiedUri, 403)()
