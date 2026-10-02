@@ -185,6 +185,9 @@ describe('languages', () => {
 })
 
 describe('basics', () => {
+    test('log files can be downloaded through the POST API',
+        reqApi('get_log_file', { file: 'log' }, 200, { auth, jar: {} }))
+
     test('HEAD preserves the method for plugins and serves GET headers without a body', async () => {
         const adminReq = { auth, jar: {} }
         const previous = await reqApi('get_config', { only: ['server_code', 'favicon'] }, 200, adminReq)()

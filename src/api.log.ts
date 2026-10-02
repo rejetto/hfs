@@ -26,8 +26,7 @@ export default {
         forceDownload(ctx, log.path)
         if (range)
             ctx.request.header.range = `bytes=${range}`
-        if (ctx.method === 'POST') // this would cause method_not_allowed
-            ctx.method = 'GET'
+        ctx.state.getOrHead = true // API POST is only the transport for this read-only file response
         await serveFile(ctx, log.path)
         return null
     },
