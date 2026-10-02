@@ -711,6 +711,15 @@ test('folder deletion explains the blocking descendant', async ({ page }) => {
 test('admin1', async ({ page }) => {
     await fs.promises.rm('tests/work/logs', { force: true, recursive: true }) // clear logs to have consistent screenshots
     const isPhone = await loginAdmin(page)
+    await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible()
+    const apiErrors: string[] = []
+    page.on('response', response => {
+        const path = new URL(response.url()).pathname
+        // this test intentionally removes log files above
+        if (path.startsWith('/~/api/') && response.status() >= 400
+        && !(response.status() === 404 && path.endsWith('/get_log_file')))
+            apiErrors.push(`${response.status()} ${response.request().method()} ${response.url()}`)
+    })
 
     function dataTableLoading() {
         return expect(page.getByRole('grid').getByRole('img')).toBeVisible({ visible: false })
@@ -778,6 +787,7 @@ test('admin1', async ({ page }) => {
     await screenshot(page)
     await clickAdminMenu(page, 'Logout')
     await screenshot(page)
+    expect(apiErrors).toEqual([])
 })
 
 async function screenshot(page: Page, selectorForMask = '') {
