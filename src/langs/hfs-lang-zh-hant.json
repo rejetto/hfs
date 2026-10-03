@@ -3,8 +3,8 @@
     "version": 1.2,
     "translate": {
         "Select": "選擇",
-        "n_files": "{n,plural,one{# 檔案} other{# 檔案}}",
-        "n_folders": "{n,plural,one{# 資料夾} other{# 資料夾}}",
+        "n_files": "{n,plural,one{# 個檔案} other{# 個檔案}}",
+        "n_folders": "{n,plural,one{# 個資料夾} other{# 個資料夾}}",
         "filter_count": "{n,plural, one{# 個已篩選} other{# 個已篩選}}",
         "select_count": "{n,plural, one{# 個已選擇} other{# 個已選擇}}",
         "filter_placeholder": "在此輸入以篩選下方清單",
