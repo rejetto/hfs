@@ -1,4 +1,3 @@
-import { proxy } from 'valtio'
 import { Client } from '@rejetto/nat-upnp'
 import { debounceAsync } from './debounceAsync'
 import {
@@ -14,7 +13,7 @@ import { exec } from 'child_process'
 import { IS_MAC, IS_WINDOWS } from './const'
 import { configReady, defineConfig } from './config'
 
-export const defaultBaseUrl = proxy({
+export const defaultBaseUrl = {
     proto: 'http',
     publicIps: [] as string[],
     externalIp: '',
@@ -27,7 +26,7 @@ export const defaultBaseUrl = proxy({
         const ip = this.publicIps[0] || this.externalIp || this.localIp
         return `${this.proto}://${ipForUrl(ip || 'localhost')}${!port || port === defPort ? '' : ':' + port}`
     }
-})
+}
 
 export const mappedPort = defineConfig(CFG.mapped_port, 0)
 export const upnpEnabled = defineConfig(CFG.upnp_enabled, true)
