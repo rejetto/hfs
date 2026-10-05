@@ -2,7 +2,7 @@
 
 import _ from "lodash"
 import { createElement as h, useMemo, Fragment, useState, type CSSProperties } from "react"
-import { language, t, translateText } from './i18n'
+import { locale, t, translateText } from './i18n'
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { LinkOff as DisconnectIcon, Lock, FolderZip, Upload, Download, ChevronRight, ChevronLeft, History } from '@mui/icons-material'
 import { Alert, Box, Chip, ChipProps, Grid } from '@mui/material'
@@ -42,7 +42,7 @@ function MoreInfo() {
     const md = useBreakpoint('md')
     const sm = useBreakpoint('sm')
     const xl = useBreakpoint('xl')
-    const formatDuration = createDurationFormatter({ locale: language, maxTokens: 2, skipZeroes: true })
+    const formatDuration = createDurationFormatter({ locale, maxTokens: 2, skipZeroes: true })
     return element || h(Box, { sx: { display: 'flex', flexWrap: 'wrap', gap: { xs: .5, md: 1 }, mb: { xs: 1, sm: 2 } } },
         (allInfo || md) && pair('started', {
             label: t`Uptime`,
@@ -60,7 +60,7 @@ function MoreInfo() {
         pair('inSpeedKb', { label: t`Input`, render: formatSpeedK, minWidth: '8.5em' }),
         (allInfo || sm) && pair('ips', { label: t`IPs`, title: () => stats && t('connections_count', {
             n: stats.connections,
-            count: stats.connections.toLocaleString(language),
+            count: stats.connections.toLocaleString(locale),
         }) }),
         (md || allInfo || status?.http?.error) && pair('http', { label: t`HTTP`, render: port }),
         (md || allInfo || status?.https?.error) && pair('https', { label: t`HTTPS`, render: port }),
@@ -195,7 +195,7 @@ function Connections() {
                             type: 'dateTime',
                             width: 96,
                             hideUnder: 'lg',
-                            valueFormatter: (value) => new Date(value as string).toLocaleTimeString(language)
+                            valueFormatter: (value) => new Date(value as string).toLocaleTimeString(locale)
                         },
                         {
                             field: 'path',

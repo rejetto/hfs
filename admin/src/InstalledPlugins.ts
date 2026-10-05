@@ -2,7 +2,7 @@
 
 import { apiCall, useApiList } from './api'
 import { createElement as h, useEffect, useState } from 'react'
-import { language, t } from './i18n'
+import { locale, t } from './i18n'
 import { Box, Table, TableBody, TableCell, TableRow } from '@mui/material'
 import { DataTable, DataTableColumn } from './DataTable'
 import {
@@ -128,7 +128,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
         ] : [
             h(IconBtn, row.started ? {
                 icon: StopCircle,
-                title: h(Box, { 'aria-hidden': true }, t("Stop {id}", { id: id }), h('br'), t('started_at', { startedAt: new Date(row.started as string).toLocaleString(language) })),
+                title: h(Box, { 'aria-hidden': true }, t("Stop {id}", { id: id }), h('br'), t('started_at', { startedAt: new Date(row.started as string).toLocaleString(locale) })),
                 'aria-label': t("Stop {id}", { id: id }),
                 size,
                 color: 'success',

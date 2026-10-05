@@ -5,7 +5,7 @@ test.use({ locale: 'it-IT' })
 
 test.beforeEach(async ({ page }) => {
     test.skip(!process.env.ADMIN_DATE_TIME_URL, 'requires the Admin Vite server for the component fixture')
-    await page.addInitScript(() => { Object.assign(window, { HFS: { session: { username: 'admin', isAdmin: true } } }) })
+    await page.addInitScript(() => { Object.assign(window, { HFS: { session: { username: 'admin', isAdmin: true }, lang: { it: {} } } }) })
     await page.route('**/~/api/refresh_session', route => route.fulfill({ json: { username: 'admin', isAdmin: true } }))
     await page.route('**/src/MonitorPage.ts*', route => route.fulfill({ contentType: 'text/javascript',
         body: `export { default } from ${JSON.stringify('/@fs/' + resolve('e2e/fixtures/date-time.ts'))}` }))
