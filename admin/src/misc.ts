@@ -3,7 +3,7 @@
 import { HTTP_MESSAGES, isEqualLax, MD_TAGS, md as sharedMd } from '@hfs/shared'
 import { Link } from '@mui/material'
 import httpCodes from './httpCodes'
-import { language, t, translateText } from './i18n'
+import { locale, t, translateText } from './i18n'
 export * from '@hfs/shared'
 
 ;(MD_TAGS as any).a = Link
@@ -25,7 +25,7 @@ export function err2msg(code: string | number) {
 }
 
 export function formatTimestamp(x: number | string | Date) {
-    return !x ? '' : (x instanceof Date ? x : new Date(x)).toLocaleString(language)
+    return !x ? '' : (x instanceof Date ? x : new Date(x)).toLocaleString(locale)
 }
 
 export function isModifiedConfig(a: any, b: any) {

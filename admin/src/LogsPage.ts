@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
-import { language, t } from './i18n'
+import { locale, t } from './i18n'
 import httpCodes from './httpCodes'
 import { Box, Tab, Tabs } from '@mui/material'
 import { PageProps } from './App'
@@ -191,7 +191,7 @@ export function LogFile({ file, footerSide, hidden, limit=DEFAULT_MEMORY_LIMIT, 
         type: 'dateTime',
         width: 96,
         valueGetter: v => new Date(v),
-        renderCell: ({ value }) => h(Fragment, {}, value.toLocaleDateString(language), h('br'), value.toLocaleTimeString(language)),
+        renderCell: ({ value }) => h(Fragment, {}, value.toLocaleDateString(locale), h('br'), value.toLocaleTimeString(locale)),
     }
     const ipColumn: DataTableColumn = {
         field: 'ip',
@@ -264,7 +264,7 @@ export function LogFile({ file, footerSide, hidden, limit=DEFAULT_MEMORY_LIMIT, 
             h(Btn, {
                 size: 'small',
                 variant: 'outlined',
-                title: t('log_memory_limit_hint', { limit: limit.toLocaleString(language) },
+                title: t('log_memory_limit_hint', { limit: limit.toLocaleString(locale) },
                     'Currently keeping the latest {limit} rows in memory.'),
                 onClick: () => setLimit(limit < DEFAULT_MEMORY_LIMIT ? DEFAULT_MEMORY_LIMIT : 0),
             }, limit < DEFAULT_MEMORY_LIMIT ? t`Show more` : t`Unlimited rows`),

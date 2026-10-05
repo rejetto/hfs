@@ -2,7 +2,7 @@
 
 import { useApiList } from './api'
 import { Fragment, createElement as h, useState } from 'react'
-import { language, t } from './i18n'
+import { locale, t } from './i18n'
 import { DataTable } from './DataTable'
 import { err2msg, newDialog, wantArray, xlate } from './misc'
 import { ArrowBack, ArrowForward, Download, RemoveRedEye, Search } from '@mui/icons-material'
@@ -27,7 +27,7 @@ export default function OnlinePlugins() {
             typing: true,
             label: t`Search text`,
             helperText: t("Plugin lists are cached for 5 minutes.")
-                + (props?.updatedAt ? ' ' + t("Updated: {time}", { time: new Date(props.updatedAt).toLocaleString(language) }) : '')
+                + (props?.updatedAt ? ' ' + t("Updated: {time}", { time: new Date(props.updatedAt).toLocaleString(locale) }) : '')
                 + (props?.refreshing ? ' ' + t`Updating…` : '')
         }),
         h(DataTable, {
@@ -53,7 +53,7 @@ export default function OnlinePlugins() {
                 {
                     field: 'pushed_at',
                     headerName: t`last update`,
-                    valueGetter: (value) => new Date(value).toLocaleDateString(language),
+                    valueGetter: (value) => new Date(value).toLocaleDateString(locale),
                 },
                 {
                     field: 'license', headerName: t`License`,
