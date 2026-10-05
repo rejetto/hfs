@@ -1,21 +1,20 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { proxy, useSnapshot } from 'valtio'
-import { watch } from 'valtio/utils'
+import _ from 'lodash'
 
 export const ANY_LANGUAGE = 'all'
 
+interface I18nReactivity {
+    proxy<T extends object>(value: T): T
+    useSnapshot<T extends object>(value: T): unknown
+}
+
 // this code is in the backend to give the chance to plugins to translate http's body
-export function i18nFromTranslations(translations: Record<string, any>, embedded='en') {
-    const state = proxy({
+export function i18nFromTranslations(translations: Record<string, any>, embedded='en', reactivity?: I18nReactivity) {
+    const state = (reactivity?.proxy || _.identity)({
         embedded,
         disabled: false,
         translations, // all dictionaries
-    })
-    const searchLangs: string[] = []
-    watch(get => {
-        const snap = get(state)
-        searchLangs.splice(0, Infinity, ANY_LANGUAGE, ...snap.disabled ? [] : Object.keys(snap.translations), snap.embedded) // replace the array completely
     })
 
     const warns = new Set() // avoid duplicates
@@ -45,6 +44,7 @@ export function i18nFromTranslations(translations: Record<string, any>, embedded
             if (!(key in english))
                 key = Object.keys(english).find(k => english[k] === key) || key // support extensions still passing English text
             const legacyKey = english[key] === key ? undefined : english[key]
+            const searchLangs = [ANY_LANGUAGE, ...(state.disabled ? [] : Object.keys(state.translations)), state.embedded]
             for (const lang of searchLangs)
                 if (found = state.translations[selectedLang=lang]?.translate?.[key]
                     || legacyKey && state.translations[selectedLang=lang]?.translate?.[legacyKey]) break
@@ -134,7 +134,7 @@ export function i18nFromTranslations(translations: Record<string, any>, embedded
             return { lang, dir: lang === 'ar' ? 'rtl' : 'ltr' }
         },
         useI18N() { // the hook ensures translation is refreshed when language changes
-            useSnapshot(state)
+            reactivity?.useSnapshot(state)
             return { t }
         }
     }
