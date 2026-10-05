@@ -2,8 +2,9 @@
 
 import { getHFS } from '@hfs/shared'
 import { i18nFromTranslations } from '../../src/i18n'
+import { proxy, useSnapshot } from 'valtio'
 
-const i18n = i18nFromTranslations(getHFS().lang || {})
+const i18n = i18nFromTranslations(getHFS().lang || {}, 'en', { proxy, useSnapshot })
 export const { t, useI18N } = i18n
 export const language = Object.keys(getHFS().lang || {})[0] || "en"
 export const isRtl = language === "ar"

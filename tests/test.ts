@@ -36,6 +36,7 @@ import { BASIC_AUTHENTICATE_HEADER } from '../src/cross'
 import { createServer, request as httpRequest } from 'http'
 import fswin from 'fswin'
 import { tmpdir } from 'os'
+import { i18nFromTranslations } from '../src/i18n'
 /*
 import { PORT, srv } from '../src'
 
@@ -123,6 +124,16 @@ describe('http utilities', () => {
 })
 
 describe('languages', () => {
+    test('translation state changes apply immediately', () => {
+        const i18n = i18nFromTranslations({
+            it: { translate: { hello: 'ciao' } },
+            en: { translate: { hello: 'hello' } },
+        })
+        if (i18n.t('hello') !== 'ciao') throw Error('selected language ignored')
+        i18n.state.disabled = true
+        if (i18n.t('hello') !== 'hello') throw Error('embedded language ignored')
+    })
+
     test('uploaded admin languages support selection, replacement and isolated deletion', async () => {
         const code = `zz-${randomId(6).toLowerCase()}`
         const adminReq = { auth, jar: {} }

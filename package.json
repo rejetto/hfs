@@ -108,7 +108,6 @@
     "picomatch": "^4.0.3",
     "tssrp6a": "^3.0.0",
     "unzipper": "^0.12.3",
-    "valtio": "^1.13.2",
     "xxhashjs": "^0.2.2",
     "yaml": "^2.8.1",
     "yazl": "^3.3.1"
