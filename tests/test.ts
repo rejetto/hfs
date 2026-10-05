@@ -48,6 +48,9 @@ const password = 'password'
 const auth = `${username}:${password}`
 const API = '/~/api/'
 const ROOT = 'tests/'
+// clean artifacts left by interrupted test runs
+rmSync(ROOT + 'big', { force: true })
+rmSync(ROOT + 'big-limited', { force: true })
 const TEST_PORT = Number(yaml.parse(readFileSync(resolve(__dirname, 'config.yaml'), 'utf8')).port)
 const BASE_URL = `http://[::1]:${TEST_PORT}`
 const BASE_URL_127 = `http://127.0.0.1:${TEST_PORT}`
@@ -4298,11 +4301,16 @@ describe('after-login', () => {
         const free = res.bavail * res.bsize
         const fakeSize = Math.round(free * 0.51)
         const r1 = reqUpload(`${UPLOAD_ROOT}${UPLOAD_DIR}/free1`, 400, makeReadableThatTakes(1000), fakeSize)()
-        setTimeout(r1.abort, 1500)
-        await Promise.all([
-            r1.catch(() => {}),
-            wait(100).then(() => req(`${UPLOAD_ROOT}${UPLOAD_DIR}/free2?simulate=${fakeSize}`, 507, { method: 'PUT' })())
-        ])
+        const temp = resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR, UPLOAD_TEMP_PREFIX + 'free1')
+        try {
+            if (!await waitFor(() => existsSync(temp), { timeout: 3000 }))
+                throw Error('first upload did not start')
+            await req(`${UPLOAD_ROOT}${UPLOAD_DIR}/free2?simulate=${fakeSize}`, 507, { method: 'PUT' })()
+        }
+        finally {
+            r1.abort()
+            await r1.catch(() => {})
+        }
     })
     test('max_dl.account', async () => {
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/big`
