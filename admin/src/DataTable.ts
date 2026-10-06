@@ -21,7 +21,7 @@ const ACTIONS = 'Actions'
 
 export type DataTableColumn<R extends GridValidRowModel=any> = GridColDef<R> & {
     hideUnder?: Breakpoint | number | boolean
-    dialogHidden?: boolean
+    hiddenInDetails?: boolean
     sx?: SxProps | Callback<GridRenderCellParams, SxProps>
     mergeRender?: { [other: string]: false | { override?: Partial<GridColDef<R>> } & BoxProps }
     mergeRenderSx?: SxProps
@@ -268,7 +268,7 @@ export function DataTable({
                 if (field === ACTIONS || details === false) return
                 if (window.getSelection()?.type === 'Range') return // not a click but a drag
                 const showInDialog = manipulatedColumns.filter(x =>
-                    !x.dialogHidden && (x.renderCell || x.valueGetter || x.field === ACTIONS || row[x.field] !== undefined))
+                    !x.hiddenInDetails && (x.renderCell || x.valueGetter || x.field === ACTIONS || row[x.field] !== undefined))
                 // action-only columns must not count as visible data hiding the need for details
                 const visibleInList = merged + _.intersectionBy(showInDialog, apiRef.current!.getVisibleColumns(), 'field').length
                 if (showInDialog.length <= visibleInList) return // no need for dialog

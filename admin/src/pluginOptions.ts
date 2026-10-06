@@ -152,6 +152,7 @@ export function evalWrapper(s: string) {
 
 const type2comp = {
     string: StringField,
+    password: (props: any) => h(StringField, { ...props, type: 'password' }),
     number: NumberField,
     boolean: BoolField,
     select: SelectField,

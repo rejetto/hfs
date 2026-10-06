@@ -241,7 +241,7 @@ function ApplyButton(props: Parameters<typeof Button>[0]) {
     })
 }
 
-const byType: Dict<{ field?: Partial<FieldDescriptor>, column?: Partial<GridColDef> }> = {
+const byType: Dict<{ field?: Partial<FieldDescriptor>, column?: Partial<DataTableColumn> }> = {
     boolean: {
         field: { comp: BoolField },
         column: { renderCell: ({ value }) => value && h(Check) },
@@ -252,5 +252,9 @@ const byType: Dict<{ field?: Partial<FieldDescriptor>, column?: Partial<GridColD
             minWidth: 96, flex: 0.5,
             renderCell: ({ value }) => formatTimestamp(value),
         }
-    }
+    },
+    password: {
+        field: { type: 'password' },
+        column: { hideUnder: true, hiddenInDetails: true },
+    },
 }
