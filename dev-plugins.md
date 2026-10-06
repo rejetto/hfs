@@ -237,7 +237,7 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
 ### FieldDescriptor
 
 A FieldDescriptor is an object and can be empty. Currently, these optional properties are supported:
-- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'vfs_path' | 'array' | 'username' | 'color' | 'date_time' | 'show_html'` . Default is `string`.
+- `type: 'string' | 'password' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'vfs_path' | 'array' | 'username' | 'color' | 'date_time' | 'show_html'` . Default is `string`.
 - `label: string` what name to display next to the field. Default is based on `key`.
 - `defaultValue: any` value to be used when nothing is set. Default is undefined.
 - `helperText: string` extra text printed next to the field.
@@ -254,7 +254,8 @@ Based on `type`, other properties are supported:
 - `string` simple text field. Spaces at the start/end are automatically removed.
     - `multiline: boolean`. Default is `false`.
     - `required: boolean`. Default is `false`.
-    - to make it a password field, use this property `inputProps: { type: 'password' }`; valid also for other standard html input types.  
+    - `inputProps: object` attributes forwarded to the HTML input.
+- `password` masked text field. Password fields inside an `array` are omitted from its table.
 - `number`
     - `min: number`
     - `max: number`
@@ -266,6 +267,8 @@ Based on `type`, other properties are supported:
       This field will be use for both the configuration of the grid's column, and the form's field.
       Other than properties of `FieldDescriptor` you get these extra properties:
         - `$column`: where you can put all the properties you want specifically to be set on the [grid's column](https://mui.com/x/api/data-grid/grid-col-def/).
+        - `$hideUnder: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | number | true`: hide the column from the table when the table is narrower
+          than the given breakpoint or pixel width, or always if you use `true`. The field remains available in the edit form.
         - `$width`: a shortcut property that can substitute `$column: { width }` or `$column: { flex }`.
           By default, a column gets flex:1 unless you specify $width. A value of 8 and higher is considered width's pixels,
           while lower are flex-values.
@@ -1304,6 +1307,7 @@ Registration returns an unregister function and is also removed automatically wh
 - 13.6 (v3.4.0)
   - backend event: beforeLog
   - `api.registerAcmeDnsProvider`
-- 13.71 (v3.4.0)
+- 13.72 (v3.4.0)
   - backend event: loginAttemptFinished
   - frontend events: beforeOptions, afterOptions
+  - config.type: password

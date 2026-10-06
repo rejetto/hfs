@@ -86,7 +86,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             {
                 field: 'installedVersion', headerName: t`Installed version`,
                 hideUnder: true,
-                dialogHidden: true,
+                hiddenInDetails: true,
                 renderCell: ({ value }) => value && t('installed_version_value', { version: value })
             },
             {
@@ -184,7 +184,7 @@ export const themeField: DataTableColumn = {
     field: 'isTheme',
     headerName: t`is theme`,
     hideUnder: true,
-    dialogHidden: true,
+    hiddenInDetails: true,
     type: 'boolean',
     renderCell({ value }) {
         return value && iconTooltip(ThemeIcon, _.isString(value) ? t('named_theme', { themeName: value }) : t`theme`, { fontSize: '1.2rem', mr: '.3em' })

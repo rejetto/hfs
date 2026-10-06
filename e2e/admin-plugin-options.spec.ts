@@ -6,7 +6,10 @@ test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => Object.assign(window, { HFS: { session: { username: 'admin', isAdmin: true } } }))
     await page.route('**/~/api/**', route => {
         const cmd = new URL(route.request().url()).pathname.split('/').pop()
-        if (cmd === 'get_plugin') return route.fulfill({ json: { config: { name: 'original', entries: [] } } })
+        if (cmd === 'get_plugin') return route.fulfill({ json: { config: {
+            name: 'original',
+            entries: [{ label: 'existing', count: 1, password: 'secret' }],
+        } } })
         if (cmd === 'get_plugin_log') return route.fulfill({ contentType: 'text/event-stream', body: 'data: [["ready"]]\n\ndata:\n\n' })
         return route.fulfill({ json: { username: 'admin', isAdmin: true } })
     })
@@ -23,6 +26,16 @@ test('new array entries honor defaults and skip null serialized function fields'
     await expect(entry.getByRole('textbox', { name: 'Label', exact: true })).toHaveValue('new entry')
     await expect(entry.getByRole('spinbutton', { name: 'Count', exact: true })).toHaveValue('7')
     await expect(entry.getByLabel('Omitted', { exact: true })).toHaveCount(0)
+})
+
+test('array passwords are editable but omitted from the table', async ({ page }) => {
+    await page.goto(process.env.ADMIN_PLUGIN_OPTIONS_URL!)
+    await page.getByRole('button', { name: 'Open plugin options', exact: true }).click()
+    const options = page.getByRole('dialog').first()
+    await expect(options.getByRole('columnheader', { name: 'Password' })).toHaveCount(0)
+    await options.getByRole('menuitem', { name: 'Modify' }).click()
+    await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'password')
+    await expect(page.getByLabel('Password', { exact: true })).toHaveValue('secret')
 })
 
 test('Save reports API failure and allows retry without losing edits', async ({ page }) => {
