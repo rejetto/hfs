@@ -19,15 +19,15 @@
             "regexpSuccess": "true"
         },
         {
-            "url": "http://hfstest.rejetto.com/v3?url=$URL",
+            "url": "https://hfstest.rejetto.com/v3?url=$URL",
             "headers": {"User-Agent": "HFS"},
             "regexpFailure": "\"error\"",
             "regexpSuccess": "\"good\""
         }
     ],
     "publicIpServices": [
-        "http://ipv4.icanhazip.com",
-        { "v": 6, "type": "http", "url": "http://ipv6.icanhazip.com" },
+        "https://ipv4.icanhazip.com",
+        { "v": 6, "type": "http", "url": "https://ipv6.icanhazip.com" },
         {
             "v": 4, "type": "dns",
             "ips": ["208.67.222.222", "208.67.220.220"],
