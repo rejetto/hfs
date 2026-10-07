@@ -1,5 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
+import { ctxAdminAccess } from './adminApis'
 import { registerAcmeDnsProvider } from './acmeDns'
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
@@ -211,7 +212,7 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict, onI
             return unregister
         },
         misc, _,
-        customApiCall, notifyClient, addBlock, ctxBelongsTo, getConnections, normalizeFilename,
+        customApiCall, notifyClient, addBlock, ctxBelongsTo, ctxAdminAccess, getConnections, normalizeFilename,
         getCurrentUsername, getAccount, getUsernames, addAccount, delAccount, updateAccount, renameAccount,
         ...morePassedToInit
     })).catch(async e => {
@@ -326,7 +327,7 @@ export class Plugin implements CommonPluginInterface {
         this.log = []
         this.data = data = { ...data } // clone to make object modifiable. Objects coming from import are not.
         // some validation
-        for (const k of ['frontend_css', 'frontend_js']) {
+        for (const k of ['frontend_css', 'frontend_js', 'admin_css', 'admin_js']) {
             const v = data[k]
             if (typeof v === 'string')
                 data[k] = [v]
@@ -372,6 +373,12 @@ export class Plugin implements CommonPluginInterface {
     }
     get frontend_js(): undefined | string[] {
         return this.data?.frontend_js
+    }
+    get admin_css(): undefined | string[] {
+        return this.data?.admin_css
+    }
+    get admin_js(): undefined | string[] {
+        return this.data?.admin_js
     }
     get onDirEntry(): undefined | OnDirEntry {
         return this.data?.onDirEntry

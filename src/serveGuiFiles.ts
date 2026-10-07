@@ -2,20 +2,20 @@
 
 import Koa from 'koa'
 import {
-    API_VERSION, MIME_AUTO, FRONTEND_URI, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND,
+    API_VERSION, HTTP_FORBIDDEN, MIME_AUTO, FRONTEND_URI, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND,
     PLUGINS_PUB_URI, VERSION, SPECIAL_URI, ICONS_URI, DEV
 } from './const'
 import { serveFile } from './serveFile'
-import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from './plugins'
+import { mapPlugins } from './plugins'
 import { authApis } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname, sep } from 'path'
 import { readdir } from 'fs/promises'
 import {
     CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, onlyTruthy, parseFile,
-    enforceStarting, statWithTimeout, shortenAgent
+    statWithTimeout, shortenAgent
 } from './misc'
-import { favicon, title } from './adminApis'
+import { anyAccountCanLoginAdmin, ctxAdminAccess, favicon, title } from './adminApis'
 import { getAllSections, getSection } from './customHtml'
 import _ from 'lodash'
 import { defineConfig, getConfig } from './config'
@@ -24,6 +24,7 @@ import { adminLang, getAdminLangs, getAdminLangData } from './adminLang'
 import { dontOverwriteUploading } from './upload'
 import { customizedIcons, CustomizedIcons } from './icons'
 import { getProxyDetected } from './middlewares'
+import { getPluginFrontendConfig } from './pluginFrontendConfig'
 
 const size1024 = defineConfig(CFG.size_1024, false, x => formatBytes.k = x ? 1024 : 1000) // we both configure formatBytes, and also provide a compiled version (number instead of boolean)
 const splitUploads = defineConfig(CFG.split_uploads, 0)
@@ -115,24 +116,20 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     const pub = ctx.state.revProxyPath + PLUGINS_PUB_URI
 
     // expose plugins' configs that are declared with 'frontend' attribute
-    const plugins = Object.fromEntries(onlyTruthy(mapPlugins((pl,name) => {
-        let configs = newObj(getPluginConfigFields(name), (v, k, skip) =>
-            !v.frontend ? skip() :
-                adjustValueByConfig(pluginsConfig.get()?.[name]?.[k], pl.getData().config?.[k])
-        )
-        configs = getPluginInfo(name).onFrontendConfig?.(configs) || configs
-        return !_.isEmpty(configs) && [name, configs]
+    const plugins = Object.fromEntries(onlyTruthy(mapPlugins((_plugin, id) => {
+        const config = getPluginFrontendConfig(id, ctx)
+        return !_.isEmpty(config) && [id, config]
     })))
     const timestamp = await getFaviconTimestamp()
     const adminLangs = isFrontend ? [] : await getAdminLangs()
     const lang = isFrontend ? await getLangData(ctx) : await getAdminLangData(ctx, adminLangs)
     let group = 0 // this represents the loading-group: all plugins with the same group can be loaded concurrently
     const loadScripts = onlyTruthy(mapPlugins((p, id) => {
-        const js = p.frontend_js?.map(f => f.includes('//') ? f : pub + id + '/' + f)
-        if (!js?.length) return
+        const js = (isFrontend ? p.frontend_js : p.admin_js)?.map(f => f.includes('//') ? f : pub + id + '/' + f) || []
+        if (!js.length && (isFrontend || !p.admin_css?.length)) return
         if (p.afterPlugin) // an afterPlugin constraint needs a loading barrier before this plugin's scripts
             group++
-        const ret = { id, group, js }
+        const ret = { id, group, js, started: p.started }
         if (p.beforePlugin) // a beforePlugin constraint creates a loading barrier after this plugin's scripts
             group++
         return ret
@@ -166,7 +163,12 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         ...newObj(FRONTEND_OPTIONS, (v, k) => getConfig(k)),
                         icons: Object.assign({}, ...mapPlugins(p => iconsToObj(p.icons, p.id + '/')), iconsToObj(customizedIcons)), // name-to-uri 
                         lang,
-                        ...(isFrontend ? {} : { adminLangs, adminLang: adminLang.get() })
+                        ...(isFrontend ? {} : {
+                            adminLangs, adminLang: adminLang.get(),
+                            // plugin pages may not call an admin API, so access must be known before rendering
+                            adminLoginRequired: ctxAdminAccess(ctx)
+                                ? false : anyAccountCanLoginAdmin() || HTTP_FORBIDDEN,
+                        })
                     }, null, 4).replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
                     document.documentElement.setAttribute('ver', HFS.VERSION.split('-')[0])
                     document.documentElement.setAttribute('browser', ${JSON.stringify(shortenAgent(ctx.get('user-agent')))})
@@ -193,8 +195,8 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                     }
                     ${isFrontend && getSection('style')}
                     </style>
-                    ${isFrontend && mapPlugins((plug,id) =>
-                        plug.frontend_css?.map(f =>
+                    ${mapPlugins((plug,id) =>
+                        (isFrontend ? plug.frontend_css : plug.admin_css)?.map(f =>
                             `<link rel='stylesheet' type='text/css' href='${f.includes('//') ? f : pub + id + '/' + f}' plugin=${JSON.stringify(id)}/>`))
                         .flat().filter(Boolean).join('\n')}
                 `
@@ -202,25 +204,6 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                 return getSection('bottom') + all
             return all // unchanged
         })
-
-    function adjustValueByConfig(v: any, cfg: any) {
-        v ??= cfg.defaultValue
-        const {type} = cfg
-        if (v && type === 'vfs_path') {
-            v = enforceStarting('/', v)
-            const { root } = ctx.state
-            if (root)
-                if (v.startsWith(root))
-                    v = v.slice(root.length - 1)
-                else
-                    return
-            if (ctx.state.revProxyPath)
-                v = ctx.state.revProxyPath + v
-        }
-        else if (type === 'array' && Array.isArray(v))
-            v = v.map(x => _.mapValues(x, (xv, xk) => adjustValueByConfig(xv, cfg.fields[xk])))
-        return v
-    }
 
 }
 

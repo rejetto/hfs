@@ -1,13 +1,13 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    Callback, getHFS, hfsEvent, hIcon, Html, isPrimitive, onlyTruthy, prefix, noAriaTitle, formatBytes, useStateMounted,
+    hIcon, prefix, noAriaTitle, formatBytes,
     callAsPromise,
 } from './misc'
 import {
-    ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, forwardRef, Fragment,
+    ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, forwardRef,
     HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes,
-    useEffect, useMemo, useState, ComponentPropsWithoutRef, LabelHTMLAttributes, useRef, ReactElement
+    useState, ComponentPropsWithoutRef, LabelHTMLAttributes, useRef, ReactElement
 } from 'react'
 import _ from 'lodash'
 import i18n from './i18n'
@@ -77,45 +77,7 @@ export function Select<T extends string>({ onChange, value, options, ...props }:
     }, options.map(({ value, label }) => h('option', { key: value, value }, label)))
 }
 
-// @param render always gets a truthy, even with empty children will get empty array, unless the custom-code is requiring to cancel the whole entry
-export function CustomCode({ name, children, render, ...props }: {
-    name: string,
-    children?: ReactNode,
-    render?: Callback<ReactNode, ReactNode>
-    [k :string]: any,
-}) {
-    const raw = useMemo(() => hfsEvent(name, Object.assign(props, { def: children })), // not using 'default' as key, because user can have unexpected error destructuring object
-        [name, children, ...props ? Object.values(props) : []])
-    const [out, setOut] = useStateMounted<null | ReactNode[]>([])
-    useEffect(() => {
-        let active = true
-        if (raw.isDefaultPrevented() || raw.some(x => x === null)) // null means skip this
-            return setOut(null)
-        const worked: ReactNode[] = raw.map(toElement)
-        raw.forEach((x, i) => {
-            if (typeof x?.then === 'function') // then-able
-                x.then((resolved: any) => {
-                    if (!active) return // old promises must not overwrite content for newer props
-                    worked[i] = toElement(resolved, i)
-                    setOut(onlyTruthy(worked))
-                }, () => {})
-        })
-        const html = getHFS().customHtml?.[name]
-        if (html?.trim?.())
-            worked.push(toElement(html, -1))
-        setOut(onlyTruthy(worked))
-
-        function toElement(x: unknown, key: number) {
-            return isValidElement(x) ? h(Fragment, { key }, x) // wrap to avoid console warnings
-                : x === 0 || x && isPrimitive(x) ? h(Html, { key }, String(x))
-                    : _.isArray(x) ? h(Fragment, { key }, ...x)
-                        : null
-        }
-        return () => { active = false }
-    }, [raw])
-    render ??= _.identity
-    return h(Fragment, {}, render(out && (out?.length || !children ? out : children)) )
-}
+export { CustomCode } from '@hfs/shared/plugins'
 
 interface IconBtnOptions extends ButtonHTMLAttributes<any> { style?: any, title?: string }
 export function iconBtn(icon: string, onClick: MouseEventHandler, { title, ...props }: IconBtnOptions={}) {

@@ -7,7 +7,7 @@ import {
     firstPlugin,
 } from './plugins'
 import _ from 'lodash'
-import { apiAssertTypes, HTTP_CONFLICT, HTTP_PRECONDITION_FAILED, newObj, waitFor } from './misc'
+import { apiAssertTypes, HTTP_CONFLICT, HTTP_PRECONDITION_FAILED, LIST, newObj, waitFor } from './misc'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { rm } from 'fs/promises'
 import {
@@ -16,6 +16,26 @@ import {
 import { HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './const'
 import { SendListReadable } from './SendList'
 import { getPluginCatalog, searchPluginCatalog } from './pluginCatalog'
+import { getPluginFrontendConfig } from './pluginFrontendConfig'
+
+export function getAdminPlugins(_params: unknown, ctx: Parameters<ApiHandlers[string]>[1]) {
+    const list = new SendListReadable({ addAtStart: mapPlugins(plugin => serializeAdminPlugin(plugin, ctx)) })
+    return list.events(ctx, {
+        pluginInstalled(plugin) {
+            const serialized = serializeAdminPlugin(plugin, ctx)
+            if (serialized) list.custom(LIST.add, serialized)
+        },
+        'pluginStarted pluginUpdated'(plugin) {
+            const serialized = serializeAdminPlugin(plugin, ctx)
+            if (serialized)
+                list.custom(LIST.add, serialized)
+            else
+                list.custom(LIST.remove, { id: plugin.id })
+        },
+        pluginStopped: plugin => list.custom(LIST.remove, { id: plugin.id }),
+        pluginUninstalled: id => list.custom(LIST.remove, { id }),
+    })
+}
 
 const apis: ApiHandlers = {
 
@@ -234,6 +254,13 @@ function serialize(p: Readonly<Plugin> | InactivePlugin) {
     o.config &&= _.isFunction(o.config) ? String(o.config)
         : JSON.stringify(o.config, (_k, v) => _.isFunction(v) ? String(v) : v) // allow simple functions
     return _.defaults(o, { started: null, badApi: null }) // nulls should be used to be sure to overwrite previous values,
+}
+
+function serializeAdminPlugin(plugin: Readonly<Plugin>, ctx: Parameters<ApiHandlers[string]>[1]) {
+    const { id, started, admin_js, admin_css, beforePlugin, afterPlugin } = plugin
+    if (!started || !admin_js?.length && !admin_css?.length) return
+    return { id, started, admin_js, admin_css, beforePlugin, afterPlugin,
+        frontendConfig: getPluginFrontendConfig(id, ctx) }
 }
 
 function serializeRunningPlugin(id: string) {
