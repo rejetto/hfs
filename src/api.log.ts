@@ -43,10 +43,10 @@ export default {
                     return list.ready()
                 }
                 if (file === 'ips') {
-                    if (skipInitial) return list.ready()
-                    for await (const [k, v] of ips.iterator())
+                    for await (const [k, v] of skipInitial ? [] : ips.iterator())
                         list.add({ ip: k, ...v })
-                    return list.ready()
+                    list.ready()
+                    return list.close() // this snapshot has no live updates; release the HTTP connection for other Admin requests
                 }
                 if (file === 'console') {
                     for (const chunk of _.chunk(skipInitial ? [] : consoleLog, 1000)) { // avoid occupying the thread too long

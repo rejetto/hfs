@@ -1,14 +1,21 @@
 import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import yaml from 'yaml'
+import english from '../src/admin-langs/hfs-admin-lang-en.json'
 
 const port = yaml.parse(readFileSync('tests/config.yaml', 'utf8')).port
+
+test.beforeEach(async ({ page }) => {
+    await page.addInitScript(english => {
+        Object.assign((window as any).HFS ||= {}, { lang: { en: english } })
+    }, english)
+})
 
 test('selecting another account in multiple groups avoids a self-deletion warning', async ({ page }) => {
     await page.setViewportSize({ width: 1400, height: 900 })
     await page.addInitScript(username => {
         localStorage.setItem('admin_state', JSON.stringify({ accountsAsTree: true }))
-        Object.assign(window, { HFS: { session: { username, isAdmin: true } } })
+        Object.assign((window as any).HFS ||= {}, { session: { username, isAdmin: true } })
     }, 'admin')
     const member = { username: 'member', belongs: ['group-a', 'group-b'], hasPassword: true, isGroup: false,
         canLogin: true, canChangePassword: true, members: [], directMembers: [] }
