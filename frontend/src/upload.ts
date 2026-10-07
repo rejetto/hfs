@@ -58,10 +58,10 @@ export function showUpload() {
         const isMobile = useIsMobile()
 
         return h(FlexV, { gap: '.5em' },
-            h(FlexV, { className: 'upload-toolbar' },
+            h('div', { className: 'upload-toolbar' },
                 props && !props.can_upload ? t`no_upload_here`
                     : h(FlexV, {},
-                        h(Flex, { center: true, flexWrap: 'wrap', alignItems: 'stretch' },
+                        h('div', { className: 'upload-menu' },
                             h('button', {
                                 className: 'upload-files',
                                 onClick: () => pickFiles({ accept: normalizeAccept(props?.accept) })
@@ -74,7 +74,7 @@ export function showUpload() {
                         ),
                         !isMobile && h(Flex, { gap: 4 }, hIcon('info'), t`upload_dd_hint`),
                         h(UploadStatus, { margin: '.5em 0' }),
-                        adding.length > 0 && h(Flex, { center: true, flexWrap: 'wrap' },
+                        adding.length > 0 && h('div', { className: 'upload-ready' },
                             t('ready_to_upload', { n: adding.length, size }),
                             h(Select<typeof uploadOnExisting>, {
                                 style: { width: 'unset' },
@@ -102,6 +102,7 @@ export function showUpload() {
                     ),
             ),
             h(FileList, {
+                name: 'adding',
                 entries: uploadState.adding,
                 actions: {
                     cancel: rec => _.remove(uploadState.adding, rec),
@@ -149,6 +150,7 @@ export function showUpload() {
                     h('div', { key: q.to },
                         h(Link, { href: q.to, onClick: close }, t`Destination`, ' ', decodeURI(q.to)),
                         h(FileList, {
+                            name: 'queue',
                             entries: uploadState.qs[idx].entries,
                             actions: {
                                 cancel: async f => {
@@ -198,7 +200,7 @@ export function showUpload() {
 
 }
 
-function FileList({ entries, actions }: { entries: ToUpload[], actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
+function FileList({ entries, actions, name }: { name: string, entries: ToUpload[], actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
     const { uploading, progress, partial, hashing }  = useSnapshot(uploadState)
     const snapEntries = useSnapshot(entries)
     const firstBatch = useRef(0)
@@ -213,7 +215,7 @@ function FileList({ entries, actions }: { entries: ToUpload[], actions: { [icon:
     const max = all ? Infinity : firstBatch.current
     const rest = Math.max(0, snapEntries.length - max)
     const title = formatPerc(progress)
-    return !snapEntries.length ? null : h('table', { className: 'upload-list', width: '100%' },
+    return !snapEntries.length ? null : h('table', { className: `upload-list upload-${name}` },
         h('tbody', {},
             snapEntries.slice(0, max).map((e, i) => {
                 const working = e.file === uploading?.file // e is a proxy, so we check 'file' as it's a ref
@@ -297,7 +299,7 @@ export function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snaps
     const msg = [msgDone, msgInterrupted, msgErrors].filter(Boolean).join(' – ')
     if (!msg) return null
     const sep = h('span', { className: 'horiz-sep' }, ' – ')
-    return h('div', { style: { ...props } },
+    return h('div', { className: 'upload-status', style: { ...props } },
         msg, sep, h(Btn, { label: t`Show details`, asText: true, onClick: showDetails }),
         sep, h(Btn, {
             label: t`copy_links`,

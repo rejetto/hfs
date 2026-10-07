@@ -557,6 +557,25 @@ button .icon + .label {
     top: -4px; padding-top: 1px; // workaround: without this, the scrolling list behind is visible above (vertically, not z-index)
     z-index: 3; // necessary to not be covered by icon-buttons
     box-shadow: 0 0 .3em .3em var(--bg);
+    display: flex;
+    gap: 0.8em;
+    flex-direction: column;
+}
+.upload-menu {
+    display: flex;
+    gap: .8em;
+    align-items: stretch;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.upload-ready {
+    display: flex;
+    gap: .8em;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--faint-contrast);
+    padding-top: 0.8em;
 }
 .upload-hashing::before,
 .upload-progress::before { content: var(--separator); }
@@ -572,6 +591,7 @@ button .icon + .label {
     width: 100%;
 }
 .upload-list {
+    width: 100%;
     margin-top: .5em;
     td:nth-child(1) { width: 0; }
     td:nth-child(2) { text-align: right; width: 0; white-space: nowrap; padding-left: 0.5em; }
