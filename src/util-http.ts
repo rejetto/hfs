@@ -133,15 +133,16 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
                 else delete hostJar[k]
             }
             if (!res.statusCode || httpThrow && res.statusCode >= 400)
-                return reject(Error(String(res.statusCode), { cause: res }))
+                return fail(String(res.statusCode), res)
             let r = res.headers.location
             if (r && !noRedirect) {
                 const dest = new URL(r, url) // rewrite in case r is just a path, and thus relative to the current url
                 r = dest.toString()
                 const src = new URL(url)
                 const sameOrigin = src.protocol === dest.protocol && src.host === dest.host
-                return redirected.includes(r) ? reject(Error('endless http redirection'))
-                    : redirected.length > 20 ? reject(Error('excessive http redirection'))
+                return redirected.includes(r) ? fail('endless http redirection')
+                    : redirected.length > 20 ? fail('excessive http redirection')
+                    : src.protocol === 'https:' && dest.protocol !== 'https:' ? fail('https-to-http is forbidden')
                     : resolve(httpStream(r, {
                             httpThrow, jar, proxy,
                             ..._.pick(options, ['agent', 'rejectUnauthorized', 'timeout']),
@@ -150,6 +151,12 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
                         }, [...redirected, r]))
             }
             resolve(res)
+
+            function fail(message: string, cause?: any) {
+                res.destroy()
+                return reject(Error(message, cause && { cause }))
+            }
+
         }).on('error', (e: any) => {
             if (proxy && e?.code === 'ECONNREFUSED')
                 console.debug("Cannot connect to proxy ", proxy)
