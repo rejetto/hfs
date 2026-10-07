@@ -183,6 +183,8 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
   You can also include external files, by entering a full URL. Multiple files can be specified as `['file1.css', 'file2.css']`.  
 - `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
   You can also include external files, by entering a full URL.
+- `admin_js: string | string[]` JavaScript files for Admin, under `public`, or full URLs. See [Admin GUI API](#admin-gui-api).
+- `admin_css: string | string[]` CSS files for Admin, under `public`, or full URLs.
 - `middleware: (Context) => Promisable<void | function>` a function that will be used as middleware: use this to interfere with http activity.
   E.g.:
   ```js
@@ -438,6 +440,122 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `normalizeFilename(filename: string): string` HFS applies some normalization to files, and so should you.
   It's necessary when running on Mac and Windows, as they are case-insensitive.
+
+- `ctxAdminAccess(ctx): boolean` check Admin access, including inherited account permissions, localhost access and network restrictions. Use this to protect plugin Admin endpoints.
+
+## Admin GUI API
+
+Declare `exports.admin_js` and/or `exports.admin_css`
+with a filename or an array of filenames under the plugin's `public` directory,
+just like `frontend_js` and `frontend_css`. Only the corresponding GUI loads them.
+Full URLs and `beforePlugin`/`afterPlugin` loading order are supported.
+
+Admin scripts run before the first GUI render, including before login. Files in
+one plugin load sequentially; a failed file is reported in the browser console
+and skips the remaining files of that plugin, while other plugins still load.
+Do not put credentials or private configuration in these public files.
+Admin loads, unloads and updates these assets at runtime when the plugin state changes.
+Put top-level `let`, `const` and `class` declarations inside a block or IIFE so
+the browser can evaluate the script again after a stop/start cycle.
+
+The Admin `HFS` object exposes `h`, `React`, `t`, `state`, `useSnapState`,
+`onEvent`, `emit`, `apiCall`, `customRestCall`, `dialogLib`, `getPluginKey`,
+`getPluginPublic`, `getPluginConfig` and `loadScript`. Admin state and dialogs
+belong to Admin; frontend-only helpers such as `Btn` are not available.
+`getPluginConfig` exposes only fields declared with `frontend: true`, as in the
+frontend, and therefore must never expose secrets.
+
+`HFS.admin.components` provides `Alert`, `Box`, `Button`, `TextField`,
+`Typography`, `Flex`, `Btn`, `IconBtn`, `BoolField`, `Form`, `StringField`,
+`NumberField`, `SelectField` and `MultiSelectField` using Admin's React and theme.
+Prefer HFS's fields and `Btn` for consistency with the built-in pages. Field
+`onChange` receives the new value, rather than a DOM event. `StringField` normally
+commits on blur or Enter; use `typing: true` to update on each keystroke.
+`Btn` handles asynchronous actions, displaying progress and reporting errors.
+The Admin and frontend components have different contracts; declare separate
+scripts when their rendering differs.
+
+When an event name passed to `HFS.onEvent` ends with `:`, HFS appends the current
+runtime plugin id. Use this form for plugin-scoped events without depending on
+the plugin's installation folder name.
+
+`HFS.onEvent` subscriptions and pages registered with `HFS.admin.addPage` are
+removed automatically when the plugin stops or updates. If a script creates
+other persistent effects, register their cleanup synchronously:
+
+```js
+'use strict'; {
+    const timer = setInterval(refresh, 1000)
+    HFS.onEvent('unload:', () => clearInterval(timer))
+}
+```
+
+### Login extensions
+
+`beforeLogin` and `beforeLoginSubmit` use the same output conventions as frontend
+events. Return a React element (wrap a component with `HFS.h` to use React hooks)
+or HTML. Named text inputs are collected into the login request, including SRP.
+Username, password and the built-in session IP option remain controlled by HFS.
+OTP verification and access permissions must be enforced by the backend.
+Fields returned by these React hooks are submitted by their input `name`; their
+local validation is not automatically registered with the surrounding `Form`.
+For plugin-owned forms, use `Form` field descriptors to integrate validation.
+
+```js
+'use strict';{
+    const { h } = HFS
+    const { StringField } = HFS.admin.components
+    HFS.onEvent('beforeLoginSubmit', () => h(OTPInput))
+    function OTPInput() {
+        const [otp, setOtp] = HFS.React.useState('')
+        return h(StringField, {
+            name: 'otp', label: "OTP", value: otp, onChange: setOtp,
+            typing: true, autoComplete: 'one-time-code',
+            inputProps: { inputMode: 'numeric' },
+        })
+    }
+}
+```
+
+### Plugin options
+
+Register `HFS.onEvent('pluginBeforeOptions:', callback)` to receive `{ values }`
+when that plugin's Options dialog renders. The final `:` scopes the event to the
+current runtime plugin id.
+Return a React element synchronously to add controls above its configuration fields.
+`values` includes current unsaved edits; the event does not save them.
+
+### Plugin pages
+
+Call `HFS.admin.addPage` synchronously while evaluating an Admin plugin script.
+It registers both a page and its menu entry and returns its path, which is
+`/plugins/<plugin-id>/<page-id>`. Page ids accept letters, digits, underscores
+and hyphens and must be unique within the plugin. `icon` is optional.
+It accepts a React component, including one supplied by the plugin.
+
+```js
+'use strict';{
+    const { h } = HFS
+    const { Box } = HFS.admin.components
+    HFS.admin.addPage({
+        id: 'sessions',
+        label: "Sessions",
+        icon: () => h('span', {}, "S"),
+        component: SessionsPage,
+    })
+    function SessionsPage({ setTitleSide }) {
+        setTitleSide(HFS.React.useMemo(() => h('span', {}, "3 online"), []))
+        return h(Box, {}, "Plugin page content")
+    }
+}
+```
+
+Page components receive `setTitleSide(content, fullWidth?)`, as built-in pages
+do. Call it with memoized content, because a new element would trigger another
+render. Menu titles use `label`.
+Pages are inside Admin's login gate; plugin backend endpoints must independently
+check the permissions required for their operations. Navigate using links such
+as `href: '#/plugins/<plugin-id>/sessions'`.
 
 ## Frontend JS
 
@@ -1320,3 +1438,7 @@ Registration returns an unregister function and is also removed automatically wh
   - frontend events: beforeOptions, afterOptions
   - config.type: password
   - exports.versionRequired
+- 14 (v3.5.0)
+  - `admin_js`, `admin_css` and Admin GUI API
+  - Admin login events: beforeLogin, beforeLoginSubmit
+  - `HFS.admin.addPage`

@@ -29,6 +29,7 @@ import { ctxAdminAccess } from './adminApis'
 import _ from 'lodash'
 import { isWebdavLocked } from './webdav'
 import { invalidateDirectoryCache } from './directoryCache'
+import { getAdminPlugins } from './api.plugins'
 
 const partialFolderSize: any = {}
 const showUploader = defineConfig<Who>(CFG.show_uploader, WHO_ADMIN)
@@ -37,6 +38,7 @@ export const frontEndApis: ApiHandlers = {
     get_file_list,
     ...authApis,
     ...extractionApis,
+    get_admin_plugins: getAdminPlugins,
 
     get_notifications({ channel }, ctx) {
         apiAssertTypes({ string: { channel } })

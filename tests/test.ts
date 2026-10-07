@@ -206,6 +206,13 @@ describe('languages', () => {
 })
 
 describe('basics', () => {
+    test('IP log snapshots finish their SSE response', async () => {
+        for (const skipInitial of [false, true])
+            await reqApi('get_log', { file: 'ips', skipInitial }, {
+                status: 200, mime: 'text/event-stream', re: /\["ready"\]\]\n\ndata:\n\n$/,
+            }, { auth, jar: {}, headers: { accept: 'text/event-stream' }, signal: AbortSignal.timeout(5000) })()
+    })
+
     test('log files can be downloaded through the POST API',
         reqApi('get_log_file', { file: 'log' }, 200, { auth, jar: {} }))
 

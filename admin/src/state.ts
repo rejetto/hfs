@@ -2,7 +2,7 @@
 
 import { proxy, useSnapshot } from 'valtio'
 import {
-    Dict, isWhoObject, onlyTruthy, pathEncode, PERM_KEYS, prefix, VfsNodeAdminSend, VfsPerms, WhoVfs,
+    Dict, getHFS, isWhoObject, onlyTruthy, pathEncode, PERM_KEYS, prefix, VfsNodeAdminSend, VfsPerms, WhoVfs,
 } from './misc'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
@@ -33,7 +33,7 @@ const INIT = {
     vfsUndo: undefined as { vfs: VfsNodeAdmin, movingFiles: string[], expanded: string[] } | undefined,
     vfsModified: false,
     expanded: [] as string[],
-    loginRequired: false as boolean | number,
+    loginRequired: (getHFS().adminLoginRequired ?? false) as boolean | number,
     username: '',
     monitorOnlyFiles: true,
     monitorWithLog: true,
