@@ -32,9 +32,13 @@ const HFS = getHFS()
 Object.assign(HFS, {
     getPluginKey: (quiet=false) =>
         getScriptAttr('plugin') ?? detectPluginId() ?? (quiet ? undefined : console.error("this function must be called synchronously during initial script evaluation")),
-    getPluginPublic: () => getScriptAttr('src')?.match(/^.*\//)?.[0],
+    getPluginPublic: () => (getScriptAttr('src') || detectPlugin()?.source)?.match(/^.*\//)?.[0],
     getPluginConfig: () => HFS.plugins[HFS.getPluginKey()] || {},
-    loadScript: (uri: string) => loadScript(uri.includes('//') || uri.startsWith('/') ? uri : HFS.getPluginPublic() + uri),
+    loadScript(uri: string) {
+        const plugin = HFS.getPluginKey(true)
+        return loadScript(uri.includes('//') || uri.startsWith('/') ? uri : HFS.getPluginPublic() + uri,
+            plugin ? { plugin } : {})
+    },
     userBelongsTo: (username: string | string[]) => wantArray(username).some(x => HFS.state.expandedUsername?.includes(x)),
     cpuSpeedIndex,
     copyTextToClipboard,
@@ -43,7 +47,63 @@ Object.assign(HFS, {
 formatBytes.k = HFS.kb
 
 function detectPluginId() {
-    return stringBefore('/', Error().stack?.split(PLUGINS_PUB_URI)[1] || '') // generically search for the url – tested on recent versions of chrome, safari, firefox, edge
+    return detectPlugin()?.id
+}
+
+function detectPlugin() {
+    const stack = Error().stack || ''
+    const matches: { at: number, ids: string[], source: string }[] = []
+    const localAt = stack.indexOf(PLUGINS_PUB_URI)
+    if (localAt >= 0) {
+        const id = stringBefore('/', stack.slice(localAt + PLUGINS_PUB_URI.length)) // tested on recent versions of chrome, safari, firefox, edge
+        const before = stack.slice(0, localAt)
+        const sourceAt = Math.max(before.lastIndexOf('http://'), before.lastIndexOf('https://'))
+        const source = sourceAt < 0 ? '' : stack.slice(sourceAt).split(/[\s)]/)[0]!.replace(/:\d+:\d+$/, '')
+        if (id) matches.push({ at: localAt, ids: [id], source })
+    }
+    for (const [source, ids] of pluginScriptSources) {
+        let at = findSource(source)
+        if (at < 0 && /[?#]/.test(source))
+            at = findSource(source.replace(/[?#].*$/, '')) // some browsers omit the query and cannot distinguish these owners
+        if (at < 0) continue
+        matches.push({ at, ids: Array.from(ids), source })
+    }
+    const at = _.minBy(matches, 'at')?.at
+    if (at === undefined) return
+    const closest = matches.filter(match => match.at === at)
+    const ids = new Set(closest.flatMap(match => match.ids))
+    if (ids.size > 1) throw Error(`plugin ownership is ambiguous for ${closest[0]!.source}; use an explicit plugin selector`)
+    return { at, id: Array.from(ids)[0]!, source: closest[0]!.source }
+
+    function findSource(source: string) {
+        let at = -1
+        while ((at = stack.indexOf(source, at + 1)) >= 0) {
+            const after = stack[at + source.length]
+            if (!after || /[:\s)]/.test(after)) return at
+        }
+        return -1
+    }
+}
+
+const pluginScriptSources = new Map<string, Set<string>>()
+const pendingPluginScripts = new Map<string, Set<() => void>>()
+const unloadingPluginScripts = new Set<string>()
+
+export function beginPluginScriptsUnload(pluginId: string) {
+    unloadingPluginScripts.add(pluginId)
+    for (const cancel of Array.from(pendingPluginScripts.get(pluginId) || []))
+        cancel()
+}
+
+export function allowPluginScripts(pluginId: string) {
+    unloadingPluginScripts.delete(pluginId)
+}
+
+export function forgetPluginScripts(pluginId: string) {
+    for (const [source, ids] of pluginScriptSources) {
+        ids.delete(pluginId)
+        if (!ids.size) pluginScriptSources.delete(source)
+    }
 }
 
 export const IMAGE_FILEMASK = '*.jpg|*.jpeg|*.png|*.gif|*.svg'
@@ -166,16 +226,56 @@ export function focusSelector(selector: string, root: HTMLElement | Document=doc
     }
 }
 
-export function loadScript(url: string, more={}) {
+export function loadScript(url: string, more: Record<string, unknown>={}, timeout=0) {
     return new Promise((resolve, reject) => {
         const el = document.createElement('script')
         el.type = 'text/javascript'
         el.src = url
-        el.onload = resolve
-        el.onerror = reject
         for (const [k,v] of Object.entries(more))
             el.setAttribute(k, String(v))
+        const pluginId = typeof more.plugin === 'string' ? more.plugin : undefined
+        if (pluginId && unloadingPluginScripts.has(pluginId))
+            return reject(Error(`plugin ${pluginId} is unloading`))
+        let cancel: (() => void) | undefined
+        if (pluginId) {
+            const ids = pluginScriptSources.get(el.src) || new Set()
+            ids.add(pluginId)
+            pluginScriptSources.set(el.src, ids)
+            const pending = pendingPluginScripts.get(pluginId) || new Set()
+            cancel = () => finish(Error(`plugin ${pluginId} unloaded while loading ${url}`), true)
+            pending.add(cancel)
+            pendingPluginScripts.set(pluginId, pending)
+        }
+        let settled = false
+        const timer = timeout && setTimeout(() => finish(Error(`script load timeout: ${url}`), true), timeout)
+        el.onload = () => finish()
+        el.onerror = error => finish(error)
         document.head.appendChild(el)
+
+        function finish(error?: unknown, expired=false) {
+            if (settled) return
+            settled = true
+            if (timer) clearTimeout(timer)
+            if (pluginId && cancel) {
+                const pending = pendingPluginScripts.get(pluginId)
+                pending?.delete(cancel)
+                if (!pending?.size) pendingPluginScripts.delete(pluginId)
+            }
+            if (error) {
+                if (expired)
+                    document.implementation.createHTMLDocument().adoptNode(el) // a different owner document prevents late script execution
+                else
+                    el.remove()
+                if (pluginId) {
+                    const ids = pluginScriptSources.get(el.src)
+                    ids?.delete(pluginId)
+                    if (!ids?.size) pluginScriptSources.delete(el.src)
+                }
+                reject(error)
+            }
+            else
+                resolve(undefined)
+        }
     })
 }
 

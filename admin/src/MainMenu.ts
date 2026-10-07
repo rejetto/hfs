@@ -4,8 +4,7 @@ import { createElement as h, ComponentType, lazy } from 'react';
 import { t } from './i18n'
 import { List, ListItemButton, ListItemIcon, ListItemText, Box } from '@mui/material'
 import {
-    AccountTree, Extension, History, Home, Logout, ManageAccounts, Monitor, Public, Settings, Translate, Code,
-    SvgIconComponent
+    AccountTree, Extension, History, Home, Logout, ManageAccounts, Monitor, Public, Settings, Translate, Code
 } from '@mui/icons-material'
 import _ from 'lodash'
 import { Link, useLocation } from 'wouter'
@@ -29,7 +28,7 @@ const CustomHtmlPage = lazy(() => import('./CustomHtmlPage'))
 
 export interface MenuEntry {
     path: `/${string}`
-    icon: SvgIconComponent
+    icon?: ComponentType
     label?: string
     title?: string
     comp: ComponentType<PageProps>
@@ -55,7 +54,7 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
     const { VERSION } = getHFS()
     const logo = 'hfs-logo.svg'
     const short = useWindowSize().height < 700
-    const currentPath = useLocation()[0]
+    const current = getCurrentMenu(useLocation()[0])
     return h(Box, { sx: { display: 'flex', flexDirection: 'column', bgcolor: 'primary.main', minHeight: '100%' } },
         h(List, {
             sx:{
@@ -83,7 +82,7 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
                     component: Link,
                     href: it.path,
                     onClick: onSelect,
-                    selected: matchesMenuPath(it, currentPath),
+                    selected: it === current,
                     sx: { '&.Mui-selected': { '&,&:hover': { bgcolor: 'primary.dark', textDecoration: 'underline' } } },
                     children: undefined, // shut up ts
                 },
@@ -103,4 +102,9 @@ export function getMenuLabel(it: MenuEntry) {
 
 export function matchesMenuPath(it: MenuEntry, path: string) {
     return path === it.path || path.startsWith(it.path + '/')
+}
+
+export function getCurrentMenu(path: string) {
+    // plugin pages live below /plugins; the most specific entry owns the title and selection
+    return _.maxBy(mainMenu.filter(it => matchesMenuPath(it, path)), it => it.path.length)
 }

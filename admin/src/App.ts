@@ -5,7 +5,7 @@ import { isRtl, useI18N, t } from './i18n'
 import { Component, createElement as h, Fragment, lazy, ReactNode, Suspense, useCallback, useEffect, useState } from 'react'
 import { Route, Router, Switch, useLocation } from 'wouter'
 import { useHashLocation } from 'wouter/use-hash-location'
-import MainMenu, { getMenuLabel, mainMenu, matchesMenuPath } from './MainMenu'
+import MainMenu, { getCurrentMenu, getMenuLabel, mainMenu } from './MainMenu'
 import { Alert, AppBar, Box, BoxProps, Button, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
 import { anyDialogOpen, Dialogs } from './dialog'
 import { useMyTheme } from './theme'
@@ -16,12 +16,15 @@ import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { useSnapState } from './state'
 import { useEventListener } from 'usehooks-ts'
-import { AriaOnly, isMac, useFixSticky, xlate } from './misc'
+import { AriaOnly, getHFS, isMac, LIST, useFixSticky, xlate } from './misc'
+import { apiEvents } from './api'
 import { loadLocale } from './locale'
 import { CacheProvider } from '@emotion/react'
 import createCache from '@emotion/cache'
 import { prefixer } from 'stylis'
 import rtlPlugin from 'stylis-plugin-rtl'
+import { getPluginLoadStates, pluginUiChanged, usePluginUiRevision } from '@hfs/shared/plugins'
+import { loadAdminPlugin, unloadAdminPlugin } from './pluginApi'
 
 const ConfigFilePage = lazy(() => import('./ConfigFilePage'))
 const rtlCache = isRtl && createCache({ key: 'mui-rtl', stylisPlugins: [prefixer, rtlPlugin] })
@@ -31,6 +34,7 @@ export interface PageProps { setTitleSide: (content: ReactNode, fullWidth?: bool
 
 function App() {
     useI18N()
+    useSyncPluginGui()
     const content = h(ThemeProvider, { theme: useMyTheme() },
         h(ApplyTheme, {},
             h(Localization, {},
@@ -46,6 +50,89 @@ function App() {
                         }, h(Routed))
                     }) ))))
     return rtlCache ? h(CacheProvider, { value: rtlCache }, content) : content
+}
+
+function useSyncPluginGui() {
+    useEffect(() => {
+        if (getHFS().adminLoginRequired === undefined) return // Vite fixtures run without the server bootstrap
+        const pending = new Map<string, Promise<void>>()
+        let plugins = new Map<string, any>()
+        let snapshot: Map<string, any> | undefined
+        const source = apiEvents('get_admin_plugins', {}, (type, data) => {
+            if (type === 'connected') {
+                snapshot = new Map()
+                plugins = new Map()
+                return
+            }
+            if (type !== 'msg') return
+            const messages = Array.isArray(data?.[0]) ? data : [data]
+            for (const [operation, search, change] of messages) {
+                if (operation === LIST.ready) {
+                    reconcile(snapshot || new Map())
+                    snapshot = undefined
+                    continue
+                }
+                const plugin = operation === LIST.add ? search
+                    : operation === LIST.update && search?.id && change ? { id: search.id, ...change }
+                        : undefined
+                if (plugin?.id) {
+                    if (snapshot)
+                        snapshot.set(plugin.id, plugin)
+                    else {
+                        plugins.set(plugin.id, plugin)
+                        enqueueLoad(plugin)
+                    }
+                }
+                else if (operation === LIST.remove && search?.id) {
+                    if (snapshot)
+                        snapshot.delete(search.id)
+                    else {
+                        plugins.delete(search.id)
+                        enqueue(search.id, () => unloadAdminPlugin(search.id))
+                    }
+                }
+            }
+        })
+        return () => source.close()
+
+        function reconcile(current: Map<string, any>) {
+            plugins = new Map(current)
+            for (const id of new Set([...getPluginLoadStates().keys(), ...pending.keys()])) {
+                const plugin = current.get(id)
+                if (!plugin)
+                    enqueue(id, () => unloadAdminPlugin(id))
+            }
+            for (const [id, plugin] of current) {
+                const state = getPluginLoadStates().get(id)
+                if (!state?.loaded || state.started !== plugin.started)
+                    enqueueLoad(plugin)
+                else {
+                    getHFS().plugins[id] = plugin.frontendConfig || {}
+                    pluginUiChanged()
+                }
+            }
+        }
+
+        function enqueueLoad(plugin: any) {
+            const dependencies = [plugin.afterPlugin,
+                ...Array.from(plugins.values()).filter(other => other.beforePlugin === plugin.id).map(other => other.id)]
+            const blockers = dependencies.map(id => pending.get(id)).filter(Boolean) as Promise<void>[]
+            enqueue(plugin.id, async () => {
+                await Promise.all(blockers)
+                if (plugins.get(plugin.id) !== plugin) return
+                await loadAdminPlugin(plugin)
+            })
+        }
+
+        function enqueue(id: string, operation: () => Promise<unknown>) {
+            const next = (pending.get(id) || Promise.resolve()).then(operation).catch(console.error) as Promise<void>
+            pending.set(id, next)
+            void next.finally(() => {
+                if (pending.get(id) === next) pending.delete(id)
+            })
+            return next
+        }
+    }, [])
 }
 
 function Localization(props: any) {
@@ -75,9 +162,10 @@ let titleSideSet: any
 
 function Routed() {
     const [location, navigate] = useLocation()
-    const current = mainMenu.find(x => matchesMenuPath(x, location))
+    const current = getCurrentMenu(location)
     let { title } = useSnapState()
     title = current && (current.title || getMenuLabel(current)) || title
+    usePluginUiRevision() // rerender all when necessary
     const [open, setOpen] = useState(false)
     const sideMenu = useBreakpoint('lg')
     const xs = current?.noPaddingOnMobile ? 0 : 1

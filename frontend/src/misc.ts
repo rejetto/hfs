@@ -4,7 +4,7 @@ import React, { createElement as h } from 'react'
 import { Btn, iconBtn, Spinner } from './components'
 import { newDialog, toast } from './dialog'
 import { Icon, IconProps } from './icons'
-import { Callback, Dict, domOn, getHFS, getOrSet, Html, HTTP_MESSAGES, urlParams, useBatch } from '@hfs/shared'
+import { Dict, domOn, getHFS, getOrSet, Html, HTTP_MESSAGES, urlParams, useBatch } from '@hfs/shared'
 import * as cross from '../../src/cross'
 import * as shared from '@hfs/shared'
 import { apiCall, getNotifications, useApi } from '@hfs/shared/api'
@@ -19,6 +19,7 @@ import { fileShow, Video, Audio, getShowComponent } from './show'
 import { ANY_LANGUAGE } from '../../src/i18n'
 import { debounceAsync } from '../../src/debounceAsync'
 export * from '@hfs/shared'
+import { hfsEvent, onPluginEvent } from '@hfs/shared/plugins'
 import i18n from './i18n'
 const { t, getLangs } = i18n
 
@@ -65,54 +66,7 @@ function openWorking(Content?: React.FunctionComponent) {
     }
 }
 
-export function hfsEvent(name: string, params?:Dict) {
-    const output: any[] = []
-    const order: number[] = []
-    const detail = { params, output, order }
-    let ev = new CustomEvent('hfs.'+name, { detail, cancelable: true })
-    document.dispatchEvent(ev)
-    if (!ev.defaultPrevented) {
-        ev = new CustomEvent('hfs.'+name+':after', { detail, cancelable: true })
-        document.dispatchEvent(ev)
-    }
-    const sortedOutput = order.length && _.sortBy(output.map((x, i) => [order[i] || 0, x]), '0').map(x => x[1])
-    return Object.assign(sortedOutput || output, {
-        isDefaultPrevented: () => ev.defaultPrevented,
-    })
-}
-
-type HfsEventCallback = (params:any, extra: { output: any[], setOrder: Callback<number>, preventDefault: Callback }) => any
-export function onHfsEvent(pluginId: string, name: string, cb: HfsEventCallback, options?: { once?: boolean }) {
-    if (!_.isFunction(cb)) return
-    const key = 'hfs.' + name
-    document.addEventListener(key, wrapper, options)
-    return () => document.removeEventListener(key, wrapper)
-
-    function wrapper(ev: Event) {
-        const { params, output, order } = (ev as CustomEvent).detail
-        let thisOrder
-        try {
-            const res = cb(params, {
-                output,
-                setOrder(x) { thisOrder = x },
-                preventDefault: () => ev.preventDefault()
-            })
-            if (res === undefined) return
-            if (Array.isArray(output)) {
-                output.push(res instanceof Promise ? res.catch(printError) : res)
-                if (thisOrder)
-                    order[output.length - 1] = thisOrder
-            }
-        }
-        catch(e) {
-            printError(e)
-        }
-
-        function printError(e: any) {
-            console.error(`plugin ${pluginId} on event ${name}: ${e}`)
-        }
-    }
-}
+export { hfsEvent, onHfsEvent } from '@hfs/shared/plugins'
 
 export function formatTimestamp(x: number | string | Date, options?: Intl.DateTimeFormatOptions) {
     const cached = getOrSet(formatTimestamp as any, 'langs', () => {
@@ -132,8 +86,8 @@ Object.assign(getHFS(), {
     isShowSupported: getShowComponent,
     misc: { ...cross, ...shared, ...thisModule },
     emit: hfsEvent,
-    onEvent: (...args: Parameters<typeof onHfsEvent> extends [any, ...infer R] ? R : []) =>
-        onHfsEvent(getHFS().getPluginKey(true) || '???', ...args),
+    onEvent: (...args: Parameters<typeof onPluginEvent> extends [any, ...infer R] ? R : []) =>
+        onPluginEvent(getHFS().getPluginKey(true) || '???', ...args),
     watchState(k: string, cb: (v: any) => void, callNow=false) {
         const up = k.split('upload.')[1]
         const thisState = up ? uploadState : state as any
