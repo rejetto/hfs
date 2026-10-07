@@ -5,6 +5,11 @@ import { createRoot } from 'react-dom/client'
 import './index.scss'
 import '@hfs/shared/min-crypto-polyfill'
 import App from './App'
+import './pluginApi'
+import { loadPluginScripts, PLUGIN_ASSET_TIMEOUT } from '@hfs/shared/plugins'
 
-createRoot(document.getElementById('root')!)
-    .render( h(StrictMode, {}, h(App)) )
+// plugins must register login hooks and pages before the first render
+void loadPluginScripts({ timeout: PLUGIN_ASSET_TIMEOUT }).then(() => {
+    createRoot(document.getElementById('root')!)
+        .render(h(StrictMode, {}, h(App)))
+})

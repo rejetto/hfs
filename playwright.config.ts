@@ -40,6 +40,13 @@ process.env.ADMIN_LANGUAGES_URL ||= adminViteUrl + '#/language'
 process.env.ADMIN_LOGS_URL ||= adminViteUrl + '#/logs'
 process.env.ADMIN_CATALOG_URL ||= adminViteUrl
 process.env.ADMIN_LIST_URL ||= adminViteUrl
+// mocked APIs need Vite's bootstrap; the real server requires authentication before rendering
+process.env.ADMIN_ACCOUNTS_URL ||= adminViteUrl + '#/accounts'
+process.env.ADMIN_CONFIG_URL ||= adminViteUrl + '#/config'
+process.env.ADMIN_CUSTOM_HTML_URL ||= adminViteUrl + '#/html'
+process.env.ADMIN_HOME_URL ||= adminViteUrl
+process.env.ADMIN_ONLINE_PLUGINS_URL ||= adminViteUrl + '#/plugins/get'
+process.env.ADMIN_OPTIONS_URL ||= adminViteUrl + '#/options/others'
 
 /**
  * Read environment variables from file.
@@ -156,7 +163,7 @@ export default defineConfig({
        command: `rm -rf tests/work2 && node dist/src --cwd tests/work2 --debug --port ${secondaryPort} --open_browser_at_start false`,
        reuseExistingServer: !process.env.CI,
    }, {
-       command: `npm run start --workspace=admin -- --host 127.0.0.1 --port ${adminPort} --strictPort`,
+       command: `cross-env VITE_IGNORE_REFUSED_PROXY=1 npm run start --workspace=admin -- --host 127.0.0.1 --port ${adminPort} --strictPort`,
        url: adminViteUrl,
        reuseExistingServer: !process.env.CI,
    }]
