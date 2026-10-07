@@ -93,6 +93,7 @@ const srp6aNimbusRoutines = new srp.SRPRoutines(new srp.SRPParameters())
 // these tests use separate child processes, temporary directories and ports; shared-server tests stay serial
 describe('isolated servers', { concurrency: 8 }, () => {
     require('./acme-config.test')
+    require('./plugin-version-required.test')
     require('./shutdown.test')
     require('./upload-shutdown.test')
     require('./plugin-server-cleanup.test')

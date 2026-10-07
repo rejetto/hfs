@@ -122,7 +122,15 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
 
 - `description: string` try to explain what this plugin is for. *[STATIC JSON]*
 - `version: number` use progressive numbers to distinguish each release
-- `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed. Mandatory.
+- `versionRequired: string | [min:string,max:string]` supported HFS version(s). *[STATIC JSON]*
+  A single string sets the minimum, for example `exports.versionRequired = "3.4.0-beta3"`.
+  An array sets inclusive min/max versions, for example `exports.versionRequired = ["3.3.0", "3.4.0-beta3"]`.
+  Set a maximum only if you know your plugin is incompatible with later releases.
+  Numbered prereleases are ordered before the corresponding stable release (`3.4.0-beta3` < `3.4.0-beta4` < `3.4.0`).
+  Declare at least one of `versionRequired` and `apiRequired`. If both are present, both requirements must be satisfied.
+  For now, plugins that must remain available to HFS 3.3 and earlier should declare both fields on the default branch.
+  Those releases ignore `versionRequired` and do not inspect `api*` fallback branches when `apiRequired` is absent.
+- `apiRequired: number | [min:number,max:number]` declare API version(s) for which the plugin is designed. *[STATIC JSON]*
   A single number represents the minimum required version; an array of two defines the min/max supported versions.
   Refer to the [API version history](#api-version-history) to find the correct number for your case.
   Set a maximum version only if you know your plugin is incompatible with later releases.
@@ -1012,7 +1020,7 @@ You can decide if you want to use some building system/transpiler, but you'll ha
 While you may just put a zip on any website, that would require manual installation.
 If you want to appear in the Admin-panel, for easier finding and installation, please do as follows.
 
-Be sure that you are exporting (not returning) the essential properties, like `apiRequired`.
+Be sure that you are exporting (not returning) the essential properties, like `apiRequired` or `versionRequired`.
 Find the full list in the [Things a plugin can export](#things-a-plugin-can-export) section, tagged *[STATIC JSON]*.
 
 Suggested method for publishing is to have a dedicated repository on GitHub, with topic `hfs-plugin`.
@@ -1043,7 +1051,7 @@ You can refer to these published plugins for reference, like
 - https://github.com/rejetto/simple-player/
 - https://github.com/rejetto/theme-example/
 
-Published plugins to have `exports.apiRequired`.
+Published plugins must have `exports.apiRequired` or `exports.versionRequired`.
 
 ### Multiple versions
 
@@ -1311,3 +1319,4 @@ Registration returns an unregister function and is also removed automatically wh
   - backend event: loginAttemptFinished
   - frontend events: beforeOptions, afterOptions
   - config.type: password
+  - exports.versionRequired

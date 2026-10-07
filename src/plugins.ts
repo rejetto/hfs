@@ -14,7 +14,7 @@ import {
     PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir, objFromKeys, patchKey
 } from './misc'
 import * as misc from './misc'
-import { defineConfig, getConfig, subMultipleConfigs } from './config'
+import { currentVersion, defineConfig, getConfig, subMultipleConfigs, Version } from './config'
 import { DirEntry } from './api.get_file_list'
 import { normalizeFilename, VfsNode } from './vfs'
 import { serveFile } from './serveFile'
@@ -356,6 +356,7 @@ export class Plugin implements CommonPluginInterface {
     get version(): undefined | number { return this.data?.version }
     get description(): undefined | string { return this.data?.description }
     get apiRequired(): undefined | number | [number,number] { return this.data?.apiRequired }
+    get versionRequired(): undefined | string | [string,string] { return this.data?.versionRequired }
     get isTheme(): undefined | boolean { return this.data?.isTheme }
     get repo(): undefined | Repo { return this.data?.repo }
     get depend(): undefined | Depend { return this.data?.depend }
@@ -456,6 +457,7 @@ export type CommonPluginInterface = {
     description?: string
     version?: number
     apiRequired?: number | [number,number]
+    versionRequired?: string | [string,string]
     repo?: Repo
     depend?: Depend
     isTheme?: boolean | 'light' | 'dark'
@@ -735,6 +737,7 @@ export function parsePluginSource(id: string, source: string) {
     pl.repo = tryJson(/exports.repo\s*=\s*([^\s;]+)/.exec(source)?.[1])
     pl.version = Number(/exports.version\s*=\s*(\d*\.?\d+)/.exec(source)?.[1]) ?? undefined
     pl.apiRequired = tryJson(/exports.apiRequired\s*=\s*([ \d.,[\]]+)/.exec(source)?.[1]) ?? undefined
+    pl.versionRequired = tryJson(/exports.versionRequired\s*=\s*("(?:[^"\\]|\\.)*"|\[[\s\S]*?])/.exec(source)?.[1]) ?? undefined
     pl.isTheme = tryJson(/exports.isTheme\s*=\s*(true|false|"light"|"dark")/.exec(source)?.[1]) ?? (id.endsWith('-theme') || undefined)
     pl.preview = tryJson(/exports.preview\s*=\s*("(?:[^"\\]|\\.)*"|\[[\s\S]*?\])/.exec(source)?.[1]) ?? undefined
     pl.depend = tryJson(/exports.depend\s*=\s*(\[[\s\S]*?])/m.exec(source)?.[1])?.filter((x: any) =>
@@ -753,10 +756,14 @@ export function parsePluginSource(id: string, source: string) {
 
 function calculateBadApi(data: InactivePlugin) {
     const r = data.apiRequired
+    const v = data.versionRequired
     const [min=0, max=Infinity] = Array.isArray(r) ? r : [r] // normalize data type
-    data.badApi = !r ? "missing mandatory property apiRequired"
-        : min > API_VERSION ? "may not work correctly as it is designed for a newer version of HFS - check for updates"
-        : min < COMPATIBLE_API_VERSION || max < API_VERSION ? "may not work correctly as it is designed for an older version of HFS - check for updates"
+    const versions = Array.isArray(v) ? v : v === undefined ? [] : [v]
+    const [minVersion, maxVersion] = versions
+    data.badApi = !r && !v ? "missing mandatory property apiRequired or versionRequired"
+        : (Array.isArray(v) && v.length !== 2) || !versions.every(version => typeof version === 'string' && Number.isFinite(new Version(version).scalar)) ? "invalid versionRequired"
+        : min > API_VERSION || minVersion && currentVersion.olderThan(minVersion) ? "may not work correctly as it is designed for a newer version of HFS - check for updates"
+        : r && (min < COMPATIBLE_API_VERSION || max < API_VERSION) || maxVersion && new Version(maxVersion).olderThan(Const.VERSION) ? "may not work correctly as it is designed for an older version of HFS - check for updates"
             : undefined
 }
 
