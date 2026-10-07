@@ -9,6 +9,8 @@ import { apiCall } from './api'
 import { srpClientSequence } from '../../src/srp'
 import { Alert, Box } from '@mui/material'
 import { Center } from './mui'
+import { CustomCode } from '@hfs/shared/plugins'
+import _ from 'lodash'
 
 export function LoginRequired({ children }: any) {
     const { loginRequired } = useSnapState()
@@ -37,19 +39,30 @@ function LoginForm() {
                 setValues(values => ({ ...values, [k]: v }))
             },
             fields: [
+                h(CustomCode, { name: 'beforeLogin', customHtml: false }),
                 { k: 'username', label: t`Username`, autoComplete: 'username', autoFocus: true, required: true },
                 { k: 'password', label: t`Password`, type: 'password', autoComplete: 'current-password', required: true },
+                h(CustomCode, { name: 'beforeLoginSubmit', customHtml: false }),
                 { k: ALLOW_SESSION_IP_CHANGE, comp: BoolField, label: t`Allow IP change during this session` },
             ],
             addToBar: [ error && h(Alert, { severity: 'error', sx: { flex: 1 } }, error) ],
-            saveOnEnter: true,
+            // plugin inputs are outside Form's field registry, so handle Enter at the form level
+            onKeyDown(ev) {
+                if (ev.key === 'Enter' && !ev.ctrlKey && !ev.metaKey) {
+                    ev.preventDefault()
+                    formRef.current?.querySelector<HTMLButtonElement>('.saveBtn')?.click()
+                }
+            },
             save: {
                 children: t`Enter`,
                 startIcon: null,
                 async onClick() {
                     try {
                         setError('')
+                        const extra = _.omit(_.pickBy(
+                            Object.fromEntries(new FormData(formRef.current!).entries()), _.isString), 'username', 'password')
                         await login(values.username, values.password, {
+                            ...extra,
                             [ALLOW_SESSION_IP_CHANGE]: values[ALLOW_SESSION_IP_CHANGE]
                         })
                     }

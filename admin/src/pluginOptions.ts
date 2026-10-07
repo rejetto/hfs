@@ -1,4 +1,5 @@
 import { apiCall } from '@hfs/shared/api'
+import { hfsEvent } from '@hfs/shared/plugins'
 import { createElement as h, Fragment, useMemo } from 'react'
 import { t } from './i18n'
 import { Box, createTheme, Link, Paper } from '@mui/material'
@@ -42,8 +43,12 @@ export async function showPluginOptions(row: any) {
     const showOptions = Boolean(row.config)
     const values = await formDialog({
         title: showOptions ? t("Options for {id}", { id: id }) : t("Log for {id}", { id: id }),
+        // synchronous event output lets a field's blur update reach plugin actions before the click
         form: (values, { submit }) => ({
-            before: row.description && h(Box, { sx: { mx: 2, mb: 2 } }, row.description),
+            before: h(Fragment, {},
+                row.description && h(Box, { sx: { mx: 2, mb: 2 } }, row.description),
+                ...hfsEvent('pluginBeforeOptions:' + id, { values }),
+            ),
             fields: makeFields(callable(row.config, values) || {}, values),
             save: showOptions ? { children: t`Save and close` } : false,
             barSx: { gap: 1 },
