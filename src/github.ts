@@ -181,7 +181,7 @@ export async function readOnlinePlugin(repo: Repo, branch='') {
 
 export async function readOnlineCompatiblePlugin(repo: Repo, branch='') {
     const pl = await readOnlinePlugin(repo, branch)
-    if (!pl?.apiRequired) return // mandatory field
+    if (!pl?.apiRequired && !pl?.versionRequired) return // at least one compatibility requirement is mandatory
     if (!pl.badApi) return pl
     // we try other branches (starting with 'api')
     const res = await apiGithub('repos/' + repo + '/branches')
@@ -191,8 +191,6 @@ export async function readOnlineCompatiblePlugin(repo: Repo, branch='') {
     for (const branch of branches) {
         const pl = await readOnlinePlugin(repo, branch)
         if (!pl) continue
-        if (!pl.apiRequired)
-            pl.badApi = '-'
         if (!pl.badApi)
             return pl
     }
