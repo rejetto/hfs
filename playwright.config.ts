@@ -21,6 +21,20 @@ const adminLogicTests = [
 const snapshotBranch = getSnapshotBranch()
 // use the same test port source as tests/test.ts to avoid config drift
 const testPort = Number(yaml.parse(readFileSync(resolve(process.cwd(), 'tests/config.yaml'), 'utf8')).port)
+const adminViteUrl = 'http://127.0.0.1:3112/'
+
+// fixture tests replace an Admin page module, so they must load from Vite instead of the packaged Admin app
+for (const name of [
+  'ACME', 'API_LIST', 'DATA_TABLE', 'DATE_TIME', 'DIALOG', 'FILE_FIELD', 'FILE_FORM', 'CSV',
+  'PLUGIN_OPTIONS', 'STATE', 'WHO_FIELD', 'VFS_MOVE', 'VFS_TREE',
+])
+  process.env[`ADMIN_${name}_URL`] ||= adminViteUrl + '#/monitoring'
+process.env.ADMIN_ADD_FILES_URL ||= adminViteUrl + '#/shared'
+process.env.ADMIN_VFS_PAGE_URL ||= adminViteUrl + '#/shared'
+process.env.ADMIN_LANGUAGES_URL ||= adminViteUrl + '#/language'
+process.env.ADMIN_LOGS_URL ||= adminViteUrl + '#/logs'
+process.env.ADMIN_CATALOG_URL ||= adminViteUrl
+process.env.ADMIN_LIST_URL ||= adminViteUrl
 
 /**
  * Read environment variables from file.
@@ -126,10 +140,15 @@ export default defineConfig({
      command: `mkdir -p tests/work/plugins/test tests/work/cant-overwrite`
      + ` && printf '%s\\n' "exports.apiRequired = 1" "exports.config = {" "    icons: { type: 'array', fields: { iconFile: { type: 'real_path' } } }," "}" > tests/work/plugins/test/plugin.js`
      + ` && npm run server-for-test${process.env.TEST_WITH_UI ? '-dev' : ''}`, // use server-for-test-dev only for "test-with-ui"
-     url: `http://127.0.0.1:${testPort}`,
+     // concurrent frontend tests need the first real list response, not just an open HTTP port
+     url: `http://[::1]:${testPort}/~/api/get_file_list`,
      reuseExistingServer: !process.env.CI,
    }, { // launch a second server for tests with an empty/default config
        command: 'rm -rf tests/work2 && node dist/src --cwd tests/work2 --debug --port 8082 --open_browser_at_start false', // the port here is just to avoid getting the "port busy" console warning
+       reuseExistingServer: !process.env.CI,
+   }, {
+       command: 'npm run start --workspace=admin -- --host 127.0.0.1 --port 3112 --strictPort',
+       url: adminViteUrl,
        reuseExistingServer: !process.env.CI,
    }]
 });

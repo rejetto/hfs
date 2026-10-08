@@ -24,7 +24,7 @@
     "test": "sh -c 'npm run port-is-free >/dev/null && { echo \"no server\"; exit 1; }; node --import tsx --test \"$@\" tests/test.ts' --",
     "test-with-server": "sh -c 'npm run port-is-free && tsc && rm -rf tests/work tests/tmp && npm run prepare-test && (node dist/src --cwd tests/work --config tests/work/config.yaml & echo $! > .server_pid) && sleep 2 && node --import tsx --test \"$@\" tests/test.ts; _exit=$?; if [ -f ./.server_pid ]; then SERVER_PID=$(cat ./.server_pid); kill \"$SERVER_PID\" 2>/dev/null || true; rm -f ./.server_pid; fi; exit $_exit' --",
     "port-is-free": "node -e \"const port=process.argv[1]||8081;process.exit(await fetch('http://localhost:'+port).then(() => console.log('BUSY')||1, () => 0))\" --",
-    "test-ui": "npm run port-is-free -- 8081 && rm -rf tests/work tests/work2 tests/tmp && npx playwright test frontend && npx playwright test serial && npx playwright test admin-vfs",
+    "test-ui": "npm run port-is-free -- 8081 && rm -rf tests/work tests/work2 tests/tmp && npx playwright test frontend --workers=2 && npx playwright test serial && npx playwright test admin-vfs && npx playwright test '^(?!.*(?:frontend|serial|admin-vfs).*\\.spec\\.ts$).*\\.spec\\.ts$'",
     "test-with-ui": "sh -c 'npm run port-is-free -- 3005 && npm run start-frontend & npm run port-is-free -- 3006 && npm run start-admin & cross-env TEST_WITH_UI=1 npx playwright test --ui \"$@\"' --",
     "prepublishOnly": "node -e \"const p=require('./package.json'); if (p.devDependencies || p.workspaces || p.scripts?.postinstall) throw Error('run npm run dist-modules before publishing')\"",
     "pub": "cd dist && npm publish",
