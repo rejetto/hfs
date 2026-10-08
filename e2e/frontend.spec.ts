@@ -775,7 +775,7 @@ test('admin1', async ({ page }) => {
     await page.getByRole('tab', { name: 'Get more' }).click()
     await page.getByRole('tab', { name: 'updates' }).click()
     await clickAdminMenu(page, 'Custom HTML')
-    const section = page.getByRole('combobox', { name: /^Section / })
+    const section = page.getByRole('combobox', { name: /^Section(?: |$)/ })
     await expect(section).toBeVisible() // wait for data to be loaded
     await section.click()
     await page.getByRole('option', { name: 'Style', exact: true }).click()

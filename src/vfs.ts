@@ -360,7 +360,7 @@ async function setSourceNames(node: VfsNode, parent: VfsNode) {
 
 function convertWindowsPath(path: string, isLong=false) {
     return new Promise<string | undefined>(resolvePromise => {
-        if (!fswin.convertPath(path, resolvePromise, isLong))
+        if (!fswin.convertPath(path, converted => resolvePromise(converted || undefined), isLong))
             resolvePromise(undefined)
     })
 }

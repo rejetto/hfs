@@ -67,7 +67,7 @@ test('account selection survives switching from dialog to side panel', async ({ 
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
-    await expect(page.getByRole('treeitem', { name: 'member', exact: true })).toHaveAttribute('aria-checked', 'false')
+    await expect(page.getByRole('treeitem', { name: 'member', exact: true })).toHaveAttribute('aria-selected', 'false')
 })
 
 test('renaming the current account keeps its Delete button disabled', async ({ page }) => {

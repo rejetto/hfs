@@ -72,7 +72,7 @@ test('DNS provider selection, wildcard helper, secret autosave and streamed prog
     await page.getByLabel('API token', { exact: true }).fill('test-secret')
     await page.getByLabel('API token', { exact: true }).press('Tab')
     await expect.poll(() => writes).toBeGreaterThanOrEqual(3)
-    const request = page.getByRole('button', { name: 'Request', exact: true })
+    const request = page.locator('button', { hasText: 'Request' })
     await expect(request).toBeEnabled()
     await page.reload()
     await expect(page.getByLabel('API token', { exact: true })).toHaveValue('test-secret')
