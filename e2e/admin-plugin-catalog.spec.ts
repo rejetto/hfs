@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test'
 
+// keep descriptions in the visible name column instead of racing responsive column measurement
+test.use({ viewport: { width: 500, height: 720 } })
+
 test('cached plugins remain visible during refresh and reconcile without duplicates', async ({ page }) => {
     test.skip(!process.env.ADMIN_CATALOG_URL, 'requires the Admin Vite server')
     await page.addInitScript(() => {
