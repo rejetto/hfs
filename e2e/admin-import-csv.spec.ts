@@ -1,9 +1,12 @@
 import { test, expect, Page } from '@playwright/test'
 import { resolve } from 'node:path'
+import english from '../src/admin-langs/hfs-admin-lang-en.json'
 
 async function openCsv(page: Page, csv = 'alice,password\nbob,') {
     test.skip(!process.env.ADMIN_CSV_URL, 'requires Admin Vite fixture server')
-    await page.addInitScript(() => Object.assign(window, { HFS: { session: { username: 'admin', isAdmin: true } } }))
+    await page.addInitScript(english => Object.assign(window, {
+        HFS: { lang: { en: english }, session: { username: 'admin', isAdmin: true } },
+    }), english)
     await page.route('**/~/api/refresh_session', route => route.fulfill({ json: { username: 'admin', isAdmin: true } }))
     await page.route('**/src/MonitorPage.ts*', route => route.fulfill({ contentType: 'text/javascript',
         body: `export { default } from ${JSON.stringify('/@fs/' + resolve('e2e/fixtures/import-csv.ts'))}` }))
@@ -23,13 +26,14 @@ test('CSV import counts password failure and continues', async ({ page }) => {
     await page.route('**/~/api/change_srp', route => route.fulfill({ status: 500, json: {} }))
     await openCsv(page)
     await page.getByRole('dialog').getByRole('button', { name: 'ctrl + enter', exact: true }).click()
-    await expect(page.getByRole('dialog')).toContainText('1 failed, 1 succeeded')
+    await expect(page.getByRole('dialog')).toContainText('1 failed')
+    await expect(page.getByRole('dialog')).toContainText('1 succeeded')
     expect(added).toEqual(['alice', 'bob'])
 })
 
 test('CSV preview tolerates out-of-range skipped lines', async ({ page }) => {
     await openCsv(page)
-    const input = page.getByRole('spinbutton', { name: 'Skip first lines', exact: true })
+    const input = page.getByRole('spinbutton', { name: 'Skip First Lines', exact: true })
     await input.fill('5')
     await expect(page.getByRole('dialog')).toContainText('Import accounts from CSV')
     await expect(input).toHaveValue('5')
@@ -39,7 +43,7 @@ test('CSV preview tolerates out-of-range skipped lines', async ({ page }) => {
 
 test('CSV rejects fractional skipped lines', async ({ page }) => {
     await openCsv(page)
-    await page.getByRole('spinbutton', { name: 'Skip first lines', exact: true }).fill('0.5')
+    await page.getByRole('spinbutton', { name: 'Skip First Lines', exact: true }).fill('0.5')
     await page.getByRole('dialog').getByRole('button', { name: 'ctrl + enter', exact: true }).click()
     await expect(page.getByRole('dialog')).toContainText('Import accounts from CSV')
     await expect(page.getByRole('dialog')).toContainText('integer')

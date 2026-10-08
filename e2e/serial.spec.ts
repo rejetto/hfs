@@ -862,7 +862,7 @@ test('admin2', async ({ page, browserName }) => {
     await page.getByRole('textbox', { name: 'Search text' }).fill('download')
 
     await clickAdminMenu(page, 'Custom HTML')
-    const section = page.getByRole('combobox', { name: /^Section / })
+    const section = page.getByRole('combobox', { name: /^Section(?: |$)/ })
     await expect(section).toBeVisible()
     await section.click()
     await page.getByRole('option', { name: 'Style', exact: true }).click()

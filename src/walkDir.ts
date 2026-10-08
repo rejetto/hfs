@@ -8,6 +8,7 @@ import events from './events'
 import _ from 'lodash'
 import { Context } from 'koa'
 import fswin from 'fswin'
+import type { Find } from 'fswin'
 import { isDirectory, statWithTimeout } from './util-files'
 
 interface DirStreamEntry extends Dirent {
@@ -60,21 +61,23 @@ export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRec
             await new Promise<void>((resolve, reject) => fswin.find(base + '\\*', (event, f) => {
                 if (event !== 'FOUND') {
                     Promise.all(entriesWorking).then(() => resolve())
-                    return
+                    return false
                 }
                 if (stopped) return true // stop signal
-                if (!hidden && f.IS_HIDDEN) return
+                const file = f as Find.File // fswin pairs FOUND with File, but its callback type doesn't express that relation
+                if (!hidden && file.IS_HIDDEN) return false
                 entriesWorking.push(work(Object.assign(Object.create(direntMethods), {
-                    isDir: f.IS_DIRECTORY,
-                    name: f.LONG_NAME,
+                    isDir: file.IS_DIRECTORY,
+                    name: file.LONG_NAME,
                     stats: {
-                        size: f.SIZE,
-                        birthtime: f.CREATION_TIME, birthtimeMs: f.CREATION_TIME.getTime(),
-                        mtime: f.LAST_WRITE_TIME, mtimeMs: f.LAST_WRITE_TIME.getTime(),
-                        isFile: () => !f.IS_DIRECTORY,
-                        isDirectory: () => f.IS_DIRECTORY,
+                        size: file.SIZE,
+                        birthtime: file.CREATION_TIME, birthtimeMs: file.CREATION_TIME.getTime(),
+                        mtime: file.LAST_WRITE_TIME, mtimeMs: file.LAST_WRITE_TIME.getTime(),
+                        isFile: () => !file.IS_DIRECTORY,
+                        isDirectory: () => file.IS_DIRECTORY,
                     } as Stats
-                }), Boolean(f.REPARSE_POINT_TAG)).catch(reject))
+                }), Boolean(file.REPARSE_POINT_TAG)).catch(reject))
+                return false
             }, true))
         }
         else for await (let entry of (pluginIterator || await opendir(base))) {
