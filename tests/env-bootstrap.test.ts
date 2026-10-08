@@ -2,7 +2,7 @@ import test, { TestContext } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
-import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, writeFile, readFile, rm, rename } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -17,6 +17,8 @@ for (const via of ['api', 'file', 'offline'] as const)
         const args = ['--localhost_admin', 'false']
         let server = await start(env, args)
         const adminPass = 'initial-password'
+        // wait for bootstrap to finish before using the account it creates
+        await persisted(cwd, saved => Boolean(saved.accounts?.admin?.srp))
         assert.equal((await server.api('add_account', { username: 'alice', password: 'old-password' }, adminPass)).status, 200)
         const login = await server.api('login', { username: 'alice', password: 'old-password' })
         assert.equal(login.status, 200)
@@ -47,7 +49,9 @@ for (const via of ['api', 'file', 'offline'] as const)
             }
             else {
                 if (via === 'offline') await server.stop(adminPass)
-                await writeFile(join(cwd, 'config.yaml'), yaml.stringify(config))
+                // replace the complete file so reload cannot observe the truncation between open and write
+                await writeFile(join(cwd, 'config.yaml.tmp'), yaml.stringify(config))
+                await rename(join(cwd, 'config.yaml.tmp'), join(cwd, 'config.yaml'))
                 if (via === 'offline') server = await start(env, args)
             }
             for (let i = 0; i < 100; i++) {
@@ -98,6 +102,7 @@ test('session revocation persists across restarts while the password-changing se
     const env = { HFS_ENV_BOOTSTRAP: 'true', HFS_CREATE_ADMIN: 'initial-password', COOKIE_SIGN_KEYS: 'session-revocation-test-key' }
     const args = ['--localhost_admin', 'false']
     const first = await start(env, args)
+    await persisted(cwd, saved => Boolean(saved.accounts?.admin?.srp))
     const login = await first.api('login', { username: 'admin', password: 'initial-password' })
     assert.equal(login.status, 200)
     const oldCookie = cookies(login)
@@ -132,10 +137,10 @@ test('random signing keys keep session stamps out of config and data and reject 
     const env = { HFS_ENV_BOOTSTRAP: 'true', HFS_CREATE_ADMIN: 'initial-password' }
     const args = ['--localhost_admin', 'false']
     const first = await start(env, args)
+    await persisted(cwd, saved => Boolean(saved.accounts?.admin?.srp))
     const login = await first.api('login', { username: 'admin', password: 'initial-password' })
     assert.equal(login.status, 200)
     assert.match(session(login).stamp, /^\d+\.\d{3}$/)
-    await persisted(cwd, saved => Boolean(saved.accounts?.admin?.srp))
     await first.stop('initial-password')
     assert.equal(await storedStamp(cwd), undefined)
     const saved = yaml.parse(await readFile(join(cwd, 'config.yaml'), 'utf8')).accounts.admin
@@ -145,10 +150,11 @@ test('random signing keys keep session stamps out of config and data and reject 
 })
 
 test('temporarily disabling fixed signing keys cannot revive cookies when they are restored', { timeout: 20000 }, async t => {
-    const { start } = await workspace(t)
+    const { cwd, start } = await workspace(t)
     const env = { HFS_ENV_BOOTSTRAP: 'true', HFS_CREATE_ADMIN: 'initial-password', COOKIE_SIGN_KEYS: 'temporary-fixed-key' }
     const args = ['--localhost_admin', 'false']
     const first = await start(env, args)
+    await persisted(cwd, saved => Boolean(saved.accounts?.admin?.srp))
     const login = await first.api('login', { username: 'admin', password: 'initial-password' })
     assert.equal(login.status, 200)
     const cookie = cookies(login)

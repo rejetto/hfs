@@ -743,6 +743,7 @@ const NETWORK_PRESETS = {
 
 // some interactions, no screenshots
 test('admin2', async ({ page, browserName }) => {
+    test.slow(browserName === 'firefox', 'this long interaction flow needs more time in Firefox')
     const isPhone = await loginAdmin(page)
 
     await clickAdminMenu(page, 'Accounts')

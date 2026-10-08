@@ -36,7 +36,7 @@ exports.init = api => {
     await first.api('set_acme', { settings })
     const generic = await first.api('get_config', { only: ['acme_dns'] })
     assert.equal(generic.acme_dns[0].credentials.token, 'secret-one')
-    await waitFor(async () => yaml.parse(await readFile(join(cwd, 'config.yaml'), 'utf8')).acme_dns?.[0]?.credentials.token === 'secret-one')
+    await waitFor(async () => yaml.parse(await readFile(join(cwd, 'config.yaml'), 'utf8'))?.acme_dns?.[0]?.credentials.token === 'secret-one')
     await first.stop()
     const second = await start()
     const restored = await second.api('get_acme')
