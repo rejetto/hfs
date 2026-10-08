@@ -1,11 +1,11 @@
 import { DataGrid, DataGridProps, getGridStringOperators, GridColDef, GridFilterForm, GridFilterItem, GridFilterModel,
     GridFooter, GridFooterContainer, gridClasses, GridLogicOperator, GridPanelContent, GridPanelFooter, GridPanelWrapper,
-    GridValidRowModel, useGridApiContext, useGridApiRef, GridRenderCellParams, QuickFilter, QuickFilterControl,
+    GridApi, GridValidRowModel, useGridApiContext, useGridApiRef, GridRenderCellParams, QuickFilter, QuickFilterControl,
     useGridRootProps } from '@mui/x-data-grid'
 import { GridColumnHeaderFilterIconButton, type ColumnHeaderFilterIconButtonProps } from '@mui/x-data-grid/components'
 import { Alert, Box, BoxProps, Chip, LinearProgress, useTheme } from '@mui/material'
 import type { Breakpoint } from '@mui/material/styles'
-import { createElement as h, type ElementType, Fragment, ReactNode, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createElement as h, type ElementType, Fragment, ReactNode, type MutableRefObject, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { t } from './i18n'
 import { callable, Callback, Falsy, newDialog, objFromKeys, onlyTruthy, useGetSize } from '@hfs/shared'
 import _ from 'lodash'
@@ -356,7 +356,7 @@ export function DataTable({
         if (filterModel === undefined)
             setLocalMultiFilterModel(model)
         if (apiRef.current)
-            onFilterModelChange?.(model, { api: apiRef.current, reason })
+            onFilterModelChange?.(model, { api: apiRef.current, apiRef: apiRef as MutableRefObject<GridApi>, reason })
     }
 
     async function saveFilterPreset() {

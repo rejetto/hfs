@@ -8,6 +8,7 @@ declare global {
         showTableActions: boolean
         hideTableExtra: boolean
         mergeTableExtra: boolean
+        tableQuickFilter: boolean
         updateTableRows: () => void
     }
 }
@@ -19,6 +20,8 @@ export default function DataTableFixture() {
     window.updateTableRows = () => setRows(rows.map(row => ({ ...row, label: `${row.key} updated` })))
     return h(DataTable, {
         rows,
+        quickFilter: window.tableQuickFilter,
+        actions: window.tableQuickFilter ? () => [] : undefined,
         getRowId: window.customTableId ? row => row.key : undefined,
         columns: [
             { field: 'label', headerName: 'Label', mergeRender: window.mergeTableExtra ? { extra: {} } : undefined },
