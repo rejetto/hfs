@@ -153,7 +153,9 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
             resolve(res)
 
             function fail(message: string, cause?: any) {
-                res.destroy()
+                // preserve error responses because callers may inspect their body
+                if (!cause)
+                    res.destroy()
                 return reject(Error(message, cause && { cause }))
             }
 
