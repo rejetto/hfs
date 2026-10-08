@@ -2,7 +2,7 @@ import test, { TestContext } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
-import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, writeFile, readFile, rm, rename } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -17,6 +17,8 @@ for (const via of ['api', 'file', 'offline'] as const)
         const args = ['--localhost_admin', 'false']
         let server = await start(env, args)
         const adminPass = 'initial-password'
+        // wait for bootstrap to finish before using the account it creates
+        await persisted(cwd, saved => Boolean(saved.accounts?.admin?.srp))
         assert.equal((await server.api('add_account', { username: 'alice', password: 'old-password' }, adminPass)).status, 200)
         const login = await server.api('login', { username: 'alice', password: 'old-password' })
         assert.equal(login.status, 200)
@@ -47,7 +49,9 @@ for (const via of ['api', 'file', 'offline'] as const)
             }
             else {
                 if (via === 'offline') await server.stop(adminPass)
-                await writeFile(join(cwd, 'config.yaml'), yaml.stringify(config))
+                // replace the complete file so reload cannot observe the truncation between open and write
+                await writeFile(join(cwd, 'config.yaml.tmp'), yaml.stringify(config))
+                await rename(join(cwd, 'config.yaml.tmp'), join(cwd, 'config.yaml'))
                 if (via === 'offline') server = await start(env, args)
             }
             for (let i = 0; i < 100; i++) {

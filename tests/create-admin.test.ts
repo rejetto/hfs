@@ -57,10 +57,10 @@ fs.stat = async function (path, ...args) {
     assert.equal(response.status, 200, 'bootstrap admin must remain available after startup defaults')
     const { list } = await response.json() as { list: { username: string, adminActualAccess: boolean }[] }
     assert.ok(list.some(x => x.username === 'admin' && x.adminActualAccess))
-    // configuration writes are debounced, so wait for persistence independently of login
+    // debounced writes briefly truncate the file, so wait for complete persistence independently of login
     for (let i = 0; i < 50; i++) {
         const saved = yaml.parse(await readFile(join(cwd, 'config.yaml'), 'utf8'))
-        if (saved.accounts?.admin?.srp && !saved['create-admin']) return
+        if (saved?.accounts?.admin?.srp && !saved['create-admin']) return
         await delay(100)
     }
     assert.fail('bootstrap admin was not persisted')

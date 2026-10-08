@@ -1,17 +1,11 @@
 import './acme-dns.test'
 import './acme-dns-providers.test'
-import './acme-config.test'
 import './filename-normalization.test'
 import './antibrute-expiry.test'
 import './path-root.test'
 import './update-changelog.test'
 import './plugin-catalog.test'
 import './plugin-changelog.test'
-import './shutdown.test'
-import './upload-shutdown.test'
-import './plugin-server-cleanup.test'
-import './create-admin.test'
-import './env-bootstrap.test'
 import test, { describe, before, after } from 'node:test';
 import { promisify } from 'util'
 import { srpClientPart, srpClientSequence } from '../src/srp'
@@ -95,6 +89,16 @@ let defaultBaseUrl = BASE_URL
 
 const execP = (cmd: string) => promisify(exec)(cmd).then(x => x.stdout)
 const srp6aNimbusRoutines = new srp.SRPRoutines(new srp.SRPParameters())
+
+// these tests use separate child processes, temporary directories and ports; shared-server tests stay serial
+describe('isolated servers', { concurrency: 8 }, () => {
+    require('./acme-config.test')
+    require('./shutdown.test')
+    require('./upload-shutdown.test')
+    require('./plugin-server-cleanup.test')
+    require('./create-admin.test')
+    require('./env-bootstrap.test')
+})
 
 describe('http utilities', () => {
     test('httpString limits continuously streaming responses', async () => {
