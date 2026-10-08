@@ -26,7 +26,7 @@ import { once } from 'events'
 import { QuickZipStream } from '../src/QuickZipStream'
 import { XMLValidator } from 'fast-xml-parser'
 import { BASIC_AUTHENTICATE_HEADER } from '../src/cross'
-import { createServer, request as httpRequest } from 'http'
+import { ClientRequest, createServer, request as httpRequest } from 'http'
 import fswin from 'fswin'
 import { tmpdir } from 'os'
 /*
@@ -3910,7 +3910,16 @@ describe('after-login', () => {
             await req(tempUri, 403, { method: 'delete', jar: {} })()
             if (!existsSync(temp))
                 throw "temp file removed without permission"
-            await req(tempUri, 200, { method: 'delete', ...ownerReq })()
+            let deleted = false
+            await waitFor(async () => { // client abort does not wait for the server to publish ownership
+                await req(tempUri, (_body, res) => {
+                    deleted = res.statusCode === 200
+                    return deleted || res.statusCode === 403
+                }, { method: 'delete', ...ownerReq })()
+                return deleted
+            }, { interval: 50, timeout: 3000 })
+            if (!deleted)
+                throw Error('unfinished upload ownership was not published')
             if (existsSync(temp))
                 throw "temp file not removed"
         }
@@ -4294,6 +4303,7 @@ describe('after-login', () => {
     })
     const declaredSize = BIG_CONTENT.length / 2
     test('upload.too much', reqUpload(UPLOAD_DEST, (x,res)=> {
+        if (res instanceof ClientRequest) return // Node may close the connection when the body exceeds Content-Length
         if (res.statusCode === 400) return // status 400 is caused by nodejs itself, intercepting the mismatch, but it's probably an unreliable race condition
         if (res.statusCode !== 200) // it happened sometimes that node didn't block (can't replicate). In such case we should get a 200 with a file the size of declaredSize.
             throw `expected 200, got ${res.statusCode}`
