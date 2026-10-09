@@ -747,8 +747,16 @@ test('admin1', async ({ page }) => {
 
     await clickAdminMenu(page, 'Logs')
     await dataTableLoading()
-    if (!isPhone)
-        await expect(page.getByRole('columnheader', { name: 'URI', exact: true })).toBeVisible() // wait for virtualized columns before the screenshot
+    if (!isPhone) {
+        const uriColumn = page.getByRole('columnheader', { name: 'URI', exact: true })
+        if (!await uriColumn.isVisible()) {
+            // Firefox can miss DataGrid's initial resize, so nudge the viewport to materialize visible columns
+            const viewport = page.viewportSize()!
+            await page.setViewportSize({ ...viewport, width: viewport.width - 1 })
+            await page.setViewportSize(viewport)
+        }
+        await expect(uriColumn).toBeVisible()
+    }
     await screenshot(page)
     await clickIconBtn('Options', page)
     await page.getByRole('textbox', { name: 'Served', exact: true }).click()
