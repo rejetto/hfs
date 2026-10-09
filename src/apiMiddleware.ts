@@ -4,9 +4,9 @@ import Koa from 'koa'
 import createSSE from './sse'
 import { Readable } from 'stream'
 import { asyncGeneratorToReadable, CFG, Promisable } from './misc'
-import { HTTP_BAD_REQUEST, HTTP_FOOL, PLUGIN_CUSTOM_REST_PREFIX } from './const'
+import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FOOL, PLUGIN_CUSTOM_REST_PREFIX } from './const'
 import { defineConfig } from './config'
-import { firstPlugin } from './plugins'
+import { firstPlugin, mapPlugins, Plugin } from './plugins'
 import { SendListReadable } from './SendList'
 
 export class ApiError extends Error {
@@ -35,7 +35,10 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         if (!csrfSafe)
             return send(HTTP_FOOL, "missing header x-hfs-anti-csrf:1")
         const customApiRest = apiName.startsWith(PLUGIN_CUSTOM_REST_PREFIX) && apiName.slice(PLUGIN_CUSTOM_REST_PREFIX.length)
-        const apiFun = customApiRest && firstPlugin(pl => pl.getData().customRest?.[customApiRest])
+        const customApiFun = customApiRest && resolveCustomRest(customApiRest)
+        if (customApiFun instanceof ApiError)
+            return send(customApiFun.status, customApiFun.message)
+        const apiFun = customApiFun
             || apis.hasOwnProperty(apiName) && apis[apiName]!
         if (!apiFun)
             return send(HTTP_BAD_REQUEST, 'invalid api')
@@ -75,6 +78,29 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
             ctx.status = status
         }
     }
+}
+
+function resolveCustomRest(request: string) {
+    const separator = request.lastIndexOf(':')
+    if (separator > 0) {
+        const selector = request.slice(0, separator)
+        const name = request.slice(separator + 1)
+        const matches = mapPlugins((plugin, id) => {
+            if (matchesSelector(plugin, id, selector)) return plugin
+        })
+        if (matches.length > 1)
+            return new ApiError(HTTP_CONFLICT, `ambiguous plugin selector: ${selector}`)
+        const match = matches[0]
+        const targeted = match?.getData().customRest?.[name]
+        if (targeted) return targeted
+    }
+    return firstPlugin(plugin => plugin.getData().customRest?.[request])
+}
+
+function matchesSelector(plugin: Readonly<Plugin>, id: string, selector: string) {
+    const declared = plugin.repo
+    const repo = typeof declared === 'string' ? declared : declared?.main
+    return selector === id || selector === repo
 }
 
 function isAsyncGenerator(x: any): x is AsyncGenerator {
