@@ -232,15 +232,20 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
 - `onFrontendConfig: (config: object) => (void | object)` manipulate config values exposed to frontend.
 - `customHtml: object | () => object` return custom-html sections programmatically.
   Each key is a section name, the value is the html (or js, or css). Refer to https://github.com/rejetto/hfs/wiki/Customization:-HTML-sections
-- `customRest: { [name]: (parameters: object, ctx) => any }` declare backend functions to be called by frontend with `HFS.customRestCall`
-  Names are global across plugins: if multiple plugins export the same name, the first matching plugin handles the request.
-  Prefix names with a plugin-specific identifier, for example `twoFactor_getSecret`, to avoid collisions.
+- `customRest: { [name]: (parameters: object, ctx) => any }` declare backend functions to be called by frontend with `HFS.customRestCall`.
+  An unqualified name automatically targets the plugin making the call.
+  Use `<plugin>:<name>` only to target another plugin. The plugin selector can be its declared
+  repository (`rejetto/hfs-notifier`) or its runtime folder id. Prefer the repository
+  for stable cross-plugin calls. Duplicate repository selectors return HTTP 409.
   E.g. 
   ```js
   exports.customRest = {
     myCommand({ text }) { console.log(text) }
   }
-  // then, in the frontend yon can call HFS.customRestCall('myCommand', { text: 'hello' })
+  // call the current plugin without knowing its installation folder
+  HFS.customRestCall('myCommand', { text: 'hello' })
+  // another plugin can target it independently of its installation folder
+  HFS.customRestCall('owner/hfs-my-plugin:myCommand', { text: 'hello' })
   ```
 - `customApi: { [name]: (parameters) => any }` declare functions to be called by other plugins (only backend, not frontend) using `api.customApiCall` (documented below) 
 

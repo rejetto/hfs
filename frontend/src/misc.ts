@@ -19,7 +19,7 @@ import { fileShow, Video, Audio, getShowComponent } from './show'
 import { ANY_LANGUAGE } from '../../src/i18n'
 import { debounceAsync } from '../../src/debounceAsync'
 export * from '@hfs/shared'
-import { hfsEvent, onPluginEvent } from '@hfs/shared/plugins'
+import { hfsEvent, onPluginEvent, qualifyPluginCustomRest } from '@hfs/shared/plugins'
 import i18n from './i18n'
 const { t, getLangs } = i18n
 
@@ -96,7 +96,8 @@ Object.assign(getHFS(), {
         return subscribeKey(thisState, up || k, cb, true)
     },
     customRestCall(name: string, ...rest: any[]) {
-        return apiCall(cross.PLUGIN_CUSTOM_REST_PREFIX + name, ...rest)
+        return apiCall(cross.PLUGIN_CUSTOM_REST_PREFIX
+            + (name.includes(':') ? name : qualifyPluginCustomRest(getHFS().getPluginKey(true), name)), ...rest)
     },
     html: (html: string) => h(Html, {}, html),
     elementToEntry(el: any) {
