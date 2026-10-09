@@ -4,7 +4,7 @@ import { BoolField, Form, MultiSelectField, NumberField, SelectField, StringFiel
 import { allowPluginScripts, beginPluginScriptsUnload, forgetPluginScripts, getHFS, loadScript } from '@hfs/shared'
 import {
     addPluginCleanup, clearPluginLoadState, hfsEvent, onPluginEvent, PLUGIN_ASSET_TIMEOUT, pluginUiChanged,
-    runPluginCleanups, setPluginLoadState,
+    qualifyPluginCustomRest, runPluginCleanups, setPluginLoadState,
 } from '@hfs/shared/plugins'
 import { apiCall } from './api'
 import { state, useSnapState } from './state'
@@ -97,7 +97,8 @@ Object.assign(getHFS(), {
     onEvent: (...args: Parameters<typeof onPluginEvent> extends [unknown, ...infer R] ? R : never) =>
         onPluginEvent(getHFS().getPluginKey(true) || '???', ...args),
     customRestCall(name: string, ...rest: Parameters<typeof apiCall> extends [unknown, ...infer R] ? R : never) {
-        return apiCall(PLUGIN_CUSTOM_REST_PREFIX + name, ...rest)
+        return apiCall(PLUGIN_CUSTOM_REST_PREFIX
+            + (name.includes(':') ? name : qualifyPluginCustomRest(getHFS().getPluginKey(true), name)), ...rest)
     },
     admin: {
         components: {
