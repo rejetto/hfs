@@ -55,6 +55,10 @@ export function onPluginEvent(pluginId: string, name: string, cb: HfsEventCallba
     return onHfsEvent(pluginId, name.endsWith(':') ? name + pluginId : name, cb, options)
 }
 
+export function qualifyPluginCustomRest(pluginId: string | undefined, name: string) {
+    return !pluginId || name.includes(':') ? name : pluginId + ':' + name
+}
+
 type PluginLoadState = { started?: string, loaded: boolean }
 const pluginLoadStates = new Map<string, PluginLoadState>()
 export const PLUGIN_ASSET_TIMEOUT = 15_000
