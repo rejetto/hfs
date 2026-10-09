@@ -28,6 +28,14 @@ test.beforeAll(async () => {
     base = `http://127.0.0.1:${port}`
     externalServer = createHttpServer((req, res) => {
         res.setHeader('content-type', 'text/javascript')
+        if (req.url === '/external-admin.js')
+            return res.end(`window.externalPluginRestCall = () => HFS.customRestCall('pluginProbe')`)
+        if (req.url === '/external-admin.js?v=2')
+            return res.end(`window.prefixedExternalRestCall = () => HFS.customRestCall('pluginProbe')`)
+        if (req.url === '/unique-admin.js')
+            return res.end(`window.pluginRestCallThroughSharedHelper = () => window.invokePluginCallback(() => HFS.customRestCall('pluginProbe'))`)
+        if (req.url === '/shared-helper.js')
+            return res.end(`window.invokePluginCallback = callback => callback()`)
         if (['/slow-admin.js', '/dep-a.js', '/slow-child.js'].includes(req.url || '')) {
             slowScriptResponse = res
             slowScriptRequested?.()
@@ -44,6 +52,7 @@ test.beforeAll(async () => {
     const externalPort = (externalServer.address() as { port: number }).port
     externalBase = `http://127.0.0.1:${externalPort}`
     await mkdir(join(cwd, 'plugins/admin-api/public'), { recursive: true })
+    await mkdir(join(cwd, 'plugins/admin-api-duplicate'), { recursive: true })
     await mkdir(join(cwd, 'plugins/late-login/public'), { recursive: true })
     await mkdir(join(cwd, 'plugins/slow-admin'), { recursive: true })
     await mkdir(join(cwd, 'plugins/dep-a'), { recursive: true })
@@ -56,7 +65,8 @@ test.beforeAll(async () => {
     }))
     await writeFile(join(cwd, 'plugins/admin-api/plugin.js'), `
 exports.apiRequired = 13.72
-exports.admin_js = ['first.js', 'admin.js']
+exports.repo = 'test/hfs-probe'
+exports.admin_js = ['first.js', 'admin.js', '${externalBase}/shared-helper.js', '${externalBase}/external-admin.js', '${externalBase}/unique-admin.js']
 exports.admin_css = 'admin.css'
 exports.frontend_js = 'frontend.js'
 exports.frontend_css = 'frontend.css'
@@ -72,8 +82,14 @@ exports.init = api => {
     return { customRest: { pluginProbe({}, ctx) {
         if (!api.ctxAdminAccess(ctx)) throw 403
         return { message: "Plugin endpoint works" }
-    } } }
+    }, frontendProbe: () => ({ frontend: true }), 'admin-api:legacyProbe': () => ({ legacy: true }) } }
 }
+`)
+    await writeFile(join(cwd, 'plugins/admin-api-duplicate/plugin.js'), `
+exports.apiRequired = 13.72
+exports.repo = 'test/hfs-probe'
+exports.admin_js = ['${externalBase}/shared-helper.js', '${externalBase}/external-admin.js?v=2']
+exports.customRest = { pluginProbe: () => ({ message: "Duplicate endpoint" }) }
 `)
     await writeFile(join(cwd, 'plugins/late-login/plugin.js'), `
 exports.apiRequired = 14
@@ -114,6 +130,7 @@ const { StringField, Box, Btn } = HFS.admin.components
 HFS.onEvent('unload:', () => window.pluginCleanupCalls = (window.pluginCleanupCalls || 0) + 1)
 HFS.onEvent('beforeLogin', () => h('p', {}, "Plugin login extension"))
 HFS.onEvent('beforeLoginSubmit', () => h(OTPInput))
+window.pluginOwnRestCall = () => HFS.customRestCall('pluginProbe')
 function OTPInput() {
     const [otp, setOtp] = HFS.React.useState('')
     return h(StringField, {
@@ -143,6 +160,7 @@ function Probe({ setTitleSide }) {
     await writeFile(join(cwd, 'plugins/admin-api/public/frontend.js'), `window.frontendPluginLoaded = true
 HFS.onEvent('afterHeader', () => HFS.h('p', {}, "Frontend plugin extension"))
 HFS.onEvent('beforeLoginSubmit', () => HFS.h('input', { name: 'otp', placeholder: "Frontend OTP" }))
+window.frontendPluginRestCall = () => HFS.customRestCall('frontendProbe')
 `)
     await writeFile(join(cwd, 'plugins/admin-api/public/frontend.css'), ':root { --frontend-plugin: yes }')
     server = spawn(process.execPath, [resolve('dist/src'), '--cwd', cwd], { stdio: ['ignore', 'pipe', 'pipe'] })
@@ -210,6 +228,33 @@ test('plugin assets, OTP login and menu page use the real Admin flow', async ({ 
     await expect(page.getByTestId('plugin-title-side')).toBeVisible()
     await page.getByRole('button', { name: 'Call plugin', exact: true }).click()
     await expect(page.getByText('Plugin endpoint works')).toBeVisible()
+    await expect(page.evaluate(() => HFS.customRestCall('test/hfs-probe:pluginProbe')))
+        .resolves.toEqual({ message: 'Plugin endpoint works' })
+    await expect(page.evaluate(() => HFS.customRestCall('admin-api:legacyProbe')))
+        .resolves.toEqual({ legacy: true })
+    await expect(page.evaluate(() => HFS.customRestCall('admin-api:pluginProbe')))
+        .resolves.toEqual({ message: 'Plugin endpoint works' })
+    await expect(page.evaluate(() => (window as any).externalPluginRestCall()))
+        .resolves.toEqual({ message: 'Plugin endpoint works' })
+    await page.evaluate(() => HFS.apiCall('start_plugin', { id: 'admin-api-duplicate' }))
+    await expect(page.evaluate(() => (window as any).pluginOwnRestCall()))
+        .resolves.toEqual({ message: 'Plugin endpoint works' })
+    await expect(page.evaluate(() => (window as any).pluginRestCallThroughSharedHelper()))
+        .resolves.toEqual({ message: 'Plugin endpoint works' })
+    await expect.poll(() => page.evaluate(() => typeof (window as any).prefixedExternalRestCall)).toBe('function')
+    const prefixedResult = await page.evaluate(async () => {
+        try { return { value: await (window as any).prefixedExternalRestCall() } }
+        catch(error) { return { error: String(error) } }
+    })
+    if ('error' in prefixedResult)
+        expect(prefixedResult.error).toContain('plugin ownership is ambiguous')
+    else
+        expect(prefixedResult.value).toEqual({ message: 'Duplicate endpoint' })
+    await expect(page.evaluate(() => HFS.customRestCall('test/hfs-probe:pluginProbe').catch((error: any) => error.code)))
+        .resolves.toBe(409)
+    await expect(page.evaluate(() => HFS.customRestCall('admin-api:pluginProbe')))
+        .resolves.toEqual({ message: 'Plugin endpoint works' })
+    await page.evaluate(() => HFS.apiCall('stop_plugin', { id: 'admin-api-duplicate' }))
     await expect(page.evaluate(() => (window as any).frontendPluginLoaded)).resolves.toBeUndefined()
 
     const menuButton = page.getByRole('button', { name: 'menu', exact: true })
@@ -256,7 +301,7 @@ test('plugin assets, OTP login and menu page use the real Admin flow', async ({ 
     await expect(page.evaluate(() => (window as any).pluginCleanupCalls)).resolves.toBe(1)
     await expect(page.evaluate(() => HFS.emit('pluginBeforeOptions:admin-api', { values: {} }).length)).resolves.toBe(0)
     await page.getByRole('button', { name: 'Start admin-api', exact: true }).click()
-    await expect(page.locator('[plugin="admin-api"]')).toHaveCount(3)
+    await expect(page.locator('[plugin="admin-api"]')).toHaveCount(6)
     await expect(page.evaluate(() => (window as any).runtimeMarker)).resolves.toBe(runtimeMarker)
     await expect.poll(() => page.evaluate(() => HFS.emit('pluginBeforeOptions:admin-api', { values: {} }).length)).toBe(1)
     await expect(page.evaluate(() => HFS.plugins['admin-api'])).resolves.toEqual(publicConfig)
