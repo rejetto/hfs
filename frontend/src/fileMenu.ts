@@ -2,7 +2,7 @@ import {
     dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
     pathEncode, closeDialog, anyDialogOpen, Falsy, operationSuccessful, randomId, err2msg, HIDE_IN_TESTS
 } from './misc'
-import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode, useState } from 'react'
+import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode, useEffect, useState } from 'react'
 import { Btn, Bytes, Spinner } from './components'
 import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
@@ -93,9 +93,9 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
         },
         isFolder && !entry.cantOpen && { id: 'folderSize', label: t`Size`, value: h(FolderSize) },
     ].filter(Boolean)
-    const res = await Promise.all(hfsEvent('fileMenu', { entry, menu, props }))
-    menu.push(...res.flat().filter(Boolean)) // flat because each plugin may return an array of entries
-    _.remove(menu, (x, i) => _.find(menu, y => x.id ? x.id === y.id : (!y.id && x.label === y.label), i + 1)) // avoid duplicates, keeping later ones
+    const returned = hfsEvent('fileMenu', { entry, menu, props })
+    const [promises, sync] = _.partition(returned, v => v instanceof Promise)
+    applyReturned(sync)
     const ico = getEntryIcon(entry)
     const { close } = newDialog({
         title: isFolder ? t`Folder menu` : t`File menu`,
@@ -110,6 +110,17 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
             const { data, reload } = useApi<typeof frontEndApis.get_file_details>('get_file_details', { uris: [entry.uri] })
             const details = data?.details?.[0]
             const revoked = details?.upload?.approved === false
+            const [pending, setPending] = useState(promises.length)
+            useEffect(() => {
+                let active = true
+                for (const promise of promises)
+                    promise.then(res => {
+                        if (!active) return // a closed dialog must not apply late plugin results
+                        applyReturned([res])
+                        setPending(x => x - 1)
+                    })
+                return () => { active = false }
+            }, [])
             const showProps = [ ...props,
                 with_(renderUploaderFromDetails(details), value =>
                     value && { id: 'uploader', label: t`Uploader`, value })
@@ -166,11 +177,17 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
                                     h('div', {}, entry.label),
                                     h('small', {}, entry.subLabel) )
                             )
-                    ))
+                    )),
+                    Boolean(pending) && h('div', { className: 'file-menu-skeleton', 'aria-hidden': true })
                 )
             )
         }
     })
+
+    function applyReturned(results: unknown[]) {
+        menu.push(...results.flat().filter(Boolean) as typeof menu) // plugins may return an array of entries
+        _.remove(menu, (x, i) => _.find(menu, y => x.id ? x.id === y.id : (!y.id && x.label === y.label), i + 1)) // later entries override earlier duplicates
+    }
 
     function FolderSize() {
         const [go, setGo] = useState(false)
