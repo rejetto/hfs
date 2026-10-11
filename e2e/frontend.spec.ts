@@ -506,6 +506,43 @@ test('stopping a regular listing is not labeled as a search', async ({ page }) =
     await expect.poll(() => icon.evaluate(el => getComputedStyle(el, '::before').content)).toMatch(/^".+"$/)
 })
 
+test('a restarted listing gets a fresh delay before showing stop', async ({ page }) => {
+    const streams = new Set<ServerResponse>()
+    const server = createServer((_, response) => {
+        streams.add(response)
+        response.on('close', () => streams.delete(response))
+        response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Access-Control-Allow-Origin': '*' })
+        response.write('data: [["ready"]]\n\n')
+    })
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
+    const address = server.address()
+    if (!address || typeof address === 'string') throw Error('Missing listing relay address')
+    try {
+        await gotoFrontend(page)
+        await page.route(url => url.pathname === '/~/api/get_file_list',
+            route => route.continue({ url: `http://127.0.0.1:${address.port}/` }))
+        await page.clock.install()
+        const firstListing = page.waitForRequest(request => new URL(request.url()).searchParams.get('uri') === '/f1/')
+        await page.getByRole('link', { name: 'f1, Folder' }).click()
+        await firstListing
+        await expect(page.locator('#search-stop-button')).toHaveCount(0)
+        await page.clock.runFor(900)
+
+        const secondListing = page.waitForRequest(request => new URL(request.url()).searchParams.get('uri') === '/')
+        await page.locator('#breadcrumb-home').click()
+        await secondListing
+        await page.clock.runFor(200)
+        await expect(page.locator('#search-stop-button')).toHaveCount(0)
+        await page.clock.runFor(800)
+        await expect(page.locator('#search-stop-button')).toBeVisible()
+    }
+    finally {
+        for (const stream of streams) stream.end()
+        server.closeAllConnections()
+        await new Promise<void>(resolve => server.close(() => resolve()))
+    }
+})
+
 test('text buttons support keyboard activation', async ({ page }) => {
     await gotoFrontend(page)
     const folder = page.getByRole('listitem').filter({ has: page.getByRole('link', { name: 'f1, Folder' }) })

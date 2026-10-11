@@ -4,7 +4,7 @@ import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, formDialog, toast } from './dialog'
 import {
-    err2msg, ErrorMsg, onlyTruthy, prefix, useStateMounted, working, buildUrlQueryString, hIcon,
+    err2msg, ErrorMsg, onlyTruthy, prefix, working, buildUrlQueryString, hIcon,
     WIKI_URL, HTTP_NOT_FOUND
 } from './misc'
 import { loginDialog } from './login'
@@ -34,12 +34,13 @@ export function MenuPanel() {
 
     const {t} = useI18N()
 
-    const [justStarted, setJustStarted] = useStateMounted(false)
+    const [justStarted, setJustStarted] = useState(false)
     useEffect(() => {
-        if (!stopSearch) return
         setJustStarted(false)
-        setTimeout(() => setJustStarted(true), 1000)
-    }, [stopSearch, setJustStarted])
+        if (!stopSearch) return
+        const timeout = setTimeout(() => setJustStarted(true), 1000)
+        return () => clearTimeout(timeout)
+    }, [stopSearch])
 
     // compact repeated folder names so search selections from the same folders are less likely to hit URL limits (64kb)
     const ofs = location.pathname.length
