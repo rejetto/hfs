@@ -1,6 +1,6 @@
 import { createElement as h, Fragment, isValidElement, ReactNode, useEffect, useMemo, useState } from 'react'
 import _ from 'lodash'
-import { Callback, Dict, domOn, getHFS, Html, isPrimitive, loadScript, onlyTruthy, useStateMounted } from '.'
+import { Callback, Dict, domOn, getHFS, Html, isPrimitive, loadScript, onlyTruthy } from '.'
 
 export function hfsEvent(name: string, params?:Dict) {
     const output: any[] = []
@@ -125,7 +125,7 @@ export function CustomCode({ name, children, render, customHtml=true, ...props }
     const pluginUiRevision = usePluginUiRevision()
     const raw = useMemo(() => hfsEvent(name, Object.assign(props, { def: children })), // not using 'default' as key, because user can have unexpected error destructuring object
         [name, children, pluginUiRevision, ...props ? Object.values(props) : []])
-    const [out, setOut] = useStateMounted<null | ReactNode[]>([])
+    const [out, setOut] = useState<null | ReactNode[]>([])
     useEffect(() => {
         let active = true
         if (raw.isDefaultPrevented() || raw.some(x => x === null)) // null means skip this
