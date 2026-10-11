@@ -697,6 +697,14 @@ form label+input { margin-top: .2em; }
     display: flex;
     flex-direction: column;
     gap: .7em 1em;
+    .file-menu-skeleton {
+        height: 1.5em;
+        width: 8em;
+        border-radius: .25em;
+        background: var(--faint-contrast);
+        animation: file-menu-skeleton-pulse 2s ease-in-out .5s infinite;
+        @media (prefers-reduced-motion: reduce) { animation: none; }
+    }
     a {
         display: flex;
         align-items: flex-start;
@@ -708,6 +716,10 @@ form label+input { margin-top: .2em; }
         .icon { margin-right: 0.5em; }
         &:hover { @extend .highlightedText }
     }
+}
+@keyframes file-menu-skeleton-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .4; }
 }
 
 .unauthorized { text-align: center }
