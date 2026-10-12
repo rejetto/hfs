@@ -29,6 +29,7 @@ interface QuickZipEntry {
 // the point of this class is the method applyRange, which allows seeking forward in the zip file quickly (useful to resume downloads)
 export class QuickZipStream extends Readable {
     private workingFile: Readable | undefined
+    private findingFile = false
     private finished = false
     private readonly entries: QuickZipEntry[] = []
     private dataWritten = 0
@@ -92,9 +93,12 @@ export class QuickZipStream extends Readable {
 
     async calculateSize(howLong:number = 1000) {
         const endBy = Date.now() + howLong
-        for await (const value of this.walker) { // getting the entries is the slow part
+        // explicit next() keeps the walker open when the calculation budget expires
+        while (true) {
             if (Date.now() >= endBy)
                 return NaN
+            const { value, done } = await this.walker.next()
+            if (done) break
             this.consumedCalculating.push(value) // keep the same shape of the generator, so
         }
         // if we reach here, then we were able to consume all entries of the walker (in time)
@@ -124,8 +128,12 @@ export class QuickZipStream extends Readable {
         if (this.finished || this.destroyed) return
         if (this.workingFile)
             return this.workingFile.resume()
+        if (this.findingFile) return
+        // _read can reenter while slow enumeration is pending, but files must stream one at a time
+        this.findingFile = true
         const file = this.consumedCalculating.shift()
             || (await this.walker.next()).value as ZipSource
+        this.findingFile = false
         if (this.destroyed) return // the client may disconnect while the next entry is being resolved
         if (!file)
             return this.closeArchive()

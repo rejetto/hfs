@@ -6,6 +6,7 @@ import './path-root.test'
 import './update-changelog.test'
 import './plugin-catalog.test'
 import './plugin-changelog.test'
+import './quick-zip.test'
 import test, { describe, before, after } from 'node:test';
 import { promisify } from 'util'
 import { srpClientPart, srpClientSequence } from '../src/srp'
