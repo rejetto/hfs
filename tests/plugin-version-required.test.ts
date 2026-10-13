@@ -84,6 +84,7 @@ test('plugins.versionRequired checks source, startup and online compatibility', 
         `], { cwd, encoding: 'utf8', timeout: 15_000 })
     }
     finally {
-        await rm(cwd, { recursive: true, force: true })
+        // Windows can retain plugin file handles briefly after the child exits
+        await rm(cwd, { recursive: true, force: true, maxRetries: 5 })
     }
 })

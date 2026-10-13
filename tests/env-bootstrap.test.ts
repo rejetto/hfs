@@ -267,9 +267,12 @@ async function startServer(cwd: string, stops: (() => Promise<void>)[], env: Nod
 }
 
 async function persisted(cwd: string, check: (saved: { version?: string, accounts?: Record<string, { srp?: string }> }) => boolean) {
-    // wait for the debounced write before stopping the server or inspecting persisted values
+    // config writes are not atomic, so polling may sample the file between truncation and writing
     for (let i = 0; i < 50; i++) {
-        const saved = await readFile(join(cwd, 'config.yaml'), 'utf8').then(text => yaml.parse(text), () => undefined)
+        const saved = await readFile(join(cwd, 'config.yaml'), 'utf8').then(text => {
+            try { return yaml.parse(text) }
+            catch { return undefined }
+        }, () => undefined)
         if (saved && check(saved)) return saved
         await delay(100)
     }
