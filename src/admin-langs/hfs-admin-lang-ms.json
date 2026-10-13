@@ -768,6 +768,7 @@
         "repo": "repo",
         "Request": "Minta",
         "github_quota_error": "Permintaan ditolak. Anda mungkin telah mencapai had, cuba semula kemudian.",
+        "tls_certificate_verification_error": "Tidak dapat mengesahkan sijil HTTPS GitHub. Semak tetapan proksi atau antivirus anda.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Medan Pengepala Permintaan Terlalu Besar: medan pengepala permintaan terlalu besar",
         "Request Timeout: the server timed out waiting for the request": "Permintaan Tamat: pelayan tamat masa menunggu permintaan",
         "Requests": "Permintaan",

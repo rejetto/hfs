@@ -768,6 +768,7 @@
         "repo": "الريبو",
         "Request": "طلب",
         "github_quota_error": "تم رفض الطلب.ربما تكون قد وصلت إلى الحد الأقصى، أعد المحاولة لاحقًا.",
+        "tls_certificate_verification_error": "تعذر التحقق من شهادة HTTPS الخاصة بـ GitHub. تحقق من إعدادات الوكيل أو برنامج مكافحة الفيروسات.",
         "Request Header Fields Too Large: the request’s header fields are too large": "حقول رأس الطلب كبيرة جدًا: حقول رأس الطلب كبيرة جدًا",
         "Request Timeout: the server timed out waiting for the request": "مهلة الطلب: انتهت مهلة الخادم في انتظار الطلب",
         "Requests": "الطلبات",

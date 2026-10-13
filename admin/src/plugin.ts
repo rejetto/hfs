@@ -10,7 +10,16 @@ import _ from 'lodash'
 import { parsePluginConfig, showPluginOptions } from './pluginOptions'
 
 const HFS_GITHUB_ACCOUNT = HFS_REPO.replace(/\/.+/, `/`)
-export const PLUGIN_ERRORS = { ENOTFOUND: "Cannot reach github.com", ECONNREFUSED: "Cannot reach github.com" }
+const GITHUB_CERTIFICATE_ERROR = "Cannot verify GitHub's HTTPS certificate. Check your proxy or antivirus settings."
+export const PLUGIN_ERRORS = {
+    ENOTFOUND: "Cannot reach github.com",
+    ECONNREFUSED: "Cannot reach github.com",
+    UNABLE_TO_VERIFY_LEAF_SIGNATURE: GITHUB_CERTIFICATE_ERROR,
+    UNABLE_TO_GET_ISSUER_CERT: GITHUB_CERTIFICATE_ERROR,
+    UNABLE_TO_GET_ISSUER_CERT_LOCALLY: GITHUB_CERTIFICATE_ERROR,
+    DEPTH_ZERO_SELF_SIGNED_CERT: GITHUB_CERTIFICATE_ERROR,
+    SELF_SIGNED_CERT_IN_CHAIN: GITHUB_CERTIFICATE_ERROR,
+}
 export type InstalledPluginReveal = { id: string, filter: string }
 export const INSTALLED_PLUGIN_REVEAL_EVENT = 'installed-plugin-reveal'
 let installedPluginToReveal: InstalledPluginReveal | undefined

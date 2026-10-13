@@ -768,6 +768,7 @@
         "repo": "repozytorium",
         "Request": "Zażądaj",
         "github_quota_error": "Żądanie odrzucone. Być może osiągnąłeś limit. Spróbuj ponownie później.",
+        "tls_certificate_verification_error": "Nie można zweryfikować certyfikatu HTTPS GitHuba. Sprawdź ustawienia proxy lub antywirusa.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Pola nagłówka żądania są zbyt duże: pola nagłówka żądania są zbyt duże",
         "Request Timeout: the server timed out waiting for the request": "Limit czasu żądania: przekroczono limit czasu serwera podczas oczekiwania na żądanie",
         "Requests": "Upraszanie",

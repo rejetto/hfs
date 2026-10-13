@@ -768,6 +768,7 @@
         "repo": "ซื้อคืน",
         "Request": "ขอ",
         "github_quota_error": "คำขอถูกปฏิเสธคุณอาจถึงขีดจำกัดแล้ว ลองอีกครั้งในภายหลัง",
+        "tls_certificate_verification_error": "ไม่สามารถตรวจสอบใบรับรอง HTTPS ของ GitHub ได้ โปรดตรวจสอบการตั้งค่าพร็อกซีหรือโปรแกรมป้องกันไวรัส",
         "Request Header Fields Too Large: the request’s header fields are too large": "ฟิลด์ส่วนหัวของคำขอมีขนาดใหญ่เกินไป: ฟิลด์ส่วนหัวของคำขอมีขนาดใหญ่เกินไป",
         "Request Timeout: the server timed out waiting for the request": "คำขอหมดเวลา: เซิร์ฟเวอร์หมดเวลารอคำขอ",
         "Requests": "คำขอ",

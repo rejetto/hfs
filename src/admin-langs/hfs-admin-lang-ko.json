@@ -768,6 +768,7 @@
         "repo": "레포",
         "Request": "요청",
         "github_quota_error": "요청이 거부되었습니다.한도에 도달했을 수 있습니다. 나중에 다시 시도하세요.",
+        "tls_certificate_verification_error": "GitHub의 HTTPS 인증서를 검증할 수 없습니다. 프록시 또는 백신 설정을 확인하세요.",
         "Request Header Fields Too Large: the request’s header fields are too large": "요청 헤더 필드가 너무 큼: 요청의 헤더 필드가 너무 큽니다.",
         "Request Timeout: the server timed out waiting for the request": "요청 시간 초과: 서버가 요청을 기다리는 동안 시간이 초과되었습니다.",
         "Requests": "요청사항",

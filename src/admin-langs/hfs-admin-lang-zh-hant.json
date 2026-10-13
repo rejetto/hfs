@@ -768,6 +768,7 @@
         "repo": "儲存庫",
         "Request": "請求",
         "github_quota_error": "請求被拒絕。你可能已達到限制，請稍後重試。",
+        "tls_certificate_verification_error": "無法驗證 GitHub 的 HTTPS 憑證。請檢查代理伺服器或防毒軟體的設定。",
         "Request Header Fields Too Large: the request’s header fields are too large": "請求標頭欄位過大：請求的標頭欄位過大",
         "Request Timeout: the server timed out waiting for the request": "請求逾時：伺服器等待請求逾時",
         "Requests": "請求",

@@ -768,6 +768,7 @@
         "repo": "repo",
         "Request": "Kérés",
         "github_quota_error": "A kérés elutasítva. Lehet, hogy elérte a korlátot, próbálkozzon újra később.",
+        "tls_certificate_verification_error": "A GitHub HTTPS-tanúsítványa nem ellenőrizhető. Ellenőrizze a proxy vagy a vírusirtó beállításait.",
         "Request Header Fields Too Large: the request’s header fields are too large": "A kérelem fejlécmezői túl nagyok: a kérelem fejlécmezői túl nagyok",
         "Request Timeout: the server timed out waiting for the request": "Kérelem időtúllépése: a szerver időtúllépést ért el a kérésre várva",
         "Requests": "Kérések",

@@ -768,6 +768,7 @@
         "repo": "ρεπο",
         "Request": "Αίτημα",
         "github_quota_error": "Το αίτημα απορρίφθηκε.Μπορεί να έχετε φτάσει το όριο, δοκιμάστε ξανά αργότερα.",
+        "tls_certificate_verification_error": "Δεν είναι δυνατή η επαλήθευση του πιστοποιητικού HTTPS του GitHub. Ελέγξτε τις ρυθμίσεις του διακομιστή μεσολάβησης ή του antivirus.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Πολύ μεγάλα πεδία κεφαλίδας αιτήματος: τα πεδία κεφαλίδας του αιτήματος είναι πολύ μεγάλα",
         "Request Timeout: the server timed out waiting for the request": "Χρονικό όριο αιτήματος: ο διακομιστής έληξε σε αναμονή για το αίτημα",
         "Requests": "Αιτήματα",

@@ -768,6 +768,7 @@
         "repo": "depo",
         "Request": "İste",
         "github_quota_error": "Talep reddedildi. Sınıra ulaşmış olabilirsiniz, daha sonra tekrar deneyin.",
+        "tls_certificate_verification_error": "GitHub'ın HTTPS sertifikası doğrulanamıyor. Proxy veya antivirüs ayarlarınızı kontrol edin.",
         "Request Header Fields Too Large: the request’s header fields are too large": "İstek Başlığı Alanları Çok Büyük: isteğin başlık alanları çok büyük",
         "Request Timeout: the server timed out waiting for the request": "İstek Zaman Aşımı: sunucu isteği beklerken zaman aşımına uğradı",
         "Requests": "İstekler",

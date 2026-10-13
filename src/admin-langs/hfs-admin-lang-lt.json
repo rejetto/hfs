@@ -768,6 +768,7 @@
         "repo": "atpirkimo sandoris",
         "Request": "Prašyti",
         "github_quota_error": "Prašymas atmestas. Galbūt pasiekėte limitą, bandykite dar kartą vėliau.",
+        "tls_certificate_verification_error": "Nepavyksta patikrinti GitHub HTTPS sertifikato. Patikrinkite tarpinio serverio arba antivirusinės programos nustatymus.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Užklausos antraštės laukai per dideli: užklausos antraštės laukai per dideli",
         "Request Timeout: the server timed out waiting for the request": "Užklausos skirtasis laikas: serveriui baigėsi skirtasis laikas laukiant užklausos",
         "Requests": "Prašymai",

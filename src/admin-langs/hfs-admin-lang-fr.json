@@ -764,6 +764,7 @@
         "repo": "dépôt",
         "Request": "Demander",
         "github_quota_error": "Demande refusée. Vous avez peut-être atteint la limite, réessayez plus tard.",
+        "tls_certificate_verification_error": "Impossible de vérifier le certificat HTTPS de GitHub. Vérifiez les paramètres du proxy ou de l’antivirus.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Champs d'en-tête de requête trop grands : les champs d'en-tête de la requête sont trop grands",
         "Request Timeout: the server timed out waiting for the request": "Request Timeout : le serveur a expiré en attendant la demande",
         "Requests": "Demandes",

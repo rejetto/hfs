@@ -768,6 +768,7 @@
         "repo": "repository",
         "Request": "Aanvragen",
         "github_quota_error": "Verzoek afgewezen. Mogelijk heeft u de limiet bereikt. Probeer het later opnieuw.",
+        "tls_certificate_verification_error": "Het HTTPS-certificaat van GitHub kan niet worden geverifieerd. Controleer uw proxy- of antivirusinstellingen.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Verzoekkoptekstvelden te groot: de koptekstvelden van het verzoek zijn te groot",
         "Request Timeout: the server timed out waiting for the request": "Time-out van verzoek: er is een time-out opgetreden bij het wachten op het verzoek",
         "Requests": "Verzoeken",

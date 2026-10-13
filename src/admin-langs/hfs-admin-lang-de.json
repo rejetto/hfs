@@ -768,6 +768,7 @@
         "repo": "Repo",
         "Request": "Anfordern",
         "github_quota_error": "Anfrage abgelehnt. Möglicherweise haben Sie das Limit erreicht. Versuchen Sie es später noch einmal.",
+        "tls_certificate_verification_error": "Das HTTPS-Zertifikat von GitHub kann nicht überprüft werden. Prüfen Sie Ihre Proxy- oder Antivirus-Einstellungen.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Header-Felder der Anfrage zu groß: Die Header-Felder der Anfrage sind zu groß",
         "Request Timeout: the server timed out waiting for the request": "Anforderungszeitüberschreitung: Der Server hat beim Warten auf die Anforderung eine Zeitüberschreitung erlitten",
         "Requests": "Anfragen",

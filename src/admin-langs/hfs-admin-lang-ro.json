@@ -768,6 +768,7 @@
         "repo": "repo",
         "Request": "Solicită",
         "github_quota_error": "Solicitare respinsă. Este posibil să fi atins limita, reîncercați mai târziu.",
+        "tls_certificate_verification_error": "Certificatul HTTPS al GitHub nu poate fi verificat. Verificați setările proxy sau antivirus.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Câmpurile antetului cererii sunt prea mari: câmpurile antetului solicitării sunt prea mari",
         "Request Timeout: the server timed out waiting for the request": "Request Timeout: serverul a expirat în așteptarea solicitării",
         "Requests": "Cereri",

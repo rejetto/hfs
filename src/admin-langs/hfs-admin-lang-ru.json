@@ -768,6 +768,7 @@
         "repo": "репо",
         "Request": "Запросить",
         "github_quota_error": "Запрос отклонен. Возможно, вы достигли предела, повторите попытку позже.",
+        "tls_certificate_verification_error": "Не удалось проверить HTTPS-сертификат GitHub. Проверьте настройки прокси или антивируса.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Поля заголовка запроса слишком велики: поля заголовка запроса слишком велики.",
         "Request Timeout: the server timed out waiting for the request": "Таймаут запроса: время ожидания запроса на сервере истекло.",
         "Requests": "Запросы",

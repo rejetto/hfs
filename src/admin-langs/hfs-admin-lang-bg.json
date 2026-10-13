@@ -768,6 +768,7 @@
         "repo": "репо",
         "Request": "Заяви",
         "github_quota_error": "Искането е отказано. Може да сте достигнали лимита, опитайте отново по-късно.",
+        "tls_certificate_verification_error": "HTTPS сертификатът на GitHub не може да бъде проверен. Проверете настройките на проксито или антивирусната програма.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Полетата в заглавката на заявката са твърде големи: полетата в заглавката на заявката са твърде големи",
         "Request Timeout: the server timed out waiting for the request": "Време за изчакване на заявката: сървърът изтече в очакване на заявката",
         "Requests": "Заявки",

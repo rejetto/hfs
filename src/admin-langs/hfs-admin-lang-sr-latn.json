@@ -768,6 +768,7 @@
         "repo": "repo",
         "Request": "Zatraži",
         "github_quota_error": "Zahtev odbijen. Možda ste dostigli ograničenje, pokušajte ponovo kasnije.",
+        "tls_certificate_verification_error": "Nije moguće proveriti GitHub HTTPS sertifikat. Proverite podešavanja proksija ili antivirusa.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Polja zaglavlja zahteva su prevelika: polja zaglavlja zahteva su prevelika",
         "Request Timeout: the server timed out waiting for the request": "Rekuest Timeout: server je istekao čekajući zahtev",
         "Requests": "Zahtevi",

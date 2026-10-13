@@ -768,6 +768,7 @@
         "repo": "repo",
         "Request": "Request",
         "github_quota_error": "Request denied. You may have reached the limit, retry later.",
+        "tls_certificate_verification_error": "Cannot verify GitHub's HTTPS certificate. Check your proxy or antivirus settings.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Request Header Fields Too Large: the request’s header fields are too large",
         "Request Timeout: the server timed out waiting for the request": "Request Timeout: the server timed out waiting for the request",
         "Requests": "Requests",

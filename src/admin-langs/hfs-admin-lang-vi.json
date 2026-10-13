@@ -768,6 +768,7 @@
         "repo": "kho lưu trữ",
         "Request": "Yêu cầu",
         "github_quota_error": "Yêu cầu bị từ chối. Bạn có thể đã đạt đến giới hạn, hãy thử lại sau.",
+        "tls_certificate_verification_error": "Không thể xác minh chứng chỉ HTTPS của GitHub. Kiểm tra cài đặt proxy hoặc phần mềm diệt virus.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Trường tiêu đề yêu cầu quá lớn: trường tiêu đề của yêu cầu quá lớn",
         "Request Timeout: the server timed out waiting for the request": "Hết thời gian yêu cầu: máy chủ đã hết thời gian chờ yêu cầu",
         "Requests": "Yêu cầu",

@@ -768,6 +768,7 @@
         "repo": "repositório",
         "Request": "Solicitar",
         "github_quota_error": "Pedido negado. Você pode ter atingido o limite. Tente novamente mais tarde.",
+        "tls_certificate_verification_error": "Não foi possível verificar o certificado HTTPS do GitHub. Verifique as configurações do proxy ou do antivírus.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Campos de cabeçalho da solicitação muito grandes: os campos de cabeçalho da solicitação são muito grandes",
         "Request Timeout: the server timed out waiting for the request": "Request Timeout: o servidor expirou aguardando a solicitação",
         "Requests": "Solicitações",

@@ -768,6 +768,7 @@
         "repo": "仓库",
         "Request": "请求",
         "github_quota_error": "请求被拒绝。你可能已达到限制，请稍后重试。",
+        "tls_certificate_verification_error": "无法验证 GitHub 的 HTTPS 证书。请检查代理或杀毒软件的设置。",
         "Request Header Fields Too Large: the request’s header fields are too large": "请求标头字段过大：请求的标头字段过大",
         "Request Timeout: the server timed out waiting for the request": "请求超时：服务器等待请求超时",
         "Requests": "请求",

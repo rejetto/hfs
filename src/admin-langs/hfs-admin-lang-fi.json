@@ -762,6 +762,7 @@
         "repo": "repo",
         "Request": "Pyydä",
         "github_quota_error": "Pyyntö evätty. Olet ehkä saavuttanut rajan, yritä myöhemmin uudelleen.",
+        "tls_certificate_verification_error": "GitHubin HTTPS-varmennetta ei voida vahvistaa. Tarkista välityspalvelimen tai virustorjunnan asetukset.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Pyynnön otsikkokentät liian suuret: pyynnön otsikkokentät ovat liian suuria",
         "Request Timeout: the server timed out waiting for the request": "Pyynnön aikakatkaisu: palvelin aikakatkaistiin odottamassa pyyntöä",
         "Requests": "Pyynnöt",

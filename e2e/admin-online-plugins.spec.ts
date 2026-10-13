@@ -1,9 +1,22 @@
 import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import yaml from 'yaml'
+import { LIST } from '../src/cross'
 
 const port = yaml.parse(readFileSync('tests/config.yaml', 'utf8')).port
 const url = process.env.ADMIN_ONLINE_PLUGINS_URL || `http://localhost:${port}/~/admin/#/plugins/get`
+
+test('plugin catalog explains certificate failures', async ({ page }) => {
+    const code = 'UNABLE_TO_VERIFY_LEAF_SIGNATURE'
+    await page.route('**/~/api/**', route => {
+        const cmd = route.request().url().split('/').pop()?.split('?')[0]
+        const messages = cmd === 'get_online_plugins' ? [[LIST.error, code], [LIST.ready]] : []
+        return route.fulfill({ contentType: 'text/event-stream', body: 'data: ' + JSON.stringify(messages) + '\n\ndata:\n\n' })
+    })
+    await page.goto(url)
+    await expect(page.getByRole('alert'))
+        .toHaveText("Cannot verify GitHub's HTTPS certificate. Check your proxy or antivirus settings.")
+})
 
 test('show all plugin columns clears hidden columns and persists across reloads', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 })

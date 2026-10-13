@@ -764,6 +764,7 @@
         "repo": "pronti contro termine",
         "Request": "Richiedi",
         "github_quota_error": "Richiesta respinta. Potresti aver raggiunto il limite, riprova più tardi.",
+        "tls_certificate_verification_error": "Impossibile verificare il certificato HTTPS di GitHub. Controlla le impostazioni del proxy o dell'antivirus.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Campi intestazione richiesta troppo grandi: i campi di intestazione della richiesta sono troppo grandi",
         "Request Timeout: the server timed out waiting for the request": "Request Timeout: il server è scaduto in attesa della richiesta",
         "Requests": "Richieste",

@@ -768,6 +768,7 @@
         "repo": "репо",
         "Request": "Запросити",
         "github_quota_error": "Запит відхилено. Можливо, ви досягли обмеження, повторіть спробу пізніше.",
+        "tls_certificate_verification_error": "Не вдалося перевірити HTTPS-сертифікат GitHub. Перевірте налаштування проксі або антивірусу.",
         "Request Header Fields Too Large: the request’s header fields are too large": "Завеликі поля заголовка запиту: поля заголовка запиту завеликі",
         "Request Timeout: the server timed out waiting for the request": "Час очікування запиту: минув час очікування сервера на запит",
         "Requests": "Запити",

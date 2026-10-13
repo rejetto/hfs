@@ -764,6 +764,7 @@
         "repo": "リポジトリ",
         "Request": "リクエスト",
         "github_quota_error": "リクエストは拒否されました。制限に達した可能性があります。後で再試行してください。",
+        "tls_certificate_verification_error": "GitHub の HTTPS 証明書を検証できません。プロキシまたはウイルス対策ソフトの設定を確認してください。",
         "Request Header Fields Too Large: the request’s header fields are too large": "リクエストヘッダーフィールドが大きすぎます: リクエストのヘッダーフィールドが大きすぎます",
         "Request Timeout: the server timed out waiting for the request": "リクエストのタイムアウト: サーバーはリクエストの待機中にタイムアウトになりました。",
         "Requests": "リクエスト",
