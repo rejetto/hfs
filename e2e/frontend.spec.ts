@@ -1054,7 +1054,9 @@ test('file show stays on a limited file and can retry', async ({ page }) => {
     let probes = 0
     await page.route('**/tests/page/gpl.png', route => {
         if (route.request().method() === 'HEAD') probes++
-        return limited ? route.fulfill({ status: 429, headers: { 'Retry-After': '60' } }) : route.continue()
+        // scripted limits must not compete for the real server's shared download slot
+        return limited ? route.fulfill({ status: 429, headers: { 'Retry-After': '60' } })
+            : route.fulfill({ path: 'tests/page/gpl.png' })
     })
     await gotoFrontend(page, `${FRONTEND_URL}tests/page/`)
     await page.getByRole('link', { name: 'gpl.png', exact: true }).click()
@@ -1073,9 +1075,10 @@ test('file show retries once when the limit has already cleared', async ({ page 
     await page.route('**/tests/page/gpl.png', route => {
         if (route.request().method() === 'HEAD') {
             probes++
-            return route.continue()
+            return route.fulfill({ path: 'tests/page/gpl.png' })
         }
-        return ++downloads === 1 ? route.fulfill({ status: 429 }) : route.continue()
+        // keep the cleared limit independent from other tests downloading on the server
+        return ++downloads === 1 ? route.fulfill({ status: 429 }) : route.fulfill({ path: 'tests/page/gpl.png' })
     })
     await gotoFrontend(page, `${FRONTEND_URL}tests/page/`)
     await page.getByRole('link', { name: 'gpl.png', exact: true }).click()

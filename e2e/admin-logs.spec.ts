@@ -37,20 +37,27 @@ test('reconnecting the live stream keeps previously loaded file history', async 
     test.skip(!process.env.ADMIN_LOGS_URL, 'requires the Admin Vite server')
     await page.addInitScript(() => Object.assign(window, { HFS: { session: { username: 'admin', isAdmin: true } } }))
     await page.route('**/~/api/**', route => route.fulfill({ json: { username: 'admin', isAdmin: true } }))
+    await page.route('**/~/api/is_ip_blocked', route => route.fulfill({ json: { blocked: [false] } }))
     const body = logLine('history.txt')
     const size = Buffer.byteLength(body)
     await page.route('**/~/api/get_log_info', route => route.fulfill({ json: { current: { log: size }, rotated: {} } }))
     await page.route('**/~/api/get_log_file', route => route.fulfill({ status: 206, headers: { 'Content-Range': `bytes 0-${size - 1}/${size}` }, body }))
-    let connections = 0
-    await page.route(/\/~\/api\/get_log\?/, route => {
-        connections++
+    let disconnect!: () => void
+    const disconnected = new Promise<void>(resolve => { disconnect = resolve })
+    await page.route(/\/~\/api\/get_log\?/, async route => {
+        const reconnecting = new URL(route.request().url()).searchParams.get('skipInitial') === 'true'
+        // startup requests may be cancelled; trigger EOF only after history is displayed
+        if (!reconnecting) await disconnected
+        const messages = reconnecting
+            ? [['+', { ip: '127.0.0.1', ts: Date.now(), method: 'GET', uri: '/live.txt', status: 200, length: 1 }], ['ready']]
+            : [['ready']]
         return route.fulfill({ contentType: 'text/event-stream',
-            // the first stream ends unexpectedly; the replacement sends the normal final empty message
-            body: 'data: [["ready"]]\n\n' + (connections === 1 ? '' : 'data:\n\n') })
+            body: `data: ${JSON.stringify(messages)}\n\n` + (reconnecting ? 'data:\n\n' : '') })
     })
     await page.goto(url)
     const history = page.getByRole('gridcell').filter({ hasText: '/history.txt' })
     await expect(history).toHaveCount(1)
-    await expect.poll(() => connections).toBe(2)
+    disconnect()
+    await expect(page.getByRole('gridcell').filter({ hasText: '/live.txt' })).toHaveCount(1)
     await expect(history).toHaveCount(1)
 })
