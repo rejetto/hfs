@@ -9,6 +9,7 @@ import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
 import { pipeline } from 'stream/promises'
 import { Readable } from 'stream'
+import { expiringCache } from './expiringCache'
 import { getStatWorker } from './stat'
 import unzipper from 'unzipper'
 
@@ -208,7 +209,16 @@ export function exists(path: string) {
 // parse a file, caching unless timestamp has changed
 export interface CachedFile<T> { stats: Stats, content: T }
 export const parseFileCache = new Map<string, { stats: Stats, lastCheck: number, content: Promise<unknown> }>()
+const fileStatFailures = expiringCache<unknown>(100)
+export function invalidateFileCache(path: string) {
+    // local writes must be visible immediately, including creation after a cached failure
+    parseFileCache.delete(path)
+    fileStatFailures.delete(path)
+}
+
 export async function loadFileCached<T>(path: string, loader: (path: string) => T, minInterval=0) {
+    if (fileStatFailures.has(path))
+        throw fileStatFailures.get(path)
     const cached = parseFileCache.get(path)
     const now = Date.now()
     if (cached && now - cached.lastCheck < minInterval)
@@ -216,6 +226,8 @@ export async function loadFileCached<T>(path: string, loader: (path: string) => 
     const stats = await statWithTimeout(path).catch(e => {
         if (e?.message === 'timeout' && cached)
             return cached.stats // on timeout (e.g. thread pool saturated), serve cache if any
+        // missing comment files would otherwise be probed again for every directory entry
+        fileStatFailures.try(path, () => e)
         throw e
     })
     if (cached)
