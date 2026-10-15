@@ -566,6 +566,46 @@ test('queued uploads keep their policies across option changes and navigation', 
     }
 })
 
+test('focus typing prefers prefixes and supports substring fallback and leading asterisk', async ({ page }) => {
+    await gotoFrontend(page)
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        HFS.state.page_size = 2
+        HFS.state.list = ['a-needle.txt', 'needle.txt', 'z-needle.txt'].map(name => new HFS.DirEntry('/' + name))
+    })
+    const entry = (name: string) => page.locator('.dir a').filter({ has: page.getByText(name, { exact: true }) })
+    await expect(entry('a-needle.txt')).toBeVisible()
+    await page.keyboard.type('NEEDLE')
+    await expect(entry('needle.txt')).toBeFocused()
+    await page.keyboard.press('Escape')
+    await page.keyboard.type('dle')
+    await expect(entry('a-needle.txt')).toBeFocused()
+    await page.keyboard.press('Escape')
+    await page.keyboard.type('*needle')
+    await expect(entry('a-needle.txt')).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(entry('needle.txt')).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(entry('z-needle.txt')).toBeFocused()
+    await page.keyboard.press('Shift+Tab')
+    await expect(entry('needle.txt')).toBeFocused()
+    await page.keyboard.press('Escape')
+    await page.keyboard.type('missing')
+    await expect(page.locator('#focus-typing')).toHaveClass('focus-typing-mismatch')
+    await page.keyboard.press('Escape')
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        HFS.state.list[0] = new HFS.DirEntry('/prefix-Re\u0301sume\u0301.txt', { ...HFS.state.list[0] })
+    })
+    await expect(entry('prefix-Re\u0301sume\u0301.txt')).toBeVisible()
+    await page.keyboard.type('prefix-r')
+    // playwright has no keyboard mapping for accented characters
+    await page.locator('body').dispatchEvent('keydown', { key: 'é' })
+    await page.keyboard.type('sum')
+    await expect(page.locator('#focus-typing')).not.toHaveClass('focus-typing-mismatch')
+    await expect(entry('prefix-Re\u0301sume\u0301.txt')).toBeFocused()
+})
+
 test('filter resets paging when the first entry stays the same', async ({ page }) => {
     await gotoFrontend(page)
     await expect(page.getByRole('link', { name: 'cantListBut, Folder' })).toBeVisible()
