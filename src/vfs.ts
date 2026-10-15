@@ -548,7 +548,7 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                 const isFolder = nodeIsFolder(child)
                 const matches = !filterName || filterName(name)
                 if (!matches && !isFolder) return
-                if (await cantSee(item, parent, nodeName)) return
+                if (cantSee(item, parent, nodeName)) return
                 if (item.source && !item.children?.length && !item.see_without_probing) {
                     const cached = useCache ? getDirectoryCacheState(item.source) : undefined
                     if (cached === false) return // a watched parent will retry when an unavailable source appears
@@ -611,7 +611,7 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                         for (const key of exceptions)
                             if (!(key in rootMaskProperties))
                                 rootMaskProperties[key] = parent[key]
-                        if (await cantSee(item, evaluatedParent.node, virtualName, rootMaskProperties)) // can't see: don't produce and don't recur
+                        if (cantSee(item, evaluatedParent.node, virtualName, rootMaskProperties)) // can't see: don't produce and don't recur
                             return false
                         if (isFolder)
                             diskFolders.set(path, { node: item, virtualPath })
@@ -647,9 +647,9 @@ export async function* walkNode(parent: VfsNodeWithPath, {
             }
 
             // item will be changed, so be sure to pass a temp node
-            async function cantSee(item: VfsNodeWithPath, itemParent: VfsNodeWithPath, virtualName: string, pathPermissions?: VfsPerms) {
+            function cantSee(item: VfsNodeWithPath, itemParent: VfsNodeWithPath, virtualName: string, pathPermissions?: VfsPerms) {
                 inheritMasks(item, itemParent, virtualName)
-                await parentMaskApplier(itemParent)(item, virtualName)
+                parentMaskApplier(itemParent)(item, virtualName)
                 inheritFromParent(item)
                 Object.assign(item, pathPermissions)
                 if (ctx && !hasPermission(item, 'can_see', ctx)) return true

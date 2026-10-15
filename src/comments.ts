@@ -1,7 +1,7 @@
 import { defineConfig } from './config'
 import { dirname, basename, join } from 'path'
 import { CFG } from './cross'
-import { parseFile, parseFileCache, createSafeWriteStream, exists } from './util-files'
+import { parseFile, parseFileCache, createSafeWriteStream, exists, invalidateFileCache } from './util-files'
 import { loadFileAttr, singleWorkerFromBatchWorker, storeFileAttr } from './misc'
 import _ from 'lodash'
 import iconv from 'iconv-lite'
@@ -26,10 +26,9 @@ export function usingDescriptIon() {
 const COMMENT_ATTR = 'comment'
 
 export async function getCommentFor(path?: string) {
-    return !path ? undefined : Promise.all([
-        commentsStorage.get() ? loadFileAttr(path, COMMENT_ATTR) : undefined,
-        readFromDescriptIon(path)
-    ]).then(([fromAttr, fromIon]) => fromAttr || fromIon || undefined)
+    if (!path) return
+    const fromAttr = commentsStorage.get() ? await loadFileAttr(path, COMMENT_ATTR) : undefined
+    return fromAttr || await readFromDescriptIon(path) || undefined
 }
 
 export async function setCommentFor(path: string, comment: string) {
@@ -65,8 +64,11 @@ const setCommentDescriptIon = singleWorkerFromBatchWorker((jobs: [path: string, 
                 comments.set(file, comment)
         }
         const path = await filePathHelper(folder)
-        if (!comments.size)
-            return rm(path, { force: true })
+        if (!comments.size) {
+            await rm(path, { force: true })
+            invalidateFileCache(path)
+            return
+        }
         // encode comments in descript.ion format
         const ws = await createSafeWriteStream(path)
         comments.forEach((comment, filename) => {
@@ -80,6 +82,7 @@ const setCommentDescriptIon = singleWorkerFromBatchWorker((jobs: [path: string, 
         })
         ws.end()
         await finished(ws)
+        invalidateFileCache(path)
     })
     return jobs.map(([path]) => resultByFolder[dirname(path)])
 })
