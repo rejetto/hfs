@@ -777,8 +777,11 @@ test('admin1', async ({ page }) => {
         await clickIconBtn('Close', page)
     await clickAdminMenu(page, 'Options')
     await expect(page.getByText('Correctly working on port')).toBeVisible() // wait for data
-    if (!isPhone)
-        await expect(page.getByText('Expire', { exact: true })).toBeVisible() // wait for layout of 'block' table
+    if (!isPhone) {
+        const header = page.getByRole('row', { name: /^Blocked IP/ })
+        await expect(header.getByRole('columnheader', { name: 'Comment', exact: true })).toBeVisible()
+        await expect(header.getByRole('button', { name: /Add/ })).toBeVisible()
+    }
     await page.mouse.click(1, 1) // avoid focus inconsistencies
     await screenshot(page)
 

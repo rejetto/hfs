@@ -1,0 +1,28 @@
+diff --git a/node_modules/@mui/x-virtualizer/features/virtualization/virtualization.js b/node_modules/@mui/x-virtualizer/features/virtualization/virtualization.js
+index aa223de..94a8cb5 100644
+--- a/node_modules/@mui/x-virtualizer/features/virtualization/virtualization.js
++++ b/node_modules/@mui/x-virtualizer/features/virtualization/virtualization.js
+@@ -573,7 +573,8 @@ function useVirtualization(store, params, api) {
+       return;
+     }
+     forceUpdateRenderContextCallback();
+-  }, [enabledForColumns, enabledForRows, forceUpdateRenderContextCallback]);
++  // column visibility can change without changing the grid dimensions
++  }, [enabledForColumns, enabledForRows, columns, forceUpdateRenderContextCallback]);
+   (0, _useEnhancedEffect.default)(() => {
+     if (layout.refs.scroller.current) {
+       layout.refs.scroller.current.scrollLeft = 0;
+diff --git a/node_modules/@mui/x-virtualizer/features/virtualization/virtualization.mjs b/node_modules/@mui/x-virtualizer/features/virtualization/virtualization.mjs
+index 15ba6e4..24d320c 100644
+--- a/node_modules/@mui/x-virtualizer/features/virtualization/virtualization.mjs
++++ b/node_modules/@mui/x-virtualizer/features/virtualization/virtualization.mjs
+@@ -564,7 +564,8 @@ function useVirtualization(store, params, api) {
+       return;
+     }
+     forceUpdateRenderContextCallback();
+-  }, [enabledForColumns, enabledForRows, forceUpdateRenderContextCallback]);
++  // column visibility can change without changing the grid dimensions
++  }, [enabledForColumns, enabledForRows, columns, forceUpdateRenderContextCallback]);
+   useEnhancedEffect(() => {
+     if (layout.refs.scroller.current) {
+       layout.refs.scroller.current.scrollLeft = 0;
