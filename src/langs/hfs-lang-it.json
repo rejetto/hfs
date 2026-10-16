@@ -39,6 +39,8 @@
         "search_msg": "Cerca in questa cartella e cartelle sottostanti",
         "Searching": "Cercando",
         "Searched": "Risultati ricerca",
+        "Partial results: some search data is not ready.": "Risultati parziali: alcuni dati di ricerca non sono ancora disponibili.",
+        "Repeat search": "Ripeti ricerca",
         "Clear search": "Annulla ricerca",
         "Interrupted": "Interrotto",
         "stopped_before": "Ricerca interrotta prima di trovare risultati",

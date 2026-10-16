@@ -445,12 +445,19 @@ ul.dir {
         bottom: auto;
     }
 }
-#search-clear-button { margin-right: .5em }
 #searched {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    gap: .5em .75em;
     margin-bottom: 0.2em;
     margin-top: 0.3em;
+    .search-partial {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .5em;
+    }
 }
 #user-panel {
     display:flex;

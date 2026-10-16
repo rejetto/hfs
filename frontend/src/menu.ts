@@ -164,26 +164,26 @@ export function MenuPanel() {
                     state.remoteSearch = undefined
                 }
             }),
-            (stopSearch ? t`Searching` : t`Searched`) + ': ',
-            _.map({ search: t`Name`, searchComment: t`Comment` } satisfies { [K in RSK]?: string },
-                (v,k) => prefix(v + ': ', remoteSearch[k as RSK])).concat(
-                    searchRanges().flatMap(({ key, label }) => {
-                        if (key === 'size') {
-                            const min = remoteSearch.sizeMin && formatBytes(Number(remoteSearch.sizeMin))
-                            const max = remoteSearch.sizeMax && formatBytes(Number(remoteSearch.sizeMax))
-                            return min || max ? `${label} (${min && max ? `${min} - ${max}` : min ? `${t`Min`} ${min}` : `${t`Max`} ${max}`})` : ''
-                        }
-                        return (['Min', 'Max'] as const).map(suffix => {
-                            const value = remoteSearch[`${key}${suffix}`]
-                            return value ? `${label} ${suffix === 'Min' ? '≥' : '≤'} ${new Date(value).toLocaleString()}` : ''
+            h('span', {},
+                (stopSearch ? t`Searching` : t`Searched`) + ': ',
+                _.map({ search: t`Name`, searchComment: t`Comment` } satisfies { [K in RSK]?: string },
+                    (v,k) => prefix(v + ': ', remoteSearch[k as RSK])).concat(
+                        searchRanges().flatMap(({ key, label }) => {
+                            if (key === 'size') {
+                                const min = remoteSearch.sizeMin && formatBytes(Number(remoteSearch.sizeMin))
+                                const max = remoteSearch.sizeMax && formatBytes(Number(remoteSearch.sizeMax))
+                                return min || max ? `${label} (${min && max ? `${min} - ${max}` : min ? `${t`Min`} ${min}` : `${t`Max`} ${max}`})` : ''
+                            }
+                            return (['Min', 'Max'] as const).map(suffix => {
+                                const value = remoteSearch[`${key}${suffix}`]
+                                return value ? `${label} ${suffix === 'Min' ? '≥' : '≤'} ${new Date(value).toLocaleString()}` : ''
+                            })
                         })
-                    })
-                ).filter(Boolean).join(' and '),
-            ...Object.keys(readPluginSearch(remoteSearch.pluginSearch)).map(id =>
-                h('span', { key: id }, ' · ', props?.searchFields?.find(field => field.id === id)?.label || id)),
-            prefix(' (', searchManuallyInterrupted && t`Interrupted`, ')'),
-            Boolean(props?.searchIncomplete?.length) && h('div', { role: 'status' },
-                t`Partial results: some search data is not ready.`, ' ',
+                    ).concat(Object.keys(readPluginSearch(remoteSearch.pluginSearch)).map(id =>
+                        props?.searchFields?.find(field => field.id === id)?.label || id)).filter(Boolean).join(' · '),
+                prefix(' (', searchManuallyInterrupted && t`Interrupted`, ')')),
+            Boolean(props?.searchIncomplete?.length) && h('div', { className: 'search-partial', role: 'status' },
+                h('span', {}, t`Partial results: some search data is not ready.`),
                 h('button', { type: 'button', onClick: reloadList }, t`Repeat search`)),
         ),
     )
