@@ -2,17 +2,17 @@
 
 import { loadPluginScripts } from '@hfs/shared/plugins'
 import { useLocation } from 'wouter'
-import { createElement as h } from 'react'
+import { createElement as h, useLayoutEffect } from 'react'
 import { BrowseFiles } from "./BrowseFiles"
 import { alertDialog, Dialogs } from './dialog'
 import useTheme from "./useTheme"
 import { getUploadOnExisting, state, useSnapState } from './state'
-import { acceptDropFiles } from './upload'
+import { acceptDropFiles, acceptPasteFiles } from './upload'
 import { enqueueUpload, uploadState } from './uploadQueue'
 import { proxy, ref, useSnapshot } from "valtio"
 import { CustomCode, Spinner } from "./components"
 import { useAuthorized } from './login'
-import { enforceStarting, getHFS, getPrefixUrl } from '@hfs/shared'
+import { domOn, enforceStarting, getHFS, getPrefixUrl } from '@hfs/shared'
 import { Toasts } from './toasts'
 import i18n from './i18n'
 const { t } = i18n
@@ -22,6 +22,7 @@ const { i18nWrapperProps } = i18n
 export default function App() {
     useTheme()
     i18n.useI18N()
+    useLayoutEffect(() => domOn('paste', acceptPasteFiles), []) // paste can target body when the user has not focused anything inside the app
     const go = useLocation()[1] // expose navigate function for programmatic usage
     getHFS().navigate = (uri: string) => go(getPrefixUrl() + enforceStarting('/', uri))
 
