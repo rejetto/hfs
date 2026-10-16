@@ -128,7 +128,7 @@ export class QuickZipStream extends Readable {
 
     _read() {
         // node does not await _read, so a rejected producer must destroy the archive explicitly
-        this.readNext().catch(error => this.destroy(error))
+        void this.readNext().catch(error => this.destroy(error))
     }
 
     private async readNext() {

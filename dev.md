@@ -38,6 +38,8 @@ To run tests
 `./scripts/local-ci.sh <commit> [--force]` for a single commit. It runs `build-all`,
 `test-with-server`, then the complete `test-ui` sequence, stopping on the first failed stage.
 Its servers use ports 18081, 18082 and 13112 to stay separate from manual test runs.
+The HFS suite uses local plugin fixtures and requires no external plugin repositories.
+Plugin-specific browser tests live in the respective plugin repositories and run with `npm run test-ui`.
 Previously validated commits require `--force` to run again after changing the pipeline.
 Run `node --import tsx --test tests/local-ci.test.ts` to check the orchestration with temporary Git repositories.
 
@@ -57,11 +59,12 @@ Additionally, you have the following folders:
 
 # Search ranges
 
-`get_file_list` and `?get=zip` accept `creationMin`, `creationMax`, `mtimeMin`, `mtimeMax`,
-`sizeMin`, and `sizeMax`. Date bounds use ISO timestamps with a timezone; size bounds are
-non-negative integer bytes. Bounds are inclusive and combine with name/comment filters.
+`get_file_list` and `?get=zip` accept `searchCreationMin`, `searchCreationMax`, `searchMtimeMin`, `searchMtimeMax`,
+`searchSizeMin`, and `searchSizeMax`. Date bounds use ISO timestamps with a timezone; size bounds are
+non-negative integer bytes. Bounds are inclusive and combine with name/comment filters. The previous names without `search` remain accepted.
 A metadata filter alone searches subfolders too. Entries without the requested metadata
 are excluded; size filters apply to files, not folder totals.
+Name and comment filters use `search` and `searchComment`; `searchWild=no` disables wildcards.
 
 # Known problems
 - vite's proxying server (but also CRA's) doesn't play nicely with SSE, leaving sockets open
