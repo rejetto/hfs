@@ -62,8 +62,7 @@ export async function getLangData(ctxOrLangCsv: Koa.Context | string) {
                     }
                 }
             }
-            const fromPlugins = onlyTruthy(await Promise.all(mapPlugins(async pl =>
-                tryJson(await readFile(join(pl.folder, fn), 'utf8').catch(() => ''))?.translate )))
+            const fromPlugins = await getPluginTranslations(k)
             if (fromPlugins.length)
                 _.defaults((ret[k] ||= {}).translate ||= {}, ...fromPlugins) // be sure we have an entry for k
 
@@ -71,6 +70,11 @@ export async function getLangData(ctxOrLangCsv: Koa.Context | string) {
         }
         return ret
     })
+}
+
+export async function getPluginTranslations(code: string) {
+    return onlyTruthy(await Promise.all(mapPlugins(async plugin =>
+        tryJson(await readFile(join(plugin.folder, code2file(code)), 'utf8').catch(() => ''))?.translate)))
 }
 
 let forceLangData: any
