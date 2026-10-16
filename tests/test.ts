@@ -10,6 +10,7 @@ import './update-changelog.test'
 import './plugin-catalog.test'
 import './plugin-changelog.test'
 import './quick-zip.test'
+import './plugin-search.test'
 import './file-cache.test'
 import './listing-prefetch.test'
 import test, { describe, before, after } from 'node:test';
@@ -340,12 +341,18 @@ describe('basics', () => {
             creationMin: new Date(st.birthtimeMs - 1).toISOString(), creationMax: new Date(st.birthtimeMs + 1).toISOString(),
             mtimeMin: new Date(st.mtimeMs - 1).toISOString(), mtimeMax: new Date(st.mtimeMs + 1).toISOString() }
         await reqList('/f1/', { inList: ['f2/alfa.txt'], outList: ['f2/', 'page/', 'page/gpl.png'] }, params)()
+        const prefixed = Object.fromEntries(Object.entries(params).map(([key, value]) =>
+            ['search' + key[0].toUpperCase() + key.slice(1), value]))
+        await reqList('/f1/', { inList: ['f2/alfa.txt'], outList: ['f2/', 'page/', 'page/gpl.png'] }, prefixed)()
         await reqList('/f1/', { outList: ['f2/alfa.txt'] }, { mtimeMax: new Date(st.mtimeMs - 1).toISOString() })()
         await reqList('/f1/', { outList: ['f2/alfa.txt'] }, { creationMin: new Date(st.birthtimeMs + 1).toISOString() })()
         await reqList('/f1/', { outList: ['f2/alfa.txt'] }, { sizeMax: '0' })()
-        for (const invalid of [{ sizeMin: '-1' }, { sizeMax: 'abc' }, { mtimeMin: 'invalid' }, { sizeMin: '2', sizeMax: '1' }])
+        for (const invalid of [{ sizeMin: '-1' }, { sizeMax: 'abc' }, { mtimeMin: 'invalid' }, { sizeMin: '2', sizeMax: '1' }]) {
             await reqList('/f1/', 400, invalid)()
-        const url = '/f1/?' + new URLSearchParams({ get: 'zip', ...params })
+            await reqList('/f1/', 400, Object.fromEntries(Object.entries(invalid).map(([key, value]) =>
+                ['search' + key[0].toUpperCase() + key.slice(1), value])))()
+        }
+        const url = '/f1/?' + new URLSearchParams({ get: 'zip', ...prefixed })
         const { body } = await httpWithBody(BASE_URL + url, { path: url })
         const paths = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
         throwIf(!paths.includes('f2/alfa.txt') || paths.some(x => x !== 'f2/alfa.txt'))

@@ -26,6 +26,8 @@ import { getConnections } from './connections'
 import { dirname, join, resolve, sep } from 'path'
 import { watchLoadCustomHtml } from './customHtml'
 import { KvStorage, KvStorageOptions } from '@rejetto/kvstorage'
+import { registerPluginSearch, PluginSearch } from './pluginSearch'
+import { onDirectoryCache, DirectoryCacheListener } from './directoryCache'
 import { onProcessExit } from './first'
 import { notifyClient } from './frontEndApis'
 import { app } from './index'
@@ -210,6 +212,21 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict, onI
             const unregister = registerAcmeDnsProvider(...args)
             cleanups.push(unregister)
             return unregister
+        },
+        registerSearch(provider: PluginSearch) {
+            if (unloading) throw Error("Plugin is unloading")
+            const off = registerPluginSearch(morePassedToInit?.id || 'server_code', provider)
+            cleanups.push(off)
+            return off
+        },
+        onDirectoryCache(listener: DirectoryCacheListener) {
+            if (unloading) throw Error("Plugin is unloading")
+            const off = onDirectoryCache(directory => {
+                try { listener(directory) }
+                catch (error) { console.error("Plugin directory cache listener:", error) }
+            })
+            cleanups.push(off)
+            return off
         },
         misc, _,
         customApiCall, notifyClient, addBlock, ctxBelongsTo, ctxAdminAccess, getConnections, normalizeFilename,

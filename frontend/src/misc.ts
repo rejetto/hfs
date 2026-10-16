@@ -79,6 +79,9 @@ export function formatTimestamp(x: number | string | Date, options?: Intl.DateTi
 
 import * as thisModule from './misc'
 Object.assign(getHFS(), {
+    async createSha512() {
+        return (await import('js-sha512')).sha512.create()
+    },
     h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, iconBtn, useBatch, fileShow,
     toast, domOn, getNotifications, debounceAsync, useSnapState, DirEntry, Btn, i18n,
     fileShowComponents: { Video, Audio },

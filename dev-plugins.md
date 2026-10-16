@@ -309,6 +309,60 @@ Based on `type`, other properties are supported:
 - `show_html` not a real field, but let you display some static content
     - `html: string` HTML code to display.
 
+## Plugin search (API 14, development builds)
+
+`api.registerSearch({ label, labelKey?, prepare })` registers one search provider for the current plugin.
+Check that the function exists: older builds also report API 14. Registration is automatically
+removed on unload and is shared by `get_file_list` and folder ZIP search.
+
+`prepare(value, ctx)` validates the plugin's JSON value once per request and returns a function
+`async node => boolean | undefined`. Return `true` to include the entry, `false` to exclude it,
+or `undefined` when the required data is unavailable. Unknown data excludes the entry and adds
+the plugin id to the listing's `searchIncomplete` property. Throw `ApiError` for invalid criteria;
+plugin errors must not silently become unfiltered searches. Providers must enforce permissions
+appropriate to their data, including `can_read` when matching file contents or content-derived data.
+
+Requests carry `searchPlugins`, a JSON object keyed by runtime plugin id. An active plugin filter
+enables recursive search even without a name filter; it is applied before offset/limit.
+ZIPs use the same predicate and can contain only the matches currently available.
+
+For readable URLs, string criteria are written as `searchPlugin.<plugin-id>=<value>`, for example
+`?searchPlugin.hash-search=sha512/123`. The plugin owns that string format: its search component passes
+the string to `onChange`, restores it from `value`, and its backend `prepare` validates and decodes it.
+No additional serialization callbacks are required. Objects and other JSON values remain in `searchPlugins`.
+Both formats work in listing APIs and ZIP requests, and may be combined for different plugins.
+If both formats specify the same plugin, `searchPlugin.<plugin-id>` takes precedence. The previous `pluginSearch` and `ps.<plugin-id>` names remain accepted; the new names take precedence.
+
+The listing exposes `searchFields: { id, label, labelKey? }[]`. Labels are displayed literally unless
+the provider supplies an optional `labelKey`, for example `{ label: "Media tags", labelKey: "mediaTags_label", prepare }`.
+HFS translates that key using the loaded dictionaries, with `label` as the fallback when no translation is available.
+Use a plugin-specific key to avoid collisions. The same label is used in the field and the search summary.
+By default each provider gets a text input.
+A frontend script may replace it with a React component:
+
+```js
+HFS.onEvent('searchFields:', ({ value, onChange }) =>
+    HFS.h(MySearchFields, { value, onChange }))
+```
+
+Call `onChange(jsonValue)` to set the plugin's criterion and `onChange(undefined)` to clear it.
+HFS preserves it in the URL, the search dialog and the ZIP link. Components may use hooks for
+notifications and progress; subscriptions must be closed on unmount. A short text summary of
+active providers and an explicit warning identify partial results.
+
+`api.onDirectoryCache(({ path, entries }) => void)` subscribes to completed physical directory
+snapshots and immediately replays snapshots already held by the cache. Each entry contains
+`name`, `stats`, `hidden` and `isLink`. Treat snapshots as read-only; queue expensive work instead
+of doing it in the callback. The subscription is automatically removed on plugin unload.
+The cache's watchers, aliases and scan scheduling remain managed by HFS. A snapshot does not
+grant request-time VFS permissions, and missing/offline directories must not be interpreted as
+proof that plugin data can be deleted. Use `api.getHfsConfig('directory_cache')` to inspect the mode.
+
+`HFS.createSha512()` lazily loads the existing SHA-512 library and returns an incremental hasher
+with `update(ArrayBuffer | Uint8Array)` and `hex()`. It is available in the frontend without HTTPS.
+Read large local files in chunks, yield to the browser between chunks and support cancellation.
+This does not upload the selected file. Check for this function on older API-14 builds too.
+
 ## api object
 
 The `api` object you get as parameter of the `init` contains the following:
@@ -1448,3 +1502,5 @@ Registration returns an unregister function and is also removed automatically wh
   - `admin_js`, `admin_css` and Admin GUI API
   - Admin login events: beforeLogin, beforeLoginSubmit
   - `HFS.admin.addPage`
+  - `api.registerSearch`, frontend event `searchFields:`, `HFS.createSha512`
+  - `api.onDirectoryCache`
