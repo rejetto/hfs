@@ -7,7 +7,7 @@ import { defineConfig } from './config'
 import { expiringCache } from './expiringCache'
 import ADMIN_TRANSLATIONS from './admin-langs/embedded'
 import { EMBEDDED_LANGUAGE } from './const'
-import { code2file, file2code, langCodeForLookup, normalizeLangCode } from './lang'
+import { code2file, file2code, langCodeForLookup, normalizeLangCode, getPluginTranslations } from './lang'
 import glob from 'fast-glob'
 import _ from 'lodash'
 
@@ -23,11 +23,18 @@ const cache = expiringCache<Dict>(3_000)
 export function getAdminLangData(ctx: Koa.Context, langs: string[]) {
     const configured = adminLang.compiled()
     const code = langs.includes(configured) ? configured : browserAdminLang(ctx, langs)
-    return cache.try(code, async () => ({
-        [code]: tryJson(await readFile(code2file(code, true), 'utf8').catch(() => ''))
-            || ADMIN_TRANSLATIONS[code as keyof typeof ADMIN_TRANSLATIONS] || ADMIN_TRANSLATIONS.en,
-        ...code === EMBEDDED_LANGUAGE ? {} : { [EMBEDDED_LANGUAGE]: ADMIN_TRANSLATIONS.en },
-    }))
+    return cache.try(code, async () => {
+        // plugin dictionaries must not mutate the shared embedded catalogs across requests or unloads
+        const data: Dict<{ translate?: Dict<string> }> = _.cloneDeep({
+            [code]: tryJson(await readFile(code2file(code, true), 'utf8').catch(() => ''))
+                || ADMIN_TRANSLATIONS[code as keyof typeof ADMIN_TRANSLATIONS] || ADMIN_TRANSLATIONS.en,
+            ...code === EMBEDDED_LANGUAGE ? {} : { [EMBEDDED_LANGUAGE]: ADMIN_TRANSLATIONS.en },
+        })
+        await Promise.all(Object.entries(data).map(async ([lang, catalog]) => {
+            _.defaults(catalog.translate ||= {}, ...await getPluginTranslations(lang))
+        }))
+        return data
+    })
 }
 
 export function invalidateAdminLang(code: string) {

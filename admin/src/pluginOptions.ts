@@ -46,7 +46,7 @@ export async function showPluginOptions(row: any) {
         // synchronous event output lets a field's blur update reach plugin actions before the click
         form: (values, { submit }) => ({
             before: h(Fragment, {},
-                row.description && h(Box, { sx: { mx: 2, mb: 2 } }, row.description),
+                row.description && h(Box, { sx: { mx: 2, mb: 2 } }, t(row.description)),
                 ...hfsEvent('pluginBeforeOptions:' + id, { values }),
             ),
             fields: makeFields(callable(row.config, values) || {}, values),
@@ -132,6 +132,7 @@ function makeFields(config: any, values: any) {
                 return
         }
         catch {}
+        if (typeof rest.label === 'string') rest.label = t(rest.label)
         rest.helperText &&= md(rest.helperText, { html: false })
         const comp = (type2comp as any)[type] as Field<any> | undefined
         if (values === false)
