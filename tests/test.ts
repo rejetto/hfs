@@ -11,6 +11,7 @@ import './plugin-catalog.test'
 import './plugin-changelog.test'
 import './quick-zip.test'
 import './file-cache.test'
+import './listing-prefetch.test'
 import test, { describe, before, after } from 'node:test';
 import assert from 'node:assert/strict'
 import { promisify } from 'util'
