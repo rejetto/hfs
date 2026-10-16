@@ -67,7 +67,7 @@ vfs:
       can_list:
         - disabled_account
     - name: tests
-      source: ..
+      source: ../
       masks:
         "**/!*.png|files|":
           can_see: false
@@ -238,7 +238,7 @@ accounts:
   admins:
     allow_net: ::1
     admin: true
-version: 3.3.4
+version: 3.4.0-rc5
 max_downloads_per_account: 2
 max_downloads: 1
 roots:
