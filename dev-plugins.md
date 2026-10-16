@@ -1265,7 +1265,9 @@ In frontend you get `t` from `HFS`, like this `const { t } = HFS`, while in back
 When possible, we suggest to do translation in the frontend. 
 
 Now that your code is ready, to translate in some language you'll add files like `hfs-lang-XX.json` to your plugin (same folder as plugin.js),
-where XX is the language code. The system is basically the same used to translate the rest of HFS,
+where XX is the language code. Development builds load these dictionaries in both the frontend and Admin,
+including translations for plugin option labels and helper text. Supply `hfs-lang-en.json` as well to map
+English option text to your translation keys. The system is basically the same used to translate the rest of HFS,
 and you can [read details here](https://github.com/rejetto/hfs/wiki/Translation).
 
 In the previous example `myPlugin_greeting` is the name of the translation, while `Hello!` is the default text.
