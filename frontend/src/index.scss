@@ -428,8 +428,9 @@ ul.dir {
     @extend .hide-back;
     padding: .1em 0;
     position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0; // avoid transforms so fixed plugin content stays anchored to the viewport
+    right: 0;
+    margin-inline: auto;
     width: min(100%, 54em);
     box-sizing: border-box;
     z-index: 3; // keep the bottom menu reachable above file-list controls and selection checkboxes
