@@ -17,6 +17,8 @@ import { dontOverwriteUploading } from './upload'
 import { SendListReadable } from './SendList'
 import events from './events'
 import { Stats } from 'fs'
+import { getPluginSearchFields, preparePluginSearch } from './pluginSearch'
+import { readSearchQuery } from './searchQuery'
 
 export interface DirEntry { // common properties are single letter to reduce the payload size
     n: string, // name/path
@@ -32,7 +34,9 @@ export interface DirEntry { // common properties are single letter to reduce the
     order?: number
 }
 
-export function paramsToFilter({ search, wild, searchComment, fileMask, ...params }: any) {
+export function paramsToFilter({ fileMask, ...query }: any) {
+    const params = readSearchQuery(query)
+    const { wild } = params
     const ranges = (['creation', 'mtime', 'size'] as const).map(key => {
         const min = bound(key, 'Min')
         const max = bound(key, 'Max')
@@ -45,8 +49,8 @@ export function paramsToFilter({ search, wild, searchComment, fileMask, ...param
         const value = Number(st[key === 'creation' ? 'birthtime' : key])
         return (min === undefined || value >= min) && (max === undefined || value <= max)
     }) : undefined
-    search = String(search || '').toLocaleLowerCase()
-    searchComment = String(searchComment || '').toLocaleLowerCase()
+    const search = String(params.search || '').toLocaleLowerCase()
+    const searchComment = String(params.searchComment || '').toLocaleLowerCase()
     return {
         depth: search || searchComment || filterStats ? Infinity : 0,
         filterStats,
@@ -56,9 +60,9 @@ export function paramsToFilter({ search, wild, searchComment, fileMask, ...param
     }
 
     function bound(key: 'creation' | 'mtime' | 'size', suffix: 'Min' | 'Max') {
-        const raw = params[key + suffix]
+        const raw = params[`${key}${suffix}`]
         if (raw === undefined || raw === '') return
-        const value = key === 'size' ? Number(raw) : Date.parse(raw)
+        const value = key === 'size' ? Number(raw) : Date.parse(String(raw))
         if (typeof raw !== 'string' && typeof raw !== 'number' || !Number.isFinite(value)
         || key === 'size' && (value < 0 || !Number.isSafeInteger(value)))
             throw new ApiError(400, `Invalid ${key}${suffix}`)
@@ -81,8 +85,9 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     offset = Number(offset)
     limit = Number(limit)
     const { filterName, filterComment, filterStats, fileMask, depth } = paramsToFilter(rest)
+    const pluginSearch = await preparePluginSearch(rest, ctx)
     const walker = walkNode(node, {
-        ctx: admin ? undefined : ctx, onlyFolders, onlyFiles, depth, useCache: cache !== 'no',
+        ctx: admin ? undefined : ctx, onlyFolders, onlyFiles, depth: pluginSearch.active ? Infinity : depth, useCache: cache !== 'no',
         filterName: filterName ? name => filterName(basename(name)) : undefined,
     })
     const onDirEntryHandlers = mapPlugins((plug, id) => plug.onDirEntry && { id, cb: plug.onDirEntry })
@@ -94,15 +99,25 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     const can_comment = can_upload && areCommentsEnabled()
     const can_overwrite = can_upload && (can_delete_children || !dontOverwriteUploading.get())
     const comment = node.comment ?? await getCommentFor(node.source)
-    const props = { can_archive, can_upload, can_delete, can_delete_children, can_overwrite, can_comment, comment, accept: node.accept, icon: getNodeIcon(node) }
+    const props = { can_archive, can_upload, can_delete, can_delete_children, can_overwrite, can_comment, comment, accept: node.accept, icon: getNodeIcon(node),
+        searchFields: getPluginSearchFields(), searchIncomplete: [] as string[] }
     ctx.state.browsing = uri.replace(/\/{2,}/g, '/')
     updateConnectionForCtx(ctx)
-    if (!list)
-        return { ...props, list: await asyncGeneratorToArray(produceEntries()) }
+    if (!list) {
+        const entries = await asyncGeneratorToArray(produceEntries())
+        return { ...props, list: entries }
+    }
     setTimeout(async () => { // defer production until the stream has been returned and attached to the response
         list.props(props)
-        for await (const entry of produceEntries())
-            list.add(entry)
+        try {
+            for await (const entry of produceEntries())
+                list.add(entry)
+            if (pluginSearch.incomplete.size)
+                list.props(props)
+        }
+        catch (error) {
+            list.error(error instanceof Error ? error.message : String(error))
+        }
         list.close()
     })
     return list
@@ -154,6 +169,8 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
                 }
                 if ((await events.emitAsync('dirEntry', cbParams))?.isDefaultPrevented())
                     continue
+                if (pluginSearch.active && !await pluginSearch.test(sub))
+                    continue
                 if (offset) {
                     --offset
                     continue
@@ -166,6 +183,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
             }
         }
         finally {
+            props.searchIncomplete = [...pluginSearch.incomplete]
             await walker.return()
         }
     }

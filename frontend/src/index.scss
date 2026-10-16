@@ -451,12 +451,19 @@ ul.dir {
         bottom: auto;
     }
 }
-#search-clear-button { margin-right: .5em }
 #searched {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    gap: .5em .75em;
     margin-bottom: 0.2em;
     margin-top: 0.3em;
+    .search-partial {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .5em;
+    }
 }
 #user-panel {
     display:flex;
@@ -646,25 +653,34 @@ button .icon + .label {
     }
     .submit { text-align: right; }
 }
+#search-dialog { width: 34em; }
 #search-dialog form {
-    width: min(34em, calc(94vw - 4em));
-    display: flex;
-    flex-direction: column;
-    gap: 1em;
-    fieldset, .search-text-fields {
+    &, .search-plugin-fields {
+        display: flex;
+        flex-direction: column;
+        gap: 1em;
+    }
+    .search-fieldset-content, .search-text-fields {
         display: flex;
         flex-wrap: wrap;
         gap: .75em;
         min-width: 0;
         .field { flex: 1 1 14em; min-width: 0; }
     }
-    fieldset { border: 1px solid var(--mild-contrast); border-radius: .5em; background-color: var(--ghost-contrast); }
+    fieldset { min-width: 0; border: 1px solid var(--mild-contrast); border-radius: .5em; background-color: var(--ghost-contrast); }
+    .search-fieldset-content > .field input { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+    summary { cursor: pointer; }
+    details[open] > summary { margin-bottom: .75em; }
     .search-options {
         display: flex; flex-wrap: wrap; align-items: center; gap: .75em;
         button { margin-left: auto; }
     }
     .search-size-range {
         .field { flex-basis: 10em; }
+        @media (max-width: 42em) {
+            .field { flex: 0 1 auto; }
+            .field input { width: 8em; }
+        }
         .search-size-unit { flex: 0 1 5em; align-self: flex-end; }
         select { width: 100%; }
     }

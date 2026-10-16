@@ -124,7 +124,12 @@ export class QuickZipStream extends Readable {
         return offset + centralDirSize
     }
 
-    async _read() {
+    _read() {
+        // Readable does not handle rejected promises returned by _read
+        void this.readNext().catch(error => this.destroy(error))
+    }
+
+    private async readNext() {
         if (this.finished || this.destroyed) return
         if (this.workingFile)
             return this.workingFile.resume()
