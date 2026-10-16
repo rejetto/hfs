@@ -1,4 +1,5 @@
 import test from 'node:test'
+import { Readable } from 'node:stream'
 import assert from 'node:assert/strict'
 import { createReadStream, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -32,3 +33,16 @@ for (const [name, budget] of [['zero budget', 0], ['expired budget', 10], ['comp
             assert.deepEqual(await file.buffer(), readFileSync(resolve(__dirname, file.path)))
     })
 }
+
+test('ZIP propagates an enumeration failure after size calculation times out', async () => {
+    const failure = new Error('plugin search failed')
+    const zip = new QuickZipStream((async function* () {
+        yield { path: 'first.txt', size: 1, getData: () => Readable.from(['a']) }
+        throw failure
+    })())
+    assert.ok(Number.isNaN(await zip.calculateSize(0)))
+    await assert.rejects(async () => {
+        for await (const chunk of zip) void chunk
+    }, failure)
+    assert.equal(zip.destroyed, true)
+})

@@ -226,18 +226,23 @@ test('search by metadata without a name', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'More filters', exact: true })).toHaveCount(0)
     await expect(page.getByRole('group', { name: 'Created', exact: true })).toBeVisible()
     await expect(page.getByRole('group', { name: 'Modified', exact: true })).toBeVisible()
+    for (const key of ['size', 'creation', 'mtime'])
+        await expect(page.locator(`#${key}Min`)).toBeHidden()
+    await page.getByRole('group', { name: 'Size', exact: true }).locator('summary').click()
     await page.locator('#sizeUnit').selectOption('1')
     await page.locator('#sizeMin').fill('1')
     await page.locator('#sizeMax').fill('100')
+    await page.getByRole('group', { name: 'Created', exact: true }).locator('summary').click()
     await page.locator('#creationMin').fill('2000-01-01T00:00')
+    await page.getByRole('group', { name: 'Modified', exact: true }).locator('summary').click()
     await page.locator('#mtimeMax').fill('2099-01-01T00:00')
     await page.getByRole('button', { name: 'Continue' }).click()
     await expect(page.getByRole('button', { name: 'Clear search' })).toBeVisible()
     const params = new URL(page.url()).searchParams
-    expect(params.get('sizeMin')).toBe('1')
-    expect(params.get('creationMin')).toBe('1999-12-31T23:00:00.000Z')
+    expect(params.get('searchSizeMin')).toBe('1')
+    expect(params.get('searchCreationMin')).toBe('1999-12-31T23:00:00.000Z')
     await expect(page.locator('#searched')).toContainText('Size (1 B - 100 B)')
-    await expect(page.locator('#zip-button')).toHaveAttribute('href', /sizeMin=1/)
+    await expect(page.locator('#zip-button')).toHaveAttribute('href', /searchSizeMin=1/)
     await page.reload()
     await expect(page.getByRole('button', { name: 'Clear search' })).toBeVisible()
     await page.getByRole('button', { name: 'Search', exact: true }).click()
@@ -247,7 +252,7 @@ test('search by metadata without a name', async ({ page }) => {
     await expect(page.locator('#creationMin')).toHaveValue('2000-01-01T00:00')
     await page.getByRole('button', { name: 'Continue' }).click()
     await page.getByRole('button', { name: 'Clear search' }).click()
-    expect(new URL(page.url()).searchParams.has('sizeMin')).toBe(false)
+    expect(new URL(page.url()).searchParams.has('searchSizeMin')).toBe(false)
 })
 
 test('search size unit applies to both bounds before sending', async ({ page }) => {
@@ -255,23 +260,25 @@ test('search size unit applies to both bounds before sending', async ({ page }) 
     const kb = await page.evaluate(() => (window as any).HFS.kb)
     await page.getByRole('button', { name: 'Search', exact: true }).click()
     await page.getByRole('button', { name: 'More filters', exact: true }).click()
+    await page.getByRole('group', { name: 'Size', exact: true }).locator('summary').click()
     await expect(page.locator('#sizeUnit')).toHaveValue(String(kb))
     await page.locator('#sizeMin').fill('1.5')
     await page.locator('#sizeMax').fill('2')
     await page.locator('#sizeUnit').selectOption({ label: 'MB' })
     const request = page.waitForRequest(req => {
         const url = new URL(req.url())
-        return url.pathname.endsWith('/get_file_list') && url.searchParams.has('sizeMin')
+        return url.pathname.endsWith('/get_file_list') && url.searchParams.has('searchSizeMin')
     })
     await page.getByRole('button', { name: 'Continue' }).click()
     const params = new URL((await request).url()).searchParams
-    expect(params.get('sizeMin')).toBe(String(1.5 * kb ** 2))
-    expect(params.get('sizeMax')).toBe(String(2 * kb ** 2))
+    expect(params.get('searchSizeMin')).toBe(String(1.5 * kb ** 2))
+    expect(params.get('searchSizeMax')).toBe(String(2 * kb ** 2))
     expect(params.has('sizeUnit')).toBe(false)
     await expect(page.locator('#searched')).toContainText('Size (1.5 MB - 2 MB)')
     await page.getByRole('button', { name: 'Clear search' }).click()
     await page.getByRole('button', { name: 'Search', exact: true }).click()
     await page.getByRole('button', { name: 'More filters', exact: true }).click()
+    await page.getByRole('group', { name: 'Size', exact: true }).locator('summary').click()
     await page.locator('#sizeUnit').selectOption('1')
     await page.locator('#sizeMin').fill('0.1')
     await page.getByRole('button', { name: 'Continue' }).click()
@@ -285,9 +292,9 @@ test('search size unit applies to both bounds before sending', async ({ page }) 
     await expect(page.getByRole('button', { name: 'More filters', exact: true })).toHaveCount(0)
     await expect(page.locator('#sizeMax')).toHaveValue(String(1001 / kb))
     await page.getByRole('button', { name: 'Continue' }).click()
-    await expect.poll(() => new URL(page.url()).searchParams.get('sizeMax')).toBe('1001')
+    await expect.poll(() => new URL(page.url()).searchParams.get('searchSizeMax')).toBe('1001')
     for (const bound of ['Min', 'Max']) {
-        await gotoFrontend(page, FRONTEND_URL + `?lang=en&size${bound}=${kb}`)
+        await gotoFrontend(page, FRONTEND_URL + `?lang=en&searchSize${bound}=${kb}`)
         await expect(page.locator('#searched')).toContainText(`Size (${bound} 1 KB)`)
     }
 })
@@ -304,24 +311,27 @@ test('search hides unsupported datetime fields and preserves URL filters', async
         })
     })
     const creationMin = '2000-01-01T00:00:00.000Z'
-    await gotoFrontend(page, FRONTEND_URL + '?' + new URLSearchParams({ lang: 'en', creationMin }))
+    await gotoFrontend(page, FRONTEND_URL + '?' + new URLSearchParams({ lang: 'en', searchCreationMin: creationMin }))
     await page.getByRole('button', { name: 'Search', exact: true }).click()
     await expect(page.getByRole('button', { name: 'More filters', exact: true })).toHaveCount(0)
     await expect(page.locator('#creationMin, #creationMax, #mtimeMin, #mtimeMax')).toHaveCount(0)
     await expect(page.locator('#name')).toBeVisible()
     await expect(page.locator('#comment')).toBeVisible()
+    await page.getByRole('group', { name: 'Size', exact: true }).locator('summary').click()
     await page.locator('#sizeUnit').selectOption('1')
     await page.locator('#sizeMin').fill('1')
     await page.getByRole('button', { name: 'Continue' }).click()
     await expect(page.getByRole('button', { name: 'Clear search' })).toBeVisible()
-    await expect.poll(() => new URL(page.url()).searchParams.get('sizeMin')).toBe('1')
-    expect(new URL(page.url()).searchParams.get('creationMin')).toBe(creationMin)
+    await expect.poll(() => new URL(page.url()).searchParams.get('searchSizeMin')).toBe('1')
+    expect(new URL(page.url()).searchParams.get('searchCreationMin')).toBe(creationMin)
 })
 
 test('search rejects inverted metadata ranges before submitting', async ({ page, isMobile }) => {
     await gotoFrontend(page, FRONTEND_URL + '?lang=en')
     await page.getByRole('button', { name: 'Search', exact: true }).click()
     await page.getByRole('button', { name: 'More filters', exact: true }).click()
+    for (const label of ['Created', 'Modified', 'Size'])
+        await page.getByRole('group', { name: label, exact: true }).locator('summary').click()
     for (const [first, second] of [['#creationMin', '#creationMax'], ['#name', '#comment']]) {
         const firstBox = await page.locator(first).boundingBox()
         const secondBox = await page.locator(second).boundingBox()
@@ -332,7 +342,13 @@ test('search rejects inverted metadata ranges before submitting', async ({ page,
         else
             expect(secondBox!.y).toBe(firstBox!.y)
     }
-    await expect(page.locator('fieldset.search-size-range > .search-size-unit #sizeUnit')).toBeVisible()
+    await expect(page.locator('fieldset.search-size-range .search-size-unit #sizeUnit')).toBeVisible()
+    if (isMobile) {
+        const size = await page.locator('#sizeMin').evaluate(input => ({
+            width: input.getBoundingClientRect().width, em: parseFloat(getComputedStyle(input).fontSize),
+        }))
+        expect(size.width).toBeCloseTo(8 * size.em, 0)
+    }
     if (!isMobile) {
         const unitBox = (await page.locator('#sizeUnit').boundingBox())!
         const minBox = (await page.locator('#sizeMin').boundingBox())!
@@ -341,7 +357,7 @@ test('search rejects inverted metadata ranges before submitting', async ({ page,
         expect(Math.abs(unitBox.y + unitBox.height - minBox.y - minBox.height)).toBeLessThan(3)
         expect(minBox.y).toBe(maxBox.y)
     }
-    await test.info().attach('search-layout', { body: await page.screenshot(), contentType: 'image/png' })
+    await test.info().attach('search-layout', { body: await page.screenshot({ path: test.info().outputPath('search-layout.png') }), contentType: 'image/png' })
     for (const key of ['size', 'creation', 'mtime']) {
         const min = page.locator(`#${key}Min`)
         const max = page.locator(`#${key}Max`)
@@ -350,7 +366,7 @@ test('search rejects inverted metadata ranges before submitting', async ({ page,
         await page.getByRole('button', { name: 'Continue' }).click()
         await expect(page.locator('#search-dialog')).toBeVisible()
         expect(await min.evaluate((el: HTMLInputElement) => el.validity.rangeOverflow)).toBe(true)
-        expect(new URL(page.url()).searchParams.has(`${key}Min`)).toBe(false)
+        expect(new URL(page.url()).searchParams.has(`search${key[0].toUpperCase()}${key.slice(1)}Min`)).toBe(false)
         await min.fill(key === 'size' ? '10' : '2026-09-25T12:00')
         expect(await min.evaluate((el: HTMLInputElement) => el.checkValidity())).toBe(true)
         // WebKit rejects a datetime cleared by Playwright even in a standalone native form
@@ -361,12 +377,28 @@ test('search rejects inverted metadata ranges before submitting', async ({ page,
     await expect(page.getByRole('button', { name: 'Clear search' })).toBeVisible()
 })
 
+test('search reveals invalid fields in a collapsed section', async ({ page }) => {
+    await gotoFrontend(page, FRONTEND_URL + '?lang=en')
+    await page.getByRole('button', { name: 'Search', exact: true }).click()
+    await page.getByRole('button', { name: 'More filters', exact: true }).click()
+    const summary = page.getByRole('group', { name: 'Size', exact: true }).locator('summary')
+    await summary.click()
+    await page.locator('#sizeMin').fill('20')
+    await page.locator('#sizeMax').fill('10')
+    await summary.click()
+    await expect(page.locator('#sizeMin')).toBeHidden()
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.locator('#search-dialog')).toBeVisible()
+    await expect(page.locator('#sizeMin')).toBeVisible()
+    expect(await page.locator('#sizeMin').evaluate((el: HTMLInputElement) => el.validity.rangeOverflow)).toBe(true)
+})
+
 test('search expands an existing comment filter and allows clearing it', async ({ page }) => {
     await gotoFrontend(page, FRONTEND_URL + '?lang=en&searchComment=example')
     await page.getByRole('button', { name: 'Search', exact: true }).click()
     await expect(page.locator('#comment')).toHaveValue('example')
     await expect(page.getByRole('button', { name: 'More filters', exact: true })).toHaveCount(0)
-    await expect(page.locator('#sizeUnit')).toBeVisible()
+    await expect(page.locator('#sizeUnit')).toBeHidden()
     await page.getByRole('button', { name: 'Continue' }).click()
     await expect(page.locator('#search-dialog')).toHaveCount(0)
     expect(new URL(page.url()).searchParams.get('searchComment')).toBe('example')
@@ -384,13 +416,19 @@ test('search shows existing metadata filters immediately', async ({ page }) => {
     await gotoFrontend(page, FRONTEND_URL + '?lang=en&sizeMin=1&creationMin=2000-01-01T00:00:00.000Z')
     await page.getByRole('button', { name: 'Search', exact: true }).click()
     await expect(page.locator('#sizeMin')).toBeVisible()
+    await expect(page.locator('#creationMin')).toBeVisible()
+    await expect(page.locator('#mtimeMin')).toBeHidden()
     await expect(page.getByRole('button', { name: 'More filters', exact: true })).toHaveCount(0)
+    const sizeSummary = page.getByRole('group', { name: 'Size', exact: true }).locator('summary')
+    await sizeSummary.focus()
+    await page.keyboard.press('Space')
+    await expect(page.locator('#sizeMin')).toBeHidden()
     await page.locator('#name').fill('alfa')
     await page.getByRole('button', { name: 'Continue' }).click()
     await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBe('alfa')
     const params = new URL(page.url()).searchParams
-    expect(params.get('sizeMin')).toBe('1')
-    expect(params.get('creationMin')).toBe('2000-01-01T00:00:00.000Z')
+    expect(params.get('searchSizeMin')).toBe('1')
+    expect(params.get('searchCreationMin')).toBe('2000-01-01T00:00:00.000Z')
 })
 
 test('browser history restores search from the URL', async ({ page }) => {
