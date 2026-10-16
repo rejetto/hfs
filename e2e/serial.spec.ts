@@ -249,6 +249,157 @@ async function loginAndOpenUpload(page: Page) {
     await page.getByRole('button', { name: 'Upload' }).click()
 }
 
+test('pasted files wait for Send and upload with Enter', async ({ page }) => {
+    const names = [`paste-${randomUUID()}-caffè #%.txt`, `paste-${randomUUID()}.txt`]
+    let uploads = 0
+    page.on('request', request => {
+        if (request.method() === 'PUT') uploads++
+    })
+    try {
+        await loginAndOpenUpload(page)
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/`)
+        await expect(page.locator('#upload-dialog')).toHaveCount(0)
+
+        expect(await pasteFiles(page, [names[0]])).toBe(true)
+        const send = page.getByRole('button', { name: 'Send', exact: true })
+        await expect(send).toBeFocused()
+        await expect(page.locator('.upload-adding')).toContainText(names[0])
+
+        await page.getByRole('button', { name: 'Pick files' }).focus()
+        expect(await pasteFiles(page, [names[1]])).toBe(true)
+        await expect(page.locator('#upload-dialog')).toHaveCount(1)
+        await expect(page.locator('.upload-adding tr')).toHaveCount(2)
+        await expect(send).toBeFocused()
+        expect(uploads).toBe(0)
+        for (const name of names)
+            expect(fs.existsSync(`tests/tmp/${name}`)).toBe(false)
+
+        await page.keyboard.press('Enter')
+        await expect(page.locator('.upload-status')).toContainText('2 finished')
+        expect(uploads).toBe(2)
+        for (const name of names)
+            expect(fs.readFileSync(`tests/tmp/${name}`, 'utf8')).toBe(name)
+    }
+    finally {
+        for (const name of names)
+            fs.rmSync(`tests/tmp/${name}`, { force: true })
+    }
+})
+
+test('pasted files focus Send in an empty upload dialog and respect accept', async ({ page }) => {
+    await loginAndOpenUpload(page)
+    const name = 'paste-accept-' + randomUUID()
+    try {
+        await page.evaluate(name => (window as any).HFS.apiCall('add_vfs', {
+            parent: '/for-admins/upload/', name, source: '../tmp/', accept: '.txt',
+        }), name)
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/${name}/`)
+        await page.getByRole('button', { name: 'Upload' }).click()
+        expect(await pasteFiles(page, ['rejected.png'])).toBe(true)
+        await expect(page.locator('.upload-adding')).toHaveCount(0)
+        expect(await pasteFiles(page, ['accepted.txt', 'rejected.png'])).toBe(true)
+        await expect(page.locator('.upload-adding tr')).toHaveCount(1)
+        await expect(page.locator('.upload-adding')).toContainText('accepted.txt')
+        await expect(page.getByRole('button', { name: 'Send', exact: true })).toBeFocused()
+    }
+    finally {
+        await page.evaluate(name => (window as any).HFS.apiCall('del_vfs', {
+            uris: ['/for-admins/upload/' + name],
+        }), name)
+    }
+})
+
+test('pasting leaves text fields and editors alone', async ({ page }) => {
+    await loginAndOpenUpload(page)
+    await page.getByRole('button', { name: 'Create folder', exact: true }).click()
+    const input = page.locator('.dialog-prompt input')
+    await expect(input).toBeFocused()
+    expect(await pasteFiles(page, ['ignored.txt'], '.dialog-prompt input')).toBe(false)
+    await expect(page.locator('.upload-adding')).toHaveCount(0)
+    await page.keyboard.press('Escape')
+
+    await page.evaluate(() => {
+        const editor = document.createElement('div')
+        editor.id = 'paste-editor'
+        editor.contentEditable = 'true'
+        editor.innerHTML = '<span>Editor</span>'
+        document.body.append(editor)
+    })
+    expect(await pasteFiles(page, ['ignored.txt'], '#paste-editor span')).toBe(false)
+    const textPrevented = await page.locator('body').evaluate(body => {
+        const clipboardData = new DataTransfer()
+        clipboardData.setData('text/plain', 'text to paste')
+        const event = new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true })
+        body.dispatchEvent(event)
+        return event.defaultPrevented
+    })
+    expect(textPrevented).toBe(false)
+    await expect(page.locator('.upload-adding')).toHaveCount(0)
+})
+
+test('pasted files require upload permission', async ({ page }) => {
+    await gotoFrontend(page)
+    expect(await pasteFiles(page, ['ignored.txt'])).toBe(false)
+    await expect(page.locator('#upload-dialog')).toHaveCount(0)
+})
+
+test('removing a staged file does not focus Send', async ({ page }) => {
+    const names = [`paste-remove-${randomUUID()}.txt`, `paste-remove-${randomUUID()}.txt`]
+    try {
+        await loginAndOpenUpload(page)
+        expect(await pasteFiles(page, names)).toBe(true)
+        const send = page.getByRole('button', { name: 'Send', exact: true })
+        await expect(send).toBeFocused()
+        const cancel = page.locator('.upload-adding .action-cancel').last()
+        if (await cancel.isVisible())
+            await cancel.focus()
+        else {
+            await page.locator('.upload-adding tr').last().getByRole('button', { name: 'Menu' }).click()
+            await page.getByRole('link', { name: 'Cancel', exact: true }).focus()
+        }
+        await page.keyboard.press('Enter')
+        await expect(page.locator('.upload-adding tr')).toHaveCount(1)
+        await expect(send).not.toBeFocused()
+        await page.keyboard.press('Enter')
+        await expect(page.locator('.upload-adding tr')).toHaveCount(1)
+        await expect(page.locator('.upload-queue')).toHaveCount(0)
+    }
+    finally {
+        for (const name of names)
+            fs.rmSync(`tests/tmp/${name}`, { force: true })
+    }
+})
+
+test('closing Upload does not swallow immediately pasted files', async ({ page }) => {
+    await loginAndOpenUpload(page)
+    // keep the browser history transition pending after the dialog has disappeared
+    await page.evaluate(() => {
+        const back = history.back.bind(history)
+        history.back = () => { setTimeout(back, 500) }
+    })
+    await page.keyboard.press('Escape')
+    await expect(page.locator('#upload-dialog')).toHaveCount(0)
+    expect(await pasteFiles(page, ['after-close.txt'])).toBe(true)
+    await expect(page.locator('.upload-adding')).toContainText('after-close.txt')
+    await expect(page.getByRole('button', { name: 'Send', exact: true })).toBeFocused()
+    expect(await pasteFiles(page, ['second-paste.txt'])).toBe(true)
+    await expect(page.locator('#upload-dialog')).toHaveCount(1)
+    await expect(page.locator('.upload-adding tr')).toHaveCount(2)
+})
+
+async function pasteFiles(page: Page, names: string[], selector = 'body') {
+    return page.locator(selector).evaluate((target, names) => {
+        const clipboardData = new DataTransfer()
+        for (const name of names)
+            clipboardData.items.add(new File([name], name, { type: name.endsWith('.txt') ? 'text/plain' : 'image/png' }))
+        const event = new Event('paste', { bubbles: true, cancelable: true })
+        // Firefox drops files from synthetic ClipboardEvent initializers
+        Object.defineProperty(event, 'clipboardData', { value: clipboardData })
+        target.dispatchEvent(event)
+        return event.defaultPrevented
+    }, names)
+}
+
 test('dropped folder reads all entry batches while staged', async ({ page }) => {
     await loginAndOpenUpload(page)
 

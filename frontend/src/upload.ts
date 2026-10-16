@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, DragEvent, Fragment, useMemo, useState, useEffect, useRef, CSSProperties } from 'react'
+import { createElement as h, DragEvent, Fragment, useMemo, useState, useEffect, useLayoutEffect, useRef, CSSProperties } from 'react'
 import { Btn, Flex, FlexV, iconBtn, Select, Spinner } from './components'
 import {
     basename, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, selectFiles, working, workingWith, copyTextToClipboard,
@@ -36,7 +36,6 @@ export function showUpload() {
         icon: () => hIcon('upload'),
         Content,
         onClose() {
-            uploadState.uploadDialogIsOpen = false
             if (resetReloadOnClose())
                 reloadList()
         }
@@ -49,6 +48,16 @@ export function showUpload() {
     function Content(){
         const { qs, paused, eta, speed, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
         const scanning = useSnapshot(dropScan).count !== undefined
+        // onClose waits for browser history; the flag must follow the visible dialog immediately
+        useLayoutEffect(() => () => { uploadState.uploadDialogIsOpen = false }, [])
+        const previousAddingCount = useRef(0)
+        // removing a file must not move a second Enter onto Send
+        useLayoutEffect(() => {
+            if (scanning) return
+            if (adding.length > previousAddingCount.current)
+                document.querySelector<HTMLButtonElement>('#upload-dialog .upload-send')?.focus()
+            previousAddingCount.current = adding.length
+        }, [adding.length, scanning])
         const { props, uploadOnExisting: selectedUploadOnExisting } = useSnapState()
         const uploadOnExisting = getUploadOnExisting(selectedUploadOnExisting, props?.can_overwrite)
         const etaStr = useMemo(() => !eta || eta === Infinity ? '' : formatTime(eta*1000, 0, 2), [eta])
@@ -90,6 +99,7 @@ export function showUpload() {
                             h(Flex, {}, // avoid just one button to wrap
                                 h('button', {
                                     className: 'upload-send',
+                                    autoFocus: true,
                                     disabled: scanning,
                                     onClick() {
                                         void enqueueUpload(uploadState.adding)
@@ -191,13 +201,28 @@ export function showUpload() {
         }
 
         function pickFiles(options: Parameters<typeof selectFiles>[1]) {
-            selectFiles(list => {
-                uploadState.adding.push( ...Array.from(list || []).filter(x => simulateBrowserAccept(x))
-                    .map(f => ({ file: ref(f), path: getFilePath(f) })) )
-            }, options)
+            selectFiles(addUploadFiles, options)
         }
     }
 
+}
+
+function addUploadFiles(files: FileList | null) {
+    const entries = Array.from(files || []).filter(x => simulateBrowserAccept(x))
+        .map(file => ({ file: ref(file), path: getFilePath(file) }))
+    uploadState.adding.push(...entries)
+    return entries.length
+}
+
+export function acceptPasteFiles(ev: ClipboardEvent) {
+    const target = ev.target
+    if (ev.defaultPrevented || target instanceof HTMLElement
+        && (target.isContentEditable || target.closest('input, textarea, select'))) return
+    if (!state.props?.can_upload || !ev.clipboardData?.files.length) return
+    ev.preventDefault()
+    if (!addUploadFiles(ev.clipboardData.files)) return
+    if (!uploadState.uploadDialogIsOpen)
+        showUpload()
 }
 
 function FileList({ entries, actions, name }: { name: string, entries: ToUpload[], actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
