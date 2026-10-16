@@ -5160,7 +5160,7 @@ function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }:
             const gotStatus = res.statusCode
             const gotLength = res.headers?.['content-length']
             const err = mime && !gotMime?.startsWith(mime) && 'expected mime ' + mime + ' got ' + gotMime
-                || status && gotStatus !== status && 'expected status ' + status + ' got ' + gotStatus
+                || status && gotStatus !== status && `expected status ${status} got ${gotStatus} for ${url}\n${data || '-empty-'}`
                 || re && !re.test(data) && 'expected content '+String(re)+' got '+(data || '-empty-')
                 || inList && !inList.every(x => isInList(obj, x)) && 'expected in list '+inList
                 || outList && !outList.every(x => !isInList(obj, x)) && 'expected not in list '+outList

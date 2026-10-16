@@ -39,7 +39,7 @@ export default defineConfig(async () => {
                 polyfills: false, // keeping polyfills at a minimum, manually
                 targets: ['firefox 40', 'chrome 69'],
             }),
-            ... Sonda ? [Sonda({ detailed: true, gzip: true, brotli: true })] : [],
+            ... Sonda ? [Sonda({ deep: true, gzip: true, brotli: true })] : [],
         ],
     }
 })

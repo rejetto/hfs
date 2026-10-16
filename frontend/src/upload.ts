@@ -147,7 +147,7 @@ export function showUpload() {
                     }),
                 ),
                 qs.map((q,idx) =>
-                    h('div', { key: q.to },
+                    h('div', { key: `${q.to}:${q.existing}` },
                         h(Link, { href: q.to, onClick: close }, t`Destination`, ' ', decodeURI(q.to)),
                         h(FileList, {
                             name: 'queue',
