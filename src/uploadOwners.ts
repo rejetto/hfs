@@ -87,17 +87,20 @@ export function registerActiveUpload(stats: Pick<Stats, 'dev' | 'ino'>, ctx: Koa
 export async function canAccessUnfinishedUpload(node: VfsNode, ctx: Koa.Context) {
     if (!node.source)
         return true
-    let stats = await nodeStats(node)
-    if (stats?.isDirectory())
-        return true
-    // Windows native directory entries omit inode identity used by active uploads
-    if (activeUploadOwners.size && stats && (stats.dev === undefined || stats.ino === undefined))
-        stats = await stat(node.source).catch(() => undefined)
-    const activeOwner = stats && activeUploadOwners.get(`${stats.dev}:${stats.ino}`)
-    if (activeOwner)
-        return Boolean(ctxAdminAccess(ctx) || matchesOwner(activeOwner, ctx))
+    // inode identity is only needed while an upload is active; ordinary listings prefetch their own stats
+    if (activeUploadOwners.size) {
+        let stats = await nodeStats(node)
+        if (stats?.isDirectory())
+            return true
+        // Windows native directory entries omit inode identity used by active uploads
+        if (stats && (stats.dev === undefined || stats.ino === undefined))
+            stats = await stat(node.source).catch(() => undefined)
+        const activeOwner = stats && activeUploadOwners.get(`${stats.dev}:${stats.ino}`)
+        if (activeOwner)
+            return Boolean(ctxAdminAccess(ctx) || matchesOwner(activeOwner, ctx))
+    }
     const source = await uploadSource(node.source)
-    if (!basename(source).startsWith(UPLOAD_TEMP_PREFIX) || ctxAdminAccess(ctx))
+    if (!basename(source).startsWith(UPLOAD_TEMP_PREFIX) || ctxAdminAccess(ctx) || (await nodeStats(node))?.isDirectory())
         return true
     if ((await getUploadMeta(node.source))?.completed === true)
         return true
