@@ -38,6 +38,7 @@ import { alerts, blacklistedInstalledPlugins, getProjectInfo } from './github'
 import { acmeRenewError } from './acme'
 import { quit } from './first'
 import { getDirectoryCacheStatus, refreshDirectoryCache } from './directoryCache'
+import { Readable } from 'node:stream'
 
 export const adminApis = {
 
@@ -199,6 +200,19 @@ export const adminApis = {
     validate_net_mask({ mask }) {
         apiAssertTypes({ string: { mask } })
         return { result: Boolean(try_(() => makeNetMatcher(mask))) }
+    },
+
+    get_version() {
+        let sent = false
+        return new Readable({
+            objectMode: true,
+            read() {
+                if (sent) return
+                sent = true
+                // keep the stream open so EventSource reconnects after a server restart
+                this.push({ version: VERSION })
+            }
+        })
     },
 
 } satisfies ApiHandlers

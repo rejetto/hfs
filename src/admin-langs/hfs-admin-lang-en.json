@@ -2,6 +2,7 @@
     "author": "HFS contributors",
     "version": 1,
     "translate": {
+        "server_version_changed": "Server version has changed ({version}). Reload the page?",
         "Directory cache": "Directory cache",
         "Never": "Never",
         "At start": "At start",

@@ -2,6 +2,7 @@
     "author": "Automatic translation",
     "version": 1,
     "translate": {
+        "server_version_changed": "La versione del server è cambiata ({version}). Ricaricare la pagina?",
         "Directory cache": "Cache delle cartelle",
         "Never": "Mai",
         "At start": "All’avvio",

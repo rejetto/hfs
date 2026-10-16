@@ -2,11 +2,11 @@
 
 import { t } from './i18n'
 
-import { createElement as h, ReactNode, useState } from 'react'
+import { createElement as h, ReactNode, useEffect, useState } from 'react'
 import { Box, Card, CardContent, Checkbox, FormControlLabel, Link } from '@mui/material'
-import { apiCall, useApiEx, useApiList } from './api'
+import { apiCall, useApiEvents, useApiEx, useApiList } from './api'
 import {
-    dontBotherWithKeys, onlyTruthy, REPO_URL, md,
+    dontBotherWithKeys, getHFS, onlyTruthy, REPO_URL, md,
     replaceStringToReact, wait, with_, DAY, HOUR, PREVIOUS_TAG, PLUGIN_USAGE_URL
 } from './misc'
 import { Btn, Flex, InLink, LinkBtn, wikiLink, } from './mui'
@@ -37,6 +37,18 @@ export default function HomePage() {
     const [updates, setUpdates] = useState<undefined | Release[]>()
     const [otherVersions, setOtherVersions] = useState<undefined | Release[]>()
     const [usageStatsFeedback, setUsageStatsFeedback] = useState<boolean>()
+    // shortcut: keep this on Home to avoid exhausting SSE connections, reconsider a global subscription with WebSockets
+    const serverVersion = useApiEvents<{ version: string }>('get_version').data?.version
+    useEffect(() => {
+        if (!serverVersion || serverVersion === getHFS().VERSION) return
+        const dialog = confirmDialog(t('server_version_changed', { version: serverVersion }), { trueText: t`Reload` })
+        dialog.then(yes => {
+            if (yes)
+                window.location.reload()
+        })
+        // discard stale prompts when another version arrives or Home is unmounted
+        return () => { dialog.close() }
+    }, [serverVersion])
     const shareUsage = Boolean(cfg.data?.share_usage_stats)
     if (statusEl || !status) // !status here to shut up ts
         return statusEl

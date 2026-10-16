@@ -4,6 +4,84 @@ import yaml from 'yaml'
 
 const port = yaml.parse(readFileSync('tests/config.yaml', 'utf8')).port
 
+test('leaving Home closes the version subscription', async ({ page }) => {
+    let subscriptions = 0
+    await page.addInitScript(() => {
+        Object.assign(window, { HFS: { VERSION: '3.4.0', session: { username: 'admin', isAdmin: true } } })
+        const close = EventSource.prototype.close
+        EventSource.prototype.close = function () {
+            if (new URL(this.url).pathname.endsWith('/get_version'))
+                document.documentElement.dataset.versionStreamClosed = 'true'
+            close.call(this)
+        }
+    })
+    await page.route('**/~/api/**', route => {
+        const command = new URL(route.request().url()).pathname.split('/').pop()
+        if (command === 'get_version') {
+            subscriptions++
+            return route.fulfill({ contentType: 'text/event-stream', body: 'data: {"version":"3.4.0"}\n\n' })
+        }
+        return route.fulfill({ json: command === 'get_status' ? { http: {}, https: {} }
+            : command === 'refresh_session' ? { username: 'admin', isAdmin: true }
+            : command === 'get_log_info' ? { current: {}, rotated: {} } : {} })
+    })
+    await page.goto(process.env.ADMIN_HOME_URL || `http://localhost:${port}/~/admin/`)
+    await expect.poll(() => subscriptions).toBeGreaterThan(0)
+    await page.evaluate(() => { delete document.documentElement.dataset.versionStreamClosed })
+    await page.getByRole('link', { name: /^Logs/ }).click()
+    await expect(page.getByRole('heading', { name: 'Logs', exact: true })).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('data-version-stream-closed', 'true')
+})
+
+for (const scenario of ['before subscribing', 'on reconnect', 'while asking'])
+    test(`reload after version change ${scenario}`, async ({ page }) => {
+        let version = scenario === 'on reconnect' ? '3.4.0' : '3.4.1'
+        let subscriptions = 0
+        const english = JSON.parse(readFileSync('src/admin-langs/hfs-admin-lang-en.json', 'utf8'))
+        await page.addInitScript(english => {
+            Object.assign(window, { HFS: {
+                VERSION: '3.4.0', lang: { en: english }, session: { username: 'admin', isAdmin: true },
+            } })
+        }, english)
+        await page.route('**/~/api/**', route => {
+            const command = new URL(route.request().url()).pathname.split('/').pop()
+            if (command === 'get_version') {
+                subscriptions++
+                // EOF simulates a dropped connection; the native EventSource must reconnect
+                return route.fulfill({ contentType: 'text/event-stream', body:
+                    `retry: 50\ndata: ${JSON.stringify({ version })}\n\n` })
+            }
+            return route.fulfill({ json: command === 'get_status' ? { http: {}, https: {} }
+                : command === 'refresh_session' ? { username: 'admin', isAdmin: true } : {} })
+        })
+        await page.goto(process.env.ADMIN_HOME_URL || `http://localhost:${port}/~/admin/`)
+        const dialog = page.getByRole('dialog')
+        if (scenario === 'on reconnect') {
+            await expect.poll(() => subscriptions).toBeGreaterThan(1)
+            await expect(dialog).toHaveCount(0)
+            version = '3.4.1'
+        }
+        await expect(dialog).toContainText('Server version has changed (3.4.1). Reload the page?')
+        await expect(dialog).toHaveCount(1)
+        if (scenario === 'while asking') {
+            version = '3.4.2'
+            await expect(dialog).toContainText('Server version has changed (3.4.2). Reload the page?')
+            await expect(page.locator('[role="dialog"]')).toHaveCount(1)
+        }
+        else {
+            await dialog.getByRole('button', { name: "Don't", exact: true }).click()
+            const previousSubscriptions = subscriptions
+            await expect.poll(() => subscriptions).toBeGreaterThan(previousSubscriptions + 1)
+            await expect(dialog).toHaveCount(0)
+            version = '3.4.2'
+            await expect(dialog).toContainText('Server version has changed (3.4.2). Reload the page?')
+        }
+        await Promise.all([
+            page.waitForEvent('framenavigated', frame => frame === page.mainFrame()),
+            dialog.getByRole('button', { name: 'Reload', exact: true }).click(),
+        ])
+    })
+
 for (const delayed of ['set_config', 'get_config'])
     test(`autosave blocks changes while ${delayed} is pending`, async ({ page }) => {
         const config = { auto_check_update: false, update_to_beta: false }
