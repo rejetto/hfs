@@ -16,14 +16,14 @@ import { navigate } from './App'
 import { closeLoginDialog } from './login'
 import { fileShow, getShowComponent } from './show'
 import i18n from './i18n'
+import { readPluginSearchQuery } from '../../src/pluginSearchQuery'
+import { readSearchQuery, writeSearchQuery } from '../../src/searchQuery'
 const { t } = i18n
 
 export function usePath() {
     useLocation() // used just to cause render
     return location.pathname // this is encoded, while useLocation returned decoded
 }
-
-const REMOTE_SEARCH_KEYS = ['search', 'searchComment', 'wild', 'creationMin', 'creationMax', 'mtimeMin', 'mtimeMax', 'sizeMin', 'sizeMax'] as const
 
 // allow links with ?search
 let firstListRequest: any
@@ -34,19 +34,24 @@ setTimeout(() => {// wait, urlParams is defined at top level
 addEventListener('popstate', () => syncRemoteSearch()) // resync state when browser history restores a searched URL
 subscribeKey(state, 'remoteSearch', value => {
     const url = new URL(location.href)
-    for (const key of REMOTE_SEARCH_KEYS) {
-        const v = value?.[key]
-        if (v)
-            url.searchParams.set(key, v)
-        else
-            url.searchParams.delete(key)
-    }
+    writeSearchQuery(url.searchParams, value)
+    // slashes are valid in query values; leave them readable while keeping query separators encoded
+    url.search = url.searchParams.toString().replace(/%2F/gi, '/')
     history.replaceState(history.state, '', url)
 })
 
 function readRemoteSearch(params: Record<string, string>) {
-    const ret = _.pickBy(_.pick(params, REMOTE_SEARCH_KEYS))
-    return REMOTE_SEARCH_KEYS.some(key => key !== 'wild' && ret[key]) ? ret : undefined
+    const ret = _.pickBy(readSearchQuery(params))
+    try {
+        const values = readPluginSearchQuery(params)
+        delete ret.pluginSearch
+        if (Object.keys(values).length) ret.pluginSearch = JSON.stringify(values)
+    }
+    catch {
+        // keep malformed URL filters active so the API can report the validation error
+        ret.pluginSearch = ret.pluginSearch || 'null'
+    }
+    return Object.entries(ret).some(([key, value]) => key !== 'wild' && value) ? ret : undefined
 }
 
 function syncRemoteSearch(params=Object.fromEntries(new URLSearchParams(location.search))) {
@@ -81,7 +86,7 @@ export default function useFetchList() {
         }
 
         const cache = new URLSearchParams(location.search).get('cache') === 'no' ? 'no' : undefined
-        const params = { uri, ...remoteSearch, ...firstListRequest, cache }
+        const params = { uri, ...Object.fromEntries(writeSearchQuery(new URLSearchParams(), remoteSearch)), ...firstListRequest, cache }
         if (snap.listReloader === lastReloader.current && _.isEqual(params, lastParams.current)) return
         const selected = previous === uri && snap.listReloader !== lastReloader.current ? state.selected : {}
         lastParams.current = params

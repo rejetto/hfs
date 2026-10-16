@@ -22,6 +22,9 @@ import { Btn, BtnProps, Checkbox, CustomCode } from './components'
 import i18n from './i18n'
 import { ExtractionIndicator } from './extract'
 import { encodeUrlList } from '../../src/urlList'
+import { PluginSearchFields, pluginSearchLabel, readPluginSearch } from './pluginSearch'
+import SearchFieldset from './SearchFieldset'
+import { writeSearchQuery } from '../../src/searchQuery'
 const { t, useI18N } = i18n
 
 function searchRanges() {
@@ -140,7 +143,7 @@ export function MenuPanel({ hasSelectableEntries }: { hasSelectableEntries: bool
                     : t`zip_tooltip_whole`,
                 href: buildUrlQueryString(_.pickBy({
                     get: 'zip',
-                    ...remoteSearch,
+                    ...Object.fromEntries(writeSearchQuery(new URLSearchParams(), remoteSearch)),
                     // without folder permission, even a complete selection must use individual permissions
                     list: can_archive && isAllSelected() ? undefined : list
                 })),
@@ -171,22 +174,29 @@ export function MenuPanel({ hasSelectableEntries }: { hasSelectableEntries: bool
                     state.remoteSearch = undefined
                 }
             }),
-            (stopSearch ? t`Searching` : t`Searched`) + ': ',
-            _.map({ search: t`Name`, searchComment: t`Comment` } satisfies { [K in RSK]?: string },
-                (v,k) => prefix(v + ': ', remoteSearch[k as RSK])).concat(
-                    searchRanges().flatMap(({ key, label }) => {
-                        if (key === 'size') {
-                            const min = remoteSearch.sizeMin && formatBytes(Number(remoteSearch.sizeMin))
-                            const max = remoteSearch.sizeMax && formatBytes(Number(remoteSearch.sizeMax))
-                            return min || max ? `${label} (${min && max ? `${min} - ${max}` : min ? `${t`Min`} ${min}` : `${t`Max`} ${max}`})` : ''
-                        }
-                        return (['Min', 'Max'] as const).map(suffix => {
-                            const value = remoteSearch[`${key}${suffix}`]
-                            return value ? `${label} ${suffix === 'Min' ? '≥' : '≤'} ${new Date(value).toLocaleString()}` : ''
+            h('span', {},
+                (stopSearch ? t`Searching` : t`Searched`) + ': ',
+                _.map({ search: t`Name`, searchComment: t`Comment` } satisfies { [K in RSK]?: string },
+                    (v,k) => prefix(v + ': ', remoteSearch[k as RSK])).concat(
+                        searchRanges().flatMap(({ key, label }) => {
+                            if (key === 'size') {
+                                const min = remoteSearch.sizeMin && formatBytes(Number(remoteSearch.sizeMin))
+                                const max = remoteSearch.sizeMax && formatBytes(Number(remoteSearch.sizeMax))
+                                return min || max ? `${label} (${min && max ? `${min} - ${max}` : min ? `${t`Min`} ${min}` : `${t`Max`} ${max}`})` : ''
+                            }
+                            return (['Min', 'Max'] as const).map(suffix => {
+                                const value = remoteSearch[`${key}${suffix}`]
+                                return value ? `${label} ${suffix === 'Min' ? '≥' : '≤'} ${new Date(value).toLocaleString()}` : ''
+                            })
                         })
-                    })
-                ).filter(Boolean).join(' and '),
-            prefix(' (', searchManuallyInterrupted && t`Interrupted`, ')'),
+                    ).concat(Object.keys(readPluginSearch(remoteSearch.pluginSearch)).map(id => {
+                        const field = props?.searchFields?.find(field => field.id === id)
+                        return field ? pluginSearchLabel(field) : id
+                    })).filter(Boolean).join(' · '),
+                prefix(' (', searchManuallyInterrupted && t`Interrupted`, ')')),
+            Boolean(props?.searchIncomplete?.length) && h('div', { className: 'search-partial', role: 'status' },
+                h('span', {}, t`Partial results: some search data is not ready.`),
+                h('button', { type: 'button', onClick: reloadList }, t`Repeat search`)),
         ),
     )
     type RSK = keyof typeof remoteSearch
@@ -262,7 +272,7 @@ function searchDialog() {
         title: t`Search`,
         dialogProps: { id: 'search-dialog' },
         Content() {
-            const [showFilters, setShowFilters] = useState(() => Boolean(was?.searchComment) || searchRanges().some(({ key }) => was?.[`${key}Min`] || was?.[`${key}Max`]))
+            const [showFilters, setShowFilters] = useState(() => Boolean(was?.searchComment || was?.pluginSearch) || searchRanges().some(({ key }) => was?.[`${key}Min`] || was?.[`${key}Max`]))
             const values = _.mapValues(was ?? {}, (value, key) => {
                 if (value && key.startsWith('size')) return String(Number(value) / kb)
                 const date = value && /^(creation|mtime)/.test(key) ? new Date(value) : undefined
@@ -289,13 +299,15 @@ function searchDialog() {
                         h('a', { href: `${WIKI_URL}Wildcards`, target: 'doc' }, hIcon('info'))), // uncontrolled
                     !showFilters && h('button', { type: 'button', onClick: () => setShowFilters(true) }, t`More filters`),
                 ),
-                ...(showFilters ? searchRanges().filter(({ key }) => key === 'size' || supportsDateTime).map(({ key, label }) => h('fieldset', { className: key === 'size' ? 'search-size-range' : undefined },
-                    h('legend', {}, label),
+                ...(showFilters ? searchRanges().filter(({ key }) => key === 'size' || supportsDateTime).map(({ key, label }) => h(SearchFieldset, {
+                    label, expanded: Boolean(was?.[`${key}Min`] || was?.[`${key}Max`]),
+                    className: key === 'size' ? 'search-size-range' : undefined,
+                },
                     ...(['Min', 'Max'] as const).map(suffix => {
                         const name = `${key}${suffix}` as const
                         return h('div', { className: 'field' },
                             h('label', { htmlFor: name }, suffix === 'Min' ? t`Min` : t`Max`),
-                            h('input', { id: name, name, style, defaultValue: values[name],
+                            h('input', { id: name, name, defaultValue: values[name],
                                 onInput(ev: FormEvent<HTMLInputElement>) {
                                     const input = ev.currentTarget
                                     const min = input.form!.elements.namedItem(`${key}Min`) as HTMLInputElement
@@ -319,6 +331,9 @@ function searchDialog() {
                                 h('option', { value: String(kb ** index) }, unit))),
                     ),
                 )) : []),
+                h('div', { hidden: !showFilters }, h(PluginSearchFields, {
+                    fields: state.props?.searchFields || [], initial: was?.pluginSearch,
+                })),
                 h('div', { className: 'submit' },
                     h('button', {}, t`Continue`)),
             )
@@ -334,8 +349,9 @@ function searchDialog() {
                     ? String(Math.round(Number(res[name]) * Number(res.sizeUnit)))
                     : new Date(res[name]).toISOString())]
             })))
-        state.remoteSearch = !res.name && !res.comment && !Object.values(ranges).some(Boolean) ? undefined : _.pickBy({
+        state.remoteSearch = !res.name && !res.comment && !res.pluginSearch && !Object.values(ranges).some(Boolean) ? undefined : _.pickBy({
             ...ranges,
+            pluginSearch: res.pluginSearch || undefined,
             search: res.name || undefined,
             searchComment: res.comment || undefined,
             wild: res.wild ? undefined : 'no'
