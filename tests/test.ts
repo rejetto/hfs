@@ -8,6 +8,7 @@ import './update-changelog.test'
 import './plugin-catalog.test'
 import './plugin-changelog.test'
 import './quick-zip.test'
+import './plugin-search.test'
 import './file-cache.test'
 import './listing-prefetch.test'
 import test, { describe, before, after } from 'node:test';

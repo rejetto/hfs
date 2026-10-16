@@ -13,7 +13,7 @@ import { DirentFromStats, walkDir } from './walkDir'
 import { detectNetworkPaths } from './networkPaths'
 import type { VfsNodeStored } from './vfs'
 
-type CachedEntry = {
+export type CachedEntry = {
     name: string
     stats: Stats
     hidden: boolean
@@ -42,6 +42,15 @@ let detecting: Promise<void> = Promise.resolve()
 let configuring: Promise<void> = Promise.resolve()
 let detectionId = 0
 let detectionKey: string | undefined
+
+export type DirectoryCacheListener = (directory: { path: string, entries: readonly CachedEntry[] }) => void
+
+export function onDirectoryCache(listener: DirectoryCacheListener) {
+    const off = events.on('directoryCacheUpdated', listener)
+    for (const [path, entries] of session?.directories || [])
+        listener({ path, entries })
+    return off
+}
 
 export function initDirectoryCache() {
     const configure = debounceAsync(async () => {
@@ -301,6 +310,7 @@ async function run(current: Session) {
                 if (session !== current || quitting) return
                 // publish only complete directories; events arriving during the read remain queued for another pass
                 current.directories.set(path, entries)
+                events.emit('directoryCacheUpdated', { path, entries })
                 current.failures.delete(path)
                 if (!current.dirty.has(path)) {
                     if (hasWatcherCoverage(current, path))

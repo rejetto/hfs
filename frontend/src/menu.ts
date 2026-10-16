@@ -22,6 +22,7 @@ import { Btn, BtnProps, Checkbox, CustomCode } from './components'
 import i18n from './i18n'
 import { ExtractionIndicator } from './extract'
 import { encodeUrlList } from '../../src/urlList'
+import { PluginSearchFields, readPluginSearch } from './pluginSearch'
 const { t, useI18N } = i18n
 
 function searchRanges() {
@@ -178,7 +179,12 @@ export function MenuPanel() {
                         })
                     })
                 ).filter(Boolean).join(' and '),
+            ...Object.keys(readPluginSearch(remoteSearch.pluginSearch)).map(id =>
+                h('span', { key: id }, ' · ', props?.searchFields?.find(field => field.id === id)?.label || id)),
             prefix(' (', searchManuallyInterrupted && t`Interrupted`, ')'),
+            Boolean(props?.searchIncomplete?.length) && h('div', { role: 'status' },
+                t`Partial results: some search data is not ready.`, ' ',
+                h('button', { type: 'button', onClick: reloadList }, t`Repeat search`)),
         ),
     )
     type RSK = keyof typeof remoteSearch
@@ -254,7 +260,7 @@ function searchDialog() {
         title: t`Search`,
         dialogProps: { id: 'search-dialog' },
         Content() {
-            const [showFilters, setShowFilters] = useState(() => Boolean(was?.searchComment) || searchRanges().some(({ key }) => was?.[`${key}Min`] || was?.[`${key}Max`]))
+            const [showFilters, setShowFilters] = useState(() => Boolean(was?.searchComment || was?.pluginSearch) || searchRanges().some(({ key }) => was?.[`${key}Min`] || was?.[`${key}Max`]))
             const values = _.mapValues(was ?? {}, (value, key) => {
                 if (value && key.startsWith('size')) return String(Number(value) / kb)
                 const date = value && /^(creation|mtime)/.test(key) ? new Date(value) : undefined
@@ -311,6 +317,9 @@ function searchDialog() {
                                 h('option', { value: String(kb ** index) }, unit))),
                     ),
                 )) : []),
+                h('div', { hidden: !showFilters }, h(PluginSearchFields, {
+                    fields: state.props?.searchFields || [], initial: was?.pluginSearch,
+                })),
                 h('div', { className: 'submit' },
                     h('button', {}, t`Continue`)),
             )
@@ -326,8 +335,9 @@ function searchDialog() {
                     ? String(Math.round(Number(res[name]) * Number(res.sizeUnit)))
                     : new Date(res[name]).toISOString())]
             })))
-        state.remoteSearch = !res.name && !res.comment && !Object.values(ranges).some(Boolean) ? undefined : _.pickBy({
+        state.remoteSearch = !res.name && !res.comment && !res.pluginSearch && !Object.values(ranges).some(Boolean) ? undefined : _.pickBy({
             ...ranges,
+            pluginSearch: res.pluginSearch || undefined,
             search: res.name || undefined,
             searchComment: res.comment || undefined,
             wild: res.wild ? undefined : 'no'

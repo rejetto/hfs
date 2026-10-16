@@ -23,7 +23,7 @@ export function usePath() {
     return location.pathname // this is encoded, while useLocation returned decoded
 }
 
-const REMOTE_SEARCH_KEYS = ['search', 'searchComment', 'wild', 'creationMin', 'creationMax', 'mtimeMin', 'mtimeMax', 'sizeMin', 'sizeMax'] as const
+const REMOTE_SEARCH_KEYS = ['search', 'searchComment', 'wild', 'pluginSearch', 'creationMin', 'creationMax', 'mtimeMin', 'mtimeMax', 'sizeMin', 'sizeMax'] as const
 
 // allow links with ?search
 let firstListRequest: any
