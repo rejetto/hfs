@@ -115,37 +115,58 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     }
 
     async function* produceEntries() {
-        for await (const sub of walker) {
-            let name = getNodeName(sub)
-            name = basename(name) || name // on Windows, basename('C:') === ''
-            if (filterName && !filterName(name)
-            || fileMask && !nodeIsFolder(sub) && !fileMask(name)
-            || filterComment && !filterComment(await getCommentFor(sub.source) || ''))
-                continue
-            const entry = await nodeToDirEntry(ctx, sub)
-            if (!entry)
-                continue
-            const cbParams = { entry, ctx, listUri: uri, node: sub }
-            try {
-                const res = await Promise.all(onDirEntryHandlers.map(({ id, cb }) =>
-                    callAsPromise(() => cb(cbParams)).catch(error => { throw { id, error } })))
-                if (res.some(x => x === false))
+        const pending: VfsNodeWithPath[] = []
+        let done = false
+        try {
+            while (!done || pending.length) {
+                // overlap disk reads while preserving entry order and sequential plugin hooks
+                while (!done && pending.length < 4) {
+                    const next = await walker.next()
+                    if (next.done) {
+                        done = true
+                        break
+                    }
+                    const sub = next.value
+                    let name = getNodeName(sub)
+                    name = basename(name) || name // on Windows, basename('C:') === ''
+                    if (filterName && !filterName(name)
+                    || fileMask && !nodeIsFolder(sub) && !fileMask(name)
+                    || filterComment && !filterComment(await getCommentFor(sub.source) || ''))
+                        continue
+                    if (!sub.see_without_probing && !sub.stats)
+                        void nodeStats(sub)
+                    pending.push(sub)
+                }
+                if (!pending.length || ctx.isAborted()) break
+                const sub = pending.shift()!
+                const entry = await nodeToDirEntry(ctx, sub)
+                if (!entry)
                     continue
+                const cbParams = { entry, ctx, listUri: uri, node: sub }
+                try {
+                    const res = await Promise.all(onDirEntryHandlers.map(({ id, cb }) =>
+                        callAsPromise(() => cb(cbParams)).catch(error => { throw { id, error } })))
+                    if (res.some(x => x === false))
+                        continue
+                }
+                catch(e: any) {
+                    console.warn(`Plugin ${e?.id || '?'} is causing problems on onDirEntry:`, e?.error ?? e)
+                }
+                if ((await events.emitAsync('dirEntry', cbParams))?.isDefaultPrevented())
+                    continue
+                if (offset) {
+                    --offset
+                    continue
+                }
+                if (c === 'no' && entry.c) // allow excluding c for smaller payload
+                    entry.c = undefined
+                yield entry
+                if (limit && !--limit)
+                    break
             }
-            catch(e: any) {
-                console.warn(`Plugin ${e?.id || '?'} is causing problems on onDirEntry:`, e?.error ?? e)
-            }
-            if ((await events.emitAsync('dirEntry', cbParams))?.isDefaultPrevented())
-                continue
-            if (offset) {
-                --offset
-                continue
-            }
-            if (c === 'no' && entry.c) // allow excluding c for smaller payload
-                entry.c = undefined
-            yield entry
-            if (limit && !--limit)
-                break
+        }
+        finally {
+            await walker.return()
         }
     }
 

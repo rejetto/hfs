@@ -9,6 +9,7 @@ import './plugin-catalog.test'
 import './plugin-changelog.test'
 import './quick-zip.test'
 import './file-cache.test'
+import './listing-prefetch.test'
 import test, { describe, before, after } from 'node:test';
 import { promisify } from 'util'
 import { srpClientPart, srpClientSequence } from '../src/srp'
