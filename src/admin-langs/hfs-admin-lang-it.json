@@ -4,6 +4,9 @@
     "translate": {
         "server_version_changed": "La versione del server è cambiata ({version}). Ricaricare la pagina?",
         "Directory cache": "Cache delle cartelle",
+        "Ready": "Pronta",
+        "Updating": "Aggiornamento in corso",
+        "{entries} entries in {directories} directories": "{entries} elementi in {directories} cartelle",
         "Never": "Mai",
         "At start": "All’avvio",
         "Every 1 hour": "Ogni ora",
