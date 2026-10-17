@@ -31,6 +31,8 @@ import { SERVER_CODE_SPLIT, parseServerCode } from '../../src/serverCode'
 import { highlight, languages } from 'prismjs'
 import { isCertError, isKeyError, suggestMakingCert } from './cert'
 import { useRoutedTab } from './routing'
+import { useInterval } from 'usehooks-ts'
+import DirectoryCacheDetails from './DirectoryCacheDetails'
 
 let loaded: Dict | undefined
 const TAB_PATHS = ['net', 'frontend', 'uploads', 'others']
@@ -64,6 +66,8 @@ export default function OptionsPage() {
     const saveBtnRef = useRef<HTMLButtonElement>(null)
     const tabsSticky = useFixSticky()
     const [tab, setTab] = useRoutedTab('options', TAB_PATHS)
+    // polling must not abort a status request that is still waiting on the server
+    useInterval(() => { if (!cacheApi.loading) void cacheApi.reload() }, tab === 3 ? 1000 : null)
     const fieldTabs: Dict<number> = {}
 
     const admins = useApiEx('get_admins').data?.list
@@ -283,12 +287,17 @@ export default function OptionsPage() {
                         { label: t`Every 1 hour`, value: 1 },
                         { label: t`Every 4 hours`, value: 4 },
                         { label: t`Every 24 hours`, value: 24 },
-                    ], helperText: h('span', { style: { display: 'flex', flexWrap: 'wrap', gap: '0.5em' } },
+                    ], helperText: h('span', { style: { display: 'flex', flexWrap: 'wrap' } },
+                        h('span', { style: { display: 'inline-flex', gap: '0.5em' } },
+                            cacheApi.error ? h('span', { role: 'alert' }, String(cacheApi.error)) : cacheApi.data?.enabled && h(LinkBtn, {
+                                onClick: () => alertDialog(h(DirectoryCacheDetails), { title: t`Directory cache` }),
+                            }, cacheApi.data.updating.length ? t`Updating` : t`Ready`),
+                            cacheApi.data?.enabled && values[CFG.directory_cache] && !cacheApi.data.updating.length && h(LinkBtn, {
+                                onClick: () => apiCall('refresh_directory_cache').then(() => toast(t`Refresh requested`), alertDialog),
+                            }, t`Refresh now`),
+                        ),
                         values[CFG.directory_cache] === -1 && Boolean(cacheApi.data?.networkPaths.length)
-                        && h('span', {}, t`Periodic refresh is recommended`, ' ', wikiLink('Directory-cache', t`Why?`)),
-                        cacheApi.data?.enabled && values[CFG.directory_cache] && h(LinkBtn, {
-                            onClick: () => apiCall('refresh_directory_cache').then(() => toast(t`Refresh requested`), alertDialog),
-                        }, t`Refresh now`),
+                        && wikiLink('Directory-cache', t`Periodic refresh is recommended`),
                     )
                 },
 
