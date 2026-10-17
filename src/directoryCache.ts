@@ -26,6 +26,7 @@ type Session = {
     unavailable: Set<string>
     failures: Set<string>
     dirty: Map<string, boolean>
+    updating: Set<string>
     watchers: Map<string, FSWatcher>
     parents: Map<string, FSWatcher>
     watchRoots: Set<string>
@@ -75,7 +76,7 @@ export function initDirectoryCache() {
                     aliases: previous?.aliases || new Map(),
                     aliasesByTarget: new Map(),
                     unavailable: new Set(previous?.unavailable),
-                    failures: new Set(), dirty: new Map(),
+                    failures: new Set(), dirty: new Map(), updating: new Set(),
                     watchers: new Map(), parents: new Map(), watchRoots: new Set(),
                     sources: paths, refreshAll: true,
                     run: debounceAsync(async () => run(current), { wait: 100, maxWait: 1000 }),
@@ -126,7 +127,15 @@ export function initDirectoryCache() {
 export async function getDirectoryCacheStatus() {
     await configuring
     await detecting
-    return { enabled: Boolean(session), directories: session?.directories.size || 0, networkPaths }
+    const updating = [...new Set([
+        ...(session?.updating || []),
+        ...(session?.dirty.keys() || []),
+        ...(session?.refreshAll ? session.sources : []),
+    ])]
+    let entries = 0
+    for (const list of session?.directories.values() || [])
+        entries += list.length
+    return { enabled: Boolean(session), directories: session?.directories.size || 0, entries, updating, networkPaths }
 }
 
 export function refreshDirectoryCache() {
@@ -223,12 +232,15 @@ async function run(current: Session) {
         if (full)
             console.debug('directory cache: building')
         const jobs = full ? current.sources.map(path => [path, true] as const) : [...current.dirty]
+        // dirty is cleared before scanning; keep active subtrees visible until their recursive scan finishes
+        current.updating = new Set(jobs.map(([path]) => path))
         current.dirty.clear()
         const seen = new Set<string>()
         const roots = new Set<string>()
         for (const [path, recursive] of jobs) {
             if (session !== current || quitting) return
             await scan(path, recursive, full || current.watchRoots.has(path))
+            current.updating.delete(path)
         }
         if (full && session === current) {
             for (const path of current.directories.keys())
