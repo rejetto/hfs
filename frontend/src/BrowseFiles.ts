@@ -12,6 +12,7 @@ import {
 } from './misc'
 import { Checkbox, CustomCode, Bytes, iconBtn, Spinner } from './components'
 import { Head } from './Head'
+import { FilterBar } from './FilterBar'
 import { DirEntry, state, useSnapState } from './state'
 import { alertDialog } from './dialog'
 import useFetchList, { usePath } from './useFetchList'
@@ -61,6 +62,7 @@ export function BrowseFiles() {
             h(Head, { onTop: menuAtTop && menuPanel }),
             h(CustomCode, { name: 'afterHeader' }),
             props?.comment && h('div', { className: 'entry-comment' }, props.comment),
+            menuAtTop && h(FilterBar),
             error ? h(ErrorMsg, { err: error }) : list,
             h(CustomCode, { name: 'afterList' }),
             menuAtTop && h('div', { id: 'afterListFiller', style: { flex: 1 }}),
@@ -76,6 +78,7 @@ export function BrowseFiles() {
                 !error && paging,
                 h(ClipBar),
                 h(CustomCode, { name: 'footer' }),
+                !menuAtTop && h(FilterBar),
                 !menuAtTop && menuPanel,
             )),
             !menuAtTop && h('div', { id: 'afterListFiller', style: { flex: 1 }}),

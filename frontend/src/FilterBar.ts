@@ -1,15 +1,22 @@
 import { state, useSnapState } from './state'
-import { createElement as h, useMemo, useState } from 'react'
+import { createElement as h, useEffect, useMemo, useRef, useState } from 'react'
 import { useDebounce } from 'usehooks-ts'
 import { Checkbox, CustomCode } from './components'
-import { with_ } from './misc'
+import { getHFS, with_ } from './misc'
+import { scrollIntoView } from './Paging'
 import i18n from './i18n'
 const { useI18N } = i18n
 
 export function FilterBar() {
     const { list, filteredList, selected, patternFilter, showFilter } = useSnapState()
     const [filter, setFilter] = useState(patternFilter)
+    const ref = useRef<HTMLDivElement>(null)
     const {t} = useI18N()
+
+    useEffect(() => {
+        if (showFilter && getHFS().menu_at_top) // a long folder comment can keep the filter below the viewport before it reaches its sticky position
+            scrollIntoView(ref.current, 'nearest')
+    }, [showFilter])
 
     state.patternFilter = useDebounce(showFilter ? filter : '', 300)
     const entries = filteredList || list
@@ -18,7 +25,7 @@ export function FilterBar() {
         && entries.every(x => !x.canSelect() || selected[x.uri]), [showFilter, entries, selected])
 
     const tabIndex = showFilter ? undefined : -1
-    return h('div', { id: 'filter-bar', style: { display: showFilter ? undefined : 'none' } },
+    return h('div', { id: 'filter-bar', ref, style: { display: showFilter ? undefined : 'none' } },
         h(Checkbox, {
             value: all,
             tabIndex,

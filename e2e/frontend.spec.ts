@@ -391,6 +391,70 @@ test('queued uploads keep their policies across option changes and navigation', 
     }
 })
 
+test('filter follows the menu position and keeps its value', async ({ page }) => {
+    await gotoFrontend(page)
+    await page.getByRole('button', { name: 'Select', exact: true }).click()
+    await page.locator('#filter').fill('cant')
+    await expect(page.getByText('5 filtered')).toBeVisible()
+    for (const menuAtTop of [false, true]) {
+        await page.evaluate(top => {
+            const hfs = (window as any).HFS
+            hfs.menu_at_top = top
+            hfs.state.props = { ...hfs.state.props, comment: top ? 'Comment with top menu' : 'Comment with bottom menu' }
+        }, menuAtTop)
+        await expect(page.locator('#filter-bar')).toHaveCount(1)
+        await expect(page.locator('#filter')).toHaveValue('cant')
+        await expect(page.locator('.bottom-bar-stack #filter-bar')).toHaveCount(menuAtTop ? 0 : 1)
+        const filter = (await page.locator('#filter-bar').boundingBox())!
+        if (menuAtTop) {
+            const comment = (await page.getByText('Comment with top menu', { exact: true }).boundingBox())!
+            expect(filter.y).toBeGreaterThanOrEqual(comment.y + comment.height)
+        }
+        else {
+            const menu = (await page.locator('#menu-bar').boundingBox())!
+            expect(filter.y + filter.height).toBeLessThanOrEqual(menu.y)
+        }
+    }
+})
+
+test('opening the filter keeps it in view after scrolling', async ({ page }) => {
+    for (const menuAtTop of [false, true]) {
+        await gotoFrontend(page)
+        await page.evaluate(top => {
+            const hfs = (window as any).HFS
+            hfs.menu_at_top = top
+            hfs.state.props = { ...hfs.state.props, comment: 'Comment before the filter' }
+            hfs.state.page_size = 100
+            hfs.state.list = Array.from({ length: 100 }, (_, i) => new hfs.DirEntry(`file-${i}.txt`))
+        }, menuAtTop)
+        await expect(page.locator('.bottom-bar-stack #filter-bar')).toHaveCount(menuAtTop ? 0 : 1)
+        await page.evaluate(() => window.scrollTo(0, window.innerHeight * 2))
+        await expect.poll(() => page.evaluate(() => window.scrollY > window.innerHeight)).toBe(true)
+        const before = await page.evaluate(() => window.scrollY)
+        await page.getByRole('button', { name: 'Select', exact: true }).click()
+        await expect(page.locator('#filter-bar')).toBeInViewport({ ratio: 1 })
+        if (menuAtTop) {
+            await page.evaluate(() => window.scrollBy(0, window.innerHeight))
+            await expect(page.locator('#filter-bar')).toBeInViewport({ ratio: 1 })
+            await expect.poll(async () => {
+                const filter = (await page.locator('#filter-bar').boundingBox())!
+                const header = (await page.locator('header').boundingBox())!
+                return filter.y >= header.y + header.height
+            }).toBe(true)
+            await page.setViewportSize({ width: 600, height: 500 })
+            await expect.poll(async () => {
+                const filter = (await page.locator('#filter-bar').boundingBox())!
+                const header = (await page.locator('header').boundingBox())!
+                return Math.abs(filter.y - header.y - header.height) < 1
+            }).toBe(true)
+        }
+        else {
+            // tapping the bottom menu can nudge WebKit's viewport by a couple pixels
+            expect(Math.abs(await page.evaluate(() => window.scrollY) - before)).toBeLessThan(5)
+        }
+    }
+})
+
 test('filter resets paging when the first entry stays the same', async ({ page }) => {
     await gotoFrontend(page)
     await expect(page.getByRole('link', { name: 'cantListBut, Folder' })).toBeVisible()

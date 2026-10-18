@@ -133,13 +133,15 @@ export function useIsMobile() {
 }
 
 // workaround for the usability problem caused by sticky headers/footers. Just assign the returned value as ref prop of your sticky element.
-export function useFixSticky() {
-    return useOnResize(useCallback((_w, h, _el, style) => {
+export function useFixSticky(heightVariable?: string) {
+    return useOnResize(useCallback((_w, h, el, style) => {
         Object.assign(document.documentElement.style, {
             scrollPaddingTop: `${h + (parseFloat(style.top) || 0)}px`,
             scrollPaddingBottom: `${h + (parseFloat(style.bottom) || 0)}px`,
         })
-    }, [])).refToPass
+        if (heightVariable)
+            document.documentElement.style.setProperty(heightVariable, `${el.getBoundingClientRect().height}px`)
+    }, [heightVariable])).refToPass
 }
 
 // returns props to assign to your component, and a copy of the ref; calls back with [width, height]

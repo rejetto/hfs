@@ -5,17 +5,15 @@ import { formatBytes, hIcon, useFixSticky } from './misc'
 import { CustomCode, Spinner } from './components'
 import { useSnapState } from './state'
 import { Breadcrumbs } from './Breadcrumbs'
-import { FilterBar } from './FilterBar'
 import i18n from './i18n'
 const { useI18N } = i18n
 
 export function Head({ onTop }: { onTop?: ReactNode }) {
-    return h('header', { ref: useFixSticky() },
+    return h('header', { ref: useFixSticky('--header-height') },
         onTop,
         h(Breadcrumbs),
         h(CustomCode, { name: 'afterBreadcrumbs' }),
         h(FolderStats),
-        h(FilterBar),
     )
 }
 

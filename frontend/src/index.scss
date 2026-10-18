@@ -286,10 +286,16 @@ kbd {
     align-items: center;
     gap: .8em;
     margin: 0.2em 0 0;
-    padding: 2px 0 1px 3px;
+    padding: 2px 0 1px 5px;
     height: 1.8em; /* necessary to animate displaying */
     input[type=checkbox] { margin-top: .3em; }
     span:empty { display:none } /* avoid flex-gap */
+}
+.list-wrapper > #filter-bar {
+    @extend .hide-back;
+    position: sticky;
+    top: var(--header-height);
+    z-index: 3;
 }
 #login-options {
     font-size: smaller;
