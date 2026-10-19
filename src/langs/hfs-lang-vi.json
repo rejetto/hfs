@@ -4,6 +4,7 @@
     "version": 3.1,
     "translate": {
         "Select": "Chọn",
+        "Filter": "Lọc",
         "n_files": "{n,plural,one{# tập tin} other{# tập tin}}",
         "n_folders": "{n,plural,one{# thư mục} other{# thư mục}}",
         "filter_count": "{n,plural, one{# đã lọc} other{# đã lọc}}",

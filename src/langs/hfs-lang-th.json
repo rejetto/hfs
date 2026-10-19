@@ -3,6 +3,7 @@
     "version": 1.0,
     "translate": {
         "Select": "เลือก",
+        "Filter": "กรอง",
         "n_files": "{n} ไฟล์",
         "n_folders": "{n} โฟลเดอร์",
         "filter_count": "{n} ผ่าน",

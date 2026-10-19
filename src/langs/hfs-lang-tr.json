@@ -3,6 +3,7 @@
     "version": 1.0,
     "translate": {
         "Select": "Seç",
+        "Filter": "Filtrele",
         "n_files": "{n,plural,one{# dosya} other{# dosya}}",
         "n_folders": "{n,plural,one{# klasör} other{# klasör}}",
         "filter_count": "{n,plural, one{# filtrelendi} other{# filtrelendi}}",

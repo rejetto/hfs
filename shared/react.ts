@@ -8,6 +8,14 @@ import { useIsMounted, useWindowSize, useMediaQuery } from 'usehooks-ts'
 import { Callback, domOn, Falsy, repeat } from '.'
 import _ from 'lodash'
 
+export function useAutoFocus<T extends HTMLElement>(enabled = true) {
+    const ref = useRef<T>(null)
+    useEffect(() => {
+        if (enabled) ref.current?.focus()
+    }, [enabled])
+    return ref
+}
+
 export function useStateMounted<T>(init: T) {
     const isMounted = useIsMounted()
     const [v, set] = useState(init)

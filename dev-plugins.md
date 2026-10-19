@@ -692,7 +692,8 @@ This is a list of available frontend-events, with respective object parameter an
   - output `number | undefined`
 - `enableEntrySelection`
   - selection of multiple entries is used for some standard actions like deletion or zip. 
-    When none of such standard actions is permitted on an entry, its selection control (checkbox) is disabled. 
+    When none of such standard actions is permitted on an entry, its selection control (checkbox) is disabled.
+    If no entry can be selected, checkboxes are hidden and the Select button becomes Filter.
     If you want to override this behavior, because you have a custom action that makes use of the selection, return `true`.
   - parameter `{ entry: DirEntry }`
   - output `boolean`

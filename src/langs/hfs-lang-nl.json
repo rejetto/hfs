@@ -3,6 +3,7 @@
     "version": 1.0,
     "translate": {
         "Select": "Selecteer",
+        "Filter": "Filteren",
         "n_files": "{n,plural,one{# bestand} other{# bestanden}}",
         "n_folders": "{n,plural,one{# map} other{# mappen}}",
         "filter_count": "{n,plural, one{# gefilterd} other{# gefilterd}}",
