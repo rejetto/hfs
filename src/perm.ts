@@ -138,29 +138,34 @@ export function invalidateAccountSessions(account: Account | string) {
 }
 
 export const accounts = defineConfig(CFG.accounts, {} as Accounts)
-accounts.sub(async () => {
-    await sessionStampsReady
-    // do not debounce: removing and recreating a username must not be coalesced into one change
-    reconcileAccountSessions()
-})
-accounts.sub(_.debounce(obj => {
-    // consider some validation here, in case of manual edit of the config
+accounts.sub(async obj => {
+    let saveChanges = false
+    // requests can observe reloaded accounts before the deferred field processing runs
     _.each(obj, (rec,k) => {
         const norm = normalizeUsername(k)
         if (isPrototypeKey(norm)) {
             delete obj[k]
-            saveAccountsAsap()
+            saveChanges = true
             return
         }
         if (rec?.username !== norm) {
             if (!rec) // an empty object in yaml is parsed as null
                 rec = obj[norm] = { username: norm }
             else if (objRenameKey(obj, k, norm))
-                saveAccountsAsap()
+                saveChanges = true
             setHidden(rec, { username: norm })
         }
+    })
+    await sessionStampsReady
+    // do not debounce: removing and recreating a username must not be coalesced into one change
+    reconcileAccountSessions()
+    if (saveChanges)
+        saveConfigAsap()
+})
+accounts.sub(_.debounce(obj => {
+    _.each(obj, (rec,k) => {
         void updateAccount(rec, {}) // work fields
-        removeLoops(norm)
+        removeLoops(normalizeUsername(k))
     })
 
     function removeLoops(normalizedUsername: string, visiting = new Set<string>()) {
