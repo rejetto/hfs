@@ -37,7 +37,7 @@ for (const k of ['log','warn','error','debug'] as const) {
         if (!terminalOutputBroken) {
             const date = formatDate(ts)
             if (date !== lastTerminalDate)
-                (console.log as any).original(lastTerminalDate = date)
+                originalConsoleLog(lastTerminalDate = date) // the command prompt wraps console.log without preserving its properties
             try { return original(formatTime(ts), ...args) } // bundled nodejs doesn't have locales (and apparently uses en-US)
             catch (err) {
                 if (!isBrokenTerminalOutput(err))
