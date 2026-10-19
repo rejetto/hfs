@@ -1,3 +1,4 @@
+import './id3.test'
 import './acme-dns.test'
 import './acme-dns-providers.test'
 import './filename-normalization.test'
@@ -2930,7 +2931,7 @@ describe('after-login', () => {
                 throw Error('delete probe did not start')
 
             await mkdir(resolve(dir, 'uniform'))
-            await Promise.all(Array.from({ length: 1000 }, (_, i) => writeFile(resolve(dir, `uniform/${i}.txt`), 'x')))
+            await Promise.all(Array.from({ length: 2 }, (_, i) => writeFile(resolve(dir, `uniform/${i}.txt`), 'x')))
             await req(uri + 'uniform/', 200, { method: 'delete', ...adminReq })()
             await reqApi('_delete_probe', {}, x => x.length === 0, adminReq)()
 

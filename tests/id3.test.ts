@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test'
+import test from 'node:test'
+import assert from 'node:assert/strict'
 import { getId3Tags } from '../frontend/src/id3'
 
 test('ID3 text fields stop at their terminator', async () => {
@@ -12,7 +13,7 @@ test('ID3 text fields stop at their terminator', async () => {
     text.copy(tag, 20)
 
     const tags = await getId3Tags(`data:audio/mpeg;base64,${tag.toString('base64')}`)
-    expect(tags?.title).toBe('Visible title')
+    assert.equal(tags?.title, 'Visible title')
 })
 
 test('ID3v2.4 text frames are decoded', async () => {
@@ -30,6 +31,6 @@ test('ID3v2.4 text frames are decoded', async () => {
 
     const tag = Buffer.concat([header, title, year])
     const tags = await getId3Tags(`data:audio/mpeg;base64,${tag.toString('base64')}`)
-    expect(tags?.title).toBe('T'.repeat(129))
-    expect(tags?.year).toBe('2026')
+    assert.equal(tags?.title, 'T'.repeat(129))
+    assert.equal(tags?.year, '2026')
 })
