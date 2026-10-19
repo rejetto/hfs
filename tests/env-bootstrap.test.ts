@@ -56,7 +56,11 @@ for (const via of ['api', 'file', 'offline'] as const)
             }
             for (let i = 0; i < 100; i++) {
                 const current = await (await server.api('get_config', { only: ['accounts'] }, adminPass)).json()
-                if (JSON.stringify(current.accounts) === JSON.stringify(config.accounts)) return
+                if (JSON.stringify(current.accounts) === JSON.stringify(config.accounts)) {
+                    // work around deferred username normalization before checking session reconciliation
+                    const admin = await (await server.api('get_account', { username: 'admin' }, adminPass)).json()
+                    if (admin.username === 'admin') return
+                }
                 await delay(30)
             }
             assert.fail('account configuration did not reload')
