@@ -13,7 +13,20 @@ import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 for (const via of ['api', 'file', 'offline'] as const)
     test(`account configuration changes reconcile sessions via ${via}`, { timeout: 25000 }, async t => {
         const { cwd, start } = await workspace(t)
-        const env = { HFS_ENV_BOOTSTRAP: 'true', HFS_CREATE_ADMIN: 'initial-password', COOKIE_SIGN_KEYS: 'config-edit-test-key' }
+        const env: NodeJS.ProcessEnv = { HFS_ENV_BOOTSTRAP: 'true', HFS_CREATE_ADMIN: 'initial-password', COOKIE_SIGN_KEYS: 'config-edit-test-key' }
+        const observedAccount = join(cwd, 'observed-account.json')
+        const notes = 'unrelated edit'
+        if (via === 'file') {
+            // public observers must see a complete account before deferred processing can run
+            env.HFS_SERVER_CODE = `exports.init = api => {
+                api.events.on('config.accounts', accounts => {
+                    if (accounts.alice?.notes === '${notes}') {
+                        require('node:fs').writeFileSync(${JSON.stringify(observedAccount)},
+                            JSON.stringify({ username: api.getAccount('alice')?.username }))
+                    }
+                })
+            }`
+        }
         const args = ['--localhost_admin', 'false']
         let server = await start(env, args)
         const adminPass = 'initial-password'
@@ -25,8 +38,10 @@ for (const via of ['api', 'file', 'offline'] as const)
         const oldCookie = cookies(login)
         await persisted(cwd, saved => Boolean(saved.accounts?.alice?.srp))
         const config = yaml.parse(await readFile(join(cwd, 'config.yaml'), 'utf8'))
-        config.accounts.alice.notes = 'unrelated edit'
+        config.accounts.alice.notes = notes
         await changeConfig()
+        if (via === 'file')
+            assert.equal(JSON.parse(await readFile(observedAccount, 'utf8')).username, 'alice')
         assert.equal((await (await server.api('refresh_session', {}, undefined, oldCookie)).json()).username, 'alice')
         const verifier = await createVerifierAndSalt(new SRPRoutines(new SRPParameters()), 'alice', 'new-password')
         config.accounts.alice.srp = `${verifier.s}|${verifier.v}`
@@ -56,11 +71,7 @@ for (const via of ['api', 'file', 'offline'] as const)
             }
             for (let i = 0; i < 100; i++) {
                 const current = await (await server.api('get_config', { only: ['accounts'] }, adminPass)).json()
-                if (JSON.stringify(current.accounts) === JSON.stringify(config.accounts)) {
-                    // work around deferred username normalization before checking session reconciliation
-                    const admin = await (await server.api('get_account', { username: 'admin' }, adminPass)).json()
-                    if (admin.username === 'admin') return
-                }
+                if (JSON.stringify(current.accounts) === JSON.stringify(config.accounts)) return
                 await delay(30)
             }
             assert.fail('account configuration did not reload')
