@@ -34,6 +34,13 @@ To run tests
 - `npm run test-ui` (all UI tests; Playwright starts the HFS and Admin Vite fixture servers)
 - To run a specific UI regression, pass its filename to Playwright, for example `npx playwright test admin-data-table --workers=1 --project=chromium`.
 
+`./scripts/local-ci.sh watch` checks new commits in isolated worktrees; use
+`./scripts/local-ci.sh <commit> [--force]` for a single commit. It runs `build-all`,
+`test-with-server`, then the complete `test-ui` sequence, stopping on the first failed stage.
+Its servers use ports 18081, 18082 and 13112 to stay separate from manual test runs.
+Previously validated commits require `--force` to run again after changing the pipeline.
+Run `node --import tsx --test tests/local-ci.test.ts` to check the orchestration with temporary Git repositories.
+
 # File organization
 
 The project is roughly divided in Server + Frontend + Admin, where Frontend is a web interface intended to access
