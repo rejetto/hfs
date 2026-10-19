@@ -91,7 +91,8 @@ exports.init = async api => {
     t.after(async () => {
         child.kill()
         await stopped
-        await rm(cwd, { recursive: true, force: true })
+        // Windows can retain file handles briefly after the child exits
+        await rm(cwd, { recursive: true, force: true, maxRetries: 5 })
     })
     let output = ''
     child.stdout.on('data', chunk => output += chunk)

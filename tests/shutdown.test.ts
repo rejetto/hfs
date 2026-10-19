@@ -139,7 +139,8 @@ test('shutdown: quit closes HTTPS sockets before their TLS handshake', { timeout
     t.after(async () => {
         child.kill('SIGKILL')
         await stopped
-        await rm(cwd, { recursive: true, force: true })
+        // Windows can retain file handles briefly after the child exits
+        await rm(cwd, { recursive: true, force: true, maxRetries: 5 })
     })
     let output = ''
     child.stdout.on('data', chunk => output += chunk)

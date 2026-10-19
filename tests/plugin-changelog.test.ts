@@ -29,6 +29,7 @@ test('plugin source discards malformed changelogs and invalid entries', async ()
         assert.equal(child.status, 0, child.error?.message || child.stderr || child.stdout)
     }
     finally {
-        await rm(cwd, { recursive: true, force: true })
+        // Windows can retain file handles briefly after the child exits
+        await rm(cwd, { recursive: true, force: true, maxRetries: 5 })
     }
 })

@@ -9,6 +9,7 @@ import './plugin-catalog.test'
 import './plugin-changelog.test'
 import './quick-zip.test'
 import test, { describe, before, after } from 'node:test';
+import assert from 'node:assert/strict'
 import { promisify } from 'util'
 import { srpClientPart, srpClientSequence } from '../src/srp'
 import * as srp from 'tssrp6a'
@@ -1231,8 +1232,10 @@ describe('webdav', () => {
             await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
         }
     })
-    test('webdav options works after auth', req('/f1/', (_data, res) =>
-        res.statusCode === 200 && res.headers?.dav === '1,2', {
+    test('webdav options works after auth', req('/f1/', (data, res) => {
+        assert.equal(res.statusCode, 200, JSON.stringify({ status: res.statusCode, headers: res.headers, data }))
+        assert.equal(res.headers?.dav, '1,2', JSON.stringify({ headers: res.headers, data }))
+    }, {
         method: 'OPTIONS',
         auth,
         headers: { 'user-agent': OFFICE_WEBDAV_UA },
