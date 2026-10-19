@@ -23,9 +23,16 @@ import i18n from './i18n'
 import { encodeUrlList } from '../../src/urlList'
 const { t, useI18N } = i18n
 
-export function MenuPanel() {
-    const { showFilter, remoteSearch, stopSearch, searchManuallyInterrupted, selected, props } = useSnapState()
+export function MenuPanel({ hasSelectableEntries }: { hasSelectableEntries: boolean }) {
+    const { showFilter, remoteSearch, stopSearch, searchManuallyInterrupted, selected, props, list: entries } = useSnapState()
     const { can_upload, can_delete_children, can_archive } = props || {}
+    const selectedEntries = useMemo(() => entries.filter(entry => selected[entry.uri]), [entries, selected])
+    const canDelete = useMemo(() => can_delete_children || selectedEntries.some(entry => entry.canDelete()),
+        [can_delete_children, selectedEntries])
+    const canArchive = useMemo(() => can_archive || selectedEntries.some(entry => entry.canArchive()),
+        [can_archive, selectedEntries])
+    const showZip = useMemo(() => can_archive || showFilter && entries.some(entry => entry.canArchive() && entry.canSelect()),
+        [can_archive, showFilter, entries])
     const { uploading, qs, uploadDialogIsOpen }  = useSnapshot(uploadState)
     useEffect(() => {
         if (!showFilter)
@@ -52,16 +59,16 @@ export function MenuPanel() {
     const [changingButton, setChangingButton] = useState<'' | 'upload' | 'delete'>('')
     useEffect(() => {
         if (can_upload !== undefined)
-            setChangingButton(showFilter && can_delete_children ? 'delete' : (can_upload || qs.length > 0) ? 'upload' : '')
-    }, [showFilter, can_delete_children, can_upload, qs.length])
+            setChangingButton(showFilter && canDelete ? 'delete' : (can_upload || qs.length > 0) ? 'upload' : '')
+    }, [showFilter, canDelete, can_upload, qs.length])
     return h('div', { id: 'menu-panel' },
         h('div', { id: 'menu-bar' },
             h(LoginButton),
             h(Btn, {
                 id: 'select-button',
-                icon: 'check',
-                label: t`Select`,
-                tooltip: t`select_tooltip`,
+                icon: hasSelectableEntries ? 'check' : 'filter',
+                label: hasSelectableEntries ? t`Select` : t`Filter`,
+                tooltip: hasSelectableEntries ? t`select_tooltip` : t`filter_placeholder`,
                 toggled: showFilter,
                 onClick() {
                     state.showFilter = !showFilter
@@ -83,7 +90,7 @@ export function MenuPanel() {
                 className: 'sliding ' + (changingButton ? '' : 'hide-sliding') + (uploading && !uploadDialogIsOpen ? '  ani-working' : ''),
                 onClick: showUpload,
             }),
-            h(Btn, showFilter && can_delete_children ? {
+            h(Btn, showFilter && canDelete ? {
                 id: 'cut-button',
                 icon: 'cut',
                 label: t`Cut`,
@@ -117,15 +124,16 @@ export function MenuPanel() {
                 id: 'zip-button',
                 icon: 'archive',
                 label: t`Zip`,
-                disabled: !can_archive,
-                'aria-hidden': !can_archive,
-                className: 'sliding ' + (can_archive ? '' : 'hide-sliding'),
+                disabled: !canArchive,
+                'aria-hidden': !showZip,
+                className: 'sliding ' + (showZip ? '' : 'hide-sliding'),
                 tooltip: list ? t`zip_tooltip_selected`
                     : t`zip_tooltip_whole`,
                 href: buildUrlQueryString(_.pickBy({
                     get: 'zip',
                     ...remoteSearch,
-                    list: isAllSelected() ? undefined : list
+                    // without folder permission, even a complete selection must use individual permissions
+                    list: can_archive && isAllSelected() ? undefined : list
                 })),
                 ...!list && {
                     confirm: remoteSearch ? t`zip_confirm_search`

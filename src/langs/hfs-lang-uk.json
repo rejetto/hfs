@@ -3,6 +3,7 @@
     "version": 1.0,
     "translate": {
         "Select": "Вибір",
+        "Filter": "Фільтрувати",
         "n_files": "{n,plural, one{# файл} few{# файли} many{# файлів}}",
         "n_folders": "{n,plural, one{# тека} few{# теки} many{# тек}}",
         "filter_count": "{n,plural, one{# елемент} few{# елементи} many{# елементів}}",

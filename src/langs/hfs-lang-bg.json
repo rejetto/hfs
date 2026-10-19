@@ -3,6 +3,7 @@
   "version": 1.0,
   "translate": {
     "Select": "Избери",
+    "Filter": "Филтриране",
     "n_files": "{n,plural,one{# файл} other{# файлове}}",
     "n_folders": "{n,plural,one{# папка} other{# папки}}",
     "filter_count": "{n,plural, one{# филтриран} other{# филтрирани}}",

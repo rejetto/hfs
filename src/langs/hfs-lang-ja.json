@@ -3,6 +3,7 @@
     "version": 1.1,
     "translate": {
         "Select": "選択",
+        "Filter": "絞り込み",
         "n_files": "{n,plural,one{# ファイル} other{# ファイル}}",
         "n_folders": "{n,plural,one{# フォルダ} other{# フォルダ}}",
         "filter_count": "{n,plural, one{# 絞り込み} other{# 絞り込み}}",

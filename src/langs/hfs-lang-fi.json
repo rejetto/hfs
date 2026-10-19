@@ -3,6 +3,7 @@
     "version": 1.33,
     "translate": {
         "Select": "Valitse",
+        "Filter": "Suodata",
         "n_files": "{n,plural,one{# tiedosto} other{# tiedostoa}}",
         "n_folders": "{n,plural,one{# kansio} other{# kansiota}}",
         "filter_count": "{n,plural, one{# suodatettu} other{# suodatettu}}",
