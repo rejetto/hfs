@@ -3,6 +3,7 @@
 	"version": 1.0,
 	"translate": {
         "Select": "Wybierz",
+        "Filter": "Filtruj",
         "n_files": "{n,plural,one{# plik} other{# plików}}",
         "n_folders": "{n,plural,one{# folder} other{# foldery}}",
         "filter_count": "{n,plural,one{# filtered} other{# filtered}}",

@@ -3,6 +3,7 @@
     "version": 1.0,
     "translate": {
         "Select": "Pasirinkti",
+        "Filter": "Filtruoti",
         "n_files": "{n,plural,one{# failas} few{# failai} other{# failų}}",
         "n_folders": "{n,plural,one{# aplankas} few{# aplankai} other{# aplankų}}",
         "filter_count": "{n,plural, one{# filtruota} few{# filtruoti} other{# filtruota}}",
