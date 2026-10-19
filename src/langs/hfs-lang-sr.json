@@ -3,6 +3,7 @@
     "version": 1.6,
     "translate": { 
         "Select": "Изабери", 
+        "Filter": "Филтрирај",
         "n_files": "{n,plural, one {# документ} other{# документа}}", 
         "n_folders": "{n,plural, one {# фолдер} other{# фолдера}}", 
         "filter_count": "{n,plural, one{# ставка} other{# ставки}}",

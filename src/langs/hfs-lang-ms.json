@@ -3,6 +3,7 @@
     "version": 1.0,
     "translate": {
         "Select": "Pilih",
+        "Filter": "Tapis",
         "n_files": "{n,plural, one{# fail} other{# fail}}",
         "n_folders": "{n,plural, one{# folder} other{# folder}}",
         "filter_count": "{n,plural, one{# disenaraikan} other{# disenaraikan}}",

@@ -3,6 +3,7 @@
 	"version":	"1.5",
 	"translate": {
 		"Select": "Selectionner",
+		"Filter": "Filtrer",
 		"n_files": "{n,plural, one{# fichier} other{# fichiers}}",
 		"n_folders": "{n,plural, one{# dossier} other{# dossiers}}",
 		"filter_count": "{n,plural, one{# filtré ;} other{# filtrés}}",

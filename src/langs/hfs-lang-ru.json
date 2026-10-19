@@ -3,6 +3,7 @@
     "version": 2.71,
     "translate": {
         "Select": "Выбор",
+        "Filter": "Фильтр",
         "n_files": "{n,plural, one{# файл} few{# файла} many{# файлов}}",
         "n_folders": "{n,plural, one{# папка} few{# папки} many{# папок}}",
         "filter_count": "{n,plural, one{# элемент} few{# элемента} many{# элементов}}",
