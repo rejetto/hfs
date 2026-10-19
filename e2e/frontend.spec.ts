@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test'
+import { test, expect, Page, Locator } from '@playwright/test'
 import fs from 'fs'
 import { createServer, ServerResponse } from 'node:http'
 import { wait } from '../src/cross'
@@ -776,14 +776,18 @@ test('admin1', async ({ page }) => {
     if (isPhone)
         await clickIconBtn('Close', page)
     await clickAdminMenu(page, 'Options')
-    await expect(page.getByText('Correctly working on port')).toBeVisible() // wait for data
+    const portStatus = page.getByText(`Correctly working on port ${TEST_PORT}`, { exact: true })
+    const portNumber = page.getByRole('spinbutton', { name: 'Number', exact: true })
+    await expect(portStatus).toBeVisible() // wait for data
+    await expect(portNumber).toHaveValue(String(TEST_PORT))
     if (!isPhone) {
         const header = page.getByRole('row', { name: /^Blocked IP/ })
         await expect(header.getByRole('columnheader', { name: 'Comment', exact: true })).toBeVisible()
         await expect(header.getByRole('button', { name: /Add/ })).toBeVisible()
     }
     await page.mouse.click(1, 1) // avoid focus inconsistencies
-    await screenshot(page)
+    // verify the actual port above, then mask it so manual and isolated CI runs share the same visual baseline
+    await screenshot(page, portNumber.or(portStatus))
 
     await clickAdminMenu(page, 'Logs')
     await dataTableLoading()
@@ -831,22 +835,25 @@ test('admin1', async ({ page }) => {
     await screenshot(page)
     await clickAdminMenu(page, 'Internet')
     await expect(page.getByText(`port ${TEST_PORT}`)).toBeVisible({ timeout: 15000 }) // wait for data (get_nat can be very slow)
+    const mainAddress = page.getByText(`http://127.0.0.1:${TEST_PORT}`, { exact: true })
+    await expect(mainAddress).toBeVisible()
     await page.mouse.click(1, 1) // avoid focus inconsistencies
-    await screenshot(page)
+    // the URL width also moves Change, so mask their shared row after checking the address
+    await screenshot(page, mainAddress.locator('..'))
     await clickAdminMenu(page, 'Logout')
     await screenshot(page)
     expect(apiErrors).toEqual([])
 })
 
-async function screenshot(page: Page, selectorForMask = '') {
+async function screenshot(page: Page, additionalMask?: string | Locator) {
     if (process.env.NO_SS) return
     const testInfo = test.info()
     const snapshotName = nextScreenshotName(testInfo)
     const snapshotPath = testInfo.snapshotPath(snapshotName, { kind: 'screenshot' })
-    if (selectorForMask)
-        selectorForMask = ',' + selectorForMask
     await wait(500) // this accounts especially for our DataTable component which takes time to set the layout
-    const mask = [page.locator(`.maskInTests${selectorForMask}`)]
+    const mask = [page.locator('.maskInTests')]
+    if (additionalMask)
+        mask.push(typeof additionalMask === 'string' ? page.locator(additionalMask) : additionalMask)
     // write the missing baseline ourselves so Playwright does not turn the first run into a failure
     if (!fs.existsSync(snapshotPath)) {
         await page.screenshot({
@@ -874,7 +881,7 @@ test('anew', async ({ page, browserName }) => {
     forwardConsole(page)
     if (page.viewportSize()?.width! < 1000 || browserName !== 'chromium') return // test only for desktop chromium
     // reset config so each run starts from the same default workspace state
-    const port = 8082
+    const port = Number(process.env.HFS_TEST_SECONDARY_PORT || 8082)
     do {
         fs.writeFileSync('tests/work2/config.yaml', `port: ${port}\nopen_browser_at_start: false\n`)
         await wait(500)

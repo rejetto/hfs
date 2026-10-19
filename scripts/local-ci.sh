@@ -71,18 +71,18 @@ else
     done
 fi
 
+mkdir -p "$WORKTREE_BASE"
+
 # Validate commit if provided
 if [ -n "$COMMIT_REQUEST" ]; then
-    if git -C "$PROJECT_ROOT" rev-parse "$COMMIT_REQUEST" >/dev/null 2>&1; then
+    if resolved_commit=$(git -C "$PROJECT_ROOT" rev-parse --verify "$COMMIT_REQUEST^{commit}" 2>/dev/null); then
+        COMMIT_REQUEST="$resolved_commit"
         echo "$COMMIT_REQUEST" > "$CI_DIR/test-commit"
     else
         echo "Error: Invalid commit hash: $COMMIT_REQUEST"
         exit 1
     fi
 fi
-
-mkdir -p "$CI_DIR"
-mkdir -p "$WORKTREE_BASE"
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
@@ -333,10 +333,14 @@ run_test() {
         tip=$(git -C "$PROJECT_ROOT" rev-parse "$branch" 2>/dev/null || echo "")
     fi
 
-    # Modify port in worktree to avoid conflicts for detached or non-tip commits
-    if [ -z "$branch" ] || [ "$branch" = "detached" ] || [ "$commit" != "$tip" ]; then
+    # all commits use an isolated port, including the current branch tip
+    if [ -f "$worktree_path/tests/config.yaml" ]; then
         log "Changing tests/config.yaml port to $TEST_PORT in worktree files"
-        sed -i '' -E "s/^port:[[:space:]]*[0-9]+/port: $TEST_PORT/" "$worktree_path/tests/config.yaml" 2>/dev/null || true
+        local configured_port
+        configured_port=$(sed -nE 's/^port:[[:space:]]*([0-9]+).*$/\1/p' "$worktree_path/tests/config.yaml")
+        # advertised URLs must follow the isolated listener, otherwise list/download tests use the manual server
+        sed -i '' -E -e "s/^port:[[:space:]]*[0-9]+/port: $TEST_PORT/" \
+            -e "/^base_url:/s/:$configured_port([/[:space:]]|$)/:$TEST_PORT\1/" "$worktree_path/tests/config.yaml"
         # older commits can still hardcode 8081 in e2e files, so keep this fallback for compatibility
         sed -i '' "s/8081/$TEST_PORT/g" "$worktree_path/e2e/common.ts" 2>/dev/null || true
         sed -i '' "s/8081/$TEST_PORT/g" "$worktree_path/playwright.config.ts" 2>/dev/null || true
@@ -345,7 +349,7 @@ run_test() {
     local exit_code=0
     local log_start=0
     
-    # Build includes backend tests already, so running test-with-server again here would duplicate the suite and add flaky noise
+    # build-all only compiles the server and both UIs
     log_start=$(count_log_lines)
     cd "$worktree_path" && env -u NO_COLOR FORCE_COLOR=1 npm run build-all 2>&1 | tee >(strip_ansi >> "$LOG_FILE")
     build_result=${PIPESTATUS[0]}
@@ -358,6 +362,20 @@ run_test() {
         exit_code=1
     fi
     
+    if [ $exit_code -eq 0 ]; then
+        log_start=$(count_log_lines)
+        cd "$worktree_path" && env -u NO_COLOR FORCE_COLOR=1 npm run test-with-server 2>&1 | tee >(strip_ansi >> "$LOG_FILE")
+        backend_result=${PIPESTATUS[0]}
+        if is_interrupted_exit_code "$backend_result"; then
+            log "BACKEND interrupted for $commit with exit code $backend_result"
+            exit_code="$backend_result"
+        elif [ "$backend_result" -ne 0 ]; then
+            log "BACKEND FAILED for $commit with exit code $backend_result"
+            log_failure_summary "$log_start" "BACKEND"
+            exit_code=2
+        fi
+    fi
+
     if [ $exit_code -eq 0 ]; then
         # Check if this commit is the tip of the branch or if forced
         local can_use_screenshots=0
@@ -381,38 +399,26 @@ run_test() {
                 ln -sf "$PROJECT_ROOT/e2e/frontend.spec.ts-snapshots-${screenshot_branch}" "$snapshot_dir"
                 log "Screenshots enabled for commit $commit (branch: $screenshot_branch)"
             fi
-            # Pass branch name to Playwright so it uses correct snapshot folder
-            log_start=$(count_log_lines)
-            cd "$worktree_path" && {
-                env -u NO_COLOR PLAYWRIGHT_SNAPSHOT_BRANCH="$screenshot_branch" FORCE_COLOR=1 npx playwright test frontend --reporter=line &&
-                env -u NO_COLOR PLAYWRIGHT_SNAPSHOT_BRANCH="$screenshot_branch" FORCE_COLOR=1 npx playwright test serial --reporter=line
-            } 2>&1 | tee >(strip_ansi >> "$LOG_FILE")
-            test_ui_result=${PIPESTATUS[0]}
-            if is_interrupted_exit_code "$test_ui_result"; then
-                log "TEST-UI interrupted for $commit with exit code $test_ui_result"
-                exit_code="$test_ui_result"
-            elif [ $test_ui_result -ne 0 ]; then
-                log "TEST-UI FAILED for $commit with exit code $test_ui_result"
-                log_failure_summary "$log_start" "TEST-UI"
-                exit_code=3
-            fi
-        else
-            # non-tip/detached commits cannot rely on branch snapshot folders
+        fi
+        local no_screenshots=''
+        if [ "$can_use_screenshots" -ne 1 ]; then
+            no_screenshots=1
             log "Running test-ui with screenshots disabled for non-tip/detached commit $commit"
-            log_start=$(count_log_lines)
-            cd "$worktree_path" && {
-                env -u NO_COLOR NO_SS=1 FORCE_COLOR=1 npx playwright test frontend --ignore-snapshots --reporter=line &&
-                env -u NO_COLOR NO_SS=1 FORCE_COLOR=1 npx playwright test serial --ignore-snapshots --reporter=line
-            } 2>&1 | tee >(strip_ansi >> "$LOG_FILE")
-            test_ui_result=${PIPESTATUS[0]}
-            if is_interrupted_exit_code "$test_ui_result"; then
-                log "TEST-UI interrupted for $commit with exit code $test_ui_result"
-                exit_code="$test_ui_result"
-            elif [ $test_ui_result -ne 0 ]; then
-                log "TEST-UI FAILED for $commit with exit code $test_ui_result"
-                log_failure_summary "$log_start" "TEST-UI"
-                exit_code=3
-            fi
+        fi
+        log_start=$(count_log_lines)
+        # CI mode forbids reusing servers from another checkout; every fixture server gets its own port
+        cd "$worktree_path" && env -u NO_COLOR CI=1 FORCE_COLOR=1 PLAYWRIGHT_HTML_OPEN=never \
+            PLAYWRIGHT_SNAPSHOT_BRANCH="$screenshot_branch" NO_SS="$no_screenshots" \
+            HFS_TEST_SECONDARY_PORT=18082 HFS_TEST_ADMIN_PORT=13112 \
+            npm run test-ui 2>&1 | tee >(strip_ansi >> "$LOG_FILE")
+        test_ui_result=${PIPESTATUS[0]}
+        if is_interrupted_exit_code "$test_ui_result"; then
+            log "TEST-UI interrupted for $commit with exit code $test_ui_result"
+            exit_code="$test_ui_result"
+        elif [ "$test_ui_result" -ne 0 ]; then
+            log "TEST-UI FAILED for $commit with exit code $test_ui_result"
+            log_failure_summary "$log_start" "TEST-UI"
+            exit_code=3
         fi
     fi
     
@@ -502,7 +508,7 @@ while true; do
     if [ -f "$CI_DIR/test-commit" ]; then
         requested_commit=$(cat "$CI_DIR/test-commit" | tr -d ' \n')
         if [ -n "$requested_commit" ]; then
-            if [ "$requested_commit" = "HEAD" ]; then
+            if [ "$requested_commit" = "HEAD" ] || [ "$requested_commit" = "$head_commit" ]; then
                 # Use current HEAD
                 requested_commit=$(git -C "$PROJECT_ROOT" rev-parse HEAD)
                 requested_branch=$(get_current_branch)
@@ -601,7 +607,7 @@ while true; do
                 queue=$(remove_from_queue "$queue" "$commit")
                 save_queue "$queue"
                 
-                log "CI stopped due to test failure. Run 'npm run local-ci' to restart."
+                log "CI stopped due to test failure. Run './scripts/local-ci.sh watch' to restart."
                 exit 1
             fi
         fi

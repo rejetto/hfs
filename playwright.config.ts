@@ -22,7 +22,9 @@ const adminLogicTests = [
 const snapshotBranch = getSnapshotBranch()
 // use the same test port source as tests/test.ts to avoid config drift
 const testPort = Number(yaml.parse(readFileSync(resolve(process.cwd(), 'tests/config.yaml'), 'utf8')).port)
-const adminViteUrl = 'http://127.0.0.1:3112/'
+const secondaryPort = Number(process.env.HFS_TEST_SECONDARY_PORT || 8082)
+const adminPort = Number(process.env.HFS_TEST_ADMIN_PORT || 3112)
+const adminViteUrl = `http://127.0.0.1:${adminPort}/`
 
 // fixture tests replace an Admin page module, so they must load from Vite instead of the packaged Admin app
 for (const name of [
@@ -56,6 +58,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI, // Fail the build on CI if you accidentally left test.only in the source code.
   retries: process.env.CI ? 2 : 0, // Retry on CI only
   updateSnapshots: 'missing', // keep new baseline screenshots from failing the run; existing screenshots still compare normally
+  ignoreSnapshots: Boolean(process.env.NO_SS),
   //workers: process.env.CI ? 1 : undefined, // Opt out of parallel tests on CI.
   reporter: 'html', // Reporter to use. See https://playwright.dev/docs/test-reporters
   use: { // Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions.
@@ -145,10 +148,10 @@ export default defineConfig({
      url: `http://[::1]:${testPort}/~/api/get_file_list`,
      reuseExistingServer: !process.env.CI,
    }, { // launch a second server for tests with an empty/default config
-       command: 'rm -rf tests/work2 && node dist/src --cwd tests/work2 --debug --port 8082 --open_browser_at_start false', // the port here is just to avoid getting the "port busy" console warning
+       command: `rm -rf tests/work2 && node dist/src --cwd tests/work2 --debug --port ${secondaryPort} --open_browser_at_start false`,
        reuseExistingServer: !process.env.CI,
    }, {
-       command: 'npm run start --workspace=admin -- --host 127.0.0.1 --port 3112 --strictPort',
+       command: `npm run start --workspace=admin -- --host 127.0.0.1 --port ${adminPort} --strictPort`,
        url: adminViteUrl,
        reuseExistingServer: !process.env.CI,
    }]
