@@ -2,12 +2,12 @@ import { state, useSnapState } from './state'
 import { createElement as h, useEffect, useMemo, useRef, useState } from 'react'
 import { useDebounce } from 'usehooks-ts'
 import { Checkbox, CustomCode } from './components'
-import { getHFS, with_ } from './misc'
+import { getHFS, useAutoFocus, with_ } from './misc'
 import { scrollIntoView } from './Paging'
 import i18n from './i18n'
 const { useI18N } = i18n
 
-export function FilterBar() {
+export function FilterBar({ hasSelectableEntries }: { hasSelectableEntries: boolean }) {
     const { list, filteredList, selected, patternFilter, showFilter } = useSnapState()
     const [filter, setFilter] = useState(patternFilter)
     const ref = useRef<HTMLDivElement>(null)
@@ -26,7 +26,7 @@ export function FilterBar() {
 
     const tabIndex = showFilter ? undefined : -1
     return h('div', { id: 'filter-bar', ref, style: { display: showFilter ? undefined : 'none' } },
-        h(Checkbox, {
+        hasSelectableEntries && h(Checkbox, {
             value: all,
             tabIndex,
             'aria-hidden': !showFilter,
@@ -46,7 +46,7 @@ export function FilterBar() {
             autoComplete: 'off',
             value: filter,
             tabIndex,
-            autoFocus: true,
+            ref: useAutoFocus<HTMLInputElement>(showFilter && !hasSelectableEntries),
             onChange(ev) {
                 setFilter(ev.target.value)
             }

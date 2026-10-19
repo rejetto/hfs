@@ -280,16 +280,18 @@ test('selection survives reloadList and drops missing entries', async ({ page })
             ;(window as any).HFS.state.showFilter = false
         })
         await expect(page.getByRole('textbox', { name: 'Type here to filter the list below' })).toBeHidden()
+        await expect(page.getByRole('button', { name: 'Filter', exact: true })).toBeVisible()
         await page.evaluate(() => {
-            ;(window as any).selectionChecks = 0
-            document.addEventListener('hfs.enableEntrySelection', () => ++(window as any).selectionChecks)
+            document.addEventListener('hfs.enableEntrySelection', event => {
+                ;(event as CustomEvent).detail.output.push(true)
+            })
         })
         await page.evaluate(() => new Promise(resolve => {
             const { state } = (window as any).HFS
             state.list = [...state.list]
             requestAnimationFrame(() => requestAnimationFrame(resolve))
         }))
-        expect(await page.evaluate(() => (window as any).selectionChecks)).toBe(0)
+        await expect(page.getByRole('button', { name: 'Select', exact: true })).toBeVisible()
         await page.evaluate(() => {
             const { state } = (window as any).HFS
             state.showFilter = true

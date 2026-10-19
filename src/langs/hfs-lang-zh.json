@@ -3,6 +3,7 @@
     "version": 1.2,
     "translate": {
         "Select": "选择",
+        "Filter": "筛选",
         "n_files": "{n,plural,one{# 个文件} other{# 个文件}}",
         "n_folders": "{n,plural,one{# 个文件夹} other{# 个文件夹}}",
         "filter_count": "{n,plural, one{# 个已筛选} other{# 个已筛选}}",

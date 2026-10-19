@@ -3,6 +3,7 @@
     "version": 0.6,
     "translate": {
         "Select": "Kiválasztás",
+        "Filter": "Szűrés",
         "n_files": "{n,többes szám,egy{# file} egyéb{# file}}",
         "n_folders": "{n,többes szám,egy{# folder} egyéb{# folder}}",
         "filter_count": "{n,többes szám, egy{# filtered} egyéb{# filtered}}",

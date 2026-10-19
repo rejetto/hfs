@@ -31,12 +31,14 @@ export const MISSING_PERM = "Missing permission"
 const originalTitle = document.title
 export function BrowseFiles() {
     useFetchList()
-    const { props, tile_size=0, error, title_with_path } = useSnapState()
-    const { list, paging } = usePagedFilesList()
+    const { props, tile_size=0, error, title_with_path, list: entries, showFilter } = useSnapState()
+    const hasSelectableEntries = useMemo(() => entries.some(entry => entry.canSelect()),
+        [entries, props?.can_archive, props?.can_delete_children])
+    const { list, paging } = usePagedFilesList(showFilter && hasSelectableEntries)
     const [bottomBarHeight, setBottomBarHeight] = useState(0)
     const menuAtTop = getHFS().menu_at_top
     const menuPanel = h(Fragment, {},
-        h(MenuPanel),
+        h(MenuPanel, { hasSelectableEntries }),
         h(CustomCode, { name: 'afterMenuBar' }),
     )
 
@@ -62,7 +64,7 @@ export function BrowseFiles() {
             h(Head, { onTop: menuAtTop && menuPanel }),
             h(CustomCode, { name: 'afterHeader' }),
             props?.comment && h('div', { className: 'entry-comment' }, props.comment),
-            menuAtTop && h(FilterBar),
+            menuAtTop && h(FilterBar, { hasSelectableEntries }),
             error ? h(ErrorMsg, { err: error }) : list,
             h(CustomCode, { name: 'afterList' }),
             menuAtTop && h('div', { id: 'afterListFiller', style: { flex: 1 }}),
@@ -78,7 +80,7 @@ export function BrowseFiles() {
                 !error && paging,
                 h(ClipBar),
                 h(CustomCode, { name: 'footer' }),
-                !menuAtTop && h(FilterBar),
+                !menuAtTop && h(FilterBar, { hasSelectableEntries }),
                 !menuAtTop && menuPanel,
             )),
             !menuAtTop && h('div', { id: 'afterListFiller', style: { flex: 1 }}),
@@ -86,7 +88,7 @@ export function BrowseFiles() {
     )
 }
 
-function usePagedFilesList() {
+function usePagedFilesList(showSelection: boolean) {
     const snap = useSnapState()
     const midnight = useMidnight() // as an optimization, we calculate this only once per list and pass it down
     const pageSize = Math.max(1, Math.floor(snap.page_size ?? 100))
@@ -264,6 +266,7 @@ function usePagedFilesList() {
                         midnight,
                         separator: idx > 0 && !(idx % pageSize) ? String(offset + idx) : undefined,
                         entry,
+                        showSelection,
                     })),
             snap.loading && h(Spinner),
         ),
@@ -296,9 +299,9 @@ export function useMidnight() {
 }
 
 interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
-const Entry = ({ entry, midnight, separator }: EntryProps) => {
+const Entry = ({ entry, midnight, separator, showSelection }: EntryProps & { showSelection: boolean }) => {
     const { uri, isFolder, name, n } = entry
-    const { showFilter, selected, file_menu_on_link } = useSnapState()
+    const { selected, file_menu_on_link } = useSnapState()
     const isLink = Boolean(entry.url)
     let className = isFolder ? 'folder' : 'file'
     if (entry.cantOpen)
@@ -324,7 +327,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
         entry,
         render: x => x ? h('li', { className, label: separator }, x) : _.remove(state.list, { n }) && null // custom-code wants us to skip this entry
     },
-        showFilter && h(Checkbox, {
+        showSelection && h(Checkbox, {
             disabled: !entry.canSelect(),
             'aria-labelledby': ariaId,
             value: selected[uri] || false,

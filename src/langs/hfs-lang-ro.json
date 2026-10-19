@@ -3,6 +3,7 @@
     "version": 1.0,
     "translate": {
         "Select": "Selectează",
+        "Filter": "Filtrează",
         "n_files": "{n,plural,one{# fișier} other{# fișiere}}",
         "n_folders": "{n,plural,one{# folder} other{# foldere}}",
         "filter_count": "{n,plural, one{# filtrat} other{# filtrate}}",

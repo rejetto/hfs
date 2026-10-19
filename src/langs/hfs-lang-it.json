@@ -3,6 +3,7 @@
     "version": 2.53,
     "translate": {
         "Select": "Seleziona",
+        "Filter": "Filtra",
         "n_files": "{n} file",
         "n_folders": "{n,plural, one{# cartella} other{# cartelle}}",
         "filter_count": "{n,plural, one{# filtrato} other{# filtrati}}",

@@ -3,6 +3,7 @@
     "version": 1.0,
     "translate": {
         "Select": "Izaberi",
+        "Filter": "Filtriraj",
         "n_files": "{n,plural,one{# datoteka} other{# datoteke}}",
         "n_folders": "{n,plural,one{# fascikla} other{# fascikle}}",
         "filter_count": "{n,plural, one{# filtrirano} other{# filtrirano}}",

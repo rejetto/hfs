@@ -3,6 +3,7 @@
     "version": 1.0,
     "translate": {
         "Select": "Επιλογή",
+        "Filter": "Φιλτράρισμα",
         "n_files": "{n,plural,one{# αρχείο} other{# αρχεία}}",
         "n_folders": "{n,plural,one{# φάκελος} other{# φάκελοι}}",
         "filter_count": "{n,plural,one{# φιλτραρισμένο} other{# φιλτραρισμένα}}",
