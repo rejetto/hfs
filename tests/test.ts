@@ -338,15 +338,18 @@ describe('basics', () => {
     test('search root', reqList('/', { inList:['cantListPage/'], outList:['cantListPage/page/'] }, { search:'page' }))
     test('search metadata ranges and zip', async () => {
         const st = statSync('tests/alfa.txt')
+        // filesystem *Ms fields can be fractional; match the Date precision used by search filters
+        const creation = st.birthtime.getTime()
+        const mtime = st.mtime.getTime()
         const params = { sizeMin: String(st.size), sizeMax: String(st.size),
-            creationMin: new Date(st.birthtimeMs - 1).toISOString(), creationMax: new Date(st.birthtimeMs + 1).toISOString(),
-            mtimeMin: new Date(st.mtimeMs - 1).toISOString(), mtimeMax: new Date(st.mtimeMs + 1).toISOString() }
+            creationMin: new Date(creation - 1).toISOString(), creationMax: new Date(creation + 1).toISOString(),
+            mtimeMin: new Date(mtime - 1).toISOString(), mtimeMax: new Date(mtime + 1).toISOString() }
         await reqList('/f1/', { inList: ['f2/alfa.txt'], outList: ['f2/', 'page/', 'page/gpl.png'] }, params)()
         const prefixed = Object.fromEntries(Object.entries(params).map(([key, value]) =>
             ['search' + key[0].toUpperCase() + key.slice(1), value]))
         await reqList('/f1/', { inList: ['f2/alfa.txt'], outList: ['f2/', 'page/', 'page/gpl.png'] }, prefixed)()
-        await reqList('/f1/', { outList: ['f2/alfa.txt'] }, { mtimeMax: new Date(st.mtimeMs - 1).toISOString() })()
-        await reqList('/f1/', { outList: ['f2/alfa.txt'] }, { creationMin: new Date(st.birthtimeMs + 1).toISOString() })()
+        await reqList('/f1/', { outList: ['f2/alfa.txt'] }, { mtimeMax: new Date(mtime - 1).toISOString() })()
+        await reqList('/f1/', { outList: ['f2/alfa.txt'] }, { creationMin: new Date(creation + 1).toISOString() })()
         await reqList('/f1/', { outList: ['f2/alfa.txt'] }, { sizeMax: '0' })()
         for (const invalid of [{ sizeMin: '-1' }, { sizeMax: 'abc' }, { mtimeMin: 'invalid' }, { sizeMin: '2', sizeMax: '1' }]) {
             await reqList('/f1/', 400, invalid)()
