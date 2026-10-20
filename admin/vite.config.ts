@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { dirname, extname, resolve } from 'node:path'
+import { basename, dirname, extname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const DIR = dirname(fileURLToPath(import.meta.url))
@@ -23,6 +23,14 @@ export default defineConfig({
                 codeSplitting: {
                     groups: [
                         { name: 'index', tags: ['$initial'] },
+                        {
+                            debugName: 'dayjs-locales',
+                            // stable buckets avoid downloading every locale when only one is needed
+                            name: id => `dayjs-locales-${basename(id).charCodeAt(0) % 4}`,
+                            test: /node_modules[\\/]dayjs[\\/]esm[\\/]locale[\\/]/,
+                            // keep the shared Day.js core outside the locale buckets
+                            includeDependenciesRecursively: false,
+                        },
                         {
                             name: 'icons',
                             test: /node_modules[\\/]@mui[\\/]icons-material[\\/]/,
@@ -62,7 +70,7 @@ function muiIconsDeepImportPlugin() {
             if (!/\.[jt]sx?$/.test(id) || !code.includes(ICONS_MODULE))
                 return
             // deep imports keep Vite from pre-bundling the full icons barrel
-            const replaced = code.replace(ICON_IMPORT_RE, (full, specifiers) => {
+            const replaced = code.replace(ICON_IMPORT_RE, (full, specifiers: string) => {
                 const imports = specifiers.split(',')
                     .map(x => x.trim())
                     .filter(Boolean)
