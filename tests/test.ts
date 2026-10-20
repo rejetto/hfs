@@ -4147,6 +4147,77 @@ describe('after-login', () => {
             await rmAny(dir)
         }
     })
+    test('paused upload keep-alive survives immediate cleanup and requires its owner', async () => {
+        const name = `pause-keepalive-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const folderUri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['delete_unfinished_uploads_after'] }, 200, adminReq)()
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { source: dir, name, can_upload: true, can_delete: false }, 200, adminReq)()
+        try {
+            await reqApi('set_config', { values: { delete_unfinished_uploads_after: 0 } }, 200, adminReq)()
+            await reqApi('keep_upload_alive', { id: 1 }, 400, adminReq)()
+            await reqApi('keep_upload_alive', { id: '' }, 404, adminReq)()
+            for (const authenticated of [true, false]) {
+                const ownerReq = { auth: authenticated ? auth : undefined, jar: {} }
+                const foreignReq = { jar: {} }
+                await reqApi('refresh_session', {}, 200, ownerReq)()
+                await reqApi('refresh_session', {}, 200, foreignReq)()
+                const id = randomId(20)
+                const filename = `${authenticated}.txt`
+                const dest = folderUri + filename
+                const temp = resolve(dir, UPLOAD_TEMP_PREFIX + filename)
+                const body = new Readable({ read() {} })
+                const sending = reqUpload(`${dest}?id=${id}`, 0, body, 8, 0, ownerReq)()
+                body.push('AAAA')
+                try {
+                    assert.ok(await waitFor(() => existsSync(temp) && statSync(temp).size === 4, { timeout: 3000 }))
+                    await reqApi('keep_upload_alive', { id }, 403, foreignReq)()
+                    await reqApi('keep_upload_alive', { id: randomId(20) }, 404, ownerReq)()
+                    await reqApi('keep_upload_alive', { id }, 200, ownerReq)()
+                }
+                finally {
+                    sending.abort()
+                    body.destroy()
+                    await sending.catch(() => {})
+                }
+                await wait(1100)
+                assert.equal(readFileSync(temp, 'utf8'), 'AAAA')
+                await reqApi('keep_upload_alive', { id }, 403, foreignReq)()
+                await reqApi('keep_upload_alive', { id }, 200, ownerReq)()
+                await rename(temp, temp + '.held')
+                await writeFile(temp, 'replacement')
+                await reqApi('keep_upload_alive', { id }, 404, ownerReq)()
+                assert.equal(readFileSync(temp, 'utf8'), 'replacement')
+                await rmAny(temp)
+                await rename(temp + '.held', temp)
+                await req(`${dest}?id=${id}&resume=4`, 200, {
+                    method: 'PUT', body: 'BBBB', headers: { 'content-length': '4' }, ...ownerReq,
+                })()
+                assert.equal(readFileSync(resolve(dir, filename), 'utf8'), 'AAAABBBB')
+                await reqApi('keep_upload_alive', { id }, 404, ownerReq)()
+
+                const unprotected = new Readable({ read() {} })
+                const abandoned = reqUpload(`${dest}?id=${id}`, 0, unprotected, 8, 0, ownerReq)()
+                unprotected.push('CCCC')
+                try {
+                    assert.ok(await waitFor(() => existsSync(temp) && statSync(temp).size === 4, { timeout: 3000 }))
+                }
+                finally {
+                    abandoned.abort()
+                    unprotected.destroy()
+                    await abandoned.catch(() => {})
+                }
+                assert.ok(await waitFor(() => !existsSync(temp), { timeout: 3000 }))
+            }
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
     test('partial upload expires as unfinished', async () => {
         const name = `partial-expiry-${randomId(6)}`
         const dir = resolve(UPLOAD_DISK_ROOT, name)

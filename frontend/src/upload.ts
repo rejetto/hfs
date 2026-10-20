@@ -16,7 +16,7 @@ import { getUploadOnExisting, state, useSnapState } from './state'
 import { Link } from 'wouter'
 import { LinkClosingDialog } from './fileMenu'
 import {
-    abortCurrentUpload, enqueueUpload, getFilePath, normalizeAccept, resetCounters, resetReloadOnClose,
+    abortCurrentUpload, pauseCurrentUpload, enqueueUpload, getFilePath, normalizeAccept, resetCounters, resetReloadOnClose,
     simulateBrowserAccept, startUpload, ToUpload, uploadState
 } from './uploadQueue'
 import i18n from './i18n'
@@ -46,7 +46,7 @@ export function showUpload() {
     }
 
     function Content(){
-        const { qs, paused, eta, speed, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
+        const { qs, paused, pausing, eta, speed, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
         const scanning = useSnapshot(dropScan).count !== undefined
         // onClose waits for browser history; the flag must follow the visible dialog immediately
         useLayoutEffect(() => () => { uploadState.uploadDialogIsOpen = false }, [])
@@ -149,12 +149,12 @@ export function showUpload() {
                             await askToRemoveUnfinishedUpload(current, to)
                     }, { title: t`Clear` }),
                     iconBtn(paused ? 'play' : 'pause', () => {
-                        uploadState.paused = !uploadState.paused
-                        if (uploadState.paused)
-                            abortCurrentUpload()
-                        else if (uploadState.uploading)
-                            startUpload(uploadState.uploading, uploadState.qs[0].to, 0, uploadState.qs[0].existing)
-                    }),
+                        if (!paused)
+                            return pauseCurrentUpload().catch(alertDialog)
+                        uploadState.paused = false
+                        if (uploadState.uploading)
+                            void startUpload(uploadState.uploading, uploadState.qs[0].to, 0, uploadState.qs[0].existing)
+                    }, { disabled: pausing }),
                 ),
                 qs.map((q,idx) =>
                     h('div', { key: `${q.to}:${q.existing}` },
