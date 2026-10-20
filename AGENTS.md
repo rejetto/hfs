@@ -22,6 +22,10 @@ Core server logic sits in `src/` (TypeScript, Koa middleware, plugins). Shared R
 ## Coding Style & Naming Conventions
 Use TypeScript/ES2022 with 4-space indentation and single quotes except when JSON compatibility is needed. Prefer async/await over promise chains and keep streaming utilities (e.g., `AsapJStream`) in dedicated modules. Name files by responsibility (`*.ts` for services, `*.spec.ts` for tests) and React components in PascalCase. Run `tsc` implicitly via the build scripts; no separate lint step exists, so keep code self-explanatory and add succinct comments only for non-obvious flows.
 
+## Browser Compatibility
+- The frontend production bundle must remain compatible with Firefox 52. Account for Vite's legacy plugin and the existing manual polyfills when assessing JavaScript compatibility; also check browser APIs and CSS support.
+- The basic interface (`?get=basic`) must remain compatible with Firefox 30. Its HTML, CSS, and browser-side JavaScript must work within that browser's capabilities.
+
 ## Testing Guidelines
 Node-side tests rely on the built-in `node --test` runner via `npm test`. Place fixtures under `tests/work` where scripts already expect them. UI coverage uses Playwright (`tests-ui`/`frontend` suites); target critical upload/download flows and plugin management. Name new tests after the behavior they assert (e.g., `plugin-disable.test.ts`). Before pushing, run at least `npm test` and, when touching UI, the relevant Playwright suite.
 When you want to run fewer tests, use `npm run test-with-server -- --test-name-pattern="<pattern>"`.
