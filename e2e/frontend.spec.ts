@@ -556,6 +556,8 @@ test('queued uploads keep their policies across option changes and navigation', 
             consoleErrors.push(message.text())
     })
     await page.route('**/*', async route => {
+        if (route.request().url().endsWith('/~/api/keep_upload_alive'))
+            return route.fulfill({ json: { keepAlive: true } })
         if (route.request().method() !== 'PUT')
             return route.continue()
         requests.push(new URL(route.request().url()))

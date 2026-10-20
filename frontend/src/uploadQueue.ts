@@ -1,8 +1,10 @@
 import {
     HTTP_CONFLICT, HTTP_MESSAGES, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_INSUFFICIENT_STORAGE,
-    HTTP_PRECONDITION_FAILED, UPLOAD_TEMP_HASH, MTIME_CHECK,
+    HTTP_PRECONDITION_FAILED, UPLOAD_TEMP_HASH, MTIME_CHECK, UPLOAD_KEEP_ALIVE_SECONDS,
     buildUrlQueryString, getHFS, pathEncode, pendingPromise, prefix, randomId, tryJson, wait, with_,
 } from '@hfs/shared'
+import { apiCall } from '@hfs/shared/api'
+import type { keepUploadAlive } from '../../src/upload'
 import { getUploadOnExisting, state, type UploadOnExisting } from './state'
 import { alertDialog, toast } from './dialog'
 import { reloadList } from './useFetchList'
@@ -21,6 +23,7 @@ export const uploadState = proxy<{
     interrupted: ToUpload[]
     adding: ToUpload[]
     qs: { to: string, entries: ToUpload[], existing: UploadOnExisting }[]
+    pausing: boolean
     paused: boolean
     uploading?: ToUpload
     hashing?: number
@@ -35,6 +38,7 @@ export const uploadState = proxy<{
     speed: 0,
     partial: 0,
     progress: 0,
+    pausing: false,
     paused: false,
     qs: [],
     adding: [],
@@ -83,7 +87,8 @@ setInterval(() => {
 let currentReq: XMLHttpRequest | undefined
 // cleanup must wait for the aborted request to register its temp file server-side
 let currentRequestIsOver: Promise<unknown> | undefined
-const id = randomId()
+let currentUploadId = ''
+let keepAliveNeeded = false
 let userAborted = false
 let closeLastDialog: undefined | (() => void)
 
@@ -95,6 +100,8 @@ export function resetReloadOnClose() {
 }
 
 export async function startUpload(toUpload: ToUpload, to: string, resume=0, existing=getUploadOnExisting()) {
+    // reuse the id on resume so the server can recognize a request whose lock is still being released
+    const id = currentUploadId = uploadState.uploading === toUpload ? currentUploadId : randomId()
     console.debug('start upload', toUpload.path, resume)
     uploadState.uploading = toUpload
     uploadState.progress = 0
@@ -105,6 +112,8 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0, exis
     const uriPath = to + pathEncode(toUpload.path)
     let stopLooping = false // allow callbacks to stop the loop
     do { // at least one iteration, even for empty files
+        if (uploadState.paused)
+            break
         let req = currentReq = new XMLHttpRequest()
         const requestIsOver = pendingPromise()
         currentRequestIsOver = requestIsOver
@@ -235,6 +244,35 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0, exis
     }
 }
 
+export async function pauseCurrentUpload() {
+    uploadState.pausing = true
+    try {
+        while (uploadState.uploading && uploadState.qs.length) {
+            const req = currentReq
+            const { uploading } = uploadState
+            try { // cleanup may run immediately after abort, so the server must acknowledge protection first
+                const { keepAlive } = await apiCall<typeof keepUploadAlive>('keep_upload_alive', { id: currentUploadId })
+                if (req !== currentReq || uploading !== uploadState.uploading) // a completed chunk or file may have changed the request while we awaited the acknowledgement
+                    continue
+                keepAliveNeeded = keepAlive
+                uploadState.paused = true
+                await abortCurrentUpload()
+                break
+            }
+            catch (e) { // a completed or cancelled file no longer needs protection
+                if (uploading !== uploadState.uploading || !uploadState.qs.length)
+                    continue
+                throw e
+            }
+        }
+        if (uploadState.qs.length)
+            uploadState.paused = true
+    }
+    finally {
+        uploadState.pausing = false
+    }
+}
+
 export function abortCurrentUpload(userAskedForIt=false) {
     userAborted = userAskedForIt
     const requestIsOver = currentRequestIsOver
@@ -242,9 +280,17 @@ export function abortCurrentUpload(userAskedForIt=false) {
     return requestIsOver
 }
 
+setInterval(() => {
+    const { paused, uploading, qs } = uploadState
+    // clearing the queue must stop renewals even while the aborted request is still finishing
+    if (keepAliveNeeded && paused && uploading && qs[0]?.entries.includes(uploading))
+        void apiCall('keep_upload_alive', { id: currentUploadId }).catch(console.warn)
+}, UPLOAD_KEEP_ALIVE_SECONDS * 1000)
+
 subscribe(uploadState, () => {
     const [cur] = uploadState.qs
-    if (cur?.entries.length && !uploadState.uploading && !uploadState.paused)
+    // pause acknowledgements must also stop the next file from starting
+    if (cur?.entries.length && !uploadState.uploading && !uploadState.paused && !uploadState.pausing)
         void startUpload(cur.entries[0], cur.to, 0, cur.existing)
 })
 
