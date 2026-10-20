@@ -98,7 +98,8 @@ Some properties use a `Who` descriptor, with one of these values:
 - `proxies` number of proxies between server and clients to be trusted about providing clients' IP addresses. Default is 0.
   When enabled, HFS trusts forwarded IP addresses from any connection. Restrict direct access to trusted proxies, set the count correctly, and ensure the proxies sanitize forwarded headers.
 - `delete_unfinished_uploads_after` should unfinished uploads be deleted after a number of seconds. 0 for immediate, empty for never. Default is 1 day.
-  Unfinished uploads are visible only to their uploader and administrators, subject to the usual permissions. 
+  Uploads paused in the web interface are kept while the page remains open.
+  Unfinished uploads are visible only to their uploader and administrators, subject to the usual permissions.
   Anonymous uploaders are identified by their session; unfinished files with no known owner are visible only to administrators.
 - `require_upload_approval_for_active_content` require admin approval before serving non-admin uploads with HTML or XML-based MIME types (including SVG) inline. Downloads remain available. Default is true.
 - `own_upload_delete_hours` for how many hours an uploader can delete their own uploaded file. 0 disables. Default is 24.
