@@ -150,8 +150,8 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
   Special values "light" and "dark" to declare whether the theme is (for example) dark and forces HFS to use dark-theme as a base.   
 - `preview: string | string[]` one or more URLs to images you want to show before your plugin is downloaded. *[STATIC JSON]* 
 - `depend: { repo: string, version: number }[]` declare what other plugins this depends on. *[STATIC JSON]*
-- `beforePlugin: string` control the order this plugin is executed relative to another
-- `afterPlugin: string` control the order this plugin is executed relative to another
+- `beforePlugin: string` control the order this plugin is executed relative to another, identified by its runtime id or declared repo
+- `afterPlugin: string` control the order this plugin is executed relative to another, identified by its runtime id or declared repo
 - `repo: string | object` pointer to a GitHub repo where this plugin is hosted. *[STATIC JSON]*
     - the string form is for GitHub repos. This is optional, as HFS will automatically set this at installation time.
       Example: "rejetto/file-icons"
@@ -1506,3 +1506,4 @@ Registration returns an unregister function and is also removed automatically wh
   - `HFS.admin.addPage`
   - `api.registerSearch`, frontend event `searchFields:`, `HFS.createSha512`
   - `api.onDirectoryCache`
+  - `beforePlugin` and `afterPlugin` support repo

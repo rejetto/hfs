@@ -358,17 +358,29 @@ export class Plugin implements CommonPluginInterface {
         const keys = Array.from(plugins.keys())
         const idx = keys.indexOf(id)
         // initialize moveDown with existing plugins that want to be after this
-        const moveDown = onlyTruthy(mapPlugins(((pl, plId, plIdx) => pl.afterPlugin === id && plIdx < idx && plId)))
+        const moveDown = onlyTruthy(mapPlugins(((pl, plId, plIdx) => matches(pl.afterPlugin, this, id) && plIdx < idx && plId)))
         const {beforePlugin, afterPlugin} = data // then consider what this plugin wants
-        if (afterPlugin && keys.indexOf(afterPlugin) > idx)
+        const afterId = resolveId(afterPlugin)
+        const beforeId = resolveId(beforePlugin)
+        if (afterId && keys.indexOf(afterId) > idx)
             moveDown.push(id) // move down this plugin
-        if (beforePlugin && keys.indexOf(beforePlugin) < idx)
-            moveDown.push(beforePlugin) // move down the other plugin
+        if (beforeId && keys.indexOf(beforeId) < idx)
+            moveDown.push(beforeId) // move down the other plugin
         for (const k of moveDown) {
             const temp = plugins.get(k)
             if (!temp) continue
             plugins.delete(k)
             plugins.set(k, temp)
+        }
+
+        function resolveId(selector: string | undefined) {
+            // preserve id semantics when another plugin declares the same value as its repo
+            if (!selector || plugins.has(selector)) return selector
+            return keys.find(id => matches(selector, plugins.get(id)!, id))
+        }
+        function matches(selector: string | undefined, plugin: Plugin, id: string) {
+            const { repo } = plugin
+            return Boolean(selector) && (selector === id || selector === (_.isString(repo) ? repo : repo?.main))
         }
     }
     get version(): undefined | number { return this.data?.version }
