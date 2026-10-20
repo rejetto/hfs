@@ -90,6 +90,83 @@ test('local CI watch drops an interrupted queue entry that is already validated'
     assert.equal(await readFile(join(fixture.cwd, 'stages.jsonl'), 'utf8').catch(() => ''), '')
 })
 
+for (const change of ['reset', 'delete'] as const) {
+    test(`local CI cancels an obsolete ${change} commit, kills descendants and continues the queue`, async t => {
+        const fixture = await setup(t)
+        const base = await fixture.git('rev-parse', 'HEAD')
+        await fixture.git('branch', 'other')
+        await fixture.git('commit', '--allow-empty', '-m', 'obsolete')
+        const obsolete = await fixture.git('rev-parse', 'HEAD')
+        await fastPolling(fixture.cwd)
+        const running = fixture.run('watch', { LOCAL_CI_HOLD_COMMIT: obsolete, LOCAL_CI_DETACHED: String(change === 'delete') })
+        const stopped = running.then(() => ({ code: 0 }), (error: { code: number }) => error)
+        t.after(async () => { running.child.kill('SIGTERM'); await stopped })
+        const pidPath = join(fixture.cwd, 'descendant.pid')
+        await waitUntil(async () => !!await readFile(pidPath, 'utf8').catch(() => ''))
+        const descendant = Number(await readFile(pidPath, 'utf8'))
+        t.after(() => { try { process.kill(descendant, 'SIGKILL') } catch {} })
+        await fixture.git('checkout', 'other')
+        await new Promise(resolve => setTimeout(resolve, 400))
+        assert.doesNotThrow(() => process.kill(descendant, 0), 'switching branches must not cancel the test')
+        if (change === 'reset') await fixture.git('update-ref', 'refs/heads/main', base)
+        else await fixture.git('branch', '-D', 'main')
+        const historyPath = join(fixture.cwd, '.ci/tested.json')
+        await waitUntil(async () => (await readFile(historyPath, 'utf8').catch(() => '')).includes(base))
+        await waitUntil(async () => {
+            try { process.kill(descendant, 0); return false }
+            catch { return true }
+        })
+        assert.deepEqual(JSON.parse(await readFile(historyPath, 'utf8')).map(x => x.commit), [base])
+        // history is saved before in-progress state is cleared, so wait for both writes
+        await waitUntil(async () => !await readFile(join(fixture.cwd, '.ci/in_progress.json'), 'utf8').catch(() => ''))
+        assert.equal((await fixture.git('worktree', 'list', '--porcelain')).includes(obsolete), false)
+        running.child.kill('SIGTERM')
+        assert.equal((await stopped).code, 130)
+    })
+}
+
+for (const mode of ['explicit', 'detached'] as const) {
+    test(`local CI preserves an exempt ${mode} request outside branch history`, async t => {
+        const fixture = await setup(t)
+        const commit = await fixture.git('rev-parse', 'HEAD')
+        await fastPolling(fixture.cwd)
+        if (mode === 'detached') await fixture.git('checkout', '--detach')
+        else {
+            await mkdir(join(fixture.cwd, '.ci'))
+            await writeFile(join(fixture.cwd, '.ci/test-commit'), commit)
+        }
+        const running = fixture.run('watch', { LOCAL_CI_HOLD_COMMIT: commit, LOCAL_CI_DETACHED: String(mode === 'detached') })
+        const stopped = running.then(() => ({ code: 0 }), (error: { code: number }) => error)
+        t.after(async () => { running.child.kill('SIGTERM'); await stopped })
+        await waitUntil(async () => !!await readFile(join(fixture.cwd, 'descendant.pid'), 'utf8').catch(() => ''))
+        assert.equal(JSON.parse(await readFile(join(fixture.cwd, '.ci/in_progress.json'), 'utf8')).requested, true)
+        await fixture.git('update-ref', '-d', 'refs/heads/main')
+        await new Promise(resolve => setTimeout(resolve, 400))
+        const pid = Number(await readFile(join(fixture.cwd, 'descendant.pid'), 'utf8'))
+        t.after(() => { try { process.kill(pid, 'SIGKILL') } catch {} })
+        assert.doesNotThrow(() => process.kill(pid, 0))
+        running.child.kill('SIGTERM')
+        assert.equal((await stopped).code, 130)
+        await waitUntil(async () => {
+            try { process.kill(pid, 0); return false }
+            catch { return true }
+        })
+    })
+}
+
+async function fastPolling(cwd: string) {
+    // keep the production interval while making fixture polling fast enough for regression tests
+    await writeFile(join(cwd, 'bin/sleep'), '#!/bin/sh\nif [ "$1" = 30 ]; then /bin/sleep 0.1; else /bin/sleep "$@"; fi\n', { mode: 0o755 })
+}
+
+async function waitUntil(check: () => Promise<boolean>) {
+    const deadline = Date.now() + 10000
+    while (!await check()) {
+        assert.ok(Date.now() < deadline, 'timed out waiting for local CI')
+        await new Promise(resolve => setTimeout(resolve, 50))
+    }
+}
+
 test('the port check uses tests/config.yaml unless a port is explicitly supplied', async t => {
     const fixture = await setup(t)
     const server = createServer((_, response) => response.end('ready'))
@@ -148,6 +225,13 @@ async function setup(t: { after: (fn: () => Promise<void>) => void }) {
             snapshotBranch: process.env.PLAYWRIGHT_SNAPSHOT_BRANCH,
         }) + '\\n')
         if (stage === process.env.LOCAL_CI_FAIL) process.exit(17)
+        if (stage === 'build-all' && cp.execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim() === process.env.LOCAL_CI_HOLD_COMMIT) {
+            const child = cp.spawn(process.execPath, ['-e', 'process.on("SIGTERM", () => {}); setInterval(() => {}, 1000)'], {
+                stdio: 'ignore', detached: process.env.LOCAL_CI_DETACHED === 'true',
+            })
+            fs.writeFileSync(require('node:path').join(process.env.LOCAL_CI_ROOT, 'descendant.pid'), String(child.pid))
+            setInterval(() => {}, 1000)
+        }
     `)
     await writeFile(join(cwd, 'package.json'), JSON.stringify({ private: true, scripts: {
         'build-all': 'node stage.cjs', 'test-with-server': 'node stage.cjs', 'test-ui': 'node stage.cjs',
@@ -163,10 +247,10 @@ async function setup(t: { after: (fn: () => Promise<void>) => void }) {
     async function git(...args: string[]) {
         return (await exec('git', args, { cwd })).stdout.trim()
     }
-    async function run(commit: string, forceOrEnv: string | Record<string, string> = {}) {
+    function run(commit: string, forceOrEnv: string | Record<string, string> = {}) {
         return exec('/bin/bash', ['scripts/local-ci.sh', commit, ...(typeof forceOrEnv === 'string' ? [forceOrEnv] : [])], {
             cwd, timeout: 20000, env: { ...process.env, PATH: join(cwd, 'bin') + ':' + process.env.PATH,
-                LOCAL_CI_LOG: join(cwd, 'stages.jsonl'), ...(typeof forceOrEnv === 'object' ? forceOrEnv : {}) },
+                LOCAL_CI_LOG: join(cwd, 'stages.jsonl'), LOCAL_CI_ROOT: cwd, ...(typeof forceOrEnv === 'object' ? forceOrEnv : {}) },
         })
     }
     async function records(): Promise<{ stage: string, commit: string, port: number, baseUrl: string, noSnapshots: string, ci: string, secondary: string, admin: string, snapshotBranch: string, pluginsRoot: string }[]> {
