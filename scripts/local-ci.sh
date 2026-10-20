@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# re-exec under bash when invoked as `zsh script`, because the shebang is bypassed and bash-only features are used
-if [ -z "${BASH_VERSION:-}" ]; then
-    exec /bin/bash "$0" "$@"
+# explicit shell invocation bypasses the shebang; sh can also be Bash in POSIX mode
+if [ -z "${BASH_VERSION:-}" ] || shopt -qo posix; then
+    exec /bin/bash +o posix "$0" "$@"
 fi
 
 # Local CI - runs tests asynchronously on new commits
@@ -31,6 +31,8 @@ COMMIT_REQUEST=""
 FORCE_TEST=0
 FORCE_BRANCH=""
 STOP_REQUESTED=0
+TEST_PID=""
+MONITOR_PID=""
 
 usage() {
     echo "Usage:"
@@ -112,6 +114,8 @@ on_stop_signal() {
     STOP_REQUESTED=1
     log_stderr "Received $signal_name, stopping local-ci"
     clear_in_progress
+    stop_process_group "$TEST_PID"
+    stop_process_group "$MONITOR_PID"
 
     # kill children to avoid leaving test/build processes alive after ctrl+c
     pkill -TERM -P $$ >/dev/null 2>&1 || true
@@ -203,7 +207,8 @@ add_to_tested() {
 save_in_progress() {
     local commit="$1"
     local branch="$2"
-    echo '{"commit": "'"$commit"'", "branch": "'"$branch"'"}' > "$IN_PROGRESS_FILE"
+    jq -n --arg commit "$commit" --arg branch "$branch" --argjson requested "${3:-false}" \
+        '{commit: $commit, branch: $branch, requested: $requested}' > "$IN_PROGRESS_FILE"
 }
 
 clear_in_progress() {
@@ -228,42 +233,46 @@ add_to_queue() {
     local queue="$1"
     local commit="$2"
     local branch="$3"
+    local requested="${4:-false}"
     
     local new_queue
-    new_queue=$(echo "$queue" | jq --arg commit "$commit" --arg branch "$branch" \
-        '. + [{"commit": $commit, "branch": $branch, "added_at": (now | todate)}]')
+    new_queue=$(echo "$queue" | jq --arg commit "$commit" --arg branch "$branch" --argjson requested "$requested" \
+        '. + [{"commit": $commit, "branch": $branch, "requested": $requested, "added_at": (now | todate)}]')
     
     echo "$new_queue"
 }
 
-is_commit_reachable_from_head() {
+is_stale_commit() {
     local commit="$1"
-    local head="$2"
-    git -C "$PROJECT_ROOT" merge-base --is-ancestor "$commit" "$head" >/dev/null 2>&1
+    local branch="$2"
+    local requested="${3:-false}"
+    if [ "$MODE" = "once" ] || [ "$requested" = "true" ] || [ -z "$branch" ] || [ "$branch" = "detached" ]; then
+        return 1
+    fi
+    ! git -C "$PROJECT_ROOT" merge-base --is-ancestor "$commit" "refs/heads/$branch" >/dev/null 2>&1
 }
 
-prune_queue_for_head() {
+prune_queue() {
     local queue="$1"
-    local head="$2"
     local pruned_queue='[]'
     local commit=""
     local branch=""
-    local added_at=""
+    local requested=""
 
-    while IFS=$'\t' read -r commit branch added_at; do
+    while IFS=$'\t' read -r commit branch requested; do
         if [ -z "$commit" ]; then
             continue
         fi
-        if ! is_commit_reachable_from_head "$commit" "$head"; then
-            log_stderr "Dropping stale queued commit $commit (not reachable from current HEAD)"
+        if is_stale_commit "$commit" "$branch" "$requested"; then
+            log_stderr "Dropping stale queued commit $commit (not reachable from branch $branch)"
             continue
         fi
         if queue_contains "$commit" "$pruned_queue"; then
             # queue duplication is expected after interrupted runs, so keep only one entry per commit to avoid retesting the same hash
             continue
         fi
-        pruned_queue=$(add_to_queue "$pruned_queue" "$commit" "$branch")
-    done < <(echo "$queue" | jq -r '.[] | [.commit, .branch, .added_at] | @tsv')
+        pruned_queue=$(add_to_queue "$pruned_queue" "$commit" "$branch" "$requested")
+    done < <(echo "$queue" | jq -r '.[] | [.commit, .branch, (.requested // false)] | @tsv')
 
     echo "$pruned_queue"
 }
@@ -435,6 +444,69 @@ run_test() {
     return $exit_code
 }
 
+get_process_descendants() {
+    local child
+    for child in $(pgrep -P "$1"); do
+        get_process_descendants "$child"
+        echo "$child"
+    done
+}
+
+stop_process_group() {
+    local pid="$1"
+    if [ -n "$pid" ]; then
+        # Playwright detaches server groups, so collect descendants before TERM reparents them
+        local descendants
+        descendants=$(get_process_descendants "$pid")
+        if [ -n "$descendants" ]; then
+            kill -TERM $descendants 2>/dev/null || true
+        fi
+        kill -TERM -- "-$pid" 2>/dev/null || true
+        sleep 0.2
+        if [ -n "$descendants" ]; then
+            kill -KILL $descendants 2>/dev/null || true
+        fi
+        kill -KILL -- "-$pid" 2>/dev/null || true
+    fi
+}
+
+run_monitored_test() {
+    local commit="$1"
+    local branch="$2"
+    local requested="$3"
+    local result=0
+
+    # job control isolates the whole test tree; disable it inside so pipelines share that group
+    set -m
+    (set +m; run_test "$commit" "$branch") &
+    TEST_PID=$!
+    (
+        set +m
+        while sleep "$POLL_INTERVAL"; do
+            if is_stale_commit "$commit" "$branch" "$requested"; then
+                log "Cancelling obsolete commit $commit (branch: $branch)"
+                stop_process_group "$TEST_PID"
+                break
+            fi
+        done
+    ) &
+    MONITOR_PID=$!
+    set +m
+
+    wait "$TEST_PID" || result=$?
+    if is_stale_commit "$commit" "$branch" "$requested"; then
+        # let cancellation finish killing detached descendants before stopping the monitor
+        wait "$MONITOR_PID" || true
+        stop_process_group "$TEST_PID"
+        git -C "$PROJECT_ROOT" worktree remove "$WORKTREE_BASE/$commit" --force 2>/dev/null || true
+        result=125
+    fi
+    stop_process_group "$MONITOR_PID"
+    MONITOR_PID=""
+    TEST_PID=""
+    return "$result"
+}
+
 # Main loop
 trap 'on_stop_signal SIGINT' INT
 trap 'on_stop_signal SIGTERM' TERM
@@ -447,8 +519,8 @@ queue=$(load_queue)
 current_branch=$(get_current_branch)
 head_commit=$(git -C "$PROJECT_ROOT" rev-parse HEAD)
 
-# after rebases, persisted queue entries can point to obsolete history and must be dropped to keep watch mode aligned with current HEAD
-queue=$(prune_queue_for_head "$queue" "$head_commit")
+# after rebases, compare each entry with its original branch, even when another branch is checked out
+queue=$(prune_queue "$queue")
 save_queue "$queue"
 
 # Check for interrupted test
@@ -456,14 +528,15 @@ in_progress=$(load_in_progress)
 if [ "$in_progress" != "null" ]; then
     commit=$(echo "$in_progress" | jq -r '.commit')
     branch=$(echo "$in_progress" | jq -r '.branch')
-    if is_commit_reachable_from_head "$commit" "$head_commit"; then
+    requested=$(echo "$in_progress" | jq -r '.requested // false')
+    if ! is_stale_commit "$commit" "$branch" "$requested"; then
         if ! queue_contains "$commit" "$queue"; then
             log "Found interrupted test for $commit, re-queuing"
-            queue=$(add_to_queue "$queue" "$commit" "$branch")
+            queue=$(add_to_queue "$queue" "$commit" "$branch" "$requested")
             save_queue "$queue"
         fi
     else
-        log "Dropping stale interrupted commit $commit (not reachable from current HEAD)"
+        log "Dropping stale interrupted commit $commit (not reachable from branch $branch)"
     fi
     clear_in_progress
 fi
@@ -502,7 +575,7 @@ done
 
 while true; do
     # Load state
-    queue=$(load_queue)
+    queue=$(prune_queue "$(load_queue)")
     
     # Check for manual commit request
     if [ -f "$CI_DIR/test-commit" ]; then
@@ -531,7 +604,7 @@ while true; do
                     exit 0
                 fi
             elif [ -n "$requested_commit" ] && ( [ "$MODE" = "once" ] || ( ! queue_contains "$requested_commit" "$queue" ) ); then
-                queue=$(add_to_queue "$queue" "$requested_commit" "$requested_branch")
+                queue=$(add_to_queue "$queue" "$requested_commit" "$requested_branch" true)
                 log "Added requested commit $requested_commit to queue"
                 rm -f "$CI_DIR/test-commit"
             fi
@@ -548,7 +621,12 @@ while true; do
     if ! is_tested "$head_commit" "$tested_commits" && ! queue_contains "$head_commit" "$queue"; then
         queue_size=$(echo "$queue" | jq 'length')
         if [ "$queue_size" -lt $MAX_QUEUE ]; then
-            queue=$(add_to_queue "$queue" "$head_commit" "$current_branch")
+            # detached HEAD has no branch to monitor, even if get_current_branch finds a containing branch
+            requested=false
+            if ! git -C "$PROJECT_ROOT" symbolic-ref -q HEAD >/dev/null; then
+                requested=true
+            fi
+            queue=$(add_to_queue "$queue" "$head_commit" "$current_branch" "$requested")
             log "Added HEAD commit $head_commit to queue"
         else
             log "Queue full ($queue_size/$MAX_QUEUE), waiting..."
@@ -566,6 +644,7 @@ while true; do
         item=$(echo "$queue" | jq -r '.[0]')
         commit=$(echo "$item" | jq -r '.commit')
         branch=$(echo "$item" | jq -r '.branch')
+        requested=$(echo "$item" | jq -r '.requested // false')
 
         # interrupted runs can leave validated commits in the persisted queue
         if [ "$FORCE_TEST" -ne 1 ] && is_tested "$commit" "$tested_commits"; then
@@ -578,10 +657,10 @@ while true; do
         log "Testing commit $commit from queue (remaining: $((queue_size - 1)))"
         
         # Save in-progress state (survives restarts)
-        save_in_progress "$commit" "$branch"
+        save_in_progress "$commit" "$branch" "$requested"
         
         # Run test
-        if run_test "$commit" "$branch"; then
+        if run_monitored_test "$commit" "$branch" "$requested"; then
             # Test passed - add to tested list
             tested_commits=$(add_to_tested "$commit" "$tested_commits" "$branch")
             save_tested "$tested_commits"
@@ -600,7 +679,13 @@ while true; do
             fi
         else
             exit_code=$?
-            if is_interrupted_exit_code "$exit_code"; then
+            if [ "$exit_code" -eq 125 ]; then
+                log "TEST CANCELLED for obsolete commit $commit - continuing queue"
+                clear_in_progress
+                queue=$(remove_from_queue "$(load_queue)" "$commit")
+                save_queue "$queue"
+                continue
+            elif is_interrupted_exit_code "$exit_code"; then
                 log "TEST INTERRUPTED for $commit - STOPPING CI"
                 clear_in_progress
                 exit "$exit_code"
