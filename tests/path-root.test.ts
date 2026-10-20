@@ -68,9 +68,9 @@ test('filesystem ancestor searches stop at unavailable roots', async () => {
 test('folder upload stops at the first created directory on Windows, including share and drive roots', () => {
     const source = readFileSync(resolve(__dirname, '../src/upload.ts'), 'utf8')
     // exercise the actual ownership walk with Windows mkdir results without requiring a Windows filesystem
-    const block = source.slice(source.indexOf('const createdFolders:'), source.indexOf('// use temporary name while uploading'))
+    const block = source.slice(source.indexOf('function createUploadFolders()'), source.indexOf('async function overwriteAnyway()'))
     assert.ok(block.includes('mkdirSync'))
-    const { outputText } = ts.transpileModule(block + '\nJSON.stringify(createdFolders)', {
+    const { outputText } = ts.transpileModule(block + '\nJSON.stringify(createUploadFolders())', {
         compilerOptions: { target: ts.ScriptTarget.ES2022 },
     })
     for (const root of ['C:\\', '\\\\server\\share\\', 'C:\\existing', '\\\\server\\share\\existing']) {
