@@ -3909,7 +3909,9 @@ describe('after-login', () => {
     test('upload.overlap', async () => {
         const ms = 300
         const first = reqUpload(UPLOAD_DEST, 200, makeReadableThatTakes(ms))()
-        await wait(ms/3)
+        const temp = resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR, UPLOAD_TEMP_PREFIX + basename(UPLOAD_DEST))
+        if (!await waitFor(() => existsSync(temp), { interval: ms/4, timeout: 3000 }))
+            throw Error('first upload did not start')
         await reqUpload(UPLOAD_DEST, 409)() // should conflict
         await first
     })
