@@ -18,7 +18,7 @@ import {
 import fs from 'fs'
 import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
-import { getUploadMeta, isUploading, saveUploadMeta, setUploadApproved, whileUploadMetaPending } from './upload'
+import { getUploadMeta, keepUploadAlive, isUploading, saveUploadMeta, setUploadApproved, whileUploadMetaPending } from './upload'
 import { getNodeMime, isActiveContentMime } from './serveFile'
 import { apiAssertTypes, CFG, join as joinVfs, moveStoredFileAttrs, pathDecode, pathEncode, popKey, Who, WHO_ADMIN } from './misc'
 import { deleteUploadOwner, moveUploadOwner, setUploadOwner } from './uploadOwners'
@@ -36,6 +36,7 @@ const showUploader = defineConfig<Who>(CFG.show_uploader, WHO_ADMIN)
 
 export const frontEndApis: ApiHandlers = {
     get_file_list,
+    keep_upload_alive: keepUploadAlive,
     ...authApis,
     ...extractionApis,
     get_admin_plugins: getAdminPlugins,

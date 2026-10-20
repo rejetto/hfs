@@ -11,6 +11,7 @@ export const HFS_REPO = 'rejetto/hfs'
 export const PLUGIN_USAGE_URL = 'https://hfs-api.rejetto.com/plugin-usage'
 export const UPLOAD_TEMP_PREFIX = 'hfs$upload-'
 export const UPLOAD_TEMP_HASH = 'upload-temp-hash'
+export const UPLOAD_KEEP_ALIVE_SECONDS = 60
 export const MTIME_CHECK = 'x-mtime-check'
 export const PREVIOUS_TAG = 'previous'
 export const ALLOW_SESSION_IP_CHANGE = 'allow_session_ip_change'
