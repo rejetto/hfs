@@ -157,7 +157,6 @@
         "Automatic": "Automaattinen",
         "Automatic renew before expiration": "Automaattinen uusiminen ennen vanhenemista",
         "update_not_supported": "Asennuksesi ei tue automaattista päivitystä",
-        "automatic, not configured": "automaattinen, ei konfiguroitu",
         "background-color .4s": "taustaväri .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "Bad Gateway: palvelin sai virheellisen vastauksen ylävirran palvelimelta",
         "Bad Request: the request is malformed or contains invalid parameters": "Virheellinen pyyntö: pyyntö on väärin muotoiltu tai sisältää virheellisiä parametreja",

@@ -157,7 +157,6 @@
         "Automatic": "Автоматичний",
         "Automatic renew before expiration": "Автоматичне поновлення до закінчення терміну дії",
         "update_not_supported": "Автоматичне оновлення не підтримується для вашої інсталяції",
-        "automatic, not configured": "автоматичний, не налаштований",
         "background-color .4s": "фоновий колір .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "Поганий шлюз: сервер отримав недійсну відповідь від вищестоящого сервера",
         "Bad Request: the request is malformed or contains invalid parameters": "Неправильний запит: запит неправильно сформований або містить недійсні параметри",

@@ -158,7 +158,6 @@
         "Automatic": "Automatic",
         "Automatic renew before expiration": "Automatic renew before expiration",
         "update_not_supported": "Automatic update is not supported for your installation",
-        "automatic, not configured": "automatic, not configured",
         "background-color .4s": "background-color .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "Bad Gateway: the server received an invalid response from an upstream server",
         "Bad Request: the request is malformed or contains invalid parameters": "Bad Request: the request is malformed or contains invalid parameters",

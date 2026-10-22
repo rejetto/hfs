@@ -157,7 +157,6 @@
         "Automatic": "Automatik",
         "Automatic renew before expiration": "Pembaharuan automatik sebelum tamat tempoh",
         "update_not_supported": "Kemas kini automatik tidak disokong untuk pemasangan anda",
-        "automatic, not configured": "automatik, tidak dikonfigurasikan",
         "background-color .4s": "warna latar belakang .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "Bad Gateway: pelayan menerima respons tidak sah daripada pelayan huluan",
         "Bad Request: the request is malformed or contains invalid parameters": "Permintaan Buruk: permintaan itu salah bentuk atau mengandungi parameter tidak sah",

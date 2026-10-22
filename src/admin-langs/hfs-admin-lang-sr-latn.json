@@ -157,7 +157,6 @@
         "Automatic": "Automatski",
         "Automatic renew before expiration": "Automatsko obnavljanje pre isteka",
         "update_not_supported": "Automatsko ažuriranje nije podržano za vašu instalaciju",
-        "automatic, not configured": "automatski, nije konfigurisan",
         "background-color .4s": "background-color .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "Loš mrežni prolaz: server je dobio nevažeći odgovor od upstream servera",
         "Bad Request: the request is malformed or contains invalid parameters": "Loš zahtev: zahtev je pogrešno oblikovan ili sadrži nevažeće parametre",

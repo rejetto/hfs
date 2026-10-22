@@ -157,7 +157,6 @@
         "Automatic": "Automatinis",
         "Automatic renew before expiration": "Automatinis atnaujinimas nepasibaigus galiojimo laikui",
         "update_not_supported": "Automatinis naujinimas jūsų diegimui nepalaikomas",
-        "automatic, not configured": "automatinis, nesukonfigūruotas",
         "background-color .4s": "fono spalva .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "Blogas šliuzas: serveris gavo neteisingą atsakymą iš ankstesnio serverio",
         "Bad Request: the request is malformed or contains invalid parameters": "Bloga užklausa: užklausa yra netinkamai suformuota arba joje yra neteisingų parametrų",

@@ -5,13 +5,13 @@ import {
     Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link, Typography, Skeleton,
 } from '@mui/material'
 import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Storage,
-    Error as ErrorIcon, SvgIconComponent, Search } from '@mui/icons-material'
+    Error as ErrorIcon, SvgIconComponent, Search, ContentCopy } from '@mui/icons-material'
 import { apiCall, useApiEvents, useApiEx } from './api'
 import {
     closeDialog, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG, md,
-    useRequestRender, replace, restartAnimation, prefix, isIpLan, HIDE_IN_TESTS, normalizeIp
+    useRequestRender, replace, restartAnimation, prefix, isIpLan, HIDE_IN_TESTS, normalizeIp, copyTextToClipboard
 } from './misc'
-import { Flex, LinkBtn, Btn, Country, wikiLink, NetmaskField } from './mui'
+import { Flex, LinkBtn, Btn, Country, wikiLink, NetmaskField, IconBtn } from './mui'
 import { alertDialog, confirmDialog, formDialog, promptDialog, toast, waitDialog } from './dialog'
 import { BoolField, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
 import { suggestMakingCert } from './cert'
@@ -48,6 +48,10 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     const wrongMap = data?.mapped && data.mapped.private.port !== port && data.mapped.private.port
     const doubleNat = data?.externalIp && publicIps && !publicIps.includes(data.externalIp)
     const verifyAgain = useRequestRender()
+    useEffect(() => {
+        if (data || publicIps) // discovery can change the automatic address after the initial status response
+            status.reload()
+    }, [data, publicIps])
     useEffect(() => {
         if (verifyAgain.state) // skip first
             void verify(true)
@@ -239,15 +243,26 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     }
 
     function baseUrlBox() {
+        const address = baseUrl || status.data?.baseUrl
         return config.element || h(TitleCard, { icon: Public, title: t`Address` },
             h(Flex, { flexWrap: 'wrap' },
                 t`Main address: `,
-                baseUrl ? h('tt', {}, baseUrl) : t`automatic, not configured`,
+                !baseUrl && t`Automatic`,
+                address && h('tt', {}, address),
+                address && h(IconBtn, {
+                    icon: ContentCopy,
+                    title: t`Copy`,
+                    doneAnimation: true,
+                    onClick: () => copyTextToClipboard(address),
+                }),
                 h(Btn, {
                     size: 'small',
                     variant: 'outlined',
                     'aria-label': t`Change address`,
-                    onClick: () => void changeBaseUrl().then(config.reload)
+                    onClick: () => void changeBaseUrl().then(() => {
+                        config.reload()
+                        status.reload() // switching to automatic must discard the previously configured address in status
+                    })
                 }, t`Change`),
             ),
             h(Divider),

@@ -157,7 +157,6 @@
         "Automatic": "تلقائي",
         "Automatic renew before expiration": "التجديد التلقائي قبل انتهاء الصلاحية",
         "update_not_supported": "التحديث التلقائي غير مدعوم للتثبيت الخاص بك",
-        "automatic, not configured": "تلقائي، لم يتم تكوينه",
         "background-color .4s": "لون الخلفية .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "بوابة سيئة: تلقى الخادم استجابة غير صالحة من خادم رئيسي",
         "Bad Request: the request is malformed or contains invalid parameters": "طلب غير صالح: الطلب غير صحيح أو يحتوي على معلمات غير صالحة",

@@ -157,7 +157,6 @@
         "Automatic": "Автоматичен",
         "Automatic renew before expiration": "Автоматично подновяване преди изтичане",
         "update_not_supported": "Автоматичната актуализация не се поддържа за вашата инсталация",
-        "automatic, not configured": "автоматичен, не е конфигуриран",
         "background-color .4s": "цвят на фона .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "Лош шлюз: сървърът получи невалиден отговор от сървър нагоре по веригата",
         "Bad Request: the request is malformed or contains invalid parameters": "Лоша заявка: заявката е деформирана или съдържа невалидни параметри",
