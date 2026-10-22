@@ -22,13 +22,13 @@ test('file cache: repeated missing files recover after 100 ms, and attributes sk
     const originalLoad = (Module as any)._load
     t.mock.method(Module as any, '_load', function (id: string, parent: { filename: string }, ...args: unknown[]) {
         const file = basename(parent.filename)
-        if (['util-files.ts', 'comments.ts'].includes(file)) {
+        if (['util-files.ts', 'comments.ts', 'filePathErrors.ts'].includes(file)) {
             if (id === './config') return { defineConfig: (key: string, value: unknown) => ({
                 get: () => key === 'comments_storage' ? mode : value,
                 compiled: () => key === 'comments_storage' ? mode !== 'attr' : 3000,
                 sub() {},
             }) }
-            if (id === './const') return { IS_WINDOWS: process.platform === 'win32' }
+            if (id === './const') return { IS_WINDOWS: process.platform === 'win32', IS_MAC: process.platform === 'darwin' }
             if (id === './stat') return {}
         }
         if (file === 'comments.ts' && id === './misc')
