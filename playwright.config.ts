@@ -8,6 +8,7 @@ import yaml from 'yaml';
 const adminLogicTests = [
   '**/admin-acme.spec.ts',
   '**/admin-accounts.spec.ts',
+  '**/admin-base-url.spec.ts',
   '**/admin-config-file.spec.ts',
   '**/admin-custom-html.spec.ts',
   '**/admin-data-table.spec.ts',
