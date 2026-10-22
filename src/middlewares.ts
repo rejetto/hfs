@@ -33,9 +33,7 @@ export const gzipper = compress({
     deflate: { flush: constants.Z_SYNC_FLUSH },
     zstd: { flush: constants.Z_SYNC_FLUSH },
     br: false, // disable brotli
-    filter(type) {
-        return /text|javascript|style/i.test(type)
-    },
+    filter: type=> /^text|javascript$|wasm$|xml$|json$|ttf$|otf$/i.test(type),
 })
 
 let proxyDetected: undefined | Koa.Context
