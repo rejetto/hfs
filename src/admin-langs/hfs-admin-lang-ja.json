@@ -153,7 +153,6 @@
         "Automatic": "自動",
         "Automatic renew before expiration": "有効期限が切れる前に自動更新",
         "update_not_supported": "お使いのインストールでは自動更新がサポートされていません",
-        "automatic, not configured": "自動、未設定",
         "background-color .4s": "背景色 .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "不正なゲートウェイ: サーバーは上流サーバーから無効な応答を受け取りました",
         "Bad Request: the request is malformed or contains invalid parameters": "不正なリクエスト: リクエストの形式が不正であるか、無効なパラメータが含まれています",

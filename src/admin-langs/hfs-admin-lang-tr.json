@@ -157,7 +157,6 @@
         "Automatic": "Otomatik",
         "Automatic renew before expiration": "Süre dolmadan otomatik yenileme",
         "update_not_supported": "Kurulumunuz için otomatik güncelleme desteklenmiyor",
-        "automatic, not configured": "otomatik, yapılandırılmamış",
         "background-color .4s": "arka plan rengi .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "Kötü Ağ Geçidi: sunucu, yukarı akış sunucusundan geçersiz bir yanıt aldı",
         "Bad Request: the request is malformed or contains invalid parameters": "Hatalı İstek: İstek hatalı biçimlendirilmiş veya geçersiz parametreler içeriyor",

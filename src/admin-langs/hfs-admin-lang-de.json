@@ -157,7 +157,6 @@
         "Automatic": "Automatisch",
         "Automatic renew before expiration": "Automatische Verlängerung vor Ablauf",
         "update_not_supported": "Automatische Updates werden für Ihre Installation nicht unterstützt",
-        "automatic, not configured": "automatisch, nicht konfiguriert",
         "background-color .4s": "Hintergrundfarbe .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "Schlechtes Gateway: Der Server hat eine ungültige Antwort von einem Upstream-Server erhalten",
         "Bad Request: the request is malformed or contains invalid parameters": "Ungültige Anfrage: Die Anfrage ist fehlerhaft oder enthält ungültige Parameter",

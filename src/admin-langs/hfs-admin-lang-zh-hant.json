@@ -157,7 +157,6 @@
         "Automatic": "自動",
         "Automatic renew before expiration": "到期前自動續期",
         "update_not_supported": "你的安裝方式不支援自動更新",
-        "automatic, not configured": "自動，未配置",
         "background-color .4s": "background-color .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "錯誤閘道：伺服器從上游伺服器收到了無效回應",
         "Bad Request: the request is malformed or contains invalid parameters": "錯誤請求：請求格式錯誤或包含無效參數",

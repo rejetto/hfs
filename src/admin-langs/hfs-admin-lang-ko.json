@@ -157,7 +157,6 @@
         "Automatic": "오토매틱",
         "Automatic renew before expiration": "만료 전 자동 갱신",
         "update_not_supported": "현재 설치에는 자동 업데이트가 지원되지 않습니다.",
-        "automatic, not configured": "자동, 구성되지 않음",
         "background-color .4s": "배경색 .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "잘못된 게이트웨이: 서버가 업스트림 서버로부터 잘못된 응답을 받았습니다.",
         "Bad Request: the request is malformed or contains invalid parameters": "잘못된 요청: 요청의 형식이 잘못되었거나 잘못된 매개변수가 포함되어 있습니다.",

@@ -157,7 +157,6 @@
         "Automatic": "Automatikus",
         "Automatic renew before expiration": "Automatikus megújítás a lejárat előtt",
         "update_not_supported": "Az Ön telepítése nem támogatja az automatikus frissítést",
-        "automatic, not configured": "automatikus, nincs konfigurálva",
         "background-color .4s": "háttérszín .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "Bad Gateway: a szerver érvénytelen választ kapott egy upstream szervertől",
         "Bad Request: the request is malformed or contains invalid parameters": "Hibás kérés: a kérelem hibás vagy érvénytelen paramétereket tartalmaz",

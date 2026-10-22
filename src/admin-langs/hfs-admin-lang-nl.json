@@ -157,7 +157,6 @@
         "Automatic": "Automatisch",
         "Automatic renew before expiration": "Automatische verlenging vóór de vervaldatum",
         "update_not_supported": "Automatische updates worden niet ondersteund voor uw installatie",
-        "automatic, not configured": "automatisch, niet geconfigureerd",
         "background-color .4s": "achtergrondkleur .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "Slechte gateway: de server heeft een ongeldig antwoord ontvangen van een upstream-server",
         "Bad Request: the request is malformed or contains invalid parameters": "Slecht verzoek: het verzoek is verkeerd ingedeeld of bevat ongeldige parameters",

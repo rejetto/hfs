@@ -157,7 +157,6 @@
         "Automatic": "Автоматический",
         "Automatic renew before expiration": "Автоматическое продление до истечения срока действия",
         "update_not_supported": "Автоматическое обновление не поддерживается для вашей установки.",
-        "automatic, not configured": "автоматический, не настроенный",
         "background-color .4s": "цвет фона .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "Плохой шлюз: сервер получил неверный ответ от вышестоящего сервера.",
         "Bad Request: the request is malformed or contains invalid parameters": "Неверный запрос: запрос имеет неверный формат или содержит недопустимые параметры.",

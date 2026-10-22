@@ -157,7 +157,6 @@
         "Automatic": "Αυτόματο",
         "Automatic renew before expiration": "Αυτόματη ανανέωση πριν τη λήξη",
         "update_not_supported": "Η αυτόματη ενημέρωση δεν υποστηρίζεται για την εγκατάστασή σας",
-        "automatic, not configured": "αυτόματη, δεν έχει ρυθμιστεί",
         "background-color .4s": "φόντο-χρώμα .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "Bad Gateway: ο διακομιστής έλαβε μια μη έγκυρη απόκριση από έναν διακομιστή upstream",
         "Bad Request: the request is malformed or contains invalid parameters": "Κακό αίτημα: το αίτημα έχει λανθασμένη μορφή ή περιέχει μη έγκυρες παραμέτρους",

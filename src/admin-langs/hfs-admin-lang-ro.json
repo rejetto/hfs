@@ -157,7 +157,6 @@
         "Automatic": "Automat",
         "Automatic renew before expiration": "Reînnoire automată înainte de expirare",
         "update_not_supported": "Actualizarea automată nu este acceptată pentru instalarea dvs",
-        "automatic, not configured": "automat, neconfigurat",
         "background-color .4s": "culoare de fundal .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "Gateway greșit: serverul a primit un răspuns nevalid de la un server din amonte",
         "Bad Request: the request is malformed or contains invalid parameters": "Solicitare greșită: cererea este incorectă sau conține parametri nevalidi",

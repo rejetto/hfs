@@ -157,7 +157,6 @@
         "Automatic": "อัตโนมัติ",
         "Automatic renew before expiration": "ต่ออายุอัตโนมัติก่อนหมดอายุ",
         "update_not_supported": "ไม่รองรับการอัปเดตอัตโนมัติสำหรับการติดตั้งของคุณ",
-        "automatic, not configured": "อัตโนมัติ ไม่ได้กำหนดค่า",
         "background-color .4s": "สีพื้นหลัง .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "เกตเวย์ไม่ถูกต้อง: เซิร์ฟเวอร์ได้รับการตอบสนองที่ไม่ถูกต้องจากเซิร์ฟเวอร์อัปสตรีม",
         "Bad Request: the request is malformed or contains invalid parameters": "คำขอไม่ถูกต้อง: คำขอมีรูปแบบไม่ถูกต้องหรือมีพารามิเตอร์ที่ไม่ถูกต้อง",

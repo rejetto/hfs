@@ -157,7 +157,6 @@
         "Automatic": "Tự động",
         "Automatic renew before expiration": "Tự động gia hạn trước khi hết hạn",
         "update_not_supported": "Cập nhật tự động không được hỗ trợ cho cài đặt của bạn",
-        "automatic, not configured": "tự động, không được cấu hình",
         "background-color .4s": "màu nền .4s",
         "Bad Gateway: the server received an invalid response from an upstream server": "Cổng xấu: máy chủ nhận được phản hồi không hợp lệ từ máy chủ ngược tuyến",
         "Bad Request: the request is malformed or contains invalid parameters": "Yêu cầu không hợp lệ: yêu cầu không đúng định dạng hoặc chứa tham số không hợp lệ",
