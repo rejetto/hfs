@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "3.4.0-rc5",
+  "version": "3.4.0",
   "description": "HTTP File Server",
   "keywords": ["file server", "http server"],
   "homepage": "https://rejetto.com/hfs",
@@ -84,7 +84,7 @@
   },
   "dependencies": {
     "@gregoranders/csv": "^0.0.13",
-    "@rejetto/kvstorage": "^0.18.0",
+    "@rejetto/kvstorage": "^0.18.1",
     "@rejetto/nat-upnp": "^2.1.4",
     "acme-client": "^5.4.0",
     "busboy": "^1.6.0",
