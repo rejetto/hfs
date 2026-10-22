@@ -18,6 +18,8 @@ import { Readable } from 'stream'
 import { createHash } from 'crypto'
 import iconv from 'iconv-lite'
 import { getUploadMeta, isUploading } from './upload'
+import { warnIfUnicodePathError } from './filePathErrors'
+import { once } from 'node:events'
 
 const allowedReferer = defineConfig(CFG.allowed_referer, '')
 const requireUploadApprovalForActiveContent = defineConfig(CFG.require_upload_approval_for_active_content, true)
@@ -131,11 +133,15 @@ export async function serveFile(ctx: Koa.Context, filePath:string, mime?:string,
         const { size } = stats
         const range = applyRange(ctx, size)
         if (ctx.status >= 400) return // applyRange may have set an error
-        ctx.body = createReadStream(filePath, range || undefined)
+        const stream = createReadStream(filePath, range || undefined)
+        // catch open failures before Koa starts sending the response
+        await once(stream, 'open')
+        ctx.body = stream
         if (ctx.state.vfsNode)
             monitorAsDownload(ctx, size, range?.start)
     }
     catch (e: any) {
+        void warnIfUnicodePathError(e, filePath)
         const status = {
             ENOENT: HTTP_NOT_FOUND,
             ENOTDIR: HTTP_NOT_FOUND,
@@ -144,7 +150,10 @@ export async function serveFile(ctx: Koa.Context, filePath:string, mime?:string,
         }[String(e?.code)]
         if (!status)
             throw e
-        ctx.status = status
+        // failed opens must not cache the error page as the file's content
+        for (const header of ['Content-Range', 'Accept-Ranges', 'ETag', 'Last-Modified', 'Cache-Control'])
+            ctx.remove(header)
+        await sendErrorPage(ctx, status)
     }
 }
 

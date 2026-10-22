@@ -12,6 +12,7 @@ import { Readable } from 'stream'
 import { expiringCache } from './expiringCache'
 import { getStatWorker } from './stat'
 import unzipper from 'unzipper'
+import { warnIfUnicodePathError } from './filePathErrors'
 
 const fileTimeout = defineConfig(CFG.file_timeout, 3, x => x * 1000)
 // a smart (and a bit arbitrary) way to decide if we need the stat-workers functionality. Without it, we may be a bit faster. We'll see with experience if we need a dedicated configuration.
@@ -22,7 +23,13 @@ export async function statWithTimeout(path: string) {
     // with just 4 requests we saturate the default UV_THREADPOOL_SIZE, blocking even local fs operations, so we move all UNC requests to worker threads
     const workerKey = !disableStatWorkers && IS_WINDOWS && getUncHost(path) // pool requests by server name
     const op = workerKey ? getStatWorker(workerKey)(path) : stat(path)
-    return haveTimeout(fileTimeout.compiled(), op)
+    try {
+        return await haveTimeout(fileTimeout.compiled(), op)
+    }
+    catch (error) {
+        void warnIfUnicodePathError(error as NodeJS.ErrnoException, path)
+        throw error
+    }
 }
 
 export function getUncHost(path: string) {
