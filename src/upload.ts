@@ -108,8 +108,11 @@ export async function whileUploadMetaPending<T>(path: string, cb: () => Promise<
     finally { uploadMetaPending.delete(key) }
 }
 
+export const supportsUploadCommitCheck = true
+
 // initially sync for formidable; still sync to avoid async races and PUT piping gaps
-export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: string, ctx: Koa.Context) {
+export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: string, ctx: Koa.Context,
+    beforeCommit?: (tempName: string, destination: string) => Promise<void>) {
     if (!filename || !isValidFileName(filename) || !filename)
         return fail(HTTP_FOOL)
     if (statusCodeForMissingPerm(base, 'can_upload', ctx))
@@ -293,7 +296,10 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
                 }
                 try {
                     const done = await waitFor( // an antivirus may lock the temp file to scan it
-                        () => rename(tempName, dest).then(() => true, e => e?.code !== 'EBUSY' && Promise.reject(e)),
+                        async () => {
+                            await beforeCommit?.(tempName, dest) // delegated editors must recheck authorization and conflicts after writing, including retries; introduced this for the onlyoffice plugin
+                            return rename(tempName, dest).then(() => true, e => e?.code !== 'EBUSY' && Promise.reject(e))
+                        },
                         { timeout: 10_000 })
                     if (!done)
                         throw 'EBUSY'
