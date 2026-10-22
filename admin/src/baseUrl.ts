@@ -4,16 +4,25 @@ import { Box, MenuItem, MenuList } from '@mui/material'
 import { Check, Save } from '@mui/icons-material'
 import { Field, SelectField, StringField } from '@hfs/mui-grid-form'
 import { apiCall } from './api'
-import { CFG, ipForUrl, md, newDialog, prefix, splitAt, stringBefore } from './misc'
+import { CFG, ipForUrl, isIpLan, isIpLocalHost, md, newDialog, normalizeIp, prefix, splitAt, stringBefore } from './misc'
 import { Btn } from './mui'
 import { alertDialog, toast } from './dialog'
 import _ from 'lodash'
 
 export async function changeBaseUrl() {
     try {
-        const res = await apiCall('get_status')
+        const [res, nat] = await Promise.all([
+            apiCall('get_status'),
+            apiCall('get_nat', {}, { timeout: 5 }).catch(() => undefined), // router detection must not prevent configuring an address manually
+        ])
         const { base_url, roots } = await apiCall('get_config', { only: [CFG.base_url, CFG.roots] })
-        const urls: string[] = res.urls.https || res.urls.http
+        const urls: string[] = (res.urls.https || res.urls.http).map((u: string) => {
+            const url = new URL(u)
+            const ip = normalizeIp(url.hostname)
+            if (nat?.externalPort && url.protocol === nat.proto + ':' && !isIpLan(ip) && !isIpLocalHost(ip))
+                url.port = String(nat.externalPort)
+            return url.origin
+        })
         const domainsFromRoots = Object.keys(roots).map(x => x.split('|')).flat().filter(x => !/[*?]/.test(x))
         const proto = splitAt('//', urls[0])[0] + '//'
         urls.push(..._.difference(domainsFromRoots.map(x => proto + x), urls))
