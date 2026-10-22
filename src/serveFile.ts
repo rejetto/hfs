@@ -19,6 +19,8 @@ import { Readable } from 'stream'
 import { createHash } from 'crypto'
 import iconv from 'iconv-lite'
 import { getUploadMeta, isUploading } from './upload'
+import { warnIfUnicodePathError } from './filePathErrors'
+import { once } from 'node:events'
 
 const allowedReferer = defineConfig(CFG.allowed_referer, '')
 const requireUploadApprovalForActiveContent = defineConfig(CFG.require_upload_approval_for_active_content, true)
@@ -145,12 +147,19 @@ export async function serveFile(ctx: Koa.Context, filePath:string, mime?:string,
         const { size } = stats
         const range = applyRange(ctx, size)
         if (ctx.status >= 400) return // applyRange may have set an error
-        ctx.body = ctx.state.vfsNode ? createAuthorizedReadStream(filePath, await ctx.state.vfsNode.stats || stats, ctx, range || undefined)
-            : createReadStream(filePath, range || undefined)
+        // catch open failures before Koa starts sending the response
+        if (ctx.state.vfsNode)
+            ctx.body = await openAuthorizedReadStream(filePath, await ctx.state.vfsNode.stats || stats, ctx, range || undefined)
+        else {
+            const stream = createReadStream(filePath, range || undefined)
+            await once(stream, 'open')
+            ctx.body = stream
+        }
         if (ctx.state.vfsNode)
             monitorAsDownload(ctx, size, range?.start)
     }
     catch (e: any) {
+        void warnIfUnicodePathError(e, filePath)
         const status = {
             ENOENT: HTTP_NOT_FOUND,
             ENOTDIR: HTTP_NOT_FOUND,
@@ -159,29 +168,34 @@ export async function serveFile(ctx: Koa.Context, filePath:string, mime?:string,
         }[String(e?.code)]
         if (!status)
             throw e
-        ctx.status = status
+        // failed opens must not cache the error page as the file's content
+        for (const header of ['Content-Range', 'Accept-Ranges', 'ETag', 'Last-Modified', 'Cache-Control'])
+            ctx.remove(header)
+        await sendErrorPage(ctx, e.status === HTTP_NOT_FOUND ? HTTP_NOT_FOUND : status)
     }
 }
 
 export function createAuthorizedReadStream(source: string, expected: Stats, ctx: Koa.Context, range?: { start: number, end: number }) {
     return Readable.from((async function* () {
-        const fd = await promisify(open)(source, 'r')
-        let stream: ReturnType<typeof createReadStream>
-        try {
-            const stats = await promisify(fstat)(fd)
-            // authorization belongs to the opened inode, not a pathname replaced after listing or stat
-            if (stats.dev !== expected.dev || stats.ino !== expected.ino
-                || !await canAccessUnfinishedUpload({ source, stats }, ctx))
-                throw Object.assign(Error("File changed before reading"), { code: 'EACCES', status: HTTP_NOT_FOUND })
-            stream = createReadStream(source, { ...range, fd })
-        }
-        catch (error) {
-            await promisify(close)(fd)
-            throw error
-        }
-        // the stream owns the descriptor, including when a download is aborted
-        yield* stream
+        yield* await openAuthorizedReadStream(source, expected, ctx, range)
     })())
+}
+
+async function openAuthorizedReadStream(source: string, expected: Stats, ctx: Koa.Context, range?: { start: number, end: number }) {
+    const fd = await promisify(open)(source, 'r')
+    try {
+        const stats = await promisify(fstat)(fd)
+        // authorization belongs to the opened inode, not a pathname replaced after listing or stat
+        if (stats.dev !== expected.dev || stats.ino !== expected.ino
+            || !await canAccessUnfinishedUpload({ source, stats }, ctx))
+            throw Object.assign(Error("File changed before reading"), { code: 'EACCES', status: HTTP_NOT_FOUND })
+        // the stream owns the descriptor, including when a download is aborted
+        return createReadStream(source, { ...range, fd })
+    }
+    catch (error) {
+        await promisify(close)(fd)
+        throw error
+    }
 }
 
 export function monitorAsDownload(ctx: Koa.Context, size?: number, offset?: number) {
