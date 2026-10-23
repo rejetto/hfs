@@ -27,6 +27,7 @@ const allowAuthorizationHeader = defineConfig(CFG.authorization_header, true)
 export const sessionDuration = defineConfig(CFG.session_duration, Number(process.env.SESSION_DURATION) || DAY/1000,
     v => v * 1000)
 
+// plugins can use ctx.compress: false disables compression, true bypasses the MIME filter, an object overrides per-response options; object overrides still use the MIME filter and replace each encoding's options, so preserve flush for SSE
 export const gzipper = compress({
     threshold: 2048,
     gzip: { flush: constants.Z_SYNC_FLUSH }, // flush is necessary for SSE, at least in Chrome145
