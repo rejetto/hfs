@@ -5061,7 +5061,7 @@ describe('logging', () => {
 
 function login(usr: string, pwd=password) {
     return srpClientSequence(srp, usr, pwd, (cmd: string, params: any) =>
-        reqApi(cmd, params, (x,res)=> res.statusCode < 400)())
+        reqApi(cmd, params, 200)())
 }
 
 function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?: number, resume=0, options?: ReqOptions) {

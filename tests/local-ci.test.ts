@@ -42,6 +42,26 @@ test('local CI isolates the branch tip too and honors its validated-commit cache
     assert.equal((await fixture.records()).length, 6)
 })
 
+test('local CI checks multiple cached commits and recognizes abbreviated history', async t => {
+    const fixture = await setup(t)
+    const first = await fixture.git('rev-parse', 'HEAD')
+    await fixture.git('commit', '--allow-empty', '-m', 'next')
+    const tip = await fixture.git('rev-parse', 'HEAD')
+    await mkdir(join(fixture.cwd, '.ci'))
+    const historyPath = join(fixture.cwd, '.ci/tested.json')
+    await writeFile(historyPath, JSON.stringify([{ commit: first }]))
+    const fresh = await fixture.run(tip)
+    assert.doesNotMatch(fresh.stderr, /jq: error/)
+    assert.equal((await fixture.records()).length, 3)
+    const history = JSON.parse(await readFile(historyPath, 'utf8'))
+    history[1].commit = tip.slice(0, 8)
+    await writeFile(historyPath, JSON.stringify(history))
+    const cached = await fixture.run(tip)
+    assert.doesNotMatch(cached.stderr, /jq: error/)
+    assert.match(cached.stdout, /already validated/)
+    assert.equal((await fixture.records()).length, 3)
+})
+
 test('local CI stops on backend failure instead of validating the commit', async t => {
     const fixture = await setup(t)
     await assert.rejects(fixture.run('HEAD', { LOCAL_CI_FAIL: 'test-with-server' }), error => {
@@ -50,6 +70,24 @@ test('local CI stops on backend failure instead of validating the commit', async
     })
     assert.deepEqual((await fixture.records()).map(x => x.stage), ['build-all', 'test-with-server'])
     assert.deepEqual(JSON.parse(await readFile(join(fixture.cwd, '.ci/tested.json'), 'utf8').catch(() => '[]')), [])
+})
+
+test('local CI watch drops an interrupted queue entry that is already validated', async t => {
+    const fixture = await setup(t)
+    const commit = await fixture.git('rev-parse', 'HEAD')
+    await mkdir(join(fixture.cwd, '.ci'))
+    await writeFile(join(fixture.cwd, '.ci/tested.json'), JSON.stringify([{ commit }]))
+    await writeFile(join(fixture.cwd, '.ci/queue.json'), JSON.stringify([{ commit, branch: 'main' }]))
+    await writeFile(join(fixture.cwd, '.ci/in_progress.json'), JSON.stringify({ commit, branch: 'main' }))
+    // stop at the idle wait so watch mode can be checked without waiting for another iteration
+    await writeFile(join(fixture.cwd, 'bin/sleep'), '#!/bin/sh\nif [ "$1" = 30 ]; then kill -TERM "$PPID"; else /bin/sleep "$@"; fi\n', { mode: 0o755 })
+    await assert.rejects(fixture.run('watch'), error => {
+        assert.equal((error as { code: number }).code, 130)
+        assert.match((error as { stdout: string }).stdout, /Skipping validated queued commit/)
+        return true
+    })
+    assert.deepEqual(JSON.parse(await readFile(join(fixture.cwd, '.ci/queue.json'), 'utf8')), [])
+    assert.equal(await readFile(join(fixture.cwd, 'stages.jsonl'), 'utf8').catch(() => ''), '')
 })
 
 test('the port check uses tests/config.yaml unless a port is explicitly supplied', async t => {

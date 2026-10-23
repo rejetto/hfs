@@ -184,7 +184,7 @@ is_tested() {
 
     # tested history may contain either full or abbreviated hashes depending on how the check was requested
     echo "$tested" | jq -e --arg commit "$commit" \
-        'any(.[]; (.commit == $commit) or (.commit | startswith($commit)) or ($commit | startswith(.commit)))' >/dev/null
+        'any(.[]; .commit as $tested | ($tested == $commit) or ($tested | startswith($commit)) or ($commit | startswith($tested)))' >/dev/null
 }
 
 add_to_tested() {
@@ -566,6 +566,14 @@ while true; do
         item=$(echo "$queue" | jq -r '.[0]')
         commit=$(echo "$item" | jq -r '.commit')
         branch=$(echo "$item" | jq -r '.branch')
+
+        # interrupted runs can leave validated commits in the persisted queue
+        if [ "$FORCE_TEST" -ne 1 ] && is_tested "$commit" "$tested_commits"; then
+            log "Skipping validated queued commit $commit"
+            queue=$(remove_from_queue "$queue" "$commit")
+            save_queue "$queue"
+            continue
+        fi
         
         log "Testing commit $commit from queue (remaining: $((queue_size - 1)))"
         
