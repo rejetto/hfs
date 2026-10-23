@@ -1,0 +1,29 @@
+- text: Name
+- textbox "Name": new link
+- text: URL
+- textbox "URL": https://example.com
+- text: Link
+- link "https://files.example/new link":
+  - /url: https://files.example/new link
+- button "Copy"
+- button "QR Code"
+- button "Change"
+- text: Priority (order in the frontend)
+- spinbutton "Priority (order in the frontend)"
+- paragraph:
+  - link "To force position":
+    - /url: https://github.com/rejetto/hfs/wiki/Virtual-file-system#order
+- text: Icon Type
+- combobox "Icon Type": default
+- text: Who can see
+- combobox "Who can see": Anyone (default)
+- paragraph:
+  - text: See this item in the list.
+  - link "More help.":
+    - /url: https://github.com/rejetto/hfs/wiki/Permissions
+- switch "Open in new browser"
+- text: Open in new browser Comment
+- textbox "Comment"
+- button "ctrl + enter": Apply
+- button "Cut"
+- button "Delete"

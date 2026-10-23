@@ -1,0 +1,47 @@
+- text: Name
+- textbox "Name": report.txt
+- paragraph: You can decide a name that's different from the one on your disk
+- text: Disk source
+- textbox "Disk source":
+  - /placeholder: none
+  - text: /fixture/report.txt
+- button "Browse files..."
+- text: Link
+- link "https://files.example/report.txt":
+  - /url: https://files.example/report.txt
+- button "Copy"
+- button "QR Code"
+- button "Change"
+- text: Priority (order in the frontend)
+- spinbutton "Priority (order in the frontend)"
+- paragraph:
+  - link "To force position":
+    - /url: https://github.com/rejetto/hfs/wiki/Virtual-file-system#order
+- text: Icon Type
+- combobox "Icon Type": default
+- text: Who can download
+- combobox "Who can download": Anyone (default)
+- paragraph: Who can see but not download will be asked to log in
+- text: Who can zip
+- combobox "Who can zip": As "can download" (default)
+- paragraph: Should this be included when user downloads as ZIP
+- text: Who can see
+- combobox "Who can see": As "can download" (default)
+- paragraph:
+  - text: See this item in the list.
+  - link "More help.":
+    - /url: https://github.com/rejetto/hfs/wiki/Permissions
+- text: Size
+- textbox "Size" [disabled]: 1 KB
+- text: Created
+- textbox "Created" [disabled]: "-"
+- text: Modified
+- textbox "Modified" [disabled]: "-"
+- switch "Treat as interface asset"
+- text: Treat as interface asset
+- paragraph: Excluded from download limits; logged only when interface logging is enabled
+- text: Comment
+- textbox "Comment"
+- button "ctrl + enter": Apply
+- button "Cut"
+- button "Delete"
