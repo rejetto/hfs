@@ -839,7 +839,7 @@ describe('basics', () => {
     test('zip.partial', req('/f1/?get=zip', { re:/^page$/, length: zipLength }, { headers: { Range: `bytes=${zipOfs}-${zipOfs+zipLength-1}` } }) )
     test('zip.partial.resume', req('/f1/?get=zip', { re:/^page/, length:zipSize-zipOfs }, { headers: { Range: `bytes=${zipOfs}-` } }) )
     test('zip.partial.end', req('/f1/f2/?get=zip', { re:/^6/, length:10 }, { headers: { Range: 'bytes=-10' } }) )
-    test('zip.list.compacted folders', req('/f1/?get=zip&list=page%2Fgpl.png%2F%2F%00index.html', /page\/gpl.png.+page\/index.html/))
+    test('zip.list.compacted folders', req('/f1/?get=zip&list=page%2Fgpl.png%2F%2F%00index.html', /page\/gpl.png.+page\/index.html/s))
     test('zip.list.selected folder decodes prefix', req('/tests/?get=zip&list=C%253A', data =>
         String(data).includes('C:/gpl.png') && !String(data).includes('C%3A/gpl.png')))
     test('zip.list.selected nested folder preserves path', async () => {
