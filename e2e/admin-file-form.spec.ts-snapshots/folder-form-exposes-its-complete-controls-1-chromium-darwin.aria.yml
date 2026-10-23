@@ -1,0 +1,81 @@
+- alert: To set permissions on individual items in folder, add them by clicking Add button, and then "from disk"
+- text: Name
+- textbox "Name": documents
+- paragraph: You can decide a name that's different from the one on your disk
+- text: Disk source
+- textbox "Disk source":
+  - /placeholder: none
+  - text: /fixture/documents
+- button "Browse files..."
+- paragraph: Files from this path on disk will be listed, but you can add more
+- text: Link
+- link "https://files.example/documents/":
+  - /url: https://files.example/documents/
+- button "Copy"
+- button "QR Code"
+- button "Change"
+- text: Priority (order in the frontend)
+- spinbutton "Priority (order in the frontend)"
+- paragraph:
+  - link "To force position":
+    - /url: https://github.com/rejetto/hfs/wiki/Virtual-file-system#order
+- text: Icon Type
+- combobox "Icon Type": default
+- text: Who can download
+- combobox "Who can download": Anyone (default)
+- paragraph:
+  - text: Who can see but not download will be asked to log in
+  - button "Set different permission for folder content"
+- text: Who can zip
+- combobox "Who can zip": As "can download" (default)
+- paragraph:
+  - text: Should this be included when user downloads as ZIP
+  - button "Set different permission for folder content"
+- text: Who can list the contents
+- combobox "Who can list the contents": As "can download" (default)
+- paragraph:
+  - text: Permission to request the list of a folder. The list will include only things you can see.
+  - button "Set different permission for subfolders"
+- text: Who can delete
+- combobox "Who can delete": Any admin (default)
+- paragraph:
+  - text: Those who can delete can also rename and cut/move
+  - button "Set different permission for folder content"
+- text: Who can upload
+- combobox "Who can upload": Any admin (default)
+- paragraph:
+  - button "Set different permission for subfolders"
+- text: Who can see
+- combobox "Who can see": As "can download" (default)
+- paragraph:
+  - text: See this item in the list.
+  - link "More help.":
+    - /url: https://github.com/rejetto/hfs/wiki/Permissions
+  - button "Set different permission for folder content"
+- text: Size
+- textbox "Size" [disabled]: "-"
+- text: Created
+- textbox "Created" [disabled]: "-"
+- text: Modified
+- textbox "Modified" [disabled]: "-"
+- switch "Serve as web-page if index.html is found"
+- text: Serve as web-page if index.html is found
+- paragraph: ...instead of showing list of files
+- switch "Treat as interface asset"
+- text: Treat as interface asset
+- paragraph: Excluded from download limits; logged only when interface logging is enabled
+- text: Comment
+- textbox "Comment"
+- switch "Show without probing disk source"
+- text: Show without probing disk source
+- paragraph: Don't access this folder's disk source when listing its parent
+- text: Masks
+- textbox "Masks"
+- paragraph:
+  - text: Special field, leave empty unless you know what you are doing. YAML syntax.
+  - link "(examples)":
+    - /url: https://github.com/rejetto/hfs/wiki/Masks-field
+- button "ctrl + enter": Apply
+- button "Add"
+- button "Cut"
+- button "Delete"

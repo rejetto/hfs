@@ -134,6 +134,9 @@ export default defineConfig({
   ],
 
   expect: {
+    toMatchAriaSnapshot: {
+      pathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}-{projectName}-{platform}{ext}',
+    },
     toHaveScreenshot: {
       stylePath: 'e2e/screenshot.css',
       threshold: 0.5,

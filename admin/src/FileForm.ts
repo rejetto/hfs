@@ -178,7 +178,7 @@ export default function FileForm({ file, addToBar, statusApi, accountsApi, done,
                 toField: Boolean, fromField: (v:boolean) => v && !inheritedDefault ? 'index.html' : v ? null : false,
                 helperText: md(t`...instead of showing list of files`)
             },
-            {
+            !isLink && {
                 k: 'gui_asset', comp: BoolField, xl: 6,
                 label: t`Treat as interface asset` + (byMasks?.gui_asset === undefined ? '' : ` (${t`from masks`})`),
                 value: values.gui_asset ?? implicitGuiAsset ?? false,
