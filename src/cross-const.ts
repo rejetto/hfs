@@ -5,6 +5,7 @@ export const API_URI = SPECIAL_URI + 'api/'
 export const PLUGINS_PUB_URI = SPECIAL_URI + 'plugins/'
 export const ICONS_URI = SPECIAL_URI + 'icons/'
 export const PORT_DISABLED = -1
+export const DOWNLOAD_ONLY = 'download-only'
 export const NBSP = '\xA0'
 export const PLUGIN_CUSTOM_REST_PREFIX = '_'
 export const HFS_REPO = 'rejetto/hfs'

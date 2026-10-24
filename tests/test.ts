@@ -34,7 +34,7 @@ import { Readable } from 'stream'
 import { once } from 'events'
 import { QuickZipStream } from '../src/QuickZipStream'
 import { XMLValidator } from 'fast-xml-parser'
-import { BASIC_AUTHENTICATE_HEADER } from '../src/cross'
+import { BASIC_AUTHENTICATE_HEADER, DOWNLOAD_ONLY } from '../src/cross'
 import { ClientRequest, createServer, request as httpRequest } from 'http'
 import fswin from 'fswin'
 import { tmpdir } from 'os'
@@ -560,6 +560,83 @@ describe('basics', () => {
         }
         finally {
             await rm(dir, { recursive: true, force: true })
+        }
+    })
+    test('hidden files modes preserve download permissions and explicit shares', { skip: process.platform === 'win32' }, async () => {
+        const name = `hidden-modes-${randomId(6)}`
+        const source = resolve(__dirname, 'tmp', name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['show_hidden_files', 'directory_cache', 'server_code'] }, 200, adminReq)()
+        await mkdir(join(source, '.folder'), { recursive: true })
+        for (const file of ['visible.txt', '.explicit.txt', '.hidden.txt', '.denied.txt', '.folder/child.txt'])
+            await writeFile(join(source, file), 'hidden-mode-proof')
+        try {
+            await reqApi('add_vfs', {
+                name, source,
+                masks: { '.denied.txt': { can_read: false, can_see: true }, '.hidden.txt': { can_see: true } },
+                children: [{ name: 'explicit.txt', source: join(source, '.explicit.txt') }],
+            }, 200, adminReq)()
+            for (const cache of [0, -1]) {
+                for (const mode of [false, true, DOWNLOAD_ONLY]) {
+                    await reqApi('set_config', { values: { show_hidden_files: mode, directory_cache: cache } }, 200, adminReq)()
+                    if (cache && mode === false)
+                        throwIf(!await waitFor(() => reqApi('get_directory_cache_status', {}, 200, adminReq)()
+                            .then(status => status.enabled && status.directories > 0 && !status.updating.length), { timeout: 5000 }))
+                    await reqList(uri, { inList: ['visible.txt', 'explicit.txt', ...(mode === true ? ['.hidden.txt', '.denied.txt', '.folder/'] : [])],
+                        outList: mode === true ? [] : ['.hidden.txt', '.denied.txt', '.folder/'] })()
+                    await reqList(uri, mode === true ? { inList: ['.folder/child.txt'] } : { outList: ['.folder/child.txt'] }, { search: 'child' })()
+                    await req(uri + '.hidden.txt', mode === false ? 404 : /hidden-mode-proof/, { jar: {} })()
+                    await req(uri + '.folder/child.txt', mode === false ? 404 : /hidden-mode-proof/, { jar: {} })()
+                    await req(uri + '.denied.txt', mode === false ? 404 : 403, { jar: {} })()
+                    await req(uri + 'explicit.txt', /hidden-mode-proof/, { jar: {} })()
+                }
+            }
+            await reqApi('set_config', { values: { show_hidden_files: DOWNLOAD_ONLY } }, 200, adminReq)()
+            await req(uri + '%2Ehidden.txt', /hidden-mode-proof/, { jar: {} })()
+            await reqApi('get_file_details', { uris: [uri + '.hidden.txt'] }, noVisibleDetails, { jar: {} })()
+            await req(uri + '.hidden.txt', 403, { ...adminReq, method: 'PROPFIND', headers: { depth: '0' } })()
+            await req(uri, data => !String(data).includes('.hidden.txt') && !String(data).includes('.folder/'), {
+                ...adminReq, method: 'PROPFIND', headers: { depth: 'infinity' },
+            })()
+            for (const selected of [undefined, '.hidden.txt', '.denied.txt']) {
+                const path = uri + '?get=zip' + (selected ? '&list=' + encodeURIComponent(selected) : '')
+                const { body } = await httpWithBody(BASE_URL + path, { path, jar: {} })
+                const files = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+                if (selected === '.hidden.txt')
+                    throwIf(files.length !== 1 || files[0] !== selected)
+                else
+                    throwIf(files.some(file => file.startsWith('.')))
+            }
+            await reqApi('set_vfs', { uri, props: { rename: { '.hidden.txt': 'published.txt' } } }, 200, adminReq)()
+            await req(uri + 'published.txt', /hidden-mode-proof/, { jar: {} })()
+            await req(uri + '.hidden.txt', 404, { jar: {} })()
+            await reqList(uri, { outList: ['published.txt', '.hidden.txt'] })()
+            await reqApi('set_vfs', { uri, props: { rename: {} } }, 200, adminReq)()
+            await reqApi('set_vfs', { uri, props: { can_read: false } }, 200, adminReq)()
+            await req(uri + '.hidden.txt', 403, { jar: {} })()
+            await reqApi('set_vfs', { uri, props: { can_read: true } }, 200, adminReq)()
+            await req(uri + '.hidden.txt', /hidden-mode-proof/, { jar: {} })()
+            await reqList(uri, { outList: ['.hidden.txt'] })()
+            // switching between two non-listing modes must not expose entries already being scanned
+            const script = `exports.init = api => {
+                api.events.on('listDiskFolder', async ({ path }) => {
+                    if (require('path').resolve(path) === ${JSON.stringify(source)})
+                        await api.require('./config').setConfig({ show_hidden_files: false })
+                })
+            }`
+            for (const cache of [0, -1]) {
+                await reqApi('set_config', { values: { server_code: script, show_hidden_files: DOWNLOAD_ONLY, directory_cache: cache } }, 200, adminReq)()
+                throwIf(!await waitFor(() => reqApi('get_directory_cache_status', {}, 200, adminReq)()
+                    .then(status => status.enabled === Boolean(cache) && !status.updating.length && (!cache || status.directories > 0)), { timeout: 5000 }))
+                await reqList(uri, { inList: ['visible.txt', 'explicit.txt'], outList: ['.hidden.txt', '.denied.txt', '.folder/'] })()
+                await reqApi('get_config', { only: ['show_hidden_files'] }, res => res.show_hidden_files === false, adminReq)()
+            }
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)()
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)()
+            await rmAny(source)
         }
     })
     test('descript.ion is private unless explicitly shared', async () => {
