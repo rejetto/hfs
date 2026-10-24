@@ -10,7 +10,7 @@ import {
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, saveConfigAsap } from './config'
-import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_WINDOWS } from './const'
+import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_WINDOWS, DOWNLOAD_ONLY } from './const'
 import events from './events'
 import { ctxBelongsTo } from './perm'
 import { getCurrentUsername } from './auth'
@@ -22,7 +22,8 @@ import { Readable } from 'node:stream'
 import { ctxAdminAccess } from './adminApis'
 import { getDirectoryCacheState } from './directoryCache'
 
-const showHiddenFiles = defineConfig(CFG.show_hidden_files, false)
+const showHiddenFiles = defineConfig<boolean | typeof DOWNLOAD_ONLY>(CFG.show_hidden_files, false,
+    v => v === DOWNLOAD_ONLY ? DOWNLOAD_ONLY : v) // reuse the internalized literal so V8 can compare string identity at runtime
 const sourceNames = new Map<string, string[]>()
 
 type Masks = Record<string, VfsNode>
@@ -195,8 +196,12 @@ export async function urlToNode(
     const ret = await getNodeByName(name, parent, assumeFolder)
     if (!ret)
         return
-    if (!ret.original && ret.source && !options.includeHidden && !showHiddenFiles.get() && await isHiddenFile(ret.source))
-        return
+    const hiddenMode = showHiddenFiles.compiled()
+    if (!ret.original && ret.source && hiddenMode !== true && await isHiddenFile(ret.source)) {
+        if (!options.includeHidden && !hiddenMode) return
+        if (hiddenMode === DOWNLOAD_ONLY)
+            ret.can_see = false
+    }
     if (rest || ret?.original)
         return urlToNode(rest, ctx, ret, options)
     if (ret.source)
@@ -527,6 +532,7 @@ export async function* walkNode(parent: VfsNodeWithPath, {
     useCache = false,
     filterName,
 }: WalkNodeOptions = {}) {
+    const hiddenMode = showHiddenFiles.compiled() // keep disk filtering and visibility consistent if the config changes during the scan
     let started = false
     const stream = new Readable({
         objectMode: true,
@@ -575,7 +581,7 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                 const applyPathMask = parentMaskApplier(parent, true, true)
                 const applyRootNameMask = parentMaskApplier(parent, false, true)
                 try {
-                    await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion, useCache }, async entry => {
+                    await walkDir(source, { depth, ctx, hidden: Boolean(hiddenMode), parallelizeRecursion, useCache }, async entry => {
                         if (ctx?.isAborted())
                             return null
                         const {path} = entry // this path is not the original deprecated property: we are overwriting/reusing it
@@ -611,6 +617,8 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                         for (const key of exceptions)
                             if (!(key in rootMaskProperties))
                                 rootMaskProperties[key] = parent[key]
+                        if (hiddenMode === DOWNLOAD_ONLY && entry.hidden)
+                            rootMaskProperties.can_see = false
                         if (cantSee(item, evaluatedParent.node, virtualName, rootMaskProperties)) // can't see: don't produce and don't recur
                             return false
                         if (isFolder)

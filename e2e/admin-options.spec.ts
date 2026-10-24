@@ -1,6 +1,7 @@
 import { expect, Page, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import yaml from 'yaml'
+import { DOWNLOAD_ONLY } from '../src/cross-const'
 
 const port = yaml.parse(readFileSync('tests/config.yaml', 'utf8')).port
 const url = process.env.ADMIN_OPTIONS_URL || `http://localhost:${port}/~/admin/#/options/others`
@@ -117,6 +118,22 @@ test('comment encoding follows storage mode despite the enabled legacy setting',
     await expect(encoding).toBeDisabled()
 })
 
+test('hidden files supports all three modes', async ({ page }) => {
+    let saved: unknown
+    await page.route('**/~/api/set_config', route => {
+        saved = route.request().postDataJSON().values.show_hidden_files
+        return route.fulfill({ json: {} })
+    })
+    await openOptions(page)
+    const hidden = page.getByRole('combobox', { name: /^Hidden files/ })
+    for (const [label, value] of [['Include without showing', DOWNLOAD_ONLY], ['Include and show', true], ['Exclude', false]] as const) {
+        await hidden.click()
+        await page.getByRole('option', { name: label, exact: true }).click()
+        await page.getByRole('button').filter({ hasText: /^Save$/ }).click()
+        await expect.poll(() => saved).toBe(value)
+    }
+})
+
 test('only mounts tables in the active tab', async ({ page }) => {
     await openOptions(page)
     const tables = page.locator('.MuiDataGrid-root')
@@ -127,7 +144,10 @@ test('only mounts tables in the active tab', async ({ page }) => {
 async function openOptions(page: Page) {
     await page.route('**/~/api/get_config', route => route.fulfill({ json: {
         port: 80, https_port: -1, descript_ion: true, directory_cache: -1,
-        comments_storage: 'attr', descript_ion_encoding: 'utf8',
+        comments_storage: 'attr', descript_ion_encoding: 'utf8', show_hidden_files: false,
+        localhost_admin: true, auto_play_seconds: 5, tile_size: 0, page_size: 100,
+        delete_unfinished_uploads_after: 60, own_upload_delete_hours: 0, session_duration: 86400,
+        zip_calculate_size_for_seconds: 1,
         server_code: '', mime: {}, block: [],
     } }))
     await page.route('**/~/api/get_status', route => route.fulfill({ json: {

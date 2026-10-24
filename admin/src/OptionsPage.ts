@@ -10,7 +10,7 @@ import { EditNote, Refresh, Warning } from '@mui/icons-material'
 import { adminApis } from '../../src/adminApis'
 import {
     MAX_TILE_SIZE, REPO_URL, SORT_BY_OPTIONS, THEME_OPTIONS, CFG, IMAGE_FILEMASK, Dict, md, with_, try_, ipForUrl, Html,
-    useFixSticky,
+    useFixSticky, DOWNLOAD_ONLY,
 } from './misc'
 import {
     iconTooltip, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported,
@@ -269,7 +269,11 @@ export default function OptionsPage() {
                     label: t`Uploaders can delete their files for`, helperText: t`Set to 0 to disable` },
             ],
             "Others": [
-                { k: CFG.show_hidden_files, comp: BoolField, sm: 3, label: t`Include hidden files` },
+                { k: CFG.show_hidden_files, comp: SelectField, sm: 3, label: t`Hidden files`, options: {
+                    [t`Exclude`]: false,
+                    [t`Include and show`]: true,
+                    [t`Include without showing`]: DOWNLOAD_ONLY,
+                } },
                 { k: CFG.descript_ion_encoding, sm: 3, label: t`Encoding of file DESCRIPT.ION`, comp: SelectField, disabled: values[CFG.comments_storage] === 'attr',
                     options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
                 { k: CFG.comments_storage, comp: SelectField, xs: 12, sm: 6, options: {
