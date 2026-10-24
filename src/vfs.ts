@@ -10,7 +10,7 @@ import {
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, saveConfigAsap } from './config'
-import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_WINDOWS } from './const'
+import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_WINDOWS, DOWNLOAD_ONLY } from './const'
 import events from './events'
 import { ctxBelongsTo } from './perm'
 import { getCurrentUsername } from './auth'
@@ -24,7 +24,8 @@ import { canAccessUnfinishedUpload } from './uploadOwners'
 import { getDirectoryCacheState } from './directoryCache'
 import { ApiError } from './ApiError'
 
-const showHiddenFiles = defineConfig(CFG.show_hidden_files, false)
+const showHiddenFiles = defineConfig<boolean | typeof DOWNLOAD_ONLY>(CFG.show_hidden_files, false,
+    v => v === DOWNLOAD_ONLY ? DOWNLOAD_ONLY : v) // reuse the internalized literal so V8 can compare string identity at runtime
 const sourceNames = new Map<string, string[]>()
 
 type Masks = Record<string, VfsNode>
@@ -199,8 +200,12 @@ export async function urlToNode(
         return
     if (ctx && !await canAccessUnfinishedUpload(ret, ctx))
         return
-    if (!ret.original && ret.source && !options.includeHidden && !showHiddenFiles.get() && await isHiddenFile(ret.source))
-        return
+    const hiddenMode = showHiddenFiles.compiled()
+    if (!ret.original && ret.source && hiddenMode !== true && await isHiddenFile(ret.source)) {
+        if (!options.includeHidden && !hiddenMode) return
+        if (hiddenMode === DOWNLOAD_ONLY)
+            ret.can_see = false
+    }
     if (rest || ret?.original)
         return urlToNode(rest, ctx, ret, options)
     if (ret.source)
@@ -531,6 +536,7 @@ export async function* walkNode(parent: VfsNodeWithPath, {
     useCache = false,
     filterName,
 }: WalkNodeOptions = {}) {
+    const hiddenMode = showHiddenFiles.compiled() // keep disk filtering and visibility consistent if the config changes during the scan
     let started = false
     let readable: PendingPromise<void> | undefined
     const stream = new Readable({
@@ -598,7 +604,7 @@ export async function* walkNode(parent: VfsNodeWithPath, {
             const applyPathMask = parentMaskApplier(parent, true, true)
             const applyRootNameMask = parentMaskApplier(parent, false, true)
             try {
-                await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion, useCache,
+                await walkDir(source, { depth, ctx, hidden: Boolean(hiddenMode), parallelizeRecursion, useCache,
                     onDirectoryEnd: path => { diskFolders.delete(path) },
                 }, async entry => {
                     if (stream.destroyed || ctx?.isAborted())
@@ -636,7 +642,7 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                     for (const key of exceptions)
                         if (!(key in rootMaskProperties))
                             rootMaskProperties[key] = parent[key]
-                    if (await cantSee(item, evaluatedParent.node, virtualName, rootMaskProperties)) // can't see: don't produce and don't recur
+                    if (await cantSee(item, evaluatedParent.node, virtualName, rootMaskProperties, entry.hidden)) // can't see: don't produce and don't recur
                         return false
                     item.name = name
                     if (matches && canEmit(item, isFolder) && !await emit(item))
@@ -686,11 +692,13 @@ export async function* walkNode(parent: VfsNodeWithPath, {
         }
 
         // item will be changed, so be sure to pass a temp node
-        async function cantSee(item: VfsNodeWithPath, itemParent: VfsNodeWithPath, virtualName: string, pathPermissions?: VfsPerms) {
+        async function cantSee(item: VfsNodeWithPath, itemParent: VfsNodeWithPath, virtualName: string, pathPermissions?: VfsPerms, hidden = false) {
             const scoped = applyParentMasks(item, itemParent, virtualName, parent)
             inheritFromParent(item)
             if (!scoped)
                 Object.assign(item, pathPermissions)
+            if (hiddenMode === DOWNLOAD_ONLY && hidden)
+                item.can_see = false
             if (ctx && !await canAccessUnfinishedUpload(item, ctx)) return true
             if (ctx && !hasPermission(item, 'can_see', ctx)) return true
             item.isTemp = true
