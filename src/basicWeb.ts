@@ -3,7 +3,7 @@ import { BASIC_AUTHENTICATE_HEADER, HTTP_UNAUTHORIZED } from './cross-const'
 import Koa from 'koa'
 import { Readable } from 'stream'
 import { defineConfig } from './config'
-import { getNodeName, getDefaultFile, nodeIsFolder, VfsNodeWithPath, walkNode } from './vfs'
+import { getNodeName, getDefaultFile, hasPermission, nodeIsFolder, VfsNodeWithPath, walkNode } from './vfs'
 import { CFG, Dict, escapeHTML, pathEncode, try_ } from './misc'
 import _ from 'lodash'
 import { title } from './adminApis'
@@ -42,7 +42,10 @@ export async function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
         yield getSection('basicHeader')
         const u = getCurrentUsername(ctx)
         const links: Dict<string> = u ? { [`//LOGOUT%00:@${ctx.host}/?get=logout`]: `Logout (${u})` } : { '/?get=login': "Login" }
-        yield _.map(links, (v,k) => a(k, v)).join(' ') + '\n<ul>\n'
+        yield _.map(links, (v,k) => a(k, v)).join(' ') + '\n'
+        if (hasPermission(node, 'can_upload', ctx))
+            yield `<br><br><form method="post" action="?get=basic" enctype="multipart/form-data"><label>Upload files: <input type="file" name="upload" multiple required></label><button type="submit">Upload</button></form>\n`
+        yield '<ul>\n'
         if (ctx.state.originalPath.length > 1)
             yield '<li>' + a('..' + force, '..') + '\n'
         for await (const el of walkNode(node, { ctx, depth: 0, useCache: true })) {
