@@ -3,7 +3,8 @@ import Busboy from 'busboy'
 import { hasPermission, urlToNode, VfsNodeWithPath } from './vfs'
 import { dirname } from 'path'
 import { uploadWriter } from './upload'
-import { HTTP_BAD_REQUEST, HTTP_FOOL } from './cross-const'
+import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_MESSAGES } from './cross-const'
+import { escapeHTML } from './misc'
 import { onFirstEvent } from './first'
 import { makeMatcher, try_ } from './cross'
 import { defineConfig } from './config'
@@ -21,7 +22,11 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithP
     const locks: Promise<string>[] = []
     const fileJobs: Promise<void>[] = []
     const errors: string[] = []
-    const bb = try_(() => Busboy({ headers: ctx.req.headers, preservePath: true }), e => {
+    const bb = try_(() => Busboy({
+        headers: ctx.req.headers,
+        preservePath: true,
+        defParamCharset: ctx.query.get === 'basic' ? 'utf8' : 'latin1', // native basic forms send filenames in the page's UTF-8 charset; keep the legacy default for other clients
+    }), e => {
         ctx.body = String(e) // busboy validates multipart headers at construction time, so malformed requests must stop here as 400
         ctx.status = HTTP_BAD_REQUEST
     })
@@ -58,6 +63,15 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithP
     }
     const uris = await Promise.all(locks)
     ctx.body = errors.length ? { uris, errors } : { uris }
+    if (ctx.query.get === 'basic') {
+        if (ctx.status >= 400)
+            errors.push(HTTP_MESSAGES[ctx.status] || String(ctx.status))
+        ctx.type = 'html'
+        ctx.body = `<meta charset="utf-8"><meta name="viewport" content="width=device-width">
+            <title>Upload</title><p>Uploaded files: ${uris.filter(Boolean).length}</p>
+            ${errors.map(error => `<p>${escapeHTML(error)}</p>`).join('')}
+            <p><a href="?get=basic">Back</a></p>`
+    }
     return
 
     async function handleFile(file: NodeJS.ReadableStream, fn: string) {
