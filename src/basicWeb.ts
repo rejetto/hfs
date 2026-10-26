@@ -2,7 +2,7 @@ import { getCurrentUsername, setLoggedIn } from './auth'
 import { BASIC_AUTHENTICATE_HEADER, HTTP_UNAUTHORIZED } from './cross-const'
 import Koa from 'koa'
 import { defineConfig } from './config'
-import { getNodeName, getDefaultFile, nodeIsFolder, VfsNodeWithPath, walkNode } from './vfs'
+import { getNodeName, getDefaultFile, hasPermission, nodeIsFolder, VfsNodeWithPath, walkNode } from './vfs'
 import { asyncGeneratorToReadable, CFG, Dict, escapeHTML, filterMapGenerator, pathEncode, try_ } from './misc'
 import _ from 'lodash'
 import { title } from './adminApis'
@@ -48,7 +48,10 @@ export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
     stream.push(getSection('basicHeader'))
     const u = getCurrentUsername(ctx)
     const links: Dict<string> = u ? { [`//LOGOUT%00:@${ctx.host}/?get=logout`]: `Logout (${u})` } : { '/?get=login': "Login" }
-    stream.push(_.map(links, (v,k) => a(k, v)).join(' ') + '\n<ul>\n')
+    stream.push(_.map(links, (v,k) => a(k, v)).join(' ') + '\n')
+    if (hasPermission(node, 'can_upload', ctx))
+        stream.push(`<br><br><form method="post" action="?get=basic" enctype="multipart/form-data"><label>Upload files: <input type="file" name="upload" multiple required></label><button type="submit">Upload</button></form>\n`)
+    stream.push('<ul>\n')
     if (ctx.state.originalPath.length > 1)
         stream.push('<li>' + a('..' + force, '..') + '\n')
     stream.on('ending', () =>
