@@ -13,7 +13,10 @@ for (const whole of [false, true])
     test(whole ? 'loading the whole log retains both byte-range batches' : 'a complete Unicode log keeps its first record', async ({ page }) => {
         const bytes = Buffer.from(logLine('first.txt', whole ? JSON.stringify(JSON.stringify({ padding: 'x'.repeat(2 ** 20) })) : '') + logLine('recent.txt'))
         await page.route('**/~/api/get_log_info', route => route.fulfill({ json: { current: { log: bytes.length }, rotated: {} } }))
-        await page.route(/\/~\/api\/get_log\?/, route => route.fulfill({ contentType: 'text/event-stream', body: 'data: [["ready"]]\n\ndata:\n\n' }))
+        await page.routeWebSocket(/\/~\/api\/get_log\?/, socket => {
+            socket.send('[["ready"]]')
+            socket.close({ code: 1000 })
+        })
         const ranges: string[] = []
         await page.route('**/~/api/get_log_file', route => {
             const range = route.request().postDataJSON().range as string
@@ -44,15 +47,15 @@ test('reconnecting the live stream keeps previously loaded file history', async 
     await page.route('**/~/api/get_log_file', route => route.fulfill({ status: 206, headers: { 'Content-Range': `bytes 0-${size - 1}/${size}` }, body }))
     let disconnect!: () => void
     const disconnected = new Promise<void>(resolve => { disconnect = resolve })
-    await page.route(/\/~\/api\/get_log\?/, async route => {
-        const reconnecting = new URL(route.request().url()).searchParams.get('skipInitial') === 'true'
+    await page.routeWebSocket(/\/~\/api\/get_log\?/, async socket => {
+        const reconnecting = new URL(socket.url()).searchParams.get('skipInitial') === 'true'
         // startup requests may be cancelled; trigger EOF only after history is displayed
         if (!reconnecting) await disconnected
         const messages = reconnecting
             ? [['+', { ip: '127.0.0.1', ts: Date.now(), method: 'GET', uri: '/live.txt', status: 200, length: 1 }], ['ready']]
             : [['ready']]
-        return route.fulfill({ contentType: 'text/event-stream',
-            body: `data: ${JSON.stringify(messages)}\n\n` + (reconnecting ? 'data:\n\n' : '') })
+        socket.send(JSON.stringify(messages))
+        socket.close({ code: reconnecting ? 1000 : 1012 })
     })
     await page.goto(url)
     const history = page.getByRole('gridcell').filter({ hasText: '/history.txt' })

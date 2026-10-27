@@ -8,10 +8,12 @@ const url = process.env.ADMIN_ONLINE_PLUGINS_URL || `http://localhost:${port}/~/
 
 test('plugin catalog explains certificate failures', async ({ page }) => {
     const code = 'UNABLE_TO_VERIFY_LEAF_SIGNATURE'
-    await page.route('**/~/api/**', route => {
-        const cmd = route.request().url().split('/').pop()?.split('?')[0]
+    await page.route('**/~/api/**', route => route.fulfill({ json: { username: 'admin', isAdmin: true } }))
+    await page.routeWebSocket('**/~/api/**', socket => {
+        const cmd = new URL(socket.url()).pathname.split('/').pop()
         const messages = cmd === 'get_online_plugins' ? [[LIST.error, code], [LIST.ready]] : []
-        return route.fulfill({ contentType: 'text/event-stream', body: 'data: ' + JSON.stringify(messages) + '\n\ndata:\n\n' })
+        socket.send(JSON.stringify(messages))
+        socket.close({ code: 1000 })
     })
     await page.goto(url)
     await expect(page.getByRole('alert'))
@@ -20,10 +22,12 @@ test('plugin catalog explains certificate failures', async ({ page }) => {
 
 test('show all plugin columns clears hidden columns and persists across reloads', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 })
-    await page.route('**/~/api/**', route => {
-        const cmd = route.request().url().split('/').pop()?.split('?')[0]
+    await page.route('**/~/api/**', route => route.fulfill({ json: { username: 'admin', isAdmin: true } }))
+    await page.routeWebSocket('**/~/api/**', socket => {
+        const cmd = new URL(socket.url()).pathname.split('/').pop()
         const messages = cmd === 'get_online_plugins' ? [['+', { id: 'test-plugin', version: 1, description: 'Example', license: 'MIT', pushed_at: '2026-09-10', stargazers_count: 1 }], ['ready']] : []
-        return route.fulfill({ contentType: 'text/event-stream', body: 'data: ' + JSON.stringify(messages) + '\n\ndata:\n\n' })
+        socket.send(JSON.stringify(messages))
+        socket.close({ code: 1000 })
     })
     await page.goto(url)
     const name = page.locator('[role=columnheader][data-field=id]')
@@ -65,14 +69,18 @@ test('started installation reveals its row in installed plugins', async ({ page 
     })).concat({ id: localId, repo: target, version: 1, started: '2026-09-26T12:00:00Z' })
     await page.setViewportSize({ width: 1280, height: 500 })
     await page.route('**/~/api/**', route => {
-        const cmd = route.request().url().split('/').pop()?.split('?')[0]
+        const cmd = new URL(route.request().url()).pathname.split('/').pop()
         if (cmd === 'download_plugin') return route.fulfill({ json: { id: localId } })
         if (cmd === 'start_plugin') return route.fulfill({ json: { id: localId, repo: target, version: 1, started: installed.at(-1)!.started } })
+        return route.fulfill({ json: { username: 'admin', isAdmin: true } })
+    })
+    await page.routeWebSocket('**/~/api/**', socket => {
+        const cmd = new URL(socket.url()).pathname.split('/').pop()
         const rows = cmd === 'get_online_plugins'
             ? [{ id: target, repo: target, version: 1, description: 'Target plugin' }]
             : cmd === 'get_plugins' ? installed : []
-        return route.fulfill({ contentType: 'text/event-stream',
-            body: 'data: ' + JSON.stringify([...rows.map(row => ['+', row]), ['ready']]) + '\n\ndata:\n\n' })
+        socket.send(JSON.stringify([...rows.map(row => ['+', row]), ['ready']]))
+        socket.close({ code: 1000 })
     })
     await page.goto(url)
     await page.getByRole('button', { name: 'Install', exact: true }).click()

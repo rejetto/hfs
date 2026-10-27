@@ -2,6 +2,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import Koa from 'koa'
+import { apiWebSocketMiddleware } from './apiWebSocket'
 import mount from 'koa-mount'
 import './consoleLog'
 import { apiMiddleware } from './apiMiddleware'
@@ -45,7 +46,8 @@ httpStream.defaultUA = 'HFS'
 const keys = process.env.COOKIE_SIGN_KEYS?.split(',')
     || [randomBytes(32).toString('base64url')] // cookie signatures need randomness that cannot be reconstructed from observable Math.random() output
 export const app = new Koa({ keys })
-app.use(sessionMiddleware)
+app.use(apiWebSocketMiddleware)
+    .use(sessionMiddleware)
     .use(selfCheckMiddleware)
     .use(acmeMiddleware)
     .use(prepareConnection)

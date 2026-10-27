@@ -13,9 +13,12 @@ test('list retries preserve complete snapshots only within their window', async 
     await page.addInitScript(() => {
         Object.assign(window, { HFS: { lang: { en: {} }, session: { username: 'admin', isAdmin: true } } })
         class Source {
+            static CONNECTING = 0
+            static OPEN = 1
+            static CLOSED = 3
             static all: Source[] = []
             OPEN = 1
-            CLOSED = 2
+            CLOSED = 3
             readyState = 1
             onopen?: () => void
             onerror?: () => void
@@ -23,7 +26,7 @@ test('list retries preserve complete snapshots only within their window', async 
             constructor(public url: string) { Source.all.push(this) }
             close() { this.readyState = this.CLOSED }
         }
-        Object.assign(window, { EventSource: Source, sources: Source.all })
+        Object.assign(window, { WebSocket: Source, sources: Source.all })
     })
     await page.route('**/~/api/refresh_session', route => route.fulfill({ json: { username: 'admin', isAdmin: true } }))
     await page.route('**/src/MonitorPage.ts*', route => route.fulfill({

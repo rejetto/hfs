@@ -38,7 +38,7 @@ export function forwardConsole(page: Page) {
 }
 
 export async function gotoFrontend(page: Page, url=FRONTEND_URL, options?: Parameters<Page['goto']>[1]) {
-    const listRequest = page.waitForRequest(request => new URL(request.url()).pathname === '/~/api/get_file_list')
+    const listRequest = page.waitForEvent('websocket', socket => new URL(socket.url()).pathname === '/~/api/get_file_list')
     const [response] = await Promise.all([page.goto(url, options), listRequest])
     await page.waitForFunction(() => !(window as any).HFS.state.loading)
     return response

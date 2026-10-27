@@ -11,7 +11,10 @@ test('DNS provider selection, wildcard helper, secret autosave and streamed prog
     await page.addInitScript(english => {
         Object.assign(window, { HFS: { lang: { en: english }, session: { username: 'admin', isAdmin: true } } })
         class StatusSource {
-            CLOSED = 2
+            static CONNECTING = 0
+            static OPEN = 1
+            static CLOSED = 3
+            CLOSED = 3
             readyState = 1
             onmessage: ((event: { data: string }) => void) | null = null
             onerror: (() => void) | null = null
@@ -25,7 +28,7 @@ test('DNS provider selection, wildcard helper, secret autosave and streamed prog
             addEventListener() {}
             removeEventListener() {}
         }
-        Object.assign(window, { EventSource: StatusSource })
+        Object.assign(window, { WebSocket: StatusSource })
     }, english)
     const settings = { domain: '', challenge: 'http-01', renew: false, dns: [] as object[], providers: dnsProviderInfo(catalog.acmeDns) }
     let writes = 0, requests = 0

@@ -37,7 +37,6 @@ export default function HomePage() {
     const [updates, setUpdates] = useState<undefined | Release[]>()
     const [otherVersions, setOtherVersions] = useState<undefined | Release[]>()
     const [usageStatsFeedback, setUsageStatsFeedback] = useState<boolean>()
-    // shortcut: keep this on Home to avoid exhausting SSE connections, reconsider a global subscription with WebSockets
     const serverVersion = useApiEvents<{ version: string }>('get_version').data?.version
     useEffect(() => {
         if (!serverVersion || serverVersion === getHFS().VERSION) return
@@ -289,7 +288,7 @@ async function update(tag?: string) {
         await wait(500) // give the old server time to stop responding before the first probe
     } while (await apiCall('NONE').then(() => 0, e => !e.code)) // while we get no response
     warning?.close()
-    // the server is back on, SSE is restored and login dialog may appear, unwanted because we are just waiting to reload
+    // the server is back on, the event stream is restored and login dialog may appear, unwanted because we are just waiting to reload
     subscribeKey(state, 'loginRequired', () => state.loginRequired = false)
     d.close()
     await alertDialog(t`Procedure complete`, 'success')

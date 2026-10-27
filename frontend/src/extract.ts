@@ -75,7 +75,7 @@ export function ExtractionIndicator() {
         return () => { closed = true; clearTimeout(timer); request.abort(); stream?.close() }
 
         function connect() {
-            // POST recovers oversized old sessions; keep polling if even the live credentials cannot fit a short SSE URL
+            // POST recovers oversized old sessions; keep polling if even the live credentials cannot fit a short subscription URL
             request = apiCall('get_extractions', { ids: idsKey })
             void request.then(({ jobs }) => {
                 if (stale()) return
@@ -106,7 +106,7 @@ export function ExtractionIndicator() {
         }
         function receive(next: ExtractionJob[]) {
             extractionState.error = ''
-            // include jobs that finish before the first SSE snapshot; only the requester gets a folder refresh
+            // include jobs that finish before the first streamed snapshot; only the requester gets a folder refresh
             const refresh = next.some(job => job.status !== 'running'
                 && (startedHere.has(job.id) || extractionState.jobs.some(previous => previous.id === job.id && previous.status === 'running'))
                 && (job.username ? job.username === username : ids.includes(job.id))

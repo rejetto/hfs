@@ -4,13 +4,16 @@ import { resolve } from 'node:path'
 test.beforeEach(async ({ page }) => {
     test.skip(!process.env.ADMIN_PLUGIN_OPTIONS_URL, 'requires the Admin Vite server')
     await page.addInitScript(() => Object.assign(window, { HFS: { session: { username: 'admin', isAdmin: true } } }))
+    await page.routeWebSocket(/\/~\/api\/get_plugin_log(?:\?|$)/, socket => {
+        socket.send(JSON.stringify([['ready']]))
+        socket.close({ code: 1000 })
+    })
     await page.route('**/~/api/**', route => {
         const cmd = new URL(route.request().url()).pathname.split('/').pop()
         if (cmd === 'get_plugin') return route.fulfill({ json: { config: {
             name: 'original',
             entries: [{ label: 'existing', count: 1, password: 'secret' }],
         } } })
-        if (cmd === 'get_plugin_log') return route.fulfill({ contentType: 'text/event-stream', body: 'data: [["ready"]]\n\ndata:\n\n' })
         return route.fulfill({ json: { username: 'admin', isAdmin: true } })
     })
     await page.route('**/src/MonitorPage.ts*', route => route.fulfill({ contentType: 'text/javascript',

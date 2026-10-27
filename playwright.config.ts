@@ -37,6 +37,7 @@ process.env.ADMIN_ADD_FILES_URL ||= adminViteUrl + '#/shared'
 process.env.ADMIN_VFS_PAGE_URL ||= adminViteUrl + '#/shared'
 process.env.ADMIN_LANGUAGES_URL ||= adminViteUrl + '#/language'
 process.env.ADMIN_LOGS_URL ||= adminViteUrl + '#/logs'
+process.env.ADMIN_HOME_URL ||= adminViteUrl
 process.env.ADMIN_CATALOG_URL ||= adminViteUrl
 process.env.ADMIN_LIST_URL ||= adminViteUrl
 // mocked APIs need Vite's bootstrap; the real server requires authentication before rendering

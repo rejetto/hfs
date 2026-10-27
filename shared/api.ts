@@ -151,25 +151,60 @@ type EventHandler = (type:string, data?:any) => void
 
 export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
     params = _.omitBy(params, _.isUndefined)
-    const source = new EventSource(getPrefixUrl() + API_URL + cmd + buildUrlQueryString(params))
-    source.onopen = () => {
-        console.debug('API EVENTS', cmd, params)
-        cb('connected')
+    const url = new URL(getPrefixUrl() + API_URL + cmd + buildUrlQueryString({ ...params, _hfs_page: location.pathname }), location.href)
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+    let source: WebSocket
+    let closed = false
+    // browsers can mark a socket closing before delivering its final queued messages
+    let readyState: number = WebSocket.CONNECTING
+    let retry: ReturnType<typeof setTimeout>
+    connect()
+    return {
+        OPEN: WebSocket.OPEN,
+        CLOSED: WebSocket.CLOSED,
+        get readyState() { return readyState },
+        close() {
+            closed = true
+            readyState = WebSocket.CLOSED
+            clearTimeout(retry)
+            source.close()
+        },
     }
-    source.onerror = err => cb('error', err)
-    source.onmessage = ({ data }) => {
-        if (!data) {
-            cb('closed')
-            return source.close()
+
+    function connect() {
+        readyState = WebSocket.CONNECTING
+        source = new WebSocket(url.href)
+        let failed = false
+        source.onopen = () => {
+            if (closed) return
+            readyState = WebSocket.OPEN
+            cb('connected')
         }
-        try { data = JSON.parse(data) }
-        catch {
-            return cb('string', data)
+        source.onerror = err => {
+            if (closed) return
+            failed = true
+            cb('error', err)
         }
-        console.debug('SSE msg', data)
-        cb('msg', data)
+        source.onclose = event => {
+            readyState = WebSocket.CLOSED
+            if (closed) return
+            if (event.code === 1000) {
+                closed = true
+                cb('closed')
+            }
+            else {
+                if (!failed) cb('error', event)
+                // callers may close explicitly to manage their own snapshot/retry policy
+                if (!closed) retry = setTimeout(connect, 1000)
+            }
+        }
+        source.onmessage = ({ data }) => {
+            if (closed) return
+            try { data = JSON.parse(data) }
+            catch { return cb('string', data) }
+            cb('msg', data)
+        }
     }
-    return source
 }
 
 export function useApiEvents<T=any>(cmd: string, params: Dict={}) {
@@ -202,7 +237,7 @@ export function useApiEvents<T=any>(cmd: string, params: Dict={}) {
     return { data, loading, error }
 }
 
-export async function getNotifications(channel: string, cb: (name: string, data:any) => void): Promise<EventSource> {
+export async function getNotifications(channel: string, cb: (name: string, data:any) => void): Promise<ReturnType<typeof apiEvents>> {
     return new Promise(resolve => {
         const ret = apiEvents('get_notifications', { channel }, (type, entries) => {
             if (type === 'connected')

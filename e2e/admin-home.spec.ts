@@ -4,33 +4,31 @@ import yaml from 'yaml'
 
 const port = yaml.parse(readFileSync('tests/config.yaml', 'utf8')).port
 
+test.beforeEach(async ({ page }) => {
+    await page.routeWebSocket('**/~/api/**', socket => socket.close({ code: 1000 }))
+})
+
 test('leaving Home closes the version subscription', async ({ page }) => {
-    let subscriptions = 0
+    let subscriptions = 0, closed = 0
     await page.addInitScript(() => {
         Object.assign(window, { HFS: { VERSION: '3.4.0', session: { username: 'admin', isAdmin: true } } })
-        const close = EventSource.prototype.close
-        EventSource.prototype.close = function () {
-            if (new URL(this.url).pathname.endsWith('/get_version'))
-                document.documentElement.dataset.versionStreamClosed = 'true'
-            close.call(this)
-        }
+    })
+    await page.routeWebSocket(/\/~\/api\/get_version(?:\?|$)/, socket => {
+        subscriptions++
+        socket.onClose(() => { closed++ })
+        socket.send(JSON.stringify({ version: '3.4.0' }))
     })
     await page.route('**/~/api/**', route => {
         const command = new URL(route.request().url()).pathname.split('/').pop()
-        if (command === 'get_version') {
-            subscriptions++
-            return route.fulfill({ contentType: 'text/event-stream', body: 'data: {"version":"3.4.0"}\n\n' })
-        }
         return route.fulfill({ json: command === 'get_status' ? { http: {}, https: {} }
             : command === 'refresh_session' ? { username: 'admin', isAdmin: true }
             : command === 'get_log_info' ? { current: {}, rotated: {} } : {} })
     })
     await page.goto(process.env.ADMIN_HOME_URL || `http://localhost:${port}/~/admin/`)
-    await expect.poll(() => subscriptions).toBeGreaterThan(0)
-    await page.evaluate(() => { delete document.documentElement.dataset.versionStreamClosed })
+    await expect.poll(() => subscriptions - closed).toBeGreaterThan(0)
     await page.getByRole('link', { name: /^Logs/ }).click()
     await expect(page.getByRole('heading', { name: 'Logs', exact: true })).toBeVisible()
-    await expect(page.locator('html')).toHaveAttribute('data-version-stream-closed', 'true')
+    await expect.poll(() => subscriptions - closed).toBe(0)
 })
 
 for (const scenario of ['before subscribing', 'on reconnect', 'while asking'])
@@ -43,14 +41,13 @@ for (const scenario of ['before subscribing', 'on reconnect', 'while asking'])
                 VERSION: '3.4.0', lang: { en: english }, session: { username: 'admin', isAdmin: true },
             } })
         }, english)
+        await page.routeWebSocket(/\/~\/api\/get_version(?:\?|$)/, socket => {
+            subscriptions++
+            socket.send(JSON.stringify({ version }))
+            socket.close({ code: 1012 }) // abnormal closure exercises the shared abstraction's reconnect
+        })
         await page.route('**/~/api/**', route => {
             const command = new URL(route.request().url()).pathname.split('/').pop()
-            if (command === 'get_version') {
-                subscriptions++
-                // EOF simulates a dropped connection; the native EventSource must reconnect
-                return route.fulfill({ contentType: 'text/event-stream', body:
-                    `retry: 50\ndata: ${JSON.stringify({ version })}\n\n` })
-            }
             return route.fulfill({ json: command === 'get_status' ? { http: {}, https: {} }
                 : command === 'refresh_session' ? { username: 'admin', isAdmin: true } : {} })
         })
@@ -127,7 +124,6 @@ for (const delayed of ['set_config', 'get_config'])
 
 test('Install stays disabled when automatic updates are unsupported', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('admin_state', JSON.stringify({ hideRandomPlugin: true })))
-    await page.route('**/~/api/get_plugins*', route => route.fulfill({ contentType: 'text/event-stream', body: '' }))
     await page.route('**/~/api/get_status', route => route.fulfill({ json: {
         http: { listening: true, port: 80 }, https: {}, started: new Date().toISOString(), updatePossible: false,
         autoCheckUpdateResult: { name: '99.0', tag_name: 'v99.0', isNewer: true, body: 'Release notes', prerelease: false, assets: [] },

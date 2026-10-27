@@ -8,14 +8,21 @@ test('cached plugins remain visible during refresh and reconcile without duplica
     await page.addInitScript(() => {
         Object.assign(window, { HFS: { lang: { en: {} }, session: { username: 'admin', isAdmin: true } } })
         class Source {
+            static CONNECTING = 0
+            static OPEN = 1
+            static CLOSED = 3
             static all: Source[] = []
             OPEN = 1
             readyState = 1
+            onopen?: () => void
             onmessage?: (event: { data: string }) => void
-            constructor(public url: string) { Source.all.push(this) }
-            close() { this.readyState = 2 }
+            constructor(public url: string) {
+                Source.all.push(this)
+                setTimeout(() => this.onopen?.())
+            }
+            close() { this.readyState = 3 }
         }
-        Object.assign(window, { EventSource: Source, catalogSources: Source.all })
+        Object.assign(window, { WebSocket: Source, catalogSources: Source.all })
     })
     await page.route('**/~/api/refresh_session', route => route.fulfill({ json: { username: 'admin', isAdmin: true } }))
     await page.route('**/src/MonitorPage.ts*', route => route.fulfill({

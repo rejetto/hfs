@@ -55,7 +55,7 @@ export default defineConfig({
             '/~/': {
                 target: 'http://localhost',
                 proxyTimeout: 2000,
-                changeOrigin: true,
+                changeOrigin: false,
                 ws: true,
             }
         }
