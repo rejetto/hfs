@@ -29,7 +29,7 @@ import XXH from 'xxhashjs'
 import fs from 'fs'
 import { rm } from 'fs/promises'
 import { setCommentFor } from './comments'
-import { basicWeb, detectBasicAgent } from './basicWeb'
+import { basicWeb, shouldBeBasic } from './basicWeb'
 import { customizedIcons, ICONS_FOLDER } from './icons'
 import { getPluginInfo } from './plugins'
 import { deleteUploadOwner } from './uploadOwners'
@@ -136,7 +136,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
             : !node.source ? sendErrorPage(ctx, HTTP_METHOD_NOT_ALLOWED) // !dir && !source is not supported at this moment
             : !statusCodeForMissingPerm(node, 'can_read', ctx) ? serveFileNode(ctx, node) // all good
             : ctx.status !== HTTP_UNAUTHORIZED ? null // all errors don't need extra handling, except unauthorized
-            : detectBasicAgent(ctx) ? (ctx.set('WWW-Authenticate', BASIC_AUTHENTICATE_HEADER), sendErrorPage(ctx))
+            : shouldBeBasic(ctx) ? (ctx.set('WWW-Authenticate', BASIC_AUTHENTICATE_HEADER), sendErrorPage(ctx))
             : ctx.query.dl === undefined && (ctx.state.serveApp = true) && serveFrontendFiles(ctx, next)
     if (!path.endsWith('/'))
         return ctx.redirect(ctx.state.revProxyPath + ctx.originalUrl.replace(/(\?|$)/, '/$1')) // keep query-string, if any
@@ -146,7 +146,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
         // basic mode and download managers need HTTP authentication instead of the frontend login
         const { authenticate } = ctx.query
         const downloadManagerDetected = /DAP|FDM|[Mm]anager/.test(ctx.get('user-agent'))
-        if (downloadManagerDetected || authenticate || get === 'basic' || detectBasicAgent(ctx))
+        if (downloadManagerDetected || authenticate || shouldBeBasic(ctx))
             return ctx.set('WWW-Authenticate', authenticate || BASIC_AUTHENTICATE_HEADER)
         ctx.state.serveApp = true
         return serveFrontendFiles(ctx, next)

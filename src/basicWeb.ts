@@ -31,11 +31,9 @@ export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
         ctx.status = HTTP_UNAUTHORIZED // not effective on firefox52, but the redirection is
         return true
     }
-    const forced = get === 'basic'
-    const goBasic = forced || detectBasicAgent(ctx) && get !== 'nobasic'
-    if (!goBasic) return
+    if (!shouldBeBasic(ctx)) return
     ctx.type = 'html'
-    const force = forced ? '?get=basic' : ''
+    const force = get === 'basic' ? '?get=basic' : ''
     const walker = walkNode(node, { ctx, depth: 0 })
     const stream = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
         const isFolder = nodeIsFolder(el)
@@ -63,7 +61,12 @@ export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
 
 }
 
-export function detectBasicAgent(ctx: Koa.Context) {
+export function shouldBeBasic(ctx: Koa.Context) {
+    const { get } = ctx.query
+    return get === 'basic' || detectBasicAgent(ctx) && get !== 'nobasic'
+}
+
+function detectBasicAgent(ctx: Koa.Context) {
     const ua = ctx.get('user-agent')
     return autoBasic.get() && /^$|Mozilla\/4|WebKit\/([234]\d\d|5[012]\d|53[0123456])[. ]|Trident|Lynx|curl|Firefox\/(\d|[1234]\d)\./.test(ua)
         || autoBasic.compiled()?.test(ua)

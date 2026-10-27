@@ -597,7 +597,7 @@ describe('basics', () => {
     })
     test('basic protected folder requests browser login before listing', async () => {
         const options = { headers: { 'user-agent': 'Mozilla/5.0', accept: '*/*' }, jar: {} }
-        await req('/for-admins/', { status: 200, cb(_body, res) {
+        await req('/for-admins/', { mime: 'text/html', re: /HFS =/, cb(_body, res) {
             assert.equal(res.headers['www-authenticate'], undefined)
         } }, options)()
         await req('/for-admins/?get=basic', { status: 401, re: /^Unauthorized$/, cb(_body, res) {
@@ -606,6 +606,18 @@ describe('basics', () => {
         await req('/for-admins/?get=basic', { status: 200, mime: 'text/html', re: /Logout.*rejetto/ }, {
             ...options, auth,
         })()
+    })
+    test('basic mode overrides apply to folder and file login', async () => {
+        for (const uri of ['/for-admins/', '/for-admins/alfa.txt']) {
+            for (const userAgent of ['Mozilla/5.0', 'curl/8.0']) {
+                for (const get of ['basic', 'nobasic']) {
+                    const basic = get === 'basic'
+                    await req(uri + '?get=' + get, { status: basic ? 401 : undefined, re: basic ? undefined : /HFS =/, cb(_body, res) {
+                        assert.equal(res.headers['www-authenticate'], basic ? BASIC_AUTHENTICATE_HEADER : undefined)
+                    } }, { headers: { 'user-agent': userAgent, accept: '*/*' }, jar: {} })()
+                }
+            }
+        }
     })
     test('folder list preserves encoded colon in prepend', req('/tests/C%3A/?get=list&folders=*', data => {
         if (!String(data).includes('/tests/C%3A/gpl.png'))
