@@ -143,11 +143,11 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (statusCodeForMissingPerm(node, 'can_list', ctx)) {
         if (ctx.status === HTTP_FORBIDDEN)
             return sendErrorPage(ctx, HTTP_FORBIDDEN)
-        // detect if we are dealing with a download-manager, as it may need basic authentication, while we don't want it on browsers
+        // basic mode and download managers need HTTP authentication instead of the frontend login
         const { authenticate } = ctx.query
         const downloadManagerDetected = /DAP|FDM|[Mm]anager/.test(ctx.get('user-agent'))
-        if (downloadManagerDetected || authenticate || detectBasicAgent(ctx))
-            return ctx.set('WWW-Authenticate', authenticate || BASIC_AUTHENTICATE_HEADER) // basic authentication for DMs getting the folder as a zip
+        if (downloadManagerDetected || authenticate || get === 'basic' || detectBasicAgent(ctx))
+            return ctx.set('WWW-Authenticate', authenticate || BASIC_AUTHENTICATE_HEADER)
         ctx.state.serveApp = true
         return serveFrontendFiles(ctx, next)
     }

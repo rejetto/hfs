@@ -594,6 +594,18 @@ describe('basics', () => {
             await rm(path, { force: true })
         }
     })
+    test('basic protected folder requests browser login before listing', async () => {
+        const options = { headers: { 'user-agent': 'Mozilla/5.0', accept: '*/*' }, jar: {} }
+        await req('/for-admins/', { status: 200, cb(_body, res) {
+            assert.equal(res.headers['www-authenticate'], undefined)
+        } }, options)()
+        await req('/for-admins/?get=basic', { status: 401, re: /^Unauthorized$/, cb(_body, res) {
+            assert.equal(res.headers['www-authenticate'], BASIC_AUTHENTICATE_HEADER)
+        } }, options)()
+        await req('/for-admins/?get=basic', { status: 200, mime: 'text/html', re: /Logout.*rejetto/ }, {
+            ...options, auth,
+        })()
+    })
     test('folder list preserves encoded colon in prepend', req('/tests/C%3A/?get=list&folders=*', data => {
         if (!String(data).includes('/tests/C%3A/gpl.png'))
             throw Error('missing correctly encoded path in list: ' + data)
