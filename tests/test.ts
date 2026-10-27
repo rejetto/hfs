@@ -838,13 +838,13 @@ describe('basics', () => {
             await rm(path, { force: true })
         }
     })
-    test('basic protected folder requests browser login before listing', async () => {
+    test('basic protected folder offers a login form before listing', async () => {
         const options = { headers: { 'user-agent': 'Mozilla/5.0', accept: '*/*' }, jar: {} }
         await req('/for-admins/', { mime: 'text/html', re: /HFS =/, cb(_body, res) {
             assert.equal(res.headers['www-authenticate'], undefined)
         } }, options)()
-        await req('/for-admins/?get=basic', { status: 401, re: /^Unauthorized$/, cb(_body, res) {
-            assert.equal(res.headers['www-authenticate'], BASIC_AUTHENTICATE_HEADER)
+        await req('/for-admins/?get=basic', { status: 401, mime: 'text/html', re: /name="password"/, cb(_body, res) {
+            assert.equal(res.headers['www-authenticate'], undefined)
         } }, options)()
         await req('/for-admins/?get=basic', { status: 200, mime: 'text/html', re: /Logout.*rejetto/ }, {
             ...options, auth,
@@ -856,7 +856,9 @@ describe('basics', () => {
                 for (const get of ['basic', 'nobasic']) {
                     const basic = get === 'basic'
                     await req(uri + '?get=' + get, { status: basic ? 401 : undefined, re: basic ? undefined : /HFS =/, cb(_body, res) {
-                        assert.equal(res.headers['www-authenticate'], basic ? BASIC_AUTHENTICATE_HEADER : undefined)
+                        assert.equal(res.headers['www-authenticate'], basic && userAgent.startsWith('curl') ? BASIC_AUTHENTICATE_HEADER : undefined)
+                        if (basic && userAgent.startsWith('Mozilla'))
+                            assert.match(String(_body), /name="password"/)
                     } }, { headers: { 'user-agent': userAgent, accept: '*/*' }, jar: {} })()
                 }
             }
@@ -1464,7 +1466,7 @@ describe('basics', () => {
     })
     test('basic login redirects only locally', async () => {
         const external = await redirectLocation('https://attacker.test/return')
-        if (external !== '/')
+        if (external !== BASE_URL + '/?get=basic')
             throw Error(`basic login redirected externally to ${external}`)
 
         const referer = `${BASE_URL}/for-admins/?get=basic`
@@ -1489,22 +1491,30 @@ describe('basics', () => {
         }
     })
     test('basic logout clears the session and returns only to a local folder', async () => {
-        const jar = {}
-        await reqApi('refresh_session', {}, res => res.username === username, { auth, jar })()
         const folder = BASE_URL + '/f1/?get=basic&sort=name'
         const doubleSlash = BASE_URL + '//double-slash/'
+        const fallback = BASE_URL + '/?get=basic'
         for (const [referer, expected] of [
             [folder, folder], [doubleSlash, doubleSlash],
-            ['https://other.example/folder/', '/'], ['blob:' + folder, '/'], ['', '/'],
+            ['https://other.example/folder/', fallback], ['blob:' + folder, fallback], ['', fallback],
         ] as const) {
-            await req('/?get=logout', { status: 401, mime: 'text/plain', cb(body, res) {
-                assert.equal(body, 'Logged out')
-                assert.equal(res.headers.refresh, '0;url=' + expected)
-            } }, { jar, headers: { referer } })()
+            const jar = {}
+            await reqApi('refresh_session', {}, res => res.username === username, { auth, jar })()
+            let csrf = ''
+            await req('/?get=logout', { status: 200, cb(body) {
+                csrf = /name="csrf" value="([^"]+)"/.exec(String(body))?.[1] || ''
+                assert.ok(csrf)
+            } }, { jar })()
+            await req('/?get=logout', { status: 303, cb(_body, res) {
+                assert.equal(res.headers.location, expected)
+            } }, { jar, noRedirect: true, method: 'POST',
+                headers: { 'content-type': 'application/x-www-form-urlencoded', referer },
+                body: new URLSearchParams({ csrf }).toString(),
+            })()
+            await reqApi('refresh_session', {}, res => res.username === '', { auth, jar })()
+            await req('/?get=login', 302, { auth, jar, noRedirect: true })()
+            await reqApi('refresh_session', {}, res => res.username === username, { jar })()
         }
-        await reqApi('refresh_session', {}, res => res.username === '', { auth, jar })()
-        await req('/?get=login', 302, { auth, jar, noRedirect: true })()
-        await reqApi('refresh_session', {}, res => res.username === username, { jar })()
     })
     test('url login confirms browser account changes', async () => {
         const target = `url-login-${randomId(6)}`.toLowerCase()
@@ -2950,6 +2960,46 @@ describe('sessions', () => {
             return srpClientSequence(srp, user, pass, (cmd, params) => reqApi(cmd, params, 200, { jar })())
         }
     })
+    test('basic form rejects tokens from another session and inactive accounts', async () => {
+        const adminReq = { auth, jar: {} }
+        const user = `basic-rejected-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const firstJar = {}, secondJar = {}
+        const firstToken = await formToken(firstJar)
+        const secondToken = await formToken(secondJar)
+        assert.notEqual(firstToken, secondToken)
+        await submit(firstJar, secondToken, username, password, 403)
+        await reqApi('refresh_session', {}, x => x.username === '', { jar: firstJar })()
+        try {
+            await reqApi('add_account', { username: user, password: pass }, 200, adminReq)()
+            for (const changes of [{ disabled: true }, { expire: new Date(0).toISOString() }, { allow_net: '192.0.2.1' }]) {
+                await reqApi('set_account', { username: user, changes: { disabled: false, expire: null, allow_net: '', ...changes } }, 200, adminReq)()
+                const jar = {}
+                await submit(jar, await formToken(jar), user, pass, 401)
+                await reqApi('refresh_session', {}, x => x.username === '', { jar })()
+            }
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)()
+        }
+
+        async function formToken(jar: NonNullable<XRequestOptions['jar']>) {
+            let token = ''
+            await req('/?get=login', { status: 200, cb(body) {
+                token = /name="csrf" value="([^"]+)"/.exec(String(body))?.[1] || ''
+                assert.ok(token)
+            } }, { jar })()
+            return token
+        }
+
+        function submit(jar: NonNullable<XRequestOptions['jar']>, csrf: string, username: string, password: string, status: number) {
+            return req('/?get=login', status, {
+                jar, method: 'POST', noRedirect: true,
+                headers: { 'content-type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ username, password, csrf }).toString(),
+            })()
+        }
+    })
     test('finalizingLogin veto preserves messages and session identity', async () => {
         const adminReq = { auth, jar: {} }
         const oldConfig = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
@@ -2979,6 +3029,17 @@ describe('sessions', () => {
                 const jar = {}
                 await reqApi('login', { username, password, veto },
                     { status: 401, re: veto === 'message' ? /^invalid OTP$/ : /^Login denied$/ }, { jar })()
+                await reqApi('refresh_session', {}, x => x?.username === '', { jar })()
+                let csrf = ''
+                await req('/?get=login', { status: 200, cb(body) {
+                    csrf = /name="csrf" value="([^"]+)"/.exec(String(body))?.[1] || ''
+                    assert.ok(csrf)
+                } }, { jar })()
+                await req('/?get=login&veto=' + veto, { status: 401, re: /name="password"/ }, {
+                    jar, method: 'POST',
+                    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ username, password, csrf }).toString(),
+                })()
                 await reqApi('refresh_session', {}, x => x?.username === '', { jar })()
             }
             await reqApi('login', { username, password, expectedVia: 'body' }, 200, { jar: {} })()
