@@ -28,6 +28,8 @@ export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
         yield u
             ? `<form method="post" action="${authRoot}?get=logout"><input type="hidden" name="csrf" value="${csrf}"><input type="hidden" name="returnTo" value="${returnTo}"><button type="submit">Logout (${escapeHTML(u)})</button></form>\n`
             : `<a href="${authRoot}?get=login">Login</a>\n`
+        if (hasPermission(node, 'can_archive', ctx))
+            yield a('?get=zip', "Download ZIP") + '\n'
         if (hasPermission(node, 'can_upload', ctx))
             yield `<br><br><form method="post" action="?get=basic" enctype="multipart/form-data"><label>Upload files: <input type="file" name="upload" multiple required></label><button type="submit">Upload</button></form>\n`
         yield '<ul>\n'

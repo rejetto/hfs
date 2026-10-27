@@ -17,6 +17,20 @@ test.beforeEach(async ({ page }) => {
     await expect(page.getByRole('button', { name: `Logout (${username})`, exact: true })).toBeVisible()
 })
 
+test('basic ZIP link downloads the current folder and respects archive permissions', async ({ page }) => {
+    await page.goto(FRONTEND_URL + 'f1/f2/?get=basic')
+    const link = page.getByRole('link', { name: 'Download ZIP', exact: true })
+    await expect(link).toHaveAttribute('href', '?get=zip')
+    const downloading = page.waitForEvent('download')
+    await link.click()
+    const download = await downloading
+    expect(download.suggestedFilename()).toBe('f2.zip')
+    expect(await download.failure()).toBeNull()
+    await page.goto(FRONTEND_URL + 'cantSeeThisButChildren/?get=basic')
+    await expect(page.getByRole('link', { name: '..', exact: true })).toBeVisible()
+    await expect(link).toHaveCount(0)
+})
+
 test('basic upload works without JavaScript and returns to the folder', async ({ page }, testInfo) => {
     const names = ['basic', 'bàsic-é'].map(prefix => `${prefix}-${testInfo.project.name}-${Date.now()}.txt`)
     const paths = names.map(name => resolve('tests/tmp', name))
