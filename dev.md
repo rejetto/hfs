@@ -27,6 +27,7 @@ To run tests
 - `npm run test-with-server` (backend tests)
 - `node --import tsx --test tests/acme-dns.test.ts tests/acme-dns-providers.test.ts tests/acme-config.test.ts` (DNS recipes, local DNS propagation and persisted settings/plugin lifecycle; compile the server and copy `central.json` to `dist/` first).
 - For the ACME Admin form, run `npx playwright test admin-acme --project=chromium`. The test exercises the real form with API and progress-stream fixtures.
+- `node --import tsx --test tests/api-websocket.test.ts tests/api-websocket-server.test.ts` (Origin validation, session authorization, stream cleanup and SSE compatibility; compile the server first).
 - `node --import tsx --test tests/plugin-catalog.test.ts` (persistent plugin catalog, no server needed)
 - `node --import tsx --test tests/shutdown.test.ts` (shutdown tests, no server needed)
 - `node --import tsx --test tests/plugin-server-cleanup.test.ts` (after compiling the server; starts isolated HTTP and HTTPS servers)
@@ -65,6 +66,15 @@ non-negative integer bytes. Bounds are inclusive and combine with name/comment f
 A metadata filter alone searches subfolders too. Entries without the requested metadata
 are excluded; size filters apply to files, not folder totals.
 Name and comment filters use `search` and `searchComment`; `searchWild=no` disables wildcards.
+
+# Event subscriptions
+
+The shared `apiEvents()` and `getNotifications()` abstractions use WebSockets on the existing API URLs.
+Each subscription has its own connection and reconnects after interruption. HTTP JSON snapshots and explicit
+`Accept: text/event-stream` requests remain supported. Reverse proxies must forward WebSocket upgrades and
+preserve the public Host, or supply `X-Forwarded-Host` and `X-Forwarded-Proto` with HFS's `proxies` setting enabled.
+Upgrades require an Origin matching the public request URL; missing, opaque (`null`) and cross-origin values are rejected.
+The Vite proxies preserve Host for this check.
 
 # Known problems
 - vite's proxying server (but also CRA's) doesn't play nicely with SSE, leaving sockets open

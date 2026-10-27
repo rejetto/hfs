@@ -1,6 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import * as http from 'http'
+import { Duplex } from 'stream'
+import { apiWebSocketUpgrade } from './apiWebSocket'
 import { defineConfig, subMultipleConfigs } from './config'
 import { app } from './index'
 import * as https from 'https'
@@ -12,7 +14,7 @@ import open from 'open'
 import {
     CFG, debounceAsync, ipForUrl, makeNetMatcher, MINUTE, onlyTruthy, prefix, runAt, wait, xlate
 } from './misc'
-import { PORT_DISABLED, ADMIN_URI, IS_WINDOWS } from './const'
+import { PORT_DISABLED, ADMIN_URI, API_URI, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'
@@ -74,6 +76,7 @@ const considerHttp = debounceAsync(async () => {
             return consoleHint(`try specifying a different port, enter this command: config ${portCfg.key()} 1080`)
         else if (!await startServer(httpSrv, { port: 8080, host }))
             return
+    httpSrv.on('upgrade', handleApiUpgrade)
     httpSrv.on('connection', newConnection)
     printUrls(httpSrv.name)
     if (openBrowserAtStart.get() && !argv.updated && openOnce) {
@@ -170,6 +173,7 @@ const considerHttps = debounceAsync(async () => {
         console.error("Failed to create https server: check your private key and certificate", e.message)
         return
     }
+    httpsSrv.on('upgrade', handleApiUpgrade)
     httpsSrv.on('connection', newConnection) // this event is emitted as soon as the tcp layer is connected
     httpsSrv.on('secureConnection', (socket: TLSSocket) => { // emitted when the TLS layer is connected
         for (const c of getConnections()) // TLSSocket shares the same ip:port, so we can find its matching Connection
@@ -276,6 +280,12 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
             }
         })
     }
+}
+
+// api upgrades use the HTTP middleware; other upgrade paths remain available to plugins
+function handleApiUpgrade(req: http.IncomingMessage, socket: Duplex, head: Buffer) {
+    if (req.url?.startsWith(API_URI))
+        apiWebSocketUpgrade(req, socket, head, app.callback())
 }
 
 export function stopServer(srv?: http.Server) {

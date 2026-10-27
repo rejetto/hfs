@@ -130,7 +130,7 @@ export class SendListReadable<T> extends Readable {
                     Object.assign(props, a)
                 else if (op === LIST.error)
                     error = a
-                else if (op === LIST.ready) // ready ends the initial snapshot; live updates require SSE
+                else if (op === LIST.ready) // ready ends the initial snapshot; live updates require a streaming transport
                     return result()
             }
         return result()

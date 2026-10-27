@@ -11,8 +11,8 @@ export class ThrottledStream extends Transform {
     private lastSpeedTime = Date.now()
     private totalSent = 0 // total sent over connection, since connection can be re-used for multiple requests
 
-    constructor(private group: ThrottleGroup, copyStats?: ThrottledStream) {
-        super()
+    constructor(private group: ThrottleGroup, copyStats?: ThrottledStream, private preserveChunks=false) {
+        super({ objectMode: preserveChunks })
         if (!copyStats) return
         this.sent = copyStats.sent
         this.totalSent = copyStats.totalSent
@@ -26,12 +26,14 @@ export class ThrottledStream extends Transform {
             let n = this.group.suggestChunkSize()
             const slice = chunk.slice(pos, pos + n)
             n = slice.length
-            if (!n) // we're done here
+            if (!n) { // we're done here
+                if (this.preserveChunks) this.push(chunk)
                 return done()
+            }
             try {
                 await this.group.consume(n)
                 if (this.destroyed) return done() // an aborted download must stop consuming the shared quota
-                this.push(slice)
+                if (!this.preserveChunks) this.push(slice)
                 this.sent += n
                 this.totalSent += n
                 pos += n

@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import Koa from 'koa'
-import createSSE from './sse'
+import createApiStream from './apiStream'
 import { Readable } from 'stream'
 import { asyncGeneratorToReadable, CFG, Promisable } from './misc'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FOOL, PLUGIN_CUSTOM_REST_PREFIX } from './const'
@@ -60,11 +60,13 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         // return the initial list as regular JSON when the caller did not request live updates
         if (res instanceof SendListReadable && ctx.get('accept') !== 'text/event-stream')
             res = await res.collectInitial()
-        if (res instanceof Readable) { // Readable, we'll go SSE-mode
-            res.pipe(createSSE(ctx))
-            const resAsReadable = res // satisfy ts
-            ctx.req.on('close', () => // by closing the generated stream, creator of the stream will know the request is over without having to access anything else
-                resAsReadable.destroy())
+        if (res instanceof Readable) { // stream subscription
+            const stream = createApiStream(ctx)
+            const source = res
+            // koa also closes transports attached after the response has already disconnected
+            stream.once('close', () => source.destroy())
+            source.once('error', error => stream.destroy(error)) // pipe does not forward source errors
+            source.pipe(stream)
             return
         }
         if (res instanceof ApiError)
