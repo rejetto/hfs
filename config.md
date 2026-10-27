@@ -188,6 +188,7 @@ Some properties use a `Who` descriptor, with one of these values:
 - `outbound_interface` IP address to use for outgoing HTTP(S) requests made by HFS. Default is automatic.
 - `auto_basic` automatically detect (based on user-agent) when the basic web interface should be served, to support legacy browsers. Default is true. No UI.
   You can disable it setting it to `false`, or recognize additional user-agents by setting a regular expression. 
+  Browser login in the basic interface uses an HTML form and session cookies, without JavaScript. Cookies must be enabled; use HTTPS to protect submitted passwords. HTTP Basic authentication remains available for non-browser clients.
 - `file_timeout` number of seconds to wait before giving up when accessing a file. Default is 3. No UI.
 - `smart_unc_folder_detection` Windows-only optimization for UNC paths in VFS. When enabled, if the name of the element has no dot, it is assumed to be a folder without doing a stat call.
   This is faster with unreachable SMB shares, but heuristic and not fully reliable. Disable to always use regular detection. Default is true. No UI.

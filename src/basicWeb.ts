@@ -1,9 +1,9 @@
-import { getCurrentUsername, setLoggedIn } from './auth'
-import { BASIC_AUTHENTICATE_HEADER, HTTP_UNAUTHORIZED } from './cross-const'
+import { getCurrentUsername } from './auth'
 import Koa from 'koa'
 import { defineConfig } from './config'
 import { getNodeName, getDefaultFile, hasPermission, nodeIsFolder, VfsNodeWithPath, walkNode } from './vfs'
-import { asyncGeneratorToReadable, CFG, Dict, escapeHTML, filterMapGenerator, pathEncode, try_ } from './misc'
+import { asyncGeneratorToReadable, CFG, escapeHTML, filterMapGenerator, pathEncode } from './misc'
+import { basicAuthRoot, getBasicAuthToken } from './basicAuth'
 import _ from 'lodash'
 import { title } from './adminApis'
 import { getSection } from './customHtml'
@@ -12,25 +12,6 @@ const autoBasic = defineConfig<boolean|string, null|RegExp>(CFG.auto_basic, true
 
 export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
     const { get } = ctx.query
-    if (get === 'login') {
-        if (getCurrentUsername(ctx)) {
-            const referer = ctx.get('referer')
-            const url = referer && try_(() => new URL(referer, ctx.URL))
-            // keep the origin in Location because a same-origin path starting with // would redirect externally
-            ctx.redirect(url && url.origin === ctx.URL.origin ? url.origin + url.pathname + url.search + url.hash : '/')
-        }
-        else {
-            ctx.set('WWW-Authenticate', BASIC_AUTHENTICATE_HEADER)
-            ctx.status = HTTP_UNAUTHORIZED
-        }
-        return true
-    }
-    if (get === 'logout') {
-        ctx.body = `<script>location = ${JSON.stringify(ctx.get('referer'))}</script>`
-        setLoggedIn(ctx, false)
-        ctx.status = HTTP_UNAUTHORIZED // not effective on firefox52, but the redirection is
-        return true
-    }
     if (!shouldBeBasic(ctx)) return
     ctx.type = 'html'
     const force = get === 'basic' ? '?get=basic' : ''
@@ -47,8 +28,11 @@ export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
     stream.push(`<title>${title.get()}</title><body>`)
     stream.push(getSection('basicHeader'))
     const u = getCurrentUsername(ctx)
-    const links: Dict<string> = u ? { [`//LOGOUT%00:@${ctx.host}/?get=logout`]: `Logout (${u})` } : { '/?get=login': "Login" }
-    stream.push(_.map(links, (v,k) => a(k, v)).join(' ') + '\n')
+    const authRoot = escapeHTML(basicAuthRoot(ctx))
+    const returnTo = escapeHTML((ctx.state.revProxyPath || '') + ctx.originalUrl)
+    stream.push(u
+        ? `<form method="post" action="${authRoot}?get=logout"><input type="hidden" name="csrf" value="${getBasicAuthToken(ctx)}"><input type="hidden" name="returnTo" value="${returnTo}"><button type="submit">Logout (${escapeHTML(u)})</button></form>\n`
+        : `<a href="${authRoot}?get=login">Login</a>\n`)
     if (hasPermission(node, 'can_upload', ctx))
         stream.push(`<br><br><form method="post" action="?get=basic" enctype="multipart/form-data"><label>Upload files: <input type="file" name="upload" multiple required></label><button type="submit">Upload</button></form>\n`)
     stream.push('<ul>\n')
