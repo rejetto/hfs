@@ -33,6 +33,8 @@ export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
     stream.push(u
         ? `<form method="post" action="${authRoot}?get=logout"><input type="hidden" name="csrf" value="${getBasicAuthToken(ctx)}"><input type="hidden" name="returnTo" value="${returnTo}"><button type="submit">Logout (${escapeHTML(u)})</button></form>\n`
         : `<a href="${authRoot}?get=login">Login</a>\n`)
+    if (hasPermission(node, 'can_archive', ctx))
+        stream.push(a('?get=zip', "Download ZIP") + '\n')
     if (hasPermission(node, 'can_upload', ctx))
         stream.push(`<br><br><form method="post" action="?get=basic" enctype="multipart/form-data"><label>Upload files: <input type="file" name="upload" multiple required></label><button type="submit">Upload</button></form>\n`)
     stream.push('<ul>\n')
