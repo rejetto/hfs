@@ -171,7 +171,7 @@ export const authApis = {
         await updateAccount(a, a =>
             saveSrpInfo(a, salt, verifier) )
         if (ctx.session?.username === a.username)
-            ctx.session.stamp = getSessionStamp(a.username)
+            ctx.session!.stamp = getSessionStamp(a.username)
         delete a.require_password_change
         return {}
     }

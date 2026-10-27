@@ -65,7 +65,7 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
                 return `<script>history.replaceState(null,'',location.pathname)</script>
                     <p><a href="${escapeHTML(cleanUrl)}">${escapeHTML(t('Continue'))}</a></p>`
             const token = randomUUID()
-            ;(ctx.session ??= {}).urlLoginConfirmation = { // account validation may have cleared the previous session before rendering this page
+            ;(ctx.session ??= {} as session.Session).urlLoginConfirmation = { // account validation may have cleared the previous session before rendering this page
                 token,
                 username,
                 expires: Date.now() + 5 * 60_000,
@@ -164,7 +164,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     if (a)
         if (!accountCanLogin(a) || failAllowNet(ctx, a)) { // enforce allow_net also after login
             await setLoggedIn(ctx, false)
-            ctx.session = {} // downstream handlers still need an anonymous session after the rejected identity is cleared
+            ctx.session = {} as session.Session // downstream handlers still need an anonymous session after the rejected identity is cleared
         }
         else if (loggedInNotBySession) {
             try {

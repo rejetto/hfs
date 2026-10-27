@@ -15,6 +15,7 @@ tests/config.yaml.bak
 .ci/
 /test-results/
 /playwright-report/
+/.playwright-mcp/
 /blob-report/
 /playwright/.cache/
 e2e/frontend.spec.ts-snapshots*

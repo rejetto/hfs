@@ -99,7 +99,7 @@
     "koa": "^3.2.1",
     "koa-compress": "^5.2.2",
     "koa-mount": "^4.2.0",
-    "koa-session": "^7.0.2",
+    "koa-session": "6.4.0",
     "limiter": "^3.0.0",
     "lodash": "^4.17.21",
     "mime-types": "*",
@@ -114,11 +114,17 @@
     "yaml": "^2.9.1",
     "yazl": "^3.3.1"
   },
+  "overrides": {
+    "koa-session": {
+      "uuid": "^11.1.1"
+    }
+  },
   "devDependencies": {
     "@playwright/test": "^1.64.0",
     "@types/busboy": "^1.5.4",
     "@types/koa": "^3.0.3",
     "@types/koa-mount": "^4.0.5",
+    "@types/koa-session": "^6.4.5",
     "@types/lodash": "^4.17.25",
     "@types/mime-types": "^3.0.1",
     "@types/minimist": "^1.2.5",
