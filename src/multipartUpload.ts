@@ -7,6 +7,7 @@ import { HTTP_BAD_REQUEST, HTTP_FOOL } from './cross-const'
 import { onFirstEvent } from './first'
 import { makeMatcher, try_ } from './cross'
 import { defineConfig } from './config'
+import { finished, pipeline } from 'node:stream/promises'
 
 export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithPath) {
     if (ctx.request.type !== 'multipart/form-data')
@@ -18,7 +19,7 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithP
     }
     ctx.state.uploads = []
     const locks: Promise<string>[] = []
-    const fileJobs: Promise<any>[] = []
+    const fileJobs: Promise<void>[] = []
     const errors: string[] = []
     const bb = try_(() => Busboy({ headers: ctx.req.headers, preservePath: true }), e => {
         ctx.body = String(e) // busboy validates multipart headers at construction time, so malformed requests must stop here as 400
@@ -30,6 +31,7 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithP
             errors.push('empty filename')
     })
     bb.on('file', (_field, file, info) => {
+        file.on('error', () => {}) // parsing can fail before the asynchronous permission check has attached the pipeline
         const fn = info.filename || ''
         if (!fn) {
             errors.push('empty filename')
@@ -45,6 +47,7 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithP
         console.warn("Couldn't parse POST requests:", String(err))
         ctx.status = HTTP_BAD_REQUEST
     })
+    ctx.req.once('error', error => bb.destroy(error)) // pipe does not forward a cancelled request's error to the parser
     ctx.req.pipe(bb)
     await new Promise(res => onFirstEvent(bb, ['finish','error'], res)) // parser errors are handled above as 400 and must complete the request without rejecting
     await Promise.all(fileJobs)
@@ -63,8 +66,7 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithP
             if (!ret)
                 return drainStream(file)
             locks.push(ret.lockMiddleware)
-            file.pipe(ret)
-            file.resume()
+            await pipeline(file, ret)
         }
         catch (e) {
             console.warn("Couldn't handle uploaded file:", String(e))
@@ -74,7 +76,7 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithP
 
     function drainStream(stream: NodeJS.ReadableStream) {
         stream.resume()
-        return new Promise(res => onFirstEvent(stream, ['end','close','error'], res))
+        return finished(stream, { cleanup: true }).catch(() => {})
     }
 
     function isCrossOriginBrowserRequest() {

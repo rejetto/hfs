@@ -99,6 +99,7 @@ describe('isolated servers', { concurrency: 4 }, () => {
     require('./plugin-version-required.test')
     require('./shutdown.test')
     require('./upload-shutdown.test')
+    require('./multipart-upload.test')
     require('./plugin-server-cleanup.test')
     require('./create-admin.test')
     require('./env-bootstrap.test')

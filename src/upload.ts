@@ -235,8 +235,10 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
 
         cancelDeletion(tempName)
         const fileStream = fs.createWriteStream(tempName, resume ? { flags: 'r+', start: resume } : undefined)
+
+        let errored = false
         writeStream.on('error', e => {
-            releaseFile()
+            errored = true // don't releaseFile, keep the lock until the file is closed and prevent publishing a failed input stream
             console.debug(e)
         })
         writeStream.pipe(fileStream)
@@ -249,10 +251,9 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
         writeStream.on('data', () => setTimeout(() => tracked.got = bytesGot()))
 
         const lockMiddleware = pendingPromise<string>() // expose outside, to let know when all operations stopped
-        let errored: any
         fileStream.on('error', (e: any) => {
             console.warn('File error while uploading', filename, ':', e.message)
-            errored = e
+            errored = true
             fail(HTTP_SERVER_ERROR, e.code) // don't send e.message as it may contain a disk paths we don't want to leak
         })
         writeStream.once('close', async () => {
@@ -267,8 +268,10 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
                     await rm(tempName).catch(() => {})
                     return fail(HTTP_SERVER_ERROR)
                 }
-                if (errored)
+                if (errored && !ctx.isAborted()) {
+                    await rm(tempName).catch(() => {})
                     return
+                }
                 if (ctx.isAborted()) { // in the very unlikely case the connection is interrupted between last-byte and here, we still consider it unfinished, as the client had no way to know, and will resume, but it would get an error if we finish the process
                     const sec = quitting ? undefined : deleteUnfinishedUploadsAfter.get() // preserve uploads interrupted by shutdown for resuming
                     await setUploadOwner(tempOwnerUri, ctx, tempName, _.isNumber(sec) ? Date.now() + sec * 1000 : null)
