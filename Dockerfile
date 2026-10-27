@@ -65,4 +65,9 @@ EOF
 EXPOSE 80
 VOLUME ["/data"]
 
+# the bundled GUI is independent of VFS permissions; bypass proxies for this local probe
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD status="$(curl --noproxy '*' -sSI -o /dev/null -w '%{http_code}' --max-time 3 "http://127.0.0.1:${HFS_PORT:-80}/~/frontend/index.html")" \
+        && [ "$status" = 200 ]
+
 ENTRYPOINT ["/opt/hfs/docker-entrypoint.sh"]
