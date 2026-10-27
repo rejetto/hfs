@@ -209,7 +209,7 @@ export const adminApis = {
             read() {
                 if (sent) return
                 sent = true
-                // keep the stream open so EventSource reconnects after a server restart
+                // keep the stream open so event subscriptions reconnect after a server restart
                 this.push({ version: VERSION })
             }
         })

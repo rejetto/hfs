@@ -24,19 +24,19 @@ for (const width of [1280, 390]) {
         })
         const errors: string[] = []
         page.on('pageerror', error => errors.push(error.message))
+        await page.routeWebSocket(/\/~\/api\/get_langs(?:\?|$)/, socket => {
+            const rows = [
+                { code: 'en', embedded: true, version: 1, author: 'Embedded author' },
+                { code: 'it', embedded: true, version: 1, author: 'Embedded author' },
+                ...uploaded ? [{ ...uploaded, admin: false }] : [],
+                ...adminUploaded ? [{ ...adminUploaded, admin: true }] : [],
+            ]
+            socket.send(JSON.stringify([...rows.map(row => ['+', row]), ['ready']]))
+            socket.close({ code: 1000 })
+        })
         await page.route('**/~/api/**', async route => {
             const command = new URL(route.request().url()).pathname.split('/').pop()
-            if (command === 'get_langs') {
-                const rows = [
-                    { code: 'en', embedded: true, version: 1, author: 'Embedded author' },
-                    { code: 'it', embedded: true, version: 1, author: 'Embedded author' },
-                    ...uploaded ? [{ ...uploaded, admin: false }] : [],
-                    ...adminUploaded ? [{ ...adminUploaded, admin: true }] : [],
-                ]
-                await route.fulfill({ contentType: 'text/event-stream', body:
-                    `data: ${JSON.stringify([...rows.map(row => ['+', row]), ['ready']])}\n\ndata: \n\n` })
-            }
-            else if (command === 'add_langs') {
+            if (command === 'add_langs') {
                 const { langs } = route.request().postDataJSON()
                 if ('hfs-admin-lang-da.json' in langs)
                     adminUploaded = { code: 'da', ...JSON.parse(langs['hfs-admin-lang-da.json']) }

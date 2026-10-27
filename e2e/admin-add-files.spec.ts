@@ -14,6 +14,10 @@ for (const scenario of [
         await page.addInitScript(({ platform, separator }) => Object.assign(window, {
             HFS: { platform, pathSeparator: separator, session: { username: 'admin', isAdmin: true } },
         }), { platform, separator: path.sep })
+        await page.routeWebSocket(/\/~\/api\/get_ls(?:\?|$)/, socket => {
+            socket.send(JSON.stringify([['+', { n: 'Report.txt', s: 1 }], ['ready']]))
+            socket.close({ code: 1000 })
+        })
         await page.route('**/~/api/**', route => {
             const cmd = new URL(route.request().url()).pathname.split('/').pop()
             if (cmd === 'get_vfs') return route.fulfill({ json: { root: { type: 'folder', source: start } } })
@@ -29,8 +33,6 @@ for (const scenario of [
                         resolved = path.dirname(resolved)
                 return route.fulfill({ json: { path: resolved, isFolder: directories.has(resolved) } })
             }
-            if (cmd === 'get_ls') return route.fulfill({ contentType: 'text/event-stream',
-                body: 'data: ' + JSON.stringify([['+', { n: 'Report.txt', s: 1 }], ['ready']]) + '\n\ndata:\n\n' })
             return route.fulfill({ json: {} })
         })
         await page.goto(process.env.ADMIN_ADD_FILES_URL!)

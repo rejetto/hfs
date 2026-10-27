@@ -2,7 +2,8 @@
 
 import Koa from 'koa'
 import { isNativeError } from 'node:util/types'
-import createSSE from './sse'
+import createApiStream from './apiStream'
+import { isApiWebSocket } from './apiWebSocket'
 import { pipeline, Readable } from 'stream'
 import { CFG, Promisable } from './misc'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FOOL, PLUGIN_CUSTOM_REST_PREFIX } from './const'
@@ -56,10 +57,10 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         }
         if (isAsyncGenerator(res))
             res = Readable.from(res)
-        if (res instanceof Readable) { // Readable, we'll go SSE-mode
-            // forward late failures and close the generator if the HTTP response is abandoned
-            pipeline(res, createSSE(ctx), error => {
-                if (error && !ctx.res.destroyed) ctx.res.destroy(error)
+        if (res instanceof Readable) { // stream subscription
+            // closing either transport must also release the source generator
+            pipeline(res, createApiStream(ctx), error => {
+                if (error && !isApiWebSocket(ctx) && !ctx.res.destroyed) ctx.res.destroy(error)
             })
             return
         }

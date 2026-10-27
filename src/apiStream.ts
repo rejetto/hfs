@@ -3,13 +3,15 @@
 import Koa from 'koa'
 import { Transform } from 'stream'
 import { HTTP_OK } from './const'
+import { isApiWebSocket } from './apiWebSocket'
 
-export default function createSSE(ctx: Koa.Context) {
+export default function createApiStream(ctx: Koa.Context) {
+    const websocket = isApiWebSocket(ctx)
     const { socket } = ctx.req
     socket.setTimeout(0)
     socket.setNoDelay(true)
     socket.setKeepAlive(true)
-    ctx.set({
+    if (!websocket) ctx.set({
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
@@ -19,11 +21,11 @@ export default function createSSE(ctx: Koa.Context) {
     return ctx.body = new Transform({
         objectMode: true,
         transform(chunk, encoding, cb) {
-            this.push(`data: ${JSON.stringify(chunk)}\n\n`)
+            this.push(Buffer.from(websocket ? JSON.stringify(chunk) : `data: ${JSON.stringify(chunk)}\n\n`))
             cb()
         },
         flush(cb) {
-            this.push('data:\n\n')
+            if (!websocket) this.push('data:\n\n')
             cb()
         }
     })

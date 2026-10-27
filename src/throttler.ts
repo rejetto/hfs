@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { Readable } from 'stream'
+import { isApiWebSocket } from './apiWebSocket'
 import Koa from 'koa'
 import { ThrottledStream, ThrottleGroup } from './ThrottledStream'
 import { defineConfig } from './config'
@@ -47,7 +48,8 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
     const conn = getConnection(ctx)
     if (!conn) throw 'assert throttler connection'
 
-    const ts = conn[SymThrStr] = new ThrottledStream(ipGroup.group, conn[SymThrStr])
+    // websocket messages must remain whole, including UTF-8 characters, while consuming the same bandwidth quota
+    const ts = conn[SymThrStr] = new ThrottledStream(ipGroup.group, conn[SymThrStr], isApiWebSocket(ctx))
     const offset = ts.getBytesSent()
     let closed = false
 

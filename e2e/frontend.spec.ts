@@ -1,6 +1,5 @@
-import { test, expect, Page, Locator } from '@playwright/test'
+import { test, expect, Page, Locator, WebSocketRoute } from '@playwright/test'
 import fs from 'fs'
-import { createServer, ServerResponse } from 'node:http'
 import { wait } from '../src/cross'
 import {
     clickAdminMenu, clickIconBtn, forwardConsole, gotoFrontend, loginAdmin, password, resetTimestamp, FRONTEND_URL, username, TEST_PORT
@@ -145,8 +144,8 @@ test('around1', async ({ page }) => {
 test('search1', async ({ page }) => {
     resetTimestamp()
     let listRequests = 0
-    page.on('request', request => {
-        if (request.url().includes('/api/get_file_list'))
+    page.on('websocket', socket => {
+        if (socket.url().includes('/api/get_file_list'))
             ++listRequests
     })
     await gotoFrontend(page, FRONTEND_URL + '?lang=en')
@@ -265,8 +264,8 @@ test('search size unit applies to both bounds before sending', async ({ page }) 
     await page.locator('#sizeMin').fill('1.5')
     await page.locator('#sizeMax').fill('2')
     await page.locator('#sizeUnit').selectOption({ label: 'MB' })
-    const request = page.waitForRequest(req => {
-        const url = new URL(req.url())
+    const request = page.waitForEvent('websocket', socket => {
+        const url = new URL(socket.url())
         return url.pathname.endsWith('/get_file_list') && url.searchParams.has('searchSizeMin')
     })
     await page.getByRole('button', { name: 'Continue' }).click()
@@ -480,7 +479,7 @@ test('selection survives reloadList and drops missing entries', async ({ page })
         await expect(page.getByText(/[1-9]\d* selected/)).toBeVisible()
         const selected = await page.evaluate(() => Object.keys((window as any).HFS.state.selected).sort())
         await page.evaluate(uri => (window as any).HFS.state.selected[uri + 'removed.txt'] = true, uri)
-        const reloaded = page.waitForRequest(request => new URL(request.url()).pathname === '/~/api/get_file_list')
+        const reloaded = page.waitForEvent('websocket', socket => new URL(socket.url()).pathname === '/~/api/get_file_list')
         await page.evaluate(() => (window as any).HFS.reloadList())
         await reloaded
         await page.waitForFunction(() => !(window as any).HFS.state.loading)
@@ -738,21 +737,13 @@ test('filter resets paging when the first entry stays the same', async ({ page }
 test('paging preserves the Options scroll lock when a folder finishes loading', async ({ page }) => {
     const folder = fs.mkdtempSync('tests/tmp/paging-dialog-')
     const uri = '/for-admins/upload/' + folder.split('/').pop() + '/'
-    let stream: ServerResponse | undefined
+    let stream: WebSocketRoute | undefined
     let firstBatch = ''
     let lastBatch = ''
     // relay the real listing in two batches so Paging mounts while Options owns the scroll lock
-    const server = createServer((_, response) => {
-        stream = response
-        response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Access-Control-Allow-Origin': '*' })
-        response.write(firstBatch)
-    })
     try {
         for (let i = 0; i < 101; i++)
             fs.writeFileSync(`${folder}/file-${i}.txt`, '')
-        await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
-        const address = server.address()
-        if (!address || typeof address === 'string') throw Error('Missing listing relay address')
         await gotoFrontend(page)
         await page.getByRole('button', { name: 'Login', exact: true }).click()
         await page.getByRole('textbox', { name: 'Username' }).fill(username)
@@ -768,10 +759,12 @@ test('paging preserves the Options scroll lock when a folder finishes loading', 
             .flatMap(line => JSON.parse(line.slice(6)))
         expect(records.filter(([op]: [string]) => op === '+')).toHaveLength(101)
         const last = records.findLastIndex(([op]: [string]) => op === '+')
-        firstBatch = `data: ${JSON.stringify(records.slice(0, last))}\n\n`
-        lastBatch = `data: ${JSON.stringify(records.slice(last))}\n\ndata:\n\n`
-        await page.route(url => url.pathname === '/~/api/get_file_list' && url.searchParams.get('uri') === uri,
-            route => route.continue({ url: `http://127.0.0.1:${address.port}/` }))
+        firstBatch = JSON.stringify(records.slice(0, last))
+        lastBatch = JSON.stringify(records.slice(last))
+        await page.routeWebSocket(url => url.pathname === '/~/api/get_file_list' && url.searchParams.get('uri') === uri, socket => {
+            stream = socket
+            socket.send(firstBatch)
+        })
         await page.goto(new URL(uri, FRONTEND_URL).href)
         await expect(page.locator('.dir .entry-name')).toHaveCount(100)
         await expect(page.locator('#paging')).toHaveCount(0)
@@ -779,7 +772,8 @@ test('paging preserves the Options scroll lock when a folder finishes loading', 
         const options = page.getByRole('dialog')
         await expect(options.getByRole('heading', { name: 'Options', exact: true })).toBeVisible()
         await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).overflowY)).toBe('hidden')
-        stream!.end(lastBatch)
+        stream!.send(lastBatch)
+        stream!.close({ code: 1000 })
         await expect(page.locator('#paging')).toBeAttached()
         await expect(options).toBeVisible()
         await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).overflowY)).toBe('hidden')
@@ -788,9 +782,7 @@ test('paging preserves the Options scroll lock when a folder finishes loading', 
         await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).overflowY)).not.toBe('hidden')
     }
     finally {
-        stream?.end()
-        server.closeAllConnections()
-        await new Promise<void>(resolve => server.close(() => resolve()))
+        stream?.close({ code: 1000 })
         fs.rmSync(folder, { recursive: true, force: true })
     }
 })
@@ -828,39 +820,30 @@ test('stopping a regular listing is not labeled as a search', async ({ page }) =
 })
 
 test('a restarted listing gets a fresh delay before showing stop', async ({ page }) => {
-    const streams = new Set<ServerResponse>()
-    const server = createServer((_, response) => {
-        streams.add(response)
-        response.on('close', () => streams.delete(response))
-        response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Access-Control-Allow-Origin': '*' })
-        response.write('data: [["ready"]]\n\n')
-    })
-    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
-    const address = server.address()
-    if (!address || typeof address === 'string') throw Error('Missing listing relay address')
+    const streams = new Set<WebSocketRoute>()
+    const requests: (string | null)[] = []
     try {
         await gotoFrontend(page)
-        await page.route(url => url.pathname === '/~/api/get_file_list',
-            route => route.continue({ url: `http://127.0.0.1:${address.port}/` }))
+        await page.routeWebSocket(url => url.pathname === '/~/api/get_file_list', socket => {
+            streams.add(socket)
+            requests.push(new URL(socket.url()).searchParams.get('uri'))
+            socket.send('[["ready"]]')
+        })
         await page.clock.install()
-        const firstListing = page.waitForRequest(request => new URL(request.url()).searchParams.get('uri') === '/f1/')
         await page.getByRole('link', { name: 'f1, Folder' }).click()
-        await firstListing
+        await expect.poll(() => requests).toEqual(['/f1/'])
         await expect(page.locator('#search-stop-button')).toHaveCount(0)
         await page.clock.runFor(900)
 
-        const secondListing = page.waitForRequest(request => new URL(request.url()).searchParams.get('uri') === '/')
         await page.locator('#breadcrumb-home').click()
-        await secondListing
+        await expect.poll(() => requests).toEqual(['/f1/', '/'])
         await page.clock.runFor(200)
         await expect(page.locator('#search-stop-button')).toHaveCount(0)
         await page.clock.runFor(800)
         await expect(page.locator('#search-stop-button')).toBeVisible()
     }
     finally {
-        for (const stream of streams) stream.end()
-        server.closeAllConnections()
-        await new Promise<void>(resolve => server.close(() => resolve()))
+        for (const stream of streams) stream.close({ code: 1000 })
     }
 })
 
@@ -1139,7 +1122,7 @@ test('admin1', async ({ page }) => {
         await page.getByRole('button', { name: 'Start test' }).click()
         await expect(stopTest).toBeVisible()
     }
-    // reload the list from the server so the plugin screenshot doesn't depend on SSE timing
+    // reload the list from the server so the plugin screenshot doesn't depend on event-stream timing
     await page.reload()
     await expect(page.getByRole('heading', { name: 'Plugins', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Stop test' })).toBeVisible()
