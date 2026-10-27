@@ -26,7 +26,8 @@ export async function storeFileAttr(path: string, k: string, v: any) {
     const s = await statWithTimeout(path).catch(() => null)
     // since we don't have fsx.remove, we simulate it with an empty string
     if (s && await fsx?.set(path, FILE_ATTR_PREFIX + k, v === undefined ? '' : JSON.stringify(v)).then(() => 1, () => 0)) {
-        if (IS_WINDOWS) utimes(path, s.atime, s.mtime) // restore timestamps, necessary only on Windows
+        if (IS_WINDOWS)
+            await utimes(path, s.atime, s.mtime) // wait before callers can rename or delete the file, otherwise restoring timestamps can race with them
         return true
     }
     // fallback to our kv-storage

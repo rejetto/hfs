@@ -114,7 +114,7 @@ test('shutdown: storage close flushes a pending write before the next group', as
     }
 })
 
-test('shutdown: quit closes HTTPS sockets before their TLS handshake', { timeout: 15000 }, async t => {
+test('shutdown: quit closes HTTPS sockets before their TLS handshake', { timeout: 30000 }, async t => {
     const cwd = await mkdtemp(join(tmpdir(), 'hfs-https-shutdown-'))
     const keys = pki.rsa.generateKeyPair(2048)
     const cert = pki.createCertificate()
@@ -145,7 +145,8 @@ test('shutdown: quit closes HTTPS sockets before their TLS handshake', { timeout
     let output = ''
     child.stdout.on('data', chunk => output += chunk)
     child.stderr.on('data', chunk => output += chunk)
-    await until(() => /Serving on https:\/\/127\.0\.0\.1:\d+/.test(output))
+    // concurrent source-server startup can take longer in the Windows VM
+    await until(() => /Serving on https:\/\/127\.0\.0\.1:\d+/.test(output), 15000)
     const port = Number(/Serving on https:\/\/127\.0\.0\.1:(\d+)/.exec(output)![1])
     // a real TCP client can connect to HTTPS without ever starting TLS
     const socket = connect(port, '127.0.0.1')
@@ -157,8 +158,8 @@ test('shutdown: quit closes HTTPS sockets before their TLS handshake', { timeout
     await until(() => child.exitCode !== null)
     assert.equal((await stopped)[0], 0, output)
 
-    async function until(check: () => boolean) {
-        for (let i = 0; i < 100; i++) {
+    async function until(check: () => boolean, timeout=5000) {
+        for (let i = 0; i < timeout / 50; i++) {
             if (check()) return
             assert.equal(child.signalCode, null, output)
             await delay(50)

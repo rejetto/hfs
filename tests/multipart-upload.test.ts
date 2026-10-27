@@ -37,10 +37,11 @@ for (const retention of [0, 60]) {
         let output = '', base = ''
         child.stdout.on('data', chunk => output += chunk)
         child.stderr.on('data', chunk => output += chunk)
+        // concurrent source-server startup can take longer in the Windows VM
         await until(() => {
             base = /Serving on (http:\/\/127\.0\.0\.1:\d+)/.exec(output)?.[1] || ''
             return Boolean(base)
-        })
+        }, 15000)
 
         for (const query of ['', '?get=basic']) {
             await t.test(`truncated file returns 400 and can be retried ${query}`, async () => {
@@ -106,8 +107,8 @@ for (const retention of [0, 60]) {
             return fetch(base + uri + query, { method: 'POST', headers, body, signal: AbortSignal.timeout(2000) })
         }
 
-        async function until(check: () => boolean | Promise<boolean>) {
-            for (let i = 0; i < 100; i++) {
+        async function until(check: () => boolean | Promise<boolean>, timeout=5000) {
+            for (let i = 0; i < timeout / 50; i++) {
                 if (await check()) return
                 assert.equal(child.exitCode, null, output)
                 await delay(50)
