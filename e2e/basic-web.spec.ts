@@ -6,8 +6,15 @@ import { FRONTEND_URL, username, password } from './common'
 
 test.use({
     javaScriptEnabled: false,
-    httpCredentials: { username, password },
     userAgent: 'Mozilla/5.0 (Windows NT 6.1; rv:10.0) Gecko/20100101 Firefox/10.0',
+})
+
+test.beforeEach(async ({ page }) => {
+    await page.goto(FRONTEND_URL + 'for-admins/upload/')
+    await page.getByLabel('Username:', { exact: true }).fill(username)
+    await page.getByLabel('Password:', { exact: true }).fill(password)
+    await page.getByRole('button', { name: 'Login', exact: true }).click()
+    await expect(page.getByRole('button', { name: `Logout (${username})`, exact: true })).toBeVisible()
 })
 
 test('basic upload works without JavaScript and returns to the folder', async ({ page }, testInfo) => {
@@ -15,7 +22,7 @@ test('basic upload works without JavaScript and returns to the folder', async ({
     const paths = names.map(name => resolve('tests/tmp', name))
     try {
         await page.goto(FRONTEND_URL + 'for-admins/upload/')
-        const form = page.locator('form')
+        const form = page.locator('form[enctype="multipart/form-data"]')
         await expect(form).toHaveAttribute('method', 'post')
         await expect(form).toHaveAttribute('enctype', 'multipart/form-data')
         await page.getByLabel('Files:').setInputFiles(names.map(name => ({
@@ -39,7 +46,7 @@ test('basic upload works without JavaScript and returns to the folder', async ({
 test('basic upload is hidden in read-only and virtual folders', async ({ page }) => {
     for (const path of ['for-admins/', 'renameChild/tests/', 'renameChild/']) {
         await page.goto(FRONTEND_URL + path + '?get=basic')
-        await expect(page.getByRole('link', { name: /Logout/ })).toBeVisible()
+        await expect(page.getByRole('button', { name: /Logout/ })).toBeVisible()
         await expect(page.locator('input[type="file"]')).toHaveCount(0)
     }
 })

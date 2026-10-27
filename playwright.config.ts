@@ -21,6 +21,7 @@ const adminLogicTests = [
   '**/admin-online-plugins.spec.ts',
   '**/admin-options.spec.ts',
 ]
+const desktopBrowserTests = ['**/basic-login.spec.ts']
 
 const snapshotBranch = getSnapshotBranch()
 // use the same test port source as tests/test.ts to avoid config drift
@@ -92,12 +93,12 @@ export default defineConfig({
     },
     {
       name: 'Android',
-      testIgnore: adminLogicTests,
+      testIgnore: [...adminLogicTests, ...desktopBrowserTests],
       use: { ...devices['Pixel 7'] },
     },
     {
       name: 'iPhone 6',
-      testIgnore: adminLogicTests,
+      testIgnore: [...adminLogicTests, ...desktopBrowserTests],
       use: { ...devices['iPhone 6'] },
     },
     {
