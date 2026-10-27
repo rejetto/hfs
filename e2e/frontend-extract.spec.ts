@@ -41,7 +41,10 @@ test('extract menu, two concurrent jobs, private details and Stop', async ({ pag
         const base = /Serving on (http:\/\/127\.0\.0\.1:\d+)/.exec(output)![1]
         const observerRequests: string[] = []
         observer.on('request', request => observerRequests.push(request.url()))
+        observer.on('websocket', socket => observerRequests.push(socket.url()))
         await Promise.all([page.goto(base), observer.goto(base), admin.goto(base)])
+        // the initial listing can reset the login dialog, so let it finish before opening it
+        await admin.waitForFunction(() => (window as any).HFS.state.loading === false)
         await admin.getByRole('button', { name: 'Login', exact: true }).click()
         await admin.getByRole('textbox', { name: 'Username', exact: true }).fill('admin')
         await admin.getByRole('textbox', { name: 'Password', exact: true }).fill('secret')

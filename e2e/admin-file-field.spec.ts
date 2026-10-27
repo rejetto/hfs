@@ -16,10 +16,10 @@ for (const { name, cwd, from, expected } of cases)
         await page.route('**/~/api/refresh_session', route => route.fulfill({ json: { username: 'admin', isAdmin: true } }))
         await page.route('**/~/api/get_cwd', route => route.fulfill({ json: { path: cwd } }))
         await page.route('**/~/api/resolve_path', route => route.fulfill({ json: { path: from, isFolder: true } }))
-        await page.route(/\/~\/api\/get_ls\?/, route => route.fulfill({
-            contentType: 'text/event-stream',
-            body: 'data: ' + JSON.stringify([['+', { n: 'report.txt', s: 20 }], ['ready']]) + '\n\ndata:\n\n',
-        }))
+        await page.routeWebSocket(/\/~\/api\/get_ls\?/, socket => {
+            socket.send(JSON.stringify([['+', { n: 'report.txt', s: 20 }], ['ready']]))
+            socket.close({ code: 1000 })
+        })
         // exercise FileField and FilePicker unchanged; only the surrounding page and filesystem API are fixtures
         await page.route('**/src/MonitorPage.ts*', route => route.fulfill({
             contentType: 'text/javascript',

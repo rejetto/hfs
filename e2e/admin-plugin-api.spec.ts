@@ -325,7 +325,7 @@ test('login page receives plugins started by another Admin session', async ({ br
     const loginPage = await loginContext.newPage()
     await adminPage.goto(base + '/~/admin/')
     await loginAdmin(adminPage)
-    const streamConnected = loginPage.waitForResponse(response => response.url().includes('/~/api/get_admin_plugins'))
+    const streamConnected = loginPage.waitForEvent('websocket', socket => socket.url().includes('/~/api/get_admin_plugins'))
     await loginPage.goto(base + '/~/admin/')
     await streamConnected
     await expect(loginPage.getByText('Late login extension')).toHaveCount(0)

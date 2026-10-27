@@ -685,7 +685,8 @@ In frontend you will have access to the `HFS` object of the global scope, which 
   The default target is window. Returns a callback to remove the listener. 
 - `useBatch(worker, job): { data }` this is a bit complicated, please refer to source `shared/react.ts`. 
 - `getNotifications(channel: string, cb: (eventName: string, data:any) => void)`
-  receive messages when the backend uses `notifyClient` on the same channel. 
+  receive messages when the backend uses `notifyClient` on the same channel.
+  Returns a promise for a subscription with `close()`; interrupted connections reconnect automatically using WebSockets.
 - `html(html: string): ReactNode` convert html code to React
 - `debounceAsync: function` like lodash.debounce, but also avoids async invocations to overlap.
   For details please refer to `src/debounceAsync.ts`.
