@@ -64,13 +64,13 @@ export default defineConfig({
 })
 
 function getLogger() {
-    if (!process.env.VITE_IGNORE_REFUSED_PROXY) return
+    if (!process.env.VITE_IGNORE_PROXY_DISCONNECTS) return
     const logger = createLogger()
     const logError = logger.error
     logger.error = (message, options) => {
-        // fixture pages intentionally leave unrelated background APIs unavailable
-        if (message.includes('http proxy error:')
-            && (options?.error as NodeJS.ErrnoException)?.code === 'ECONNREFUSED') return
+        // fixture pages intentionally leave APIs unavailable and close sockets during teardown
+        const code = (options?.error as NodeJS.ErrnoException)?.code || ''
+        if (message.includes('proxy') && ['ECONNREFUSED', 'ECONNRESET', 'EPIPE'].includes(code)) return
         logError(message, options)
     }
     return logger

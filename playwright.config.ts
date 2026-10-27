@@ -21,6 +21,7 @@ const adminLogicTests = [
   '**/admin-online-plugins.spec.ts',
   '**/admin-options.spec.ts',
 ]
+const desktopBrowserTests = ['**/basic-login.spec.ts']
 
 const snapshotBranch = getSnapshotBranch()
 // use the same test port source as tests/test.ts to avoid config drift
@@ -92,12 +93,12 @@ export default defineConfig({
     },
     {
       name: 'Android',
-      testIgnore: adminLogicTests,
+      testIgnore: [...adminLogicTests, ...desktopBrowserTests],
       use: { ...devices['Pixel 7'] },
     },
     {
       name: 'iPhone 6',
-      testIgnore: adminLogicTests,
+      testIgnore: [...adminLogicTests, ...desktopBrowserTests],
       use: { ...devices['iPhone 6'] },
     },
     {
@@ -164,7 +165,7 @@ export default defineConfig({
        command: `rm -rf tests/work2 && node dist/src --cwd tests/work2 --debug --port ${secondaryPort} --open_browser_at_start false`,
        reuseExistingServer: !process.env.CI,
    }, {
-       command: `cross-env VITE_IGNORE_REFUSED_PROXY=1 npm run start --workspace=admin -- --host 127.0.0.1 --port ${adminPort} --strictPort`,
+       command: `cross-env VITE_IGNORE_PROXY_DISCONNECTS=1 npm run start --workspace=admin -- --host 127.0.0.1 --port ${adminPort} --strictPort`,
        url: adminViteUrl,
        reuseExistingServer: !process.env.CI,
    }]
