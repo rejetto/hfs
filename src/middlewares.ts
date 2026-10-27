@@ -162,8 +162,10 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     const loggedInNotBySession = a
     ctx.state.account = a ||= getAccount(s?.username, false) // with least precedence, we consider session
     if (a)
-        if (!accountCanLogin(a) || failAllowNet(ctx, a)) // enforce allow_net also after login
+        if (!accountCanLogin(a) || failAllowNet(ctx, a)) { // enforce allow_net also after login
             await setLoggedIn(ctx, false)
+            ctx.session = {} // downstream handlers still need an anonymous session after the rejected identity is cleared
+        }
         else if (loggedInNotBySession) {
             try {
                 if (a.username)

@@ -2353,6 +2353,44 @@ describe('sessions', () => {
         }
     })
     test('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw "in" }, () => {}))
+    test('rejected HTTP credentials leave a fresh anonymous session', async () => {
+        const adminReq = { auth, jar: {} }
+        for (const changes of [{ disabled: true }, { expire: new Date(0).toISOString() }, { allow_net: '192.0.2.1' }]) {
+            const user = `rejected-http-${randomId(6)}`.toLowerCase()
+            const pass = randomId(12)
+            const userAuth = `${user}:${pass}`
+            const userJar: NonNullable<XRequestOptions['jar']> = {}
+            try {
+                await reqApi('add_account', { username: user, password: pass, admin: true }, 200, adminReq)()
+                await reqApi('refresh_session', {}, res => res.username === user && res.isAdmin, { auth: userAuth, jar: userJar })()
+                const oldId = sessionId(userJar)
+                const staleJar = _.cloneDeep(userJar)
+                await reqApi('set_account', { username: user, changes }, 200, adminReq)()
+                for (const jar of [userJar, {}]) {
+                    await reqApi('refresh_session', {}, { status: 200, cb(res) {
+                        assert.equal(res.username, '')
+                        assert.ok(!res.isAdmin)
+                    } }, { auth: userAuth, jar })()
+                    assert.notEqual(sessionId(jar), oldId)
+                    await reqApi('get_config', {}, 401, { jar })()
+                    await reqApi('refresh_session', {}, res => res.username === '', { jar })()
+                }
+                await reqApi('refresh_session', {}, res => res.username === '', { jar: staleJar })()
+                await reqApi('get_config', {}, 401, { jar: staleJar })()
+            }
+            finally {
+                await reqApi('del_account', { username: user }, 200, adminReq)()
+            }
+        }
+
+        function sessionId(jar: NonNullable<XRequestOptions['jar']>) {
+            const cookie = Object.values(jar)[0]?.hfs_http
+            assert.ok(cookie)
+            const { sessionId } = JSON.parse(Buffer.from(cookie, 'base64').toString())
+            assert.ok(sessionId)
+            return sessionId
+        }
+    })
     test('allow_net.canLogin', () => login(username))
     test('allow_net.cantLogin', () => {
         defaultBaseUrl = BASE_URL_127 // 127.0.0.1 is not allowed for this account
