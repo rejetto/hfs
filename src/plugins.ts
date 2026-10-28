@@ -12,7 +12,7 @@ import * as Const from './const'
 import Koa from 'koa'
 import {
     escapeGlobPath, callable, Callback, callAsPromise, CFG, debounceAsync, Dict, onlyTruthy, prefix,
-    PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir, objFromKeys, patchKey
+    pendingPromise, Promisable, same, tryJson, try_, wait, waitFor, wantArray, watchDir, objFromKeys, patchKey
 } from './misc'
 import * as misc from './misc'
 import { currentVersion, defineConfig, getConfig, subMultipleConfigs, Version } from './config'
@@ -53,6 +53,21 @@ setTimeout(async () => { // delete leftovers, if any
 }, 1000)
 
 const plugins = new Map<string, Plugin>() // now that we care about the order, a simple object wouldn't do, because numbers are always at the beginning
+type PublicRouteHandler = (ctx: Koa.Context) => Promisable<unknown>
+const publicRoutes = new Map<string, { handler: PublicRouteHandler }>()
+
+export const pluginPublicRoutesMiddleware: Koa.Middleware = async (ctx, next) => {
+    // native Windows UPnP clients encode "~" in advertised metadata URLs
+    const route = publicRoutes.get(try_(() => decodeURI(ctx.path)) || '')
+    if (!route)
+        return next()
+    if (ctx.method !== 'GET' && ctx.method !== 'HEAD') {
+        ctx.set('Allow', 'GET, HEAD')
+        ctx.status = 405
+        return
+    }
+    await route.handler(ctx)
+}
 
 export function isPluginRunning(id: string) {
     return Boolean(plugins.get(id)?.started)
@@ -88,7 +103,8 @@ export async function startPlugin(id: string) {
 }
 
 async function waitRunning(id: string, state=true) {
-    while (state ? !isPluginRunning(id) : plugins.has(id)) { // unload clears started before closing resources; the map entry is removed only after cleanup finishes
+    // unload clears started before closing resources; the map entry is removed only after cleanup finishes
+    while (state ? !isPluginRunning(id) : plugins.has(id)) {
         await wait(50)
         const error = state && getError(id)
         if (error)
@@ -216,6 +232,22 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict, onI
         registerSearch(provider: PluginSearch) {
             if (unloading) throw Error("Plugin is unloading")
             const off = registerPluginSearch(morePassedToInit?.id || 'server_code', provider)
+            cleanups.push(off)
+            return off
+        },
+        registerPublicRoute(name: string, handler: PublicRouteHandler) {
+            if (unloading) throw Error("Plugin is unloading")
+            if (typeof name !== 'string' || !/^[a-zA-Z0-9_-][a-zA-Z0-9._-]*$/.test(name) || typeof handler !== 'function')
+                throw Error("Expected a resource filename and a handler")
+            const path = PLUGINS_PUB_URI + (morePassedToInit?.id || 'server_code') + '/' + name
+            if (publicRoutes.has(path)) throw Error("Public route already registered: " + path)
+            const route = { handler }
+            publicRoutes.set(path, route)
+            // repeated unregister calls must not remove a later registration for the same path
+            const off = () => {
+                if (publicRoutes.get(path) === route)
+                    publicRoutes.delete(path)
+            }
             cleanups.push(off)
             return off
         },
@@ -554,16 +586,16 @@ export async function rescan() {
 function watchPlugin(id: string, path: string) {
     console.debug('Plugin watch', id)
     const module = resolve(path)
-    let starting: PendingPromise | undefined
-    const unsub = subMultipleConfigs(() => {
+    let lifecycle = Promise.resolve()
+    const unsub = subMultipleConfigs(() => runSerially(async () => {
         if (!getPluginInfo(id)) return // not loaded yet
         const should = isPluginEnabled(id, true)
         if (should === isPluginRunning(id)) return
         if (should)
             return start()
-        stop()
-    }, [enablePlugins, suspendPlugins])
-    const { unwatch } = watchLoad(module, async source => {
+        await stop()
+    }), [enablePlugins, suspendPlugins])
+    const { unwatch } = watchLoad(module, source => runSerially(async () => {
         const notRunning = inactivePlugins[id]
         if (!source)
             return onUninstalled()
@@ -573,12 +605,12 @@ function watchPlugin(id: string, path: string) {
         if (same(notRunning, p)) return
         inactivePlugins[id] = p
         events.emit(notRunning ? 'pluginUpdated' : 'pluginInstalled', p)
-    })
+    }))
     return () => {
         console.debug('Plugin unwatch', id)
         unsub()
         unwatch()
-        return onUninstalled()
+        return runSerially(onUninstalled)
     }
 
     async function onUninstalled() {
@@ -599,7 +631,6 @@ function watchPlugin(id: string, path: string) {
     }
 
     async function stop() {
-        await starting
         const p = plugins.get(id)
         if (!p) return
         await p.unload()
@@ -609,9 +640,7 @@ function watchPlugin(id: string, path: string) {
     }
 
     async function start() {
-        if (starting) return
         try {
-            starting = pendingPromise()
             // if dependencies are not ready right now, we give some time. Not super-solid but good enough for now.
             const info = await parsePlugin()
             if (!await waitFor(() => _.isEmpty(getMissingDependencies(info)), { timeout: 5_000 }))
@@ -716,11 +745,11 @@ function watchPlugin(id: string, path: string) {
             e = prefix('', e.message, where) || String(e)
             setError(id, e)
         }
-        finally {
-            starting?.resolve()
-            starting = undefined
-        }
+    }
 
+    function runSerially(action: () => Promise<void>) {
+        // serialize config changes and reloads so old cleanup cannot remove a newer instance
+        return lifecycle = lifecycle.then(action, action)
     }
 }
 
