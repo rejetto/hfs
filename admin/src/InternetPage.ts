@@ -184,7 +184,10 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         const { country } = await apiCall('geo_ip', { ip })
         if (!country)
             return alertDialog(t`IP not found`, 'error')
-        return alertDialog(h(Country, { code: country, long: true }), 'success')
+        return alertDialog(h(Box, { sx: { textAlign: 'center', lineHeight: '2em' } },
+            h('div', {}, ip),
+            h(Country, { code: country, long: true }),
+        ), { type: 'success', title: t`Lookup IP` })
     }
 
     function httpsBox() {
