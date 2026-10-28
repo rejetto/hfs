@@ -85,9 +85,9 @@ export async function startPlugin(id: string) {
 }
 
 async function waitRunning(id: string, state=true) {
-    while (isPluginRunning(id) !== state) {
+    while (state ? !isPluginRunning(id) : plugins.has(id)) { // unload clears started before closing resources; the map entry is removed only after cleanup finishes
         await wait(50)
-        const error = getError(id)
+        const error = state && getError(id)
         if (error)
             throw Error(error)
     }

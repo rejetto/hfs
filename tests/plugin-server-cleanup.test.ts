@@ -10,7 +10,7 @@ import { get as httpGet } from 'node:http'
 import { setTimeout as delay } from 'node:timers/promises'
 import { pki } from 'node-forge'
 
-test('plugins.onServer cleans sync and async HTTP/HTTPS registrations, including after unload', { timeout: 20000 }, async t => {
+test('plugins clean server registrations and wait for asynchronous unload', { timeout: 20000 }, async t => {
     const cwd = await mkdtemp(join(tmpdir(), 'hfs-server-cleanup-'))
     const keys = pki.rsa.generateKeyPair(2048)
     const cert = pki.createCertificate()
@@ -27,6 +27,7 @@ test('plugins.onServer cleans sync and async HTTP/HTTPS registrations, including
 exports.apiRequired = 1
 exports.init = async api => {
     const record = value => api.require('fs').appendFileSync('trace', value + '\\n')
+    await api.openDb('cleanup')
     await api.onServer(server => server) // legacy non-function return values remain valid
     const register = server => {
         const handler = (req, socket) => socket.end('HTTP/1.1 200 OK\\r\\nContent-Length: 5\\r\\nConnection: close\\r\\n\\r\\nprobe')
@@ -47,7 +48,19 @@ exports.init = async api => {
         return register(server)
     } : register)
     if (api.getConfig('failInit')) throw Error('expected init failure')
-    return { unload() { record('unload') } }
+    return { async unload() {
+        if (api.getConfig('holdUnload')) {
+            const fs = api.require('fs')
+            api.setError('expected plugin unload status')
+            await new Promise(resolve => {
+                const watcher = fs.watch('.', () => {
+                    if (fs.existsSync('release-stop')) { watcher.close(); resolve() }
+                })
+                record('unload-pending')
+            })
+        }
+        record('unload')
+    } }
 }
 `)
     await mkdir(join(cwd, 'plugins/late-cleanup'), { recursive: true })
@@ -89,6 +102,8 @@ exports.init = async api => {
     })
     const stopped = once(child, 'exit')
     t.after(async () => {
+        // release a blocked unload if an earlier assertion failed
+        await writeFile(join(cwd, 'release-stop'), '')
         child.kill()
         await stopped
         // Windows can retain file handles briefly after the child exits
@@ -124,10 +139,24 @@ exports.init = async api => {
     await api('set_config', { values: { https_port: 0 } })
     for (let i = 0; i < 50 && (await trace()).length < 3; i++) await delay(100)
     assert.deepEqual(await trace(), ['add:http', 'add:https', 'add:https'])
-    await api('stop_plugin', { id: 'server-cleanup' })
+    await api('set_plugin', { id: 'server-cleanup', config: { holdUnload: true } })
+    let stopSettled = false
+    let stopError: unknown
+    const stopping = api('stop_plugin', { id: 'server-cleanup' }).then(
+        () => { stopSettled = true }, error => { stopSettled = true; stopError = error })
+    for (let i = 0; i < 50 && !(await trace()).includes('unload-pending'); i++) await delay(20)
+    assert.ok((await trace()).includes('unload-pending'))
+    // hold unload beyond waitRunning's polling interval to catch an early stop response
+    await delay(100)
+    const stoppedBeforeRelease = stopSettled
+    await writeFile(join(cwd, 'release-stop'), '')
+    await stopping
+    assert.equal(stoppedBeforeRelease, false)
+    assert.ifError(stopError)
     const stoppedTrace = await trace()
-    assert.deepEqual(stoppedTrace.slice(3, -1).sort(), ['remove:http:false', 'remove:https:false', 'remove:https:false'])
-    assert.equal(stoppedTrace.at(-1), 'unload')
+    assert.deepEqual(stoppedTrace.slice(3, -2).sort(), ['remove:http:false', 'remove:https:false', 'remove:https:false'])
+    assert.deepEqual(stoppedTrace.slice(-2), ['unload-pending', 'unload'])
+    await api('set_plugin', { id: 'server-cleanup', config: { holdUnload: false } })
 
     await writeFile(join(cwd, 'trace'), '')
     await api('set_plugin', { id: 'server-cleanup', config: { asyncCallback: true } })
