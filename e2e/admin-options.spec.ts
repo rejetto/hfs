@@ -52,3 +52,25 @@ test('comment encoding follows storage mode despite the enabled legacy setting',
     await page.getByRole('option', { name: 'in file attributes', exact: true }).click()
     await expect(encoding).toBeDisabled()
 })
+
+for (const restored of ['', 'http://proxy.example:8080'])
+    test(`reload clears validation errors when restoring ${restored || 'the original value'}`, async ({ page }) => {
+        const config = { port: 80, https_port: -1, proxies: 0, outbound_proxy: '', server_code: '', mime: {}, block: [] }
+        await page.route('**/~/api/get_config', route => route.fulfill({ json: config }))
+        await page.route('**/~/api/get_status', route => route.fulfill({ json: {
+            http: { listening: true, port: 80 }, https: {}, ips: [], connectionAddress: '127.0.0.1',
+        } }))
+        await page.route('**/~/api/get_admins', route => route.fulfill({ json: { list: [] } }))
+        await page.goto(url.replace('/others', '/net'))
+        const field = page.getByRole('textbox', { name: 'Outbound proxy', exact: true })
+        await field.fill('invalid proxy')
+        await field.blur()
+        await expect(page.getByText('Invalid URL', { exact: true })).toBeVisible()
+        config.outbound_proxy = restored
+        await page.getByRole('button', { name: 'Reload', exact: true }).click()
+        await expect(field).toHaveValue(restored)
+        await expect(page.getByText('Invalid URL', { exact: true })).toHaveCount(0)
+        await field.fill('still invalid')
+        await field.blur()
+        await expect(page.getByText('Invalid URL', { exact: true })).toBeVisible()
+    })

@@ -59,6 +59,7 @@ export function mergeSx(...parts: Array<SxProps<Theme> | false | null | undefine
 export interface FormApi {
     submit(): void
     validate(): Promise<boolean>
+    resetValidation(): void
 }
 
 export interface FormProps<Values> extends Partial<BoxProps> {
@@ -116,8 +117,10 @@ export function Form<Values extends Dict>({
     const submitAfterValidation = useRef(false)
     const validationRequest = useRef<((ok: boolean) => void) | undefined>()
     const validateUpTo = useRef('')
+    const validationVersion = useRef(0)
     if (apiRef) apiRef.current = {
         submit: pleaseSubmitAndValidate,
+        resetValidation,
         validate: () => new Promise<boolean>(resolve => {
             submitAfterValidation.current = false
             validationRequest.current = resolve // will be called later
@@ -240,6 +243,18 @@ export function Form<Values extends Dict>({
         )
     )
 
+    function resetValidation() {
+        // pending validations belong to the discarded values and must not restore their errors
+        validationVersion.current++
+        setErrors({})
+        setFieldExceptions({})
+        setPhase(Phase.Idle)
+        submitAfterValidation.current = false
+        validationRequest.current?.(false)
+        validationRequest.current = undefined
+        onValidation?.(false, false)
+    }
+
     function pleaseSubmitAndValidate() { // we use state here to let the outer component perform its state changes
         submitAfterValidation.current = true
         pleaseValidate()
@@ -248,8 +263,9 @@ export function Form<Values extends Dict>({
     function pleaseValidate(k='') {
         if (phase !== Phase.Idle) return false
         validateUpTo.current = k
+        const version = validationVersion.current
         setTimeout(() => // starting validation immediately will lose clicks on the saveBtn, so delay just a bit
-            setPhase(cur => cur === Phase.Idle ? Phase.WaitValues : cur)) // don't interfere with the ongoing process
+            setPhase(cur => version === validationVersion.current && cur === Phase.Idle ? Phase.WaitValues : cur)) // don't interfere with the ongoing process
         return true
     }
 
@@ -261,6 +277,7 @@ export function Form<Values extends Dict>({
         if (phase === Phase.Idle) return
         if (phase === Phase.WaitValues)
             return setPhase(Phase.Validating)
+        const version = validationVersion.current
         const MSG = "Please review errors"
         const errs: typeof errors = {}
         for (const f of fields) {
@@ -277,9 +294,9 @@ export function Form<Values extends Dict>({
             catch(e) {
                 err = String(e)
             }
+            if (!mounted.current || version !== validationVersion.current) return
             errs[k] = err
             if (!submitAfterValidation.current && k === validateUpTo.current) break
-            if (!mounted.current) return // abort
         }
         setErrors(errs)
         const anyError = Object.values(errs).some(Boolean)
@@ -295,7 +312,10 @@ export function Form<Values extends Dict>({
             if (anyError) {
                 try { return await onError?.(MSG) }
                 finally {
-                    setTimeout(() => formRef?.current?.querySelector('.' + ERROR_CLASS)?.scrollIntoView({ block: 'center' }), 1)
+                    setTimeout(() => {
+                        if (version === validationVersion.current)
+                            formRef?.current?.querySelector('.' + ERROR_CLASS)?.scrollIntoView({ block: 'center' })
+                    }, 1)
                 }
             }
             const cb = saveBtn && saveBtn.onClick
@@ -304,9 +324,11 @@ export function Form<Values extends Dict>({
         }
         catch(e) { await onError?.(e) }
         finally {
-            submitAfterValidation.current = false
-            if (mounted.current)
-                setPhase(Phase.Idle)
+            if (version === validationVersion.current) {
+                submitAfterValidation.current = false
+                if (mounted.current)
+                    setPhase(Phase.Idle)
+            }
         }
     }
 

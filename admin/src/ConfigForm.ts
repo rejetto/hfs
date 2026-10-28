@@ -1,19 +1,20 @@
-import { Form, FormProps } from '@hfs/mui-grid-form'
+import { Form, FormApi, FormProps } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
-import { createElement as h, useEffect, useState, Dispatch } from 'react'
+import { createElement as h, useEffect, useRef, useState, Dispatch } from 'react'
 import { t } from './i18n'
 import _ from 'lodash'
 import { IconBtn, propsForModifiedValues } from './mui'
 import { RestartAlt } from '@mui/icons-material'
 import { Callback, isOrderedEqual, onlyTruthy } from './misc'
 
-type FormRest<T> = Omit<FormProps<T>, 'values' | 'set' | 'save'> & Partial<Pick<FormProps<T>, 'save'>>
+type FormRest<T> = Omit<FormProps<T>, 'values' | 'set' | 'save' | 'apiRef'> & Partial<Pick<FormProps<T>, 'save'>>
 export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }: Partial<FormRest<T>> & {
     keys?: (keyof T)[],
     form: FormRest<T> | ((values: T, optional: { setValues: Dispatch<T> }) => FormRest<T>),
     onSave?: Callback,
     saveOnChange?: boolean
 }) {
+    const formApi = useRef<FormApi>()
     const [saving, setSaving] = useState(false)
     const [keys_, setKeys_] = useState(keys)
     const config = useApiEx(keys_ && 'get_config', { only: keys_ })
@@ -42,6 +43,7 @@ export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }:
         },
         ...formProps,
         ...rest,
+        apiRef: formApi,
         ...{ inert: saving ? '' : undefined }, // prevent edits until both saving and refreshing the configuration finish
         barSx: { gap: 1, ...rest.barSx },
         addToBar: [
@@ -49,7 +51,10 @@ export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }:
                 icon: RestartAlt,
                 disabled: !modified,
                 title: t`Reset`,
-                onClick(){ setValues(config.data) }
+                onClick() {
+                    setValues(config.data)
+                    formApi.current?.resetValidation()
+                }
             }),
             ...rest.addToBar||[],
         ],

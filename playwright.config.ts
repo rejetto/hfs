@@ -13,6 +13,7 @@ const adminLogicTests = [
   '**/admin-data-table.spec.ts',
   '**/admin-file-field.spec.ts',
   '**/admin-file-form.spec.ts',
+  '**/admin-form-validation.spec.ts',
   '**/admin-home.spec.ts',
   '**/admin-languages.spec.ts',
   '**/admin-list-reconnect.spec.ts',
@@ -28,7 +29,7 @@ const adminViteUrl = `http://127.0.0.1:${adminPort}/`
 
 // fixture tests replace an Admin page module, so they must load from Vite instead of the packaged Admin app
 for (const name of [
-  'ACME', 'API_LIST', 'DATA_TABLE', 'DATE_TIME', 'DIALOG', 'FILE_FIELD', 'FILE_FORM', 'CSV',
+  'ACME', 'API_LIST', 'DATA_TABLE', 'DATE_TIME', 'DIALOG', 'FILE_FIELD', 'FILE_FORM', 'CSV', 'FORM_VALIDATION',
   'PLUGIN_OPTIONS', 'STATE', 'WHO_FIELD', 'VFS_MOVE', 'VFS_TREE',
 ])
   process.env[`ADMIN_${name}_URL`] ||= adminViteUrl + '#/monitoring'

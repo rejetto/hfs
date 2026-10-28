@@ -17,7 +17,7 @@ import {
     execDoneMessage,
 } from './mui'
 import {
-    Form, BoolField, NumberField, SelectField, FieldProps, Field, type FieldDescriptor, type FormProps, StringField,
+    Form, BoolField, NumberField, SelectField, FieldProps, Field, type FieldDescriptor, type FormProps, type FormApi, StringField,
 } from '@hfs/mui-grid-form'
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
@@ -61,6 +61,7 @@ export default function OptionsPage() {
     const sm = useBreakpoint('sm')
     const saveBtnRef = useRef<HTMLButtonElement>(null)
     const tabsSticky = useFixSticky()
+    const formApi = useRef<FormApi>()
     const [tab, setTab] = useRoutedTab('options', TAB_PATHS)
     const fieldTabs: Dict<number> = {}
 
@@ -97,6 +98,7 @@ export default function OptionsPage() {
     }
     const httpsEnabled = values[CFG.https_port] >= 0
     return h(Form, {
+        apiRef: formApi,
         sx: { maxWidth: '60em' },
         values,
         set(v, k) {
@@ -122,7 +124,7 @@ export default function OptionsPage() {
         addToBar: [
             h(Button, {
                 onClick() {
-                    reloadConfig()
+                    void reloadConfig().then(() => formApi.current?.resetValidation())
                     reloadStatus()
                 },
                 startIcon: h(Refresh),
