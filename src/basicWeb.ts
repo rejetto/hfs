@@ -2,7 +2,8 @@ import { getCurrentUsername } from './auth'
 import Koa from 'koa'
 import { Readable } from 'stream'
 import { defineConfig } from './config'
-import { getNodeName, getDefaultFile, hasPermission, nodeIsFolder, VfsNodeWithPath, walkNode } from './vfs'
+import { getNodeName, getDefaultFile, hasPermission, nodeIsFolder, nodeStats, VfsNodeWithPath, walkNode } from './vfs'
+import { formatBytes, formatTimestamp } from './cross'
 import { CFG, escapeHTML, pathEncode } from './misc'
 import { basicAuthRoot, getBasicAuthToken } from './basicAuth'
 import _ from 'lodash'
@@ -22,7 +23,7 @@ export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
     const csrf = u && getBasicAuthToken(ctx) // session cookies are written before the body generator runs
     ctx.body = Readable.from((async function* () {
         yield `<meta name="viewport" content="width=device-width" />`
-        yield `<style>body { font-size: 16pt; }</style>`
+        yield `<style>body { font-size:16pt; } small { font-size:11pt; }</style>`
         yield `<title>${title.get()}</title><body>`
         yield getSection('basicHeader')
         yield u
@@ -39,7 +40,9 @@ export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
             const isFolder = nodeIsFolder(el)
             const name = getNodeName(el) + (isFolder ? '/' : '')
             const forceThis = isFolder && (el.see_without_probing || !await getDefaultFile(el, ctx)) ? force : ''
-            yield `<li>${a(pathEncode(name) + forceThis, name)}\n`
+            const stats = await nodeStats(el)
+            const details = !stats ? '' : (isFolder ? '' : formatBytes(stats.size) + ' - ') + formatTimestamp(stats.mtime)
+            yield `<li>${a(pathEncode(name) + forceThis, name)}${details ? ` <small>${escapeHTML(details)}</small>` : ''}</li>\n`
         }
         yield '</ul>\n' + getSection('basicFooter')
     })())
