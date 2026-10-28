@@ -10,7 +10,7 @@ import { get as httpGet } from 'node:http'
 import { setTimeout as delay } from 'node:timers/promises'
 import { pki } from 'node-forge'
 
-test('plugins clean server registrations and wait for asynchronous unload', { timeout: 20000 }, async t => {
+test('plugins clean callbacks and public routes after asynchronous unload', { timeout: 20000 }, async t => {
     const cwd = await mkdtemp(join(tmpdir(), 'hfs-server-cleanup-'))
     const keys = pki.rsa.generateKeyPair(2048)
     const cert = pki.createCertificate()
@@ -28,6 +28,21 @@ exports.apiRequired = 1
 exports.init = async api => {
     const record = value => api.require('fs').appendFileSync('trace', value + '\\n')
     await api.openDb('cleanup')
+    const assert = api.require('node:assert/strict')
+    const metadata = async ctx => {
+        await Promise.resolve()
+        ctx.type = 'xml'
+        ctx.body = '<device>public</device>'
+    }
+    for (const name of ['../api/get_status', '/description.xml', '.', 'a/b', 'a?b', 'a%2fb'])
+        assert.throws(() => api.registerPublicRoute(name, metadata))
+    const off = api.registerPublicRoute('description.xml', metadata)
+    assert.throws(() => api.registerPublicRoute('description.xml', metadata))
+    off()
+    api.registerPublicRoute('description.xml', metadata)
+    off() // an old unregister must not remove the new registration, even with the same handler
+    api.registerPublicRoute('error.xml', () => { throw Error('expected public route failure') })
+    api.registerPublicRoute('status.xml', ctx => { api.setError('expected plugin status'); ctx.body = 'ok' })
     await api.onServer(server => server) // legacy non-function return values remain valid
     const register = server => {
         const handler = (req, socket) => socket.end('HTTP/1.1 200 OK\\r\\nContent-Length: 5\\r\\nConnection: close\\r\\n\\r\\nprobe')
@@ -59,6 +74,7 @@ exports.init = async api => {
                 record('unload-pending')
             })
         }
+        else await new Promise(resolve => setTimeout(resolve, 100))
         record('unload')
     } }
 }
@@ -92,10 +108,33 @@ exports.init = async api => {
     return { unload() { record('late-unload') } }
 }
 `)
+    await mkdir(join(cwd, 'plugins/racing-cleanup'), { recursive: true })
+    await writeFile(join(cwd, 'plugins/racing-cleanup/plugin.js'), `
+exports.apiRequired = 1
+exports.init = api => {
+    const fs = api.require('fs')
+    const generation = fs.existsSync('generation') ? Number(fs.readFileSync('generation')) + 1 : 1
+    fs.writeFileSync('generation', String(generation))
+    const record = value => fs.appendFileSync('trace', value + '\\n')
+    api.registerPublicRoute('description.xml', ctx => { ctx.body = String(generation) })
+    record('race-start:' + generation)
+    return { async unload() {
+        record('race-stopping:' + generation)
+        if (generation === 1) {
+            await new Promise(resolve => {
+                const watcher = fs.watch('.', () => {
+                    if (fs.existsSync('release-race')) { watcher.close(); resolve() }
+                })
+            })
+        }
+        record('race-stopped:' + generation)
+    } }
+}
+`)
     await writeFile(join(cwd, 'config.yaml'), JSON.stringify({
         port: 0, https_port: 0, listen_interface: '127.0.0.1', force_https: false,
         cert: 'cert.pem', private_key: 'key.pem', enable_plugins: [],
-        open_browser_at_start: false, log: '', error_log: '',
+        open_browser_at_start: false, log: 'public-access.log', error_log: 'public-error.log', dont_log_net: '',
     }))
     const child = spawn(process.execPath, [resolve(__dirname, '../dist/src/index.js'), '--cwd', cwd, '--no-central'], {
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -131,6 +170,36 @@ exports.init = async api => {
     }
     await api('start_plugin', { id: 'server-cleanup' })
     assert.deepEqual(await trace(), ['add:http', 'add:https'])
+    const route = '/~/plugins/server-cleanup/description.xml'
+    await api('set_config', { values: { force_https: true, proxies: 1 } })
+    const headers = { 'x-forwarded-for': '198.51.100.19' }
+    const publicGet = (path = route, method = 'GET') => fetch(http + path, {
+        method, headers, redirect: 'manual', signal: AbortSignal.timeout(3000),
+    })
+    const metadata = await publicGet()
+    assert.equal(metadata.status, 200)
+    assert.match(metadata.headers.get('content-type') || '', /xml/)
+    assert.equal(await metadata.text(), '<device>public</device>')
+    assert.equal((await publicGet(route.replace('/~/', '/%7E/'))).status, 200)
+    const head = await publicGet(route, 'HEAD')
+    assert.equal(head.status, 200)
+    assert.equal(await head.text(), '')
+    const post = await publicGet(route, 'POST')
+    assert.equal(post.status, 405)
+    assert.equal(post.headers.get('allow'), 'GET, HEAD')
+    for (let i = 0; i < 50 && !(await readFile(join(cwd, 'public-error.log'), 'utf8')).includes(route); i++) await delay(20)
+    assert.ok((await readFile(join(cwd, 'public-access.log'), 'utf8')).includes(route))
+    assert.ok((await readFile(join(cwd, 'public-error.log'), 'utf8')).includes(route))
+    assert.equal((await publicGet('/~/plugins/server-cleanup/error.xml')).status, 500)
+    assert.equal((await publicGet('/~/api/get_status')).status, 307)
+    assert.equal((await publicGet(route + '/extra')).status, 307)
+    await api('set_config', { values: { roots: { 'other.example': '/' }, force_address: true } })
+    assert.equal((await publicGet(route.replace('/~/', '/%7E/'))).status, 200)
+    await assert.rejects(publicGet('/'), /fetch failed/)
+    await api('set_config', { values: { roots: {}, force_address: false } })
+    await api('set_config', { values: { block: [{ ip: headers['x-forwarded-for'] }] } })
+    await assert.rejects(publicGet(), /fetch failed/)
+    await api('set_config', { values: { block: [], force_https: false } })
     await probe(http, true)
     await probe(https, true)
 
@@ -139,6 +208,7 @@ exports.init = async api => {
     await api('set_config', { values: { https_port: 0 } })
     for (let i = 0; i < 50 && (await trace()).length < 3; i++) await delay(100)
     assert.deepEqual(await trace(), ['add:http', 'add:https', 'add:https'])
+    assert.equal((await publicGet('/~/plugins/server-cleanup/status.xml')).status, 200)
     await api('set_plugin', { id: 'server-cleanup', config: { holdUnload: true } })
     let stopSettled = false
     let stopError: unknown
@@ -153,6 +223,7 @@ exports.init = async api => {
     await stopping
     assert.equal(stoppedBeforeRelease, false)
     assert.ifError(stopError)
+    assert.equal((await publicGet()).status, 404)
     const stoppedTrace = await trace()
     assert.deepEqual(stoppedTrace.slice(3, -2).sort(), ['remove:http:false', 'remove:https:false', 'remove:https:false'])
     assert.deepEqual(stoppedTrace.slice(-2), ['unload-pending', 'unload'])
@@ -179,6 +250,7 @@ exports.init = async api => {
     await writeFile(join(cwd, 'trace'), '')
     await api('set_plugin', { id: 'server-cleanup', config: { throwCleanup: false, failInit: true } })
     await api('start_plugin', { id: 'server-cleanup' }, 500)
+    assert.equal((await publicGet()).status, 404)
     assert.deepEqual(await trace(), ['add:http', 'add:https', 'remove:http:false', 'remove:https:false'])
 
     await writeFile(join(cwd, 'trace'), '')
@@ -187,6 +259,21 @@ exports.init = async api => {
     assert.deepEqual(await trace(), ['add:http', 'remove:http:false'])
     assert.match(output, /expected async callback failure/)
     await api('set_plugin', { id: 'server-cleanup', enabled: false })
+
+    await writeFile(join(cwd, 'trace'), '')
+    await api('start_plugin', { id: 'racing-cleanup' })
+    await api('set_plugin', { id: 'racing-cleanup', enabled: false })
+    for (let i = 0; i < 50 && !(await trace()).includes('race-stopping:1'); i++) await delay(20)
+    assert.deepEqual(await trace(), ['race-start:1', 'race-stopping:1'])
+    await api('set_plugin', { id: 'racing-cleanup', enabled: true })
+    // hold the old instance's unload while the reactivation request is processed
+    await delay(100)
+    await writeFile(join(cwd, 'release-race'), '')
+    for (let i = 0; i < 50 && !(await trace()).includes('race-start:2'); i++) await delay(20)
+    assert.deepEqual(await trace(), ['race-start:1', 'race-stopping:1', 'race-stopped:1', 'race-start:2'])
+    assert.equal(await fetch(http + '/~/plugins/racing-cleanup/description.xml').then(r => r.text()), '2')
+    await api('stop_plugin', { id: 'racing-cleanup' })
+    assert.equal((await fetch(http + '/~/plugins/racing-cleanup/description.xml')).status, 404)
 
     await writeFile(join(cwd, 'trace'), '')
     await api('start_plugin', { id: 'late-cleanup' })

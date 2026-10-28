@@ -9,7 +9,7 @@ import { apiMiddleware } from './apiMiddleware'
 import { API_URI, DEV, VERSION } from './const'
 import { frontEndApis } from './frontEndApis'
 import { logMw } from './log'
-import { pluginsMiddleware } from './plugins'
+import { pluginsMiddleware, pluginPublicRoutesMiddleware } from './plugins'
 import { throttler } from './throttler'
 import { blockFilter, gzipper, someSecurity, prepareConnection, prepareState, paramsDecoder, sessionMiddleware } from './middlewares'
 import { serveSharedFiles, guiFilesMiddleware } from './serveGuiAndSharedFiles'
@@ -56,8 +56,9 @@ app.use(apiWebSocketMiddleware)
     .use(prepareState)
     .use(trackIpsMw)
     .use(gzipper)
-    .use(rootsHostGuard)
     .use(logMw)
+    .use(pluginPublicRoutesMiddleware) // public protocol metadata must be reachable before HTTPS redirects
+    .use(rootsHostGuard)
     .use(someSecurity)
     .use(paramsDecoder) // must be done before plugins, so they can manipulate params
     .use(rootsMiddleware)

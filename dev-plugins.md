@@ -474,6 +474,15 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `setInterval`, `setTimeout` same as standard js functions, but will automatically cancel if the plugin is unloaded. 
 
+- `registerPublicRoute(name: string, handler: (ctx) => any)` register a public GET/HEAD resource at
+  `api.Const.PLUGINS_PUB_URI + api.id + '/' + name`. The name is a single filename using letters,
+  digits, `_`, `-`, and dots (except as the first character). The handler sets the Koa response, for example
+  `api.registerPublicRoute('description.xml', ctx => { ctx.type = 'xml'; ctx.body = xml })`.
+  Use this for public protocol metadata that must work over HTTP even with `force_https` enabled.
+  Access logging and IP/geographical filters still apply; host-root restrictions, HTTPS redirects, VFS permissions,
+  and normal plugin middleware are bypassed. Do not serve private data or use the handler for actions that change state.
+  Returns an unregister function; HFS also unregisters automatically on unload or failed initialization.
+
 - `onServer(cb: (Server) => any)` execute your callback on every instance of Server created by HFS.
   It is the standard Node.js class, and it can be http or https. It can be instantiated multiple times.
   Since API 13.4, the callback can return a cleanup function. HFS calls registered cleanups when the plugin
@@ -1503,8 +1512,11 @@ Registration returns an unregister function and is also removed automatically wh
   - exports.versionRequired
 - 14 (v3.5.0)
   - `admin_js`, `admin_css` and Admin GUI API
-  - Admin login events: beforeLogin, beforeLoginSubmit
+  - Admin login events: `beforeLogin`, `beforeLoginSubmit`
   - `HFS.admin.addPage`
-  - `api.registerSearch`, frontend event `searchFields:`, `HFS.createSha512`
+  - `api.registerPublicRoute`
+  - `api.registerSearch`
+  - frontend event: `searchFields`
+  - `HFS.createSha512`
   - `api.onDirectoryCache`
   - `beforePlugin` and `afterPlugin` support repo
