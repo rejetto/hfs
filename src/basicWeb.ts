@@ -1,7 +1,8 @@
 import { getCurrentUsername } from './auth'
 import Koa from 'koa'
 import { defineConfig } from './config'
-import { getNodeName, getDefaultFile, hasPermission, nodeIsFolder, VfsNodeWithPath, walkNode } from './vfs'
+import { getNodeName, getDefaultFile, hasPermission, nodeIsFolder, nodeStats, VfsNodeWithPath, walkNode } from './vfs'
+import { formatBytes, formatTimestamp } from './cross'
 import { asyncGeneratorToReadable, CFG, escapeHTML, filterMapGenerator, pathEncode } from './misc'
 import { basicAuthRoot, getBasicAuthToken } from './basicAuth'
 import _ from 'lodash'
@@ -20,28 +21,29 @@ export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
         const isFolder = nodeIsFolder(el)
         const name = getNodeName(el) + (isFolder ? '/' : '')
         const forceThis = isFolder && (el.see_without_probing || !await getDefaultFile(el, ctx)) ? force : ''
-        return `<li>${a(pathEncode(name) + forceThis, name)}\n`
+        const stats = await nodeStats(el)
+        const details = !stats ? '' : (isFolder ? '' : formatBytes(stats.size) + ' - ') + formatTimestamp(stats.mtime)
+        return `\n<li>${a(pathEncode(name) + forceThis, name)}${details ? ` <small>${escapeHTML(details)}</small>` : ''}</li>`
     }))
     ctx.body = stream
     stream.push(`<meta name="viewport" content="width=device-width" />`)
-    stream.push(`<style>body { font-size: 16pt; }</style>`)
+    stream.push(`<style>body { font-size:16pt; } small { font-size:11pt; }</style>`)
     stream.push(`<title>${title.get()}</title><body>`)
     stream.push(getSection('basicHeader'))
     const u = getCurrentUsername(ctx)
     const authRoot = escapeHTML(basicAuthRoot(ctx))
     const returnTo = escapeHTML((ctx.state.revProxyPath || '') + ctx.originalUrl)
-    stream.push(u
-        ? `<form method="post" action="${authRoot}?get=logout"><input type="hidden" name="csrf" value="${getBasicAuthToken(ctx)}"><input type="hidden" name="returnTo" value="${returnTo}"><button type="submit">Logout (${escapeHTML(u)})</button></form>\n`
-        : `<a href="${authRoot}?get=login">Login</a>\n`)
+    stream.push(!u ? `<a href="${authRoot}?get=login">Login</a>`
+        : `<form method="post" action="${authRoot}?get=logout"><input type="hidden" name="csrf" value="${getBasicAuthToken(ctx)}"><input type="hidden" name="returnTo" value="${returnTo}"><button type="submit">Logout (${escapeHTML(u)})</button></form>`)
     if (hasPermission(node, 'can_archive', ctx))
-        stream.push(a('?get=zip', "Download ZIP") + '\n')
+        stream.push(a('?get=zip', "Download ZIP"))
     if (hasPermission(node, 'can_upload', ctx))
-        stream.push(`<br><br><form method="post" action="?get=basic" enctype="multipart/form-data"><label>Upload files: <input type="file" name="upload" multiple required></label><button type="submit">Upload</button></form>\n`)
-    stream.push('<ul>\n')
+        stream.push(`\n<br><br><form method="post" action="?get=basic" enctype="multipart/form-data"><label>Upload files: <input type="file" name="upload" multiple required></label><button type="submit">Upload</button></form>`)
+    stream.push('<ul>')
     if (ctx.state.originalPath.length > 1)
-        stream.push('<li>' + a('..' + force, '..') + '\n')
+        stream.push('\n<li>' + a('..' + force, '..'))
     stream.on('ending', () =>
-        stream.push('</ul>\n' + getSection('basicFooter')) )
+        stream.push('\n</ul>' + getSection('basicFooter')) )
     return true
 
     function a(href: string, label: string) {
