@@ -853,6 +853,10 @@ This is a list of available frontend-events, with respective object parameter an
     - `onPlay`
   - parameter `{ entry: DirEntry, Component: FC }` (refer above for DirEntry object)
   - output `ReactComponent | undefined`
+- `showNext`
+  - emitted when file-show selects the entry that forward navigation or auto-play will open next.
+    It is emitted before the transition, including in shuffle mode; `next` is undefined at the end unless repeat is enabled.
+  - parameter `{ current: DirEntry, next?: DirEntry }`
 - `showPlay`
   - emitted on each file played inside file-show. Use setCover if you want to customize the background picture.
   - parameter `{ entry: DirEntry, setCover(uri: string), meta: { title, album, artist, year } }`
@@ -1516,7 +1520,7 @@ Registration returns an unregister function and is also removed automatically wh
   - `HFS.admin.addPage`
   - `api.registerPublicRoute`
   - `api.registerSearch`
-  - frontend event: `searchFields`
+  - frontend events: `searchFields`, `showNext`
   - `HFS.createSha512`
   - `api.onDirectoryCache`
   - `beforePlugin` and `afterPlugin` support repo

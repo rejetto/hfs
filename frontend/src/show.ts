@@ -50,26 +50,33 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                 if (firstUri !== uri) // user must have clicked the folder link inside file-menu (which happens only for search results)
                     close()
             }, [uri])
-            const [cur, setCur, getCur] = useStateMounted(entry)
+            const initialShuffle = useMemo(() => startShuffle ? _.shuffle(state.list) : undefined, [])
+            const [cur, setCur, getCur] = useStateMounted(initialShuffle?.[0] || entry)
             const moving = useRef(0)
             const lastGood = useRef(entry)
             const [mode, setMode] = useState(ZoomMode.contain)
-            const [shuffle, setShuffle] = useState<undefined | DirList>()
+            const [shuffle, setShuffle] = useState<undefined | DirList>(initialShuffle)
             useEffect(() => {
                 const sameKey = _.find(state.list, { key: cur.key || cur.n }) // rename replaces the list entry to preserve list focus, so follow that replacement in the viewer
                 if (!sameKey || sameKey.n === cur.n) return // different name?
                 setShuffle(x => x?.map(entry => entry.n === cur.n ? sameKey : entry))
                 goTo(sameKey)
             }, [list, cur])
-            useEffect(() => toggleShuffle(startShuffle), [])
             const shufflePlayed = useRef(0) // keep track of how many entries of the shuffle list we played
             if (!shuffle) shufflePlayed.current = 0
-            const [repeat, setRepeat, getRepeat] = useStateMounted(false)
-            const [cover, setCover] = useState('')
+            const [repeat, setRepeat] = useState(false)
+            const nextPlan = useMemo(getNextPlan, [cur, shuffle, repeat, list])
+            const nextPlanRef = useRef(nextPlan)
+            nextPlanRef.current = nextPlan
             useEffect(() => {
-                if (shuffle)
-                    goTo(shuffle[0])
-            }, [Boolean(shuffle)])
+                if (nextPlan.order !== shuffle)
+                    setShuffle(nextPlan.order)
+            }, [nextPlan.order])
+            useEffect(() => {
+                if (nextPlan.ready)
+                    hfsEvent('showNext', { current: cur, next: nextPlan.next })
+            }, [cur, nextPlan.next, nextPlan.ready])
+            const [cover, setCover] = useState('')
             useEventListener('keydown', ({ key }) => {
                 if (key === 'Escape') {
                     if (escOnce)
@@ -339,46 +346,52 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
 
             function go(dir=1) {
                 if (getCur() !== cur) return // this was fired with a stale state (closure), cancel. To reproduce: hold right-arrow on the keyboard
-                const { list } = state
-                /* this is a lazy approach to shuffling: since list is not fully available from the start, it's best to wait,
-                   or the shuffle will be limited to a few entries. Benchmark: _.shuffle of 1M entries takes 10ms on a M1 pro. */
-                let workingShuffle = shuffle // in case we setShuffle, we need to do the rest of job with fresh data
-                // if playing shuffle, and going forward, where never played before, and got new entries since last time, then shuffle again
-                if (shuffle && dir > 0 && shuffle.length < list.length) {
-                    const shuffleIdx = _.findIndex(shuffle, { n: cur.n })
-                    if (shuffleIdx >= shufflePlayed.current) {
-                        const ofs = 1 + shuffleIdx
-                        const played = shuffle.slice(0, ofs) // keep the part already played, shuffle the rest
-                        setShuffle(workingShuffle = played.concat(_.shuffle(_.difference(list, played))))  // list has unstable order (when searching), so we use difference
-                    }
-                }
                 if (dir)
                     moving.current = dir
-                let e = cur
-                while (1) {
-                    e = e.getSibling(moving.current, workingShuffle)
-                    if (anyGood()) break
-                    if (e) continue // try next
-                    // reached last/first
-                    if (dir! > 0) {
-                        if (getRepeat()) {
-                            e = workingShuffle?.[0] || list[0]
-                            if (anyGood()) break
-                            continue
-                        }
+                const latestPlan = nextPlanRef.current
+                if (!latestPlan.ready) return
+                const workingShuffle = latestPlan.order
+                const e = dir > 0 ? latestPlan.next : findNext(cur, -1, workingShuffle || state.list)
+                if (!e) {
+                    if (dir > 0)
                         setAutoPlaying(false)
-                    }
                     goTo(lastGood.current) // revert to last known supported file
                     return restartAnimation(document.body, '.2s blink')
                 }
                 goTo(e)
-                if (shuffle) {
+                if (workingShuffle) {
                     const playingIdx = _.findIndex(workingShuffle, { n: e.n })
                     shufflePlayed.current = Math.max(shufflePlayed.current, playingIdx)
                 }
+            }
 
-                function anyGood() {
-                    return e && !e.isFolder && getShowComponent(e)
+            function getNextPlan() {
+                let order = shuffle
+                const shuffleIdx = order ? _.findIndex(order, { n: cur.n }) : -1
+                if (order && shuffleIdx >= shufflePlayed.current && order.length < state.list.length) {
+                    const announced = findNext(cur, 1, order)
+                    const keepThrough = announced ? _.findIndex(order, { n: announced.n }) + 1 : shuffleIdx + 1
+                    const fixed = order.slice(0, keepThrough)
+                    // preserve the announced next while adding files received after the initial partial listing
+                    order = fixed.concat(_.shuffle(_.difference(state.list, fixed)))
+                }
+                const entries = order || state.list
+                const ready = _.findIndex(entries, { n: cur.n }) >= 0
+                return { order, ready, next: ready ? findNext(cur, 1, entries, repeat) : undefined }
+            }
+
+            function findNext(from: DirEntry, direction: 1 | -1, entries: DirList, wrap=false) {
+                let i = _.findIndex(entries, { n: from.n })
+                if (i < 0) return
+                for (let checked = 0; checked < entries.length; checked++) {
+                    i += direction
+                    if (i < 0 || i >= entries.length) {
+                        if (!wrap || direction < 0) return
+                        i = 0
+                    }
+                    const entry = entries[i]
+                    if (!entry.isFolder && getShowComponent(entry))
+                        return entry
                 }
             }
 
@@ -406,7 +419,11 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             }
 
             function toggleShuffle(force?: boolean) {
-                setShuffle(x => (force ?? !x) ? _.shuffle(state.list) : undefined)
+                if (!(force ?? !shuffle))
+                    return setShuffle(undefined)
+                const order = _.shuffle(state.list)
+                setShuffle(order)
+                goTo(order[0])
             }
 
             function toggleRepeat() {
