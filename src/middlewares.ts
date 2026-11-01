@@ -20,6 +20,7 @@ import events from './events'
 import { randomUUID } from 'node:crypto'
 import { getLangData } from './lang'
 import { i18nFromTranslations } from './i18n'
+import _ from 'lodash'
 
 const forceHttps = defineConfig(CFG.force_https, true)
 defineConfig(CFG.ignore_proxies, false)
@@ -125,7 +126,15 @@ function enforceSessionIp(ctx: Koa.Context) {
 export function getProxyDetected() {
     if (Number(proxyDetected?.state.whenProxyDetected) < Date.now() - DAY) // detection is reset after a day
         proxyDetected = undefined
-    return proxyDetected && { from: proxyDetected.socket.remoteAddress, for: proxyDetected.get('X-Forwarded-For') }
+    return proxyDetected && {
+        from: proxyDetected.socket.remoteAddress,
+        for: proxyDetected.get('X-Forwarded-For'),
+        timestamp: proxyDetected.state.whenProxyDetected!,
+        ip: proxyDetected.ip,
+        protocol: proxyDetected.protocol,
+        request: `${proxyDetected.method} ${proxyDetected.originalUrl} HTTP/${proxyDetected.req.httpVersion}\r\n`
+            + _.chunk(proxyDetected.req.rawHeaders, 2).map(pair => pair.join(': ')).join('\r\n') + '\r\n\r\n',
+    }
 }
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {

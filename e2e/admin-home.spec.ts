@@ -8,6 +8,37 @@ test.beforeEach(async ({ page }) => {
     await page.routeWebSocket('**/~/api/**', socket => socket.close({ code: 1000 }))
 })
 
+for (const location of ['home', 'options'])
+    test(`proxy request details open from ${location}`, async ({ page }) => {
+        const proxy = {
+            timestamp: '2026-11-01T10:20:30.000Z', from: '192.0.2.1', ip: '192.0.2.1',
+            for: '203.0.113.10', protocol: 'http',
+            request: 'GET /original?file=%2F HTTP/1.1\r\nHost: example.test\r\nX-Probe: <script>bad()</script>\r\nX-Probe: second\r\n\r\n',
+        }
+        await page.addInitScript(() => {
+            Object.assign(window, { HFS: { session: { username: 'admin', isAdmin: true } } })
+        })
+        await page.route('**/~/api/**', route => {
+            const command = new URL(route.request().url()).pathname.split('/').pop()
+            return route.fulfill({ json: command === 'get_status' ? {
+                http: {}, https: {}, ips: [], proxyDetected: proxy,
+            } : command === 'get_config' ? { proxies: 0, ignore_proxies: false, mime: {}, block: [] }
+                : command === 'get_admins' ? { list: [] }
+                : command === 'refresh_session' ? { username: 'admin', isAdmin: true } : {} })
+        })
+        const base = process.env.ADMIN_HOME_URL || `http://localhost:${port}/~/admin/`
+        await page.goto(base + (location === 'options' ? '#/options/net' : ''))
+        await page.getByRole('button', { name: 'Proxy request details', exact: true }).click()
+        const dialog = page.getByRole('dialog')
+        await expect(dialog).toContainText('192.0.2.1')
+        await expect(dialog).toContainText('203.0.113.10')
+        await expect(dialog).toContainText(await page.evaluate(timestamp => new Date(timestamp).toLocaleString(), proxy.timestamp))
+        await expect(dialog.locator('pre')).toHaveText(proxy.request)
+        await expect(dialog.locator('script')).toHaveCount(0)
+        await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+        await expect(dialog).toHaveCount(0)
+    })
+
 test('leaving Home closes the version subscription', async ({ page }) => {
     let subscriptions = 0, closed = 0
     await page.addInitScript(() => {

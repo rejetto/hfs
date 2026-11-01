@@ -2,14 +2,14 @@
 
 import { t } from './i18n'
 
-import { createElement as h, ReactNode, useEffect, useState } from 'react'
+import { createElement as h, Fragment, ReactNode, useEffect, useState } from 'react'
 import { Box, Card, CardContent, Checkbox, FormControlLabel, Link } from '@mui/material'
 import { apiCall, useApiEvents, useApiEx, useApiList } from './api'
 import {
     dontBotherWithKeys, getHFS, onlyTruthy, REPO_URL, md,
     replaceStringToReact, wait, with_, DAY, HOUR, PREVIOUS_TAG, PLUGIN_USAGE_URL
 } from './misc'
-import { Btn, Flex, InLink, LinkBtn, wikiLink, } from './mui'
+import { Btn, Flex, IconBtn, InLink, LinkBtn, wikiLink, } from './mui'
 import {
     BrowserUpdated as UpdateIcon, CheckCircle, Colorize, Error, Info, OpenInNew, Restore, Warning
 } from '@mui/icons-material'
@@ -318,7 +318,22 @@ function cfgLink(key='options_page') {
 }
 
 export function proxyWarning(cfg: any, status: any) {
-    return status && cfg && !cfg.ignore_proxies && (!cfg.proxies && status.proxyDetected ? t`A proxy was detected but none is configured`
+    const proxy: Awaited<ReturnType<typeof adminApis.get_status>>['proxyDetected'] = status?.proxyDetected
+    return status && cfg && !cfg.ignore_proxies && (!cfg.proxies && proxy ? h(Fragment, {},
+        t`A proxy was detected but none is configured`,
+        h(IconBtn, {
+            icon: Info, title: t`Proxy request details`, size: 'small',
+            onClick: () => alertDialog(h(Box, {},
+                h('div', {}, t`Timestamp`, ': ', new Date(proxy.timestamp).toLocaleString()),
+                h('div', {}, t`Remote IP`, ': ', proxy.from),
+                h('div', {}, t`Client IP`, ': ', proxy.ip),
+                h('div', {}, 'X-Forwarded-For: ', proxy.for),
+                h('div', {}, t`Protocol`, ': ', proxy.protocol),
+                h(Box<'pre'>, { component: 'pre', sx: { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } }, proxy.request),
+                h('div', {}, t`Request body is not recorded`),
+            ), { title: t`Proxy request details` }),
+        }),
+    )
         : cfg.proxies && !status.proxyDetected && (Date.now() - +new Date(status.started) > DAY) ? t('configured_proxies_not_detected', { proxyCount: cfg.proxies })
         : '')
 }
