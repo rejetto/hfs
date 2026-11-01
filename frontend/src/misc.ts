@@ -169,7 +169,7 @@ function markVideoComponent(Component: any) {
     Component.hfs_show_video = true
     return Component
 }
-function isAudioComponent(Component: any) {
+export function isAudioComponent(Component: any) {
     return Boolean(Component?.hfs_show_audio)
 }
 function markAudioComponent(Component: any) {

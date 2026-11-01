@@ -2,7 +2,7 @@ import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
 import { createElement as h, forwardRef, Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import {
     basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation, useStateMounted,
-    isNumeric, safeDecodeURIComponent,
+    isNumeric, safeDecodeURIComponent, isAudioComponent,
 } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
@@ -101,7 +101,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             })
             const [showNav, setShowNav] = useState(false)
             const component = useMemo(() => getShowComponent(cur), [cur])
-            const isAudio = component === Audio
+            const isAudio = isAudioComponent(component)
             useEffect(() => setShowNav(isAudio), [isAudio])
             const timerRef = useRef(0)
             const navClass = 'nav' + (showNav ? '' : ' nav-hidden')
