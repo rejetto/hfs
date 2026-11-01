@@ -268,6 +268,24 @@ describe('basics', () => {
             'x-hfs-anti-csrf': '1',
             host: 'proxy.example',
         } }))
+    test('proxy detection preserves the original request and raw headers', async () => {
+        const started = Date.now()
+        await req('/proxy-probe?original=%2F', 404, { headers: {
+            'X-Forwarded-For': '203.0.113.10',
+            'X-Probe': ['first', 'second'],
+        } })()
+        const { proxyDetected: proxy } = await reqApi('get_status', {}, 200, { auth, jar: {} })()
+        assert.ok(Date.parse(proxy.timestamp) >= started)
+        assert.ok(Date.parse(proxy.timestamp) <= Date.now())
+        assert.equal(proxy.from, '::1')
+        assert.equal(proxy.for, '203.0.113.10')
+        assert.equal(proxy.protocol, 'http')
+        assert.match(proxy.request, /^GET \/proxy-probe\?original=%2F HTTP\/1\.1\r\n/)
+        assert.ok(proxy.request.includes('X-Forwarded-For: 203.0.113.10\r\n'))
+        assert.ok(proxy.request.includes('X-Probe: first\r\nX-Probe: second\r\n'))
+        const again = await reqApi('get_status', {}, 200, { auth, jar: {} })()
+        assert.deepEqual(again.proxyDetected, proxy)
+    })
     test('blocked IP is rejected before credential side effects', async () => {
         const adminReq = { auth, jar: {} }
         const user = `blocked-login-${randomId(6)}`.toLowerCase()
