@@ -1360,6 +1360,98 @@ test('file show does not advance ended media while auto-play is off', async ({ p
     }
 })
 
+test('file show announces and follows the shuffled next entry', async ({ page, browserName }) => {
+    if (browserName !== 'chromium') return
+    const names = ['show-next-a.wav', 'show-next-b.wav', 'show-next-c.wav']
+    const wav = Buffer.from('UklGRiUAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQEAAACA', 'base64')
+    fs.mkdirSync('tests/tmp', { recursive: true })
+    names.forEach(name => fs.writeFileSync(`tests/tmp/${name}`, wav))
+    await page.addInitScript(() => { HTMLMediaElement.prototype.play = async () => {} })
+    try {
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/`)
+        await expect(page.getByRole('link', { name: names[2], exact: true })).toBeVisible()
+        await page.evaluate(names => {
+            const HFS = (window as any).HFS
+            const entries = Object.fromEntries(HFS.state.list.map((entry: any) => [entry.name, entry]))
+            HFS.state.list = names.map(name => entries[name])
+            HFS._.shuffle = (entries: any[]) => [...entries].reverse()
+            ;(window as any).showNextEvents = []
+            document.addEventListener('hfs.showNext', (event: any) => {
+                const { current, next } = event.detail.params
+                ;(window as any).showNextEvents.push(`${current.name}>${next?.name || ''}`)
+            })
+        }, names)
+        await page.getByRole('link', { name: names[0], exact: true }).click()
+        await page.getByRole('link', { name: 'Show' }).click()
+
+        await page.evaluate(() => { (window as any).showNextEvents.length = 0 })
+        await page.keyboard.press('s')
+        await expect(page.locator('.file-show .filename')).toContainText(names[2])
+        await expect.poll(() => page.evaluate(() => (window as any).showNextEvents.at(-1)))
+            .toBe(`${names[2]}>${names[1]}`)
+        expect(await page.evaluate(() => (window as any).showNextEvents.every(
+            (event: string) => event === 'show-next-c.wav>show-next-b.wav'))).toBe(true)
+
+        await page.getByRole('button', { name: 'Auto-play' }).click()
+        await page.locator('.file-show audio').dispatchEvent('ended')
+        await expect(page.locator('.file-show .filename')).toContainText(names[1])
+
+        await page.locator('.file-show').getByRole('button', { name: 'Close', exact: true }).click()
+        await page.evaluate(names => {
+            const HFS = (window as any).HFS
+            ;(window as any).showNextEvents.length = 0
+            HFS.fileShow(HFS.state.list.find((entry: any) => entry.name === names[0]), { startShuffle: true })
+        }, names)
+        await expect(page.locator('.file-show .filename')).toContainText(names[2])
+        await expect.poll(() => page.evaluate(() => (window as any).showNextEvents.at(-1)))
+            .toBe(`${names[2]}>${names[1]}`)
+        expect(await page.evaluate(() => (window as any).showNextEvents.every(
+            (event: string) => event === 'show-next-c.wav>show-next-b.wav'))).toBe(true)
+    }
+    finally {
+        names.forEach(name => fs.rmSync(`tests/tmp/${name}`, { force: true }))
+    }
+})
+
+test('new list entries do not restart file show image autoplay', async ({ page, browserName }) => {
+    if (browserName !== 'chromium') return
+    const names = ['show-timer-a.png', 'show-timer-b.png']
+    names.forEach(name => fs.copyFileSync('tests/page/gpl.png', `tests/page/${name}`))
+    await page.clock.install()
+    try {
+        await gotoFrontend(page, `${FRONTEND_URL}tests/page/`)
+        await expect(page.getByRole('link', { name: names[1], exact: true })).toBeVisible()
+        await page.evaluate(names => {
+            const HFS = (window as any).HFS
+            const entries = Object.fromEntries(HFS.state.list.map((entry: any) => [entry.name, entry]))
+            ;(window as any).nextShowEntry = entries[names[1]]
+            HFS.state.list = [entries[names[0]]]
+            HFS.state.auto_play_seconds = 10
+        }, names)
+        await page.getByRole('link', { name: names[0], exact: true }).click()
+        await page.getByRole('link', { name: 'Show' }).click()
+        await expect.poll(() => page.locator('.file-show img').evaluate(el => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
+        await page.getByRole('button', { name: 'Auto-play' }).click()
+
+        await page.clock.runFor(9_000)
+        await page.evaluate(() => {
+            const HFS = (window as any).HFS
+            HFS.state.list = [...HFS.state.list, (window as any).nextShowEntry]
+        })
+        await page.clock.runFor(1_100)
+        await expect(page.locator('.file-show .filename')).toContainText(names[1])
+    }
+    finally {
+        names.forEach(name => fs.rmSync(`tests/page/${name}`, { force: true }))
+    }
+})
+
 test('file show stays on a limited file and can retry', async ({ page }) => {
     let limited = true
     let probes = 0
