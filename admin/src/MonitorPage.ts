@@ -232,8 +232,8 @@ function Connections() {
                             width: 110,
                             hideUnder: 'sm',
                             type: 'number',
-                            renderCell: ({ value, row }) => formatSpeedK(Math.max(value || 0, row.inSpeedKb || 0) || undefined),
-                            mergeRender: { sent: { sx: { fontSize: 'small', textAlign: 'right' } } }
+                            renderCell: ({ value, row }) => formatSpeedK(Math.max(value || 0, row.inSpeedKb || 0) || undefined) || '-',
+                            mergeRender: { sent: { sx: { fontSize: 'small', ml: 'auto' } } }
                         },
                         {
                             field: 'sent',
