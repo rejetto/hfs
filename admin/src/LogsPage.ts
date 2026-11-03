@@ -129,8 +129,8 @@ export default function LogsPage({ setTitleSide }: PageProps) {
 const LOGS_ON_FILE: string[] = [CFG.log, CFG.error_log]
 const DEFAULT_MEMORY_LIMIT = 1_000_000
 
-type LogFileProps = { filter?: (row:any) => boolean, limit?: number, hidden?: boolean, file: string, footerSide?: ReactNode } & Partial<DataTableProps>
-export function LogFile({ file, footerSide, hidden, limit=DEFAULT_MEMORY_LIMIT, filter, ...rest }: LogFileProps) {
+type LogFileProps = { filter?: (row:any) => boolean, initialRows?: number, limit?: number, hidden?: boolean, file: string, footerSide?: ReactNode } & Partial<DataTableProps>
+export function LogFile({ file, footerSide, hidden, initialRows, limit=DEFAULT_MEMORY_LIMIT, filter, ...rest }: LogFileProps) {
     const [showCountry, setShowCountry] = useState(false)
     const [showAgent, setShowAgent] = useState(false)
     const [showHost, setShowHost] = useState(false)
@@ -178,8 +178,9 @@ export function LogFile({ file, footerSide, hidden, limit=DEFAULT_MEMORY_LIMIT, 
         }
     })
     // file-backed streams send only new events, so reconnecting must retain the loaded history
-    const { list, setList, error, connecting, initializing, reload } = useApiList(firstSight && 'get_log', { file }, {
-        limit, invert, pause, map: enhanceLogLine,
+    const { list, setList, error, connecting, initializing, reload } = useApiList(firstSight && 'get_log', { file, initial: initialRows }, {
+        limit, invert, pause,
+        map: row => enhanceLogLine(typeof row === 'string' ? parseLogLine(row, nextFileId.current++) : row),
         reconnectGraceSeconds: hasFile ? Infinity : file === 'ips' ? 60 : 1
     })
     const isIps = file === 'ips'
