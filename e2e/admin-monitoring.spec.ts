@@ -36,6 +36,28 @@ test('hidden Sent merges under Speed and stays right aligned', async ({ page }) 
     }
 })
 
+test('Live log label stays next to its toggle', async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 900 })
+    await openMonitoring(page, [])
+
+    const label = page.getByText('Live log', { exact: true })
+    const toggle = page.getByRole('button', { name: 'Show log' })
+    await expect(label).toBeVisible()
+    await expect(toggle).toBeVisible()
+    await toggle.click()
+    await expect(label).toBeHidden()
+    await toggle.click()
+    await expect(label).toBeVisible()
+    const gap = await label.evaluate(container => {
+        const text = [...container.childNodes].find(node => node.nodeType === Node.TEXT_NODE)!
+        const range = document.createRange()
+        range.selectNode(text)
+        return container.querySelector('button')!.getBoundingClientRect().left - range.getBoundingClientRect().right
+    })
+    expect(gap).toBeGreaterThan(0)
+    expect(gap).toBeLessThan(20)
+})
+
 test('progress tooltip derives ETA from remaining request bytes', async ({ page }) => {
     await openMonitoring(page, [
         { path: '/full.bin', op: 'download', opProgress: .25, opTotal: 1_000_000, opRemaining: 750_000, outSpeedKb: 500, inSpeedKb: 50_000 },

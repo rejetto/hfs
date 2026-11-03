@@ -142,8 +142,8 @@ function Connections() {
                     options: { [t`Show downloads+uploads`]: true, [t`Show all connections`]: false }
                 }),
             ),
-            logAble && h(Flex, { flex: 1, justifyContent: 'space-between' },
-                wantLog ? t`Live log` : h(Box),
+            logAble && h(Flex, { flex: 1, justifyContent: 'flex-end' },
+                wantLog && t`Live log`,
                 wantLogButton),
         ),
         h(Grid, { container: true, sx: { flex: 1 }, columnSpacing: 1 },
