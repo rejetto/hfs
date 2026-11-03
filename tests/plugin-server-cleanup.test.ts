@@ -131,6 +131,28 @@ exports.init = api => {
     } }
 }
 `)
+    const cacheReload = join(cwd, 'plugins/cache-reload')
+    await mkdir(cacheReload, { recursive: true })
+    await writeFile(join(cacheReload, 'value.js'), `module.exports = 'first'`)
+    await writeFile(join(cacheReload, 'shared.js'), `module.exports = { starts: 0 }`)
+    await writeFile(join(cacheReload, 'plugin.js'), `
+exports.apiRequired = 1
+exports.init = api => {
+    const value = require('./value')
+    const shared = require('./shared')
+    shared.starts++
+    api.registerPublicRoute('value', ctx => { ctx.body = value })
+    api.registerPublicRoute('shared', ctx => { ctx.body = String(shared.starts) })
+}
+`)
+    await mkdir(join(cwd, 'plugins/cache-observer'), { recursive: true })
+    await writeFile(join(cwd, 'plugins/cache-observer/plugin.js'), `
+exports.apiRequired = 1
+exports.init = api => {
+    const shared = require('../cache-reload/shared')
+    api.registerPublicRoute('shared', ctx => { ctx.body = String(shared.starts) })
+}
+`)
     await writeFile(join(cwd, 'config.yaml'), JSON.stringify({
         port: 0, https_port: 0, listen_interface: '127.0.0.1', force_https: false,
         cert: 'cert.pem', private_key: 'key.pem', enable_plugins: [],
@@ -168,6 +190,23 @@ exports.init = api => {
         if (list.some(p => p.id === 'server-cleanup')) break
         await delay(100)
     }
+    await api('start_plugin', { id: 'cache-reload' })
+    const cacheRoute = http + '/~/plugins/cache-reload/value'
+    assert.equal(await fetch(cacheRoute).then(r => r.text()), 'first')
+    await api('start_plugin', { id: 'cache-observer' })
+    const observerRoute = http + '/~/plugins/cache-observer/shared'
+    assert.equal(await fetch(observerRoute).then(r => r.text()), '1')
+    await writeFile(join(cacheReload, 'value.js'), `module.exports = 'second'`)
+    await api('stop_plugin', { id: 'cache-reload' })
+    await api('start_plugin', { id: 'cache-reload' })
+    assert.equal(await fetch(cacheRoute).then(r => r.text()), 'second')
+    assert.equal(await fetch(http + '/~/plugins/cache-reload/shared').then(r => r.text()), '2',
+        'restarting a plugin must preserve modules still used by another plugin')
+    assert.equal(await fetch(observerRoute).then(r => r.text()), '2',
+        'both plugins must keep the same shared module instance')
+    await api('stop_plugin', { id: 'cache-reload' })
+    await api('stop_plugin', { id: 'cache-observer' })
+
     await api('start_plugin', { id: 'server-cleanup' })
     assert.deepEqual(await trace(), ['add:http', 'add:https'])
     const route = '/~/plugins/server-cleanup/description.xml'
