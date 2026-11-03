@@ -37,3 +37,34 @@ test('save completion preserves edits made while the request was pending', async
     await expect(page.getByRole('button', { name: /Save/ }).locator('.MuiCircularProgress-root')).toHaveCount(0)
     await expect(editor).toHaveValue('port: 9091\n')
 })
+
+test('export removes camelCase password fields', async ({ page }) => {
+    await page.locator('main textarea').fill([
+        'plugins_config:',
+        '  notifier:',
+        '    smtpPassword: smtp-secret',
+        '  ldap:',
+        '    password: ldap-secret',
+        '  oidc:',
+        '    _clientSecret: oidc-secret',
+        '  safe:',
+        '    passwordHint: keep-me',
+        '',
+    ].join('\n'))
+
+    const pending = page.waitForEvent('download')
+    await page.getByRole('button', { name: 'Export without passwords' }).click()
+    const path = await (await pending).path()
+    expect(readFileSync(path!, 'utf8')).toBe([
+        'plugins_config:',
+        '  notifier:',
+        '    smtpPassword: removed',
+        '  ldap:',
+        '    password: removed',
+        '  oidc:',
+        '    _clientSecret: removed',
+        '  safe:',
+        '    passwordHint: keep-me',
+        '',
+    ].join('\n'))
+})
