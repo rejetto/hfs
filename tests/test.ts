@@ -5388,6 +5388,46 @@ exports.init = api => {
 })
 
 describe('logging', () => {
+    test('get_log optionally preloads recent rows', async () => {
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['dont_log_net', 'log'] }, 200, adminReq)()
+        const seed = randomId(8)
+        const seededUri = `/seeded-log-${seed}-119`
+        const uri = `/f1/f2/alfa.txt?recent-log=${randomId(8)}`
+        const logPath = resolve(__dirname, 'work/logs/recent-tail.log')
+        try {
+            await mkdir(dirname(logPath), { recursive: true })
+            await writeFile(logPath, _.range(120).map(i =>
+                `127.0.0.1 - user [03/Nov/2026:12:00:00 +0100] "GET /seeded-log-${seed}-${i} HTTP/1.1" 200 1 \n`).join(''))
+            await reqApi('set_config', { values: { dont_log_net: '', log: logPath } }, 200, adminReq)()
+            const seeded = await waitFor(() =>
+                reqApi('get_log', { file: 'log|error_log', initial: 100 }, () => true, adminReq)()
+                    .then(res => res.list.some((line: unknown) => typeof line === 'string' && line.includes(seededUri)) && res.list),
+                { timeout: 2000 })
+            if (!seeded)
+                throw Error('initial log snapshot was not loaded from disk')
+            if (seeded.length !== 100 || seeded.some((line: string) => line.includes(`/seeded-log-${seed}-0`)))
+                throw Error('initial log snapshot was not limited to the newest 100 rows')
+            await req(uri, 200, { jar: {} })()
+            if (!await waitFor(() => existsSync(logPath) && readFileSync(logPath, 'utf8').includes(uri), { timeout: 2000 }))
+                throw Error('request was not written to the access log')
+            await reqApi('get_log', { file: 'log|error_log' }, res => {
+                if (res.list.length)
+                    throw Error('get_log changed its default empty snapshot')
+            }, adminReq)()
+            await reqApi('get_log', { file: 'log|error_log', initial: 100 }, res => {
+                if (!res.list.some((line: unknown) => typeof line === 'string' && line.includes(uri)))
+                    throw Error('recent request missing from initial log snapshot')
+            }, adminReq)()
+            await reqApi('get_log', { file: 'log|error_log', initial: 100, skipInitial: true }, res => {
+                if (res.list.length)
+                    throw Error('skipInitial replayed recent log rows')
+            }, adminReq)()
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)()
+        }
+    })
     test('plugin public files follow interface logging without trusting request headers', async () => {
         const id = 'list-uploader'
         const adminReq = { auth, jar: {} }

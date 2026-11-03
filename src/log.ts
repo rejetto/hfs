@@ -14,12 +14,15 @@ import { urlToNode } from './vfs'
 import { basename, extname } from 'path'
 import yazl from 'yazl'
 import { pipeline } from 'stream/promises'
-import { rm, unlink, utimes } from 'fs/promises'
+import { open, rm, unlink, utimes } from 'fs/promises'
 import events from './events'
 import { getConnection } from './connections'
 import { app } from './index'
 import { logGui } from './serveGuiFiles'
 import glob from 'fast-glob'
+
+const RECENT_LOG_LIMIT = 100
+const recentLogLines: Record<string, string[]> = {}
 
 class Logger {
     stream?: Writable
@@ -33,13 +36,17 @@ class Logger {
         this.path = path
         this.stream?.end()
         this.last = undefined
-        if (!path)
+        if (!path) {
+            recentLogLines[this.name] = []
             return this.stream = undefined
+        }
         try {
             const stats = await statWithTimeout(path)
             this.last = stats.mtime
+            recentLogLines[this.name] = await readRecentLogLines(path, stats.size)
         }
         catch {
+            recentLogLines[this.name] = []
             if (await ensureParentFolder(path) === false)
                 console.log("Cannot create folder for", path)
         }
@@ -62,6 +69,39 @@ class Logger {
 const accessLogger = new Logger(CFG.log)
 const accessErrorLog = new Logger(CFG.error_log)
 export const loggers = [accessLogger, accessErrorLog]
+
+export function getRecentLogLines(files: string[], limit: number) {
+    return limit ? _.sortBy(files.flatMap(file => recentLogLines[file] || []), logLineTime).slice(-limit) : []
+}
+
+async function readRecentLogLines(path: string, size: number) {
+    const file = await open(path, 'r')
+    const chunks: Buffer[] = []
+    let position = size
+    let newlines = 0
+    try {
+        while (position && newlines <= RECENT_LOG_LIMIT) {
+            const length = Math.min(64 * 1024, position)
+            position -= length
+            const chunk = Buffer.allocUnsafe(length)
+            const { bytesRead } = await file.read(chunk, 0, length, position)
+            const read = chunk.subarray(0, bytesRead)
+            chunks.unshift(read)
+            for (const byte of read)
+                if (byte === 10) ++newlines
+        }
+    }
+    finally { await file.close() }
+    const lines = Buffer.concat(chunks).toString().split('\n')
+    if (position)
+        lines.shift() // discard the partial line at the start of the bounded read
+    return lines.filter(Boolean).slice(-RECENT_LOG_LIMIT)
+}
+
+function logLineTime(line: string) {
+    const [, date, time] = /\[(.{11}):(.{14})]/.exec(line) || []
+    return Number(new Date(`${date} ${time}`)) || 0
+}
 
 defineConfig(accessLogger.name, 'logs/access.log').sub(path => {
     console.debug('Access log file: ' + (path || 'disabled'))
@@ -161,7 +201,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
             events.emit(logger.name, { ctx, length, user, ts: reqEnd, uri, extra })
         debounce(() => // once in a while we check if the file is still good (not deleted, etc), or we'll reopen it
             statWithTimeout(logger.path).catch(() => logger.reopen())) // async = smoother but we may lose some entries
-        stream!.write(util.format( format,
+        const line = util.format(format,
             ctx.ip,
             user || '-',
             date,
@@ -171,7 +211,12 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
             ctx.status,
             length?.toString() ?? '-',
             _.isEmpty(extra) ? '' : JSON.stringify(JSON.stringify(extra)), // jsonize twice, as we need a field enclosed by double-quotes
-        ))
+        )
+        stream!.write(line)
+        const recent = recentLogLines[logger.name] ||= []
+        recent.push(line)
+        if (recent.length > RECENT_LOG_LIMIT)
+            recent.shift()
     }).catch(e => console.error('log completion:', e.message || String(e)))
 }
 
