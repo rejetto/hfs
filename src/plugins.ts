@@ -12,7 +12,7 @@ import * as Const from './const'
 import Koa from 'koa'
 import {
     escapeGlobPath, callable, Callback, callAsPromise, CFG, debounceAsync, Dict, onlyTruthy, prefix,
-    pendingPromise, Promisable, same, tryJson, try_, wait, waitFor, wantArray, watchDir, objFromKeys, patchKey
+    pendingPromise, Promisable, same, tryJson, try_, wait, waitFor, watchDir, objFromKeys, patchKey
 } from './misc'
 import * as misc from './misc'
 import { currentVersion, defineConfig, getConfig, subMultipleConfigs, Version } from './config'
@@ -370,7 +370,7 @@ export class Plugin implements CommonPluginInterface {
     icons: CustomizedIcons
     log: { ts: Date, msg: string }[]
 
-    constructor(readonly id:string, readonly folder:string, private readonly data:any, private onUnload:()=>unknown){
+    constructor(readonly id:string, readonly folder:string, private readonly data:any, private onUnload:(reloading:boolean)=>unknown){
         if (!data) throw 'invalid data'
 
         this.log = []
@@ -457,7 +457,7 @@ export class Plugin implements CommonPluginInterface {
         catch(e) {
             console.log('Error unloading plugin', id, String(e))
         }
-        await this.onUnload()
+        await this.onUnload(reloading)
         if (!reloading && !id.startsWith(SERVER_CODE_ID)) // we already printed 'reloading'
             console.log('Unloaded plugin', id)
         if (this.data)
@@ -649,8 +649,9 @@ function watchPlugin(id: string, path: string) {
                 setError(id, '')
             const alreadyRunning = plugins.get(id)
             console.log(alreadyRunning ? "Reloading plugin" : "Loading plugin", id)
+            const moduleId = require.resolve(module)
+            deleteModule(moduleId)
             const pluginData = require(module)
-            deleteModule(require.resolve(module)) // avoid caching at next import
             calculateBadApi(pluginData)
             if (pluginData.badApi)
                 throw Error(pluginData.badApi)
@@ -717,10 +718,12 @@ function watchPlugin(id: string, path: string) {
                 Object.assign(Object.fromEntries(sections), callable(pluginData.customHtml) || {})
 
             const unwatchIcons = watchIconsFolder(folder, v => plugin.icons = v)
-            const plugin = new Plugin(id, folder, pluginData, async () => {
+            const plugin = new Plugin(id, folder, pluginData, async reloading => {
                 unwatchIcons()
                 unwatch()
                 await unloadResources()
+                if (!reloading)
+                    deleteModule(moduleId)
             })
             pluginReady.resolve()
             if (alreadyRunning)
@@ -779,7 +782,7 @@ function deleteModule(id: string) {
     const requiredBy: Record<string,string[]> = { '.':['.'] } // don't touch main entry
     for (const k in cache)
         if (k !== id)
-            for (const child of wantArray(cache[k]?.children))
+            for (const child of cache[k]?.children || [])
                 (requiredBy[child.id] ||= []).push(k)
     const deleted: string[] = []
     ;(function deleteCache(id: string) {
