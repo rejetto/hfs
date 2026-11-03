@@ -21,9 +21,9 @@ import { normalizeFilename, VfsNode } from './vfs'
 import { serveFile } from './serveFile'
 import events from './events'
 import { mkdir, readdir, readFile, rm } from 'fs/promises'
-import { existsSync, mkdirSync } from 'fs'
+import { existsSync, mkdirSync, statSync, watch } from 'fs'
 import { getConnections } from './connections'
-import { dirname, join, resolve, sep } from 'path'
+import { extname, join, resolve, sep } from 'path'
 import { watchLoadCustomHtml } from './customHtml'
 import { KvStorage, KvStorageOptions } from '@rejetto/kvstorage'
 import { registerPluginSearch, PluginSearch } from './pluginSearch'
@@ -570,47 +570,82 @@ export async function rescan() {
     for (const { path, dirent } of await glob(patterns, { onlyFiles: false, suppressErrors: true, objectMode: true })) {
         if (!dirent.isDirectory() || path.endsWith(DISABLING_SUFFIX)) continue
         const id = path.split('/').slice(-1)[0]!
+        if (existing.has(id)) continue
         existing.add(id)
-        if (!pluginWatchers.has(id))
-            pluginWatchers.set(id, watchPlugin(id, join(path, PLUGIN_MAIN_FILE)))
+        const watcher = pluginWatchers.get(id) ?? watchPlugin(id, resolve(path))
+        pluginWatchers.set(id, watcher)
+        watcher.refresh()
     }
-    for (const [id, cancelWatcher] of pluginWatchers.entries())
+    for (const [id, watcher] of pluginWatchers.entries())
         if (!existing.has(id)) {
             enablePlugin(id, false)
-            cancelWatcher()
+            watcher.close()
             pluginWatchers.delete(id)
         }
     pluginsScanned.resolve()
 }
 
-function watchPlugin(id: string, path: string) {
+function watchPlugin(id: string, folder: string) {
     console.debug('Plugin watch', id)
-    const module = resolve(path)
+    const module = join(folder, PLUGIN_MAIN_FILE)
     let lifecycle = Promise.resolve()
-    const unsub = subMultipleConfigs(() => runSerially(async () => {
+    let directoryIdentity: string | undefined
+    let unwatch: (() => void) | undefined
+    // entrypoint and helper saves share a debounce so an editor's burst causes one reload
+    const reload = debounceAsync(
+        () => runSerially(() => unwatch && isPluginEnabled(id, true) ? start() : undefined)
+            .catch(error => console.warn('Cannot reload plugin', id, String(error))),
+        { wait: 1000, maxWait: 1500, cancelable: true })
+    const unsub = subMultipleConfigs(() => runSerially(() => {
         if (!getPluginInfo(id)) return // not loaded yet
         const should = isPluginEnabled(id, true)
         if (should === isPluginRunning(id)) return
-        if (should)
-            return start()
-        await stop()
+        return should ? start() : stop()
     }), [enablePlugins, suspendPlugins])
-    const { unwatch } = watchLoad(module, source => runSerially(async () => {
-        const notRunning = inactivePlugins[id]
-        if (!source)
-            return onUninstalled()
-        if (isPluginEnabled(id, true))
-            return start()
-        const p = parsePluginSource(id, source) // plugin not running = json parsing
-        if (same(notRunning, p)) return
-        inactivePlugins[id] = p
-        events.emit(notRunning ? 'pluginUpdated' : 'pluginInstalled', p)
-    }))
-    return () => {
+    return { refresh, close }
+
+    function refresh() {
+        const stats = try_(() => statSync(folder, { bigint: true }))
+        const identity = stats && `${stats.dev}:${stats.ino}`
+        if (unwatch && (!identity || identity === directoryIdentity)) return
+        directoryIdentity = identity
+        // an update can replace the directory at the same path, leaving watchers on the old files
+        unwatch?.()
+        const sources = try_(() => watch(folder, { recursive: true }, (_, name) => {
+            if (!name || name === PLUGIN_MAIN_FILE) return
+            if (['public', STORAGE_FOLDER].includes(name.split(/[/\\]/)[0]!)) return
+            if (['.js', '.cjs', '.mjs', '.json', '.node'].includes(extname(name)))
+                void reload()
+        }), error => { console.warn('Cannot watch plugin helpers', id, String(error)) })
+        const entry = watchLoad(module, onSource)
+        unwatch = () => {
+            entry.unwatch()
+            sources?.close()
+        }
+    }
+
+    function close() {
         console.debug('Plugin unwatch', id)
+        reload.cancel!()
         unsub()
-        unwatch()
+        unwatch?.()
+        unwatch = undefined // a reload already queued on the lifecycle must also skip a removed plugin
         return runSerially(onUninstalled)
+    }
+
+    function onSource(source: string) {
+        // keep reading saves while the previous version is still starting
+        if (source && isPluginEnabled(id, true))
+            return void reload()
+        return runSerially(() => {
+            const notRunning = inactivePlugins[id]
+            if (!source)
+                return onUninstalled()
+            const p = parsePluginSource(id, source) // plugin not running = json parsing
+            if (same(notRunning, p)) return
+            inactivePlugins[id] = p
+            events.emit(notRunning ? 'pluginUpdated' : 'pluginInstalled', p)
+        })
     }
 
     async function onUninstalled() {
@@ -712,7 +747,6 @@ function watchPlugin(id: string, path: string) {
                     return i18nFromTranslations(await getLangData(ctx), EMBEDDED_LANGUAGE)
                 },
             }, unloadResources)
-            const folder = dirname(module)
             const { sections, unwatch } = watchLoadCustomHtml(folder)
             pluginData.getCustomHtml = () =>
                 Object.assign(Object.fromEntries(sections), callable(pluginData.customHtml) || {})
@@ -742,6 +776,7 @@ function watchPlugin(id: string, path: string) {
                 openDbs.length = 0
             }
         } catch (e: any) {
+            await plugins.get(id)?.unload()
             await markItInactive()
             const parsed = e.stack?.split('\n\n') // this form is used by syntax-errors inside the plugin, which is useful to show
             const where = parsed?.length > 1 ? `\n${parsed[0]}` : ''
@@ -750,9 +785,8 @@ function watchPlugin(id: string, path: string) {
         }
     }
 
-    function runSerially(action: () => Promise<void>) {
-        // serialize config changes and reloads so old cleanup cannot remove a newer instance
-        return lifecycle = lifecycle.then(action, action)
+    function runSerially(action: () => void | Promise<void>) {
+        return lifecycle = lifecycle.then(action, action) // serialize config changes and reloads so old cleanup cannot remove a newer instance
     }
 }
 

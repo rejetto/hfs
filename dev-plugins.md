@@ -5,7 +5,7 @@ If the information you are searching for is not in this document, [feel free to 
 A plugin for HFS is a folder that contains a `plugin.js` file. To install a plugin you just copy the folder into the `plugins` folder.
 You will find `plugins` folder near `config.yaml`, and then in `USER_FOLDER/.hfs` for Linux and macOS, or near `hfs.exe` on Windows. 
 
-plugins can be hot-swapped, and to some extent can be edited without restarting the server.
+Plugins can be hot-swapped, and to some extent can be edited without restarting the server.
 
 Normally you'll have a plugin that's a theme, and another that's a firewall,
 but nothing is preventing a single plugin from doing both tasks.
@@ -1179,6 +1179,9 @@ Where there is too little information, you'll have to consult the source code. A
 
 Together with the main file (plugin.js), you can have other files, both for data and javascript to include with `require('./other-file')`.
 Notice that in this case you don't use `api.require` but classic `require` because it's in your plugin folder.
+
+HFS automatically reloads enabled plugins when server files (`.js`, `.cjs`, `.mjs`, `.json`, or `.node`) change,
+including files in subfolders. Changes under `public` and `storage` do not restart the plugin.
 
 These files have a special meaning:
 
