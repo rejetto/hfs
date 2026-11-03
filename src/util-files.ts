@@ -103,7 +103,7 @@ export async function unzip(stream: Readable, cb: (path: string) => Promisable<f
     onInvalid: (path: string) => void
 }) {
     const extracted = new Map<string, string>()
-    let chain: Promise<unknown> = Promise.resolve()
+    let chain = Promise.resolve()
     let active: unzipper.Entry | undefined
     let failure: Error | undefined
     const parser = unzipper.Parse()
