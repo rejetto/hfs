@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises'
+import { access, mkdtemp, mkdir, writeFile, readFile, rm, symlink, rename } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
 import { get as httpsGet } from 'node:https'
@@ -10,7 +10,7 @@ import { get as httpGet } from 'node:http'
 import { setTimeout as delay } from 'node:timers/promises'
 import { pki } from 'node-forge'
 
-test('plugins clean callbacks and public routes after asynchronous unload', { timeout: 20000 }, async t => {
+test('plugins clean callbacks and public routes after asynchronous unload', { timeout: 45000 }, async t => {
     const cwd = await mkdtemp(join(tmpdir(), 'hfs-server-cleanup-'))
     const keys = pki.rsa.generateKeyPair(2048)
     const cert = pki.createCertificate()
@@ -131,11 +131,17 @@ exports.init = api => {
     } }
 }
 `)
-    const cacheReload = join(cwd, 'plugins/cache-reload')
+    const cacheReload = join(cwd, 'cache-source')
     await mkdir(cacheReload, { recursive: true })
+    await symlink(cacheReload, join(cwd, 'plugins/cache-reload'), 'junction')
+    for (const folder of ['nested', 'public', 'storage'])
+        await mkdir(join(cacheReload, folder))
+    await writeFile(join(cacheReload, 'nested/late.cjs'), `module.exports = 'late-first'`)
+    await writeFile(join(cacheReload, 'nested/data.json'), `"data-first"`)
     await writeFile(join(cacheReload, 'value.js'), `module.exports = 'first'`)
     await writeFile(join(cacheReload, 'shared.js'), `module.exports = { starts: 0 }`)
     await writeFile(join(cacheReload, 'plugin.js'), `
+require('./value')
 exports.apiRequired = 1
 exports.init = api => {
     const value = require('./value')
@@ -143,6 +149,8 @@ exports.init = api => {
     shared.starts++
     api.registerPublicRoute('value', ctx => { ctx.body = value })
     api.registerPublicRoute('shared', ctx => { ctx.body = String(shared.starts) })
+    api.registerPublicRoute('late', ctx => { ctx.body = require('./nested/late.cjs') })
+    api.registerPublicRoute('data', ctx => { ctx.body = require('./nested/data.json') })
 }
 `)
     await mkdir(join(cwd, 'plugins/cache-observer'), { recursive: true })
@@ -153,6 +161,17 @@ exports.init = api => {
     api.registerPublicRoute('shared', ctx => { ctx.body = String(shared.starts) })
 }
 `)
+    const reloadFolder = join(cwd, 'plugins/reload-race')
+    const reloadSource = `
+exports.apiRequired = 1
+exports.init = api => {
+    const value = require('./helper')
+    api.registerPublicRoute('value', ctx => { ctx.body = value })
+}
+`
+    await mkdir(reloadFolder)
+    await writeFile(join(reloadFolder, 'plugin.js'), reloadSource)
+    await writeFile(join(reloadFolder, 'helper.js'), 'module.exports = "original"')
     await writeFile(join(cwd, 'config.yaml'), JSON.stringify({
         port: 0, https_port: 0, listen_interface: '127.0.0.1', force_https: false,
         cert: 'cert.pem', private_key: 'key.pem', enable_plugins: [],
@@ -204,8 +223,117 @@ exports.init = api => {
         'restarting a plugin must preserve modules still used by another plugin')
     assert.equal(await fetch(observerRoute).then(r => r.text()), '2',
         'both plugins must keep the same shared module instance')
+    const reloadBase = http + '/~/plugins/cache-reload/'
+    assert.equal(await fetch(reloadBase + 'late').then(r => r.text()), 'late-first')
+    assert.equal(await fetch(reloadBase + 'data').then(r => r.text()), 'data-first')
+    await Promise.all([
+        writeFile(join(cacheReload, 'value.js'), `module.exports = 'third'`),
+        writeFile(join(cacheReload, 'nested/late.cjs'), `module.exports = 'late-second'`),
+        writeFile(join(cacheReload, 'nested/data.json'), `"data-second"`),
+        readFile(join(cacheReload, 'plugin.js'), 'utf8').then(source => writeFile(join(cacheReload, 'plugin.js'), source + '\n// changed')),
+    ])
+    for (let i = 0; i < 100; i++) {
+        if (await fetch(cacheRoute).then(r => r.text()) === 'third') break
+        await delay(50)
+    }
+    assert.equal(await fetch(cacheRoute).then(r => r.text()), 'third', 'helper edits must reload symlinked plugins automatically')
+    assert.equal(await fetch(reloadBase + 'late').then(r => r.text()), 'late-second', 'watch helpers first required during requests')
+    assert.equal(await fetch(reloadBase + 'data').then(r => r.text()), 'data-second')
+    await delay(1200)
+    assert.equal(await fetch(observerRoute).then(r => r.text()), '3', 'batch entrypoint and helper edits into one reload')
+    await writeFile(join(cacheReload, 'nested/late.tmp'), `module.exports = 'late-third'`)
+    await rename(join(cacheReload, 'nested/late.tmp'), join(cacheReload, 'nested/late.cjs'))
+    for (let i = 0; i < 100; i++) {
+        if (await fetch(reloadBase + 'late').then(r => r.text()) === 'late-third') break
+        await delay(50)
+    }
+    assert.equal(await fetch(reloadBase + 'late').then(r => r.text()), 'late-third', 'an atomic helper-only save must reload without touching plugin.js')
+    await writeFile(join(cacheReload, 'public/asset.js'), 'ignored')
+    await writeFile(join(cacheReload, 'storage/data.json'), '{}')
+    await writeFile(join(cacheReload, 'README.md'), 'ignored')
+    await delay(2000)
+    assert.equal(await fetch(observerRoute).then(r => r.text()), '4', 'ignore assets and runtime data')
+    await mkdir(join(cacheReload, 'nested/created-later'))
+    await writeFile(join(cacheReload, 'nested/created-later/helper.js'), 'module.exports = true')
+    for (let i = 0; i < 100; i++) {
+        if (await fetch(observerRoute).then(r => r.text()) === '5') break
+        await delay(50)
+    }
+    assert.equal(await fetch(observerRoute).then(r => r.text()), '5', 'watch subfolders created after the watcher starts')
+    await writeFile(join(cacheReload, 'value.js'), 'module.exports = ;')
+    await delay(2000)
+    assert.equal((await fetch(cacheRoute)).status, 404, 'a failed reload must release the old public routes')
+    await writeFile(join(cacheReload, 'value.js'), `module.exports = 'recovered'`)
+    for (let i = 0; i < 100; i++) {
+        if (await fetch(cacheRoute).then(r => r.text()) === 'recovered') break
+        await delay(50)
+    }
+    assert.equal(await fetch(cacheRoute).then(r => r.text()), 'recovered', 'fixing a helper must recover a failed reload automatically')
+    await writeFile(join(cacheReload, 'value.js'), `module.exports = 'pending'`)
     await api('stop_plugin', { id: 'cache-reload' })
     await api('stop_plugin', { id: 'cache-observer' })
+    await writeFile(join(cacheReload, 'value.js'), `module.exports = 'disabled'`)
+    await delay(1200)
+    assert.equal((await fetch(cacheRoute)).status, 404, 'helper edits must not restart disabled plugins')
+    await api('start_plugin', { id: 'cache-reload' })
+    await writeFile(join(cacheReload, 'value.js'), `module.exports = 'uninstall-pending'`)
+    await rename(join(cwd, 'plugins/cache-reload'), join(cwd, 'uninstalled-plugin-link'))
+    await delay(2200)
+    await writeFile(join(cacheReload, 'value.js'), `module.exports = 'uninstalled'`)
+    await delay(1600)
+    assert.equal(child.exitCode, null, 'uninstalling with a pending reload must not crash HFS')
+    const { list: installed } = await fetch(http + '/~/api/get_plugins').then(r => r.json()) as { list: { id: string }[] }
+    assert.ok(!installed.some(plugin => plugin.id === 'cache-reload'), 'pending and later helper edits must not resurrect uninstalled plugins')
+    assert.equal((await fetch(cacheRoute)).status, 404)
+
+    await api('start_plugin', { id: 'reload-race' })
+    const raceRoute = http + '/~/plugins/reload-race/value'
+    assert.equal(await fetch(raceRoute).then(r => r.text()), 'original')
+    const replacement = join(cwd, 'replacement')
+    await mkdir(replacement)
+    await writeFile(join(replacement, 'plugin.js'), reloadSource)
+    await writeFile(join(replacement, 'helper.js'), 'module.exports = "replacement"')
+    await rename(reloadFolder, join(cwd, 'old-reload-race'))
+    await rename(replacement, reloadFolder)
+    await expectReloadValue('replacement')
+    await writeFile(join(reloadFolder, 'helper.js'), 'module.exports = "edited"')
+    await expectReloadValue('edited')
+
+    const entrypoint = join(reloadFolder, 'plugin.js')
+    await writeFile(entrypoint, `
+exports.apiRequired = 1
+exports.init = async api => {
+    const fs = api.require('node:fs')
+    fs.writeFileSync('reload-pending', '')
+    while (!fs.existsSync('release-reload'))
+        await new Promise(resolve => setTimeout(resolve, 20))
+    api.registerPublicRoute('value', ctx => { ctx.body = 'intermediate' })
+}
+`)
+    try {
+        for (let i = 0; i < 100; i++) {
+            if (await access(join(cwd, 'reload-pending')).then(() => true, () => false)) break
+            await delay(50)
+        }
+        await access(join(cwd, 'reload-pending'))
+        await writeFile(entrypoint, reloadSource.replace("require('./helper')", '"latest"'))
+        // let watchLoad read the second save while init is still blocked
+        await delay(1100)
+    }
+    finally {
+        await writeFile(join(cwd, 'release-reload'), '')
+    }
+    await expectReloadValue('latest')
+
+    async function expectReloadValue(expected: string) {
+        let value = ''
+        for (let i = 0; i < 100; i++) {
+            value = await fetch(raceRoute).then(r => r.text())
+            if (value === expected) break
+            await delay(50)
+        }
+        assert.equal(value, expected)
+    }
 
     await api('start_plugin', { id: 'server-cleanup' })
     assert.deepEqual(await trace(), ['add:http', 'add:https'])
