@@ -58,8 +58,11 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
         const ts = conn[SymThrStr] as ThrottledStream
         const outSpeed = roundSpeed(ts.getSpeed())
         const { state } = ctx
-        updateConnection(conn, { outSpeedKb: outSpeed, sent: conn.socket.bytesWritten },
-            { opProgress: state.opTotal && ((state.opOffset || 0) + (ts.getBytesSent() - offset) / state.opTotal) })
+        const sent = ts.getBytesSent() - offset
+        updateConnection(conn, { outSpeedKb: outSpeed, sent: conn.socket.bytesWritten }, {
+            opProgress: state.opTotal && ((state.opOffset || 0) + sent / state.opTotal),
+            opRemaining: downloadTotal === undefined ? undefined : Math.max(0, downloadTotal - sent),
+        })
         /* in case this stream stands still for a while (before the end), we'll have neither 'sent' or 'close' events,
         * so who will take care to updateConnection? This artificial next-call will ensure just that */
         clearTimeout(conn[SymTimeout])

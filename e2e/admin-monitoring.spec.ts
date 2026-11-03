@@ -36,6 +36,31 @@ test('hidden Sent merges under Speed and stays right aligned', async ({ page }) 
     }
 })
 
+test('progress tooltip derives ETA from remaining request bytes', async ({ page }) => {
+    await openMonitoring(page, [
+        { path: '/full.bin', op: 'download', opProgress: .25, opTotal: 1_000_000, opRemaining: 750_000, outSpeedKb: 500, inSpeedKb: 50_000 },
+        { path: '/range.bin', op: 'download', opProgress: 0, opTotal: 1_000_000_000, opRemaining: 1_500, outSpeedKb: 1 },
+        { path: '/upload.bin', op: 'upload', opProgress: .25, opTotal: 1_000_000, opRemaining: 750_000, outSpeedKb: 50_000, inSpeedKb: 500 },
+        { path: '/stalled.bin', op: 'download', opProgress: .25, opTotal: 1_000_000, opRemaining: 750_000, outSpeedKb: 0, inSpeedKb: 500 },
+    ])
+
+    expect(await tooltipFor('full.bin')).toContain('ETA: 1s')
+    expect(await tooltipFor('range.bin')).toContain('ETA: 1s')
+    expect(await tooltipFor('upload.bin')).toContain('ETA: 1s')
+    expect(await tooltipFor('stalled.bin')).not.toContain('ETA:')
+
+    async function tooltipFor(file: string) {
+        const cell = page.locator('[role=gridcell][data-field=path]', { hasText: file }).first()
+        await cell.locator('.MuiCircularProgress-root').last().hover()
+        const tooltip = page.getByRole('tooltip').last()
+        await expect(tooltip).toBeVisible()
+        const text = await tooltip.innerText()
+        await page.mouse.move(0, 0)
+        await expect(tooltip).toBeHidden()
+        return text
+    }
+})
+
 async function openMonitoring(page: Page, rows: Record<string, unknown>[]) {
     await page.routeWebSocket('**/~/api/**', socket => {
         const cmd = new URL(socket.url()).pathname.split('/').pop()

@@ -24,6 +24,8 @@ import { useInterval } from 'usehooks-ts'
 import { PageProps } from './App'
 import { adminApis } from '../../src/adminApis'
 
+const formatDuration = createDurationFormatter({ locale, maxTokens: 2, skipZeroes: true })
+
 export default function MonitorPage({ setTitleSide }: PageProps) {
     setTitleSide(useMemo(() =>
             h(Alert, { severity: 'info', sx: { display: { xs: 'none', sm: 'inherit' }  } }, t`proxy_connections_notice`),
@@ -42,7 +44,6 @@ function MoreInfo() {
     const md = useBreakpoint('md')
     const sm = useBreakpoint('sm')
     const xl = useBreakpoint('xl')
-    const formatDuration = createDurationFormatter({ locale, maxTokens: 2, skipZeroes: true })
     return element || h(Box, { sx: { display: 'flex', flexWrap: 'wrap', gap: { xs: .5, md: 1 }, mb: { xs: 1, sm: 2 } } },
         (allInfo || md) && pair('started', {
             label: t`Uptime`,
@@ -212,7 +213,7 @@ function Connections() {
                                         icon: row.archive ? FolderZip : row.op === 'upload' ? Upload : Download,
                                         progress: row.opProgress ?? row.opOffset,
                                         offset: row.opOffset,
-                                        title: md(formatPerc(row.opProgress) + (row.opTotal ? '\n' + t('total_size', { totalSize: formatBytes(row.opTotal) }) : '')),
+                                        title: progressTitle(row),
                                     }),
                                     // clamp line-height locally so this cell doesn't inherit tall line metrics from datagrid wrappers
                                     h(Box, { sx: { lineHeight: '1.2em', minWidth: 0 } }, row.archive ? h(Box, {}, value, h(Box, {
@@ -283,6 +284,16 @@ function Connections() {
                 }) )
         )
     )
+
+    function progressTitle(row: any) {
+        const speed = row.op === 'upload' ? row.inSpeedKb : row.outSpeedKb
+        const eta = row.opRemaining > 0 && speed
+            ? formatDuration(row.opRemaining / speed)
+            : ''
+        return md(formatPerc(row.opProgress)
+            + (row.opTotal ? '\n' + t('total_size', { totalSize: formatBytes(row.opTotal) }) : '')
+            + (eta ? "\nETA: " + eta : ''))
+    }
 }
 
 function formatSpeedK(value: number | undefined) {

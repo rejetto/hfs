@@ -208,6 +208,7 @@ export function monitorAsDownload(ctx: Koa.Context, size?: number, offset?: numb
         opProgress: 0,
         opTotal: size,
         opOffset: size && offset && (offset / size),
+        opRemaining: ctx.response.length,
     })
 }
 
@@ -216,6 +217,7 @@ declare module "koa" {
         opProgress?: number
         opTotal?: number
         opOffset?: number
+        opRemaining?: number
         vfsNode?: VfsNode
         includesLastByte?: boolean
         fileSource?: string

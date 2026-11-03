@@ -117,6 +117,7 @@ export function inferOperation(ctx: Koa.Context) {
         opProgress: _.isNumber(s.opProgress) ? _.round(s.opProgress, 3) : undefined,
         opTotal: s.opTotal,
         opOffset: s.opOffset,
+        opRemaining: s.opRemaining,
     }
 }
 
