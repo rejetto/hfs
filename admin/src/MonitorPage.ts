@@ -275,6 +275,7 @@ function Connections() {
             logAble && wantLog && h(Grid, { size: logSize, sx: fillFlexParentSx },
                 h(LogFile, {
                     file: `${CFG.log}|${CFG.error_log}`,
+                    initialRows: 100,
                     filter: monitorOnlyFiles ? (row => !row.uri.startsWith(SPECIAL_URI)) : undefined,
                     fillFlex: true,
                     compact: false,

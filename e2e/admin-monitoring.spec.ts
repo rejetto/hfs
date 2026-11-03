@@ -38,12 +38,13 @@ test('hidden Sent merges under Speed and stays right aligned', async ({ page }) 
 
 test('Live log label stays next to its toggle', async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 })
-    await openMonitoring(page, [])
+    await openMonitoring(page, [], [logLine('history.txt')])
 
     const label = page.getByText('Live log', { exact: true })
     const toggle = page.getByRole('button', { name: 'Show log' })
     await expect(label).toBeVisible()
     await expect(toggle).toBeVisible()
+    await expect(page.getByRole('gridcell').filter({ hasText: '/history.txt' })).toBeVisible()
     await toggle.click()
     await expect(label).toBeHidden()
     await toggle.click()
@@ -83,14 +84,19 @@ test('progress tooltip derives ETA from remaining request bytes', async ({ page 
     }
 })
 
-async function openMonitoring(page: Page, rows: Record<string, unknown>[]) {
+async function openMonitoring(page: Page, rows: Record<string, unknown>[], logLines: string[] = []) {
     await page.routeWebSocket('**/~/api/**', socket => {
-        const cmd = new URL(socket.url()).pathname.split('/').pop()
-        const connections = cmd === 'get_connections'
+        const url = new URL(socket.url())
+        const cmd = url.pathname.split('/').pop()
+        const records = cmd === 'get_connections'
             ? rows.map((row, i) => ({ ip: '127.0.0.2', port: 2000 + i, v: 4, ...row }))
-            : []
-        socket.send(JSON.stringify([...connections.map(row => ['+', row]), ['ready']]))
+            : cmd === 'get_log' && url.searchParams.get('initial') === '100' ? logLines : []
+        socket.send(JSON.stringify([...records.map(row => ['+', row]), ['ready']]))
         socket.close({ code: 1000 })
     })
     await page.goto(process.env.ADMIN_MONITORING_URL!)
+}
+
+function logLine(uri: string) {
+    return `127.0.0.1 - user [03/Nov/2026:12:00:00 +0100] "GET /${uri} HTTP/1.1" 200 1 \n`
 }

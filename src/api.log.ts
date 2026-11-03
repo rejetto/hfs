@@ -4,7 +4,7 @@ import { consoleLog } from './consoleLog'
 import { HTTP_BAD_REQUEST, HTTP_NOT_ACCEPTABLE, HTTP_NOT_FOUND, wait } from './cross'
 import { apiAssertTypes, statWithTimeout } from './misc'
 import events from './events'
-import { getRotatedFiles, loggers } from './log'
+import { getRecentLogLines, getRotatedFiles, loggers } from './log'
 import { SendListReadable } from './SendList'
 import { forceDownload, serveFile } from './serveFile'
 import { ips } from './ips'
@@ -31,8 +31,8 @@ export default {
         return null
     },
 
-    get_log({ file = 'log', skipInitial }, ctx) {
-        apiAssertTypes({ string: { file } })
+    get_log({ file = 'log', skipInitial, initial }, ctx) {
+        apiAssertTypes({ string: { file }, number_string_undefined: { initial } })
         const files = file.split('|') // potentially more than one
         return new SendListReadable({
             bufferTime: 10,
@@ -60,6 +60,8 @@ export default {
                 // for other logs we only provide updates. Use get_log_file to download past content
                 if (_.some(files, x => !_.some(loggers, { name: x })) )
                     return list.error(HTTP_NOT_FOUND, true)
+                for (const line of skipInitial ? [] : getRecentLogLines(files, _.clamp(Number(initial) || 0, 0, 100)))
+                    list.add(line)
                 list.ready()
                 // unsubscribe when the connection is interrupted
                 ctx.res.once('close', events.on(files, x =>
