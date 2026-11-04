@@ -28,7 +28,7 @@ exports.init = api => {
     const mockIssuer = join(cwd, 'mock-issuer.cjs')
     await writeFile(mockIssuer, `
 let issued = 0
-require(${JSON.stringify(require.resolve('acme-client', { paths: [resolve(__dirname, '../dist/src')] }))}).Client.prototype.auto = async () =>
+require(${JSON.stringify(require.resolve('@rejetto/acme-client', { paths: [resolve(__dirname, '../dist/src')] }))}).Client.prototype.auto = async () =>
     require('node:tls').rootCertificates[issued++]
 `)
     const first = await start(['--require', mockIssuer])

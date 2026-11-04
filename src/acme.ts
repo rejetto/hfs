@@ -6,7 +6,9 @@ import { Middleware } from 'koa'
 import { getNatInfo, getUpnpClient, upnpEnabled, upnpMappingParam } from './nat'
 import { cert, getCertObject, getServerStatus, privateKey } from './listen'
 import { ApiError } from './apiMiddleware'
-import acme from 'acme-client'
+import acme from '@rejetto/acme-client'
+import { httpWithBody } from './util-http'
+import { tryJson } from './cross'
 import { debounceAsync } from './debounceAsync'
 import fs from 'fs/promises'
 import { acmeDomain, acmeRenew, acmeChallenge, acmeDns } from './acmeConfig'
@@ -92,7 +94,18 @@ async function generateSSLCert(names: string[], email?: string) {
         progress("Requesting certificate")
         const acmeClient = new acme.Client({
             accountKey: await acme.crypto.createPrivateKey(),
-            directoryUrl: acme.directory.letsencrypt.production
+            directoryUrl: acme.directory.letsencrypt.production,
+            // use HFS networking so ACME inherits the configured proxy and outbound interface
+            async transport({ url, data, method, headers, timeout }) {
+                const response = await httpWithBody(url, { body: data, headers, httpThrow: false, method, timeout })
+                const text = response.body?.toString() || ''
+                return {
+                    data: text && String(response.headers['content-type']).includes('json')
+                        ? tryJson(text, () => text) : text,
+                    headers: response.headers,
+                    status: response.statusCode!,
+                }
+            },
         })
         if (ipCertificate) {
             const original = acmeClient.createOrder.bind(acmeClient)
