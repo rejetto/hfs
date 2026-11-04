@@ -1,0 +1,121 @@
+import { createElement as h, Fragment } from 'react'
+import { t } from './i18n'
+import { Box, Link } from '@mui/material'
+import { Error as ErrorIcon, PlayCircle, Warning } from '@mui/icons-material'
+import { apiCall } from './api'
+import { HFS_REPO, HTTP_FAILED_DEPENDENCY, NBSP, with_ } from './misc'
+import { alertDialog, confirmDialog, toast } from './dialog'
+import { Flex, hTooltip } from './mui'
+import _ from 'lodash'
+import { parsePluginConfig, showPluginOptions } from './pluginOptions'
+
+const HFS_GITHUB_ACCOUNT = HFS_REPO.replace(/\/.+/, `/`)
+const GITHUB_CERTIFICATE_ERROR = "Cannot verify GitHub's HTTPS certificate. Check your proxy or antivirus settings."
+export const PLUGIN_ERRORS = {
+    ENOTFOUND: "Cannot reach github.com",
+    ECONNREFUSED: "Cannot reach github.com",
+    UNABLE_TO_VERIFY_LEAF_SIGNATURE: GITHUB_CERTIFICATE_ERROR,
+    UNABLE_TO_GET_ISSUER_CERT: GITHUB_CERTIFICATE_ERROR,
+    UNABLE_TO_GET_ISSUER_CERT_LOCALLY: GITHUB_CERTIFICATE_ERROR,
+    DEPTH_ZERO_SELF_SIGNED_CERT: GITHUB_CERTIFICATE_ERROR,
+    SELF_SIGNED_CERT_IN_CHAIN: GITHUB_CERTIFICATE_ERROR,
+}
+export type InstalledPluginReveal = { id: string, filter: string }
+export const INSTALLED_PLUGIN_REVEAL_EVENT = 'installed-plugin-reveal'
+let installedPluginToReveal: InstalledPluginReveal | undefined
+
+declare global {
+    interface WindowEventMap {
+        'installed-plugin-reveal': CustomEvent<InstalledPluginReveal>
+    }
+}
+
+export function getInstalledPluginToReveal() {
+    return installedPluginToReveal
+}
+
+export function clearInstalledPluginToReveal(id: string) {
+    if (installedPluginToReveal?.id === id)
+        installedPluginToReveal = undefined
+}
+
+export function renderPluginName({ row, value }: any) {
+    const { repo } = row
+    return h(Fragment, {},
+        row.downgrade && errorIcon("This version is older than the one you installed. It is possible that the author found a problem with your version and decided to retire it.", true),
+        errorIcon(row.error || row.badApi, !row.error),
+        repo?.includes('//') ? h(Link, { href: repo, target: 'plugin' }, value)
+            : with_(repo?.split('/'), arr => arr?.length !== 2 ? value
+                : h(Fragment, {},
+                    h(Link, { href: 'https://github.com/' + repo, target: 'plugin', onClick(ev) { ev.stopPropagation() } }, pluginName(arr[1])),
+                    NBSP + 'by ', arr[0]
+                ))
+    )
+
+    function errorIcon(msg: string, warning=false) {
+        return msg && hTooltip(msg, msg, h(ErrorIcon, { fontSize: 'small', color: warning ? 'warning' : 'error', sx: { ml: -.5, mr: .5 } }))
+    }
+}
+
+export async function startPlugin(id: string) {
+    try {
+        const row = parsePluginConfig(await apiCall('start_plugin', { id }))
+        toast(t`Plugin started`, h(PlayCircle, { color: 'success' }))
+        return row
+    }
+    catch(e: any) {
+        alertDialog(t('plugin_start_error', { id, error: String(e?.message || e) }), 'error')
+    }
+}
+
+export async function installPluginFromResult(row: any) {
+    if (!row.id.startsWith(HFS_GITHUB_ACCOUNT))
+        if (!await confirmDialog(
+            h(Flex, { vert: true, alignItems: 'center' },
+                h(Warning, { color: 'warning', fontSize: 'large' }),
+                t`Proceed only if you trust this plugin`,
+                h(Box, { sx: { fontSize: '60%' } }, t`A plugin has the same power of any other software`),
+            ))) return
+    if (row.missing && !await confirmDialog(t('also_install_plugins', { plugins: _.map(row.missing, 'repo').join(', ') }))) return
+    const branch = row.branch || row.default_branch
+    return installPlugin(row.id, branch).catch((e: any) => {
+        if (e.code !== HTTP_FAILED_DEPENDENCY)
+            return alertDialog(e)
+        const msg = h(Fragment, {}, t`This plugin has some dependencies unmet:`,
+            e.data.map((x: any) => h('li', { key: x.repo }, x.repo + ': ' + x.error)) )
+        return alertDialog(msg, 'error')
+    })
+}
+
+export function pluginName(name: string) {
+    return name.replace(/^hfs-|-plugin$/g, '')
+}
+
+async function installPlugin(id: string, branch?: string, revealAfterStart=true): Promise<any> {
+    try {
+        const res = await apiCall('download_plugin', { id, branch, stop: true }, { timeout: false })
+        if (await confirmDialog(t("Plugin {id} downloaded", { id: id }), { trueText: t`Start` })) {
+            const plugin = await startPlugin(res.id)
+            if (plugin && revealAfterStart) {
+                installedPluginToReveal = { id: res.id, filter: id }
+                window.dispatchEvent(new CustomEvent(INSTALLED_PLUGIN_REVEAL_EVENT, { detail: installedPluginToReveal })) // the event is in case InstalledPlugins is already mounted
+                location.hash = '/plugins/installed'
+            }
+            if (plugin?.config)
+                await showPluginOptions(plugin)
+        }
+    }
+    catch(e:any) {
+        let done = false
+        if (e.code === HTTP_FAILED_DEPENDENCY) // try to install automatically
+            for (const x of e.cause)
+                if (x.error === 'missing') {
+                    toast(t("Installing dependency: {repo}", { repo: x.repo }))
+                    await installPlugin(x.repo, undefined, false)
+                    done = true
+                }
+        if (done) // try again
+            return installPlugin(id, branch, revealAfterStart)
+        throw e
+    }
+}

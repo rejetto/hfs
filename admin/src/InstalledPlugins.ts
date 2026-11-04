@@ -1,32 +1,43 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { apiCall, useApiList } from './api'
-import { createElement as h, Fragment, useEffect, useState } from 'react'
-import { Box, Link, Table, TableBody, TableCell, TableRow, useTheme } from '@mui/material'
-import type { Breakpoint } from '@mui/material/styles'
+import { createElement as h, useEffect, useState } from 'react'
+import { locale, t } from './i18n'
+import { Box, Table, TableBody, TableCell, TableRow } from '@mui/material'
 import { DataTable, DataTableColumn } from './DataTable'
 import {
-    Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, ListAlt, PlayCircle, Settings, StopCircle, Upgrade
+    Delete, FormatPaint as ThemeIcon, ListAlt, PlayCircle, Settings, StopCircle, Upgrade
 } from '@mui/icons-material'
 import {
-    CFG, HTTP_FAILED_DEPENDENCY, md, prefix, with_, xlate, tryJson, NBSP, isPrimitive, HIDE_IN_TESTS, wait
+    CFG, HTTP_FAILED_DEPENDENCY, md, xlate, isPrimitive, HIDE_IN_TESTS, wait
 } from './misc'
-import { alertDialog, confirmDialog, toast } from './dialog'
+import { confirmDialog, toast } from './dialog'
 import _ from 'lodash'
-import { PLUGIN_ERRORS } from './PluginsPage'
-import { Btn, hTooltip, IconBtn, iconTooltip, usePauseButton } from './mui'
-import { showPluginOptions, evalWrapper } from './pluginOptions'
+import { useEventListener } from 'usehooks-ts'
+import { clearInstalledPluginToReveal, getInstalledPluginToReveal, INSTALLED_PLUGIN_REVEAL_EVENT,
+    PLUGIN_ERRORS, pluginName, renderPluginName, startPlugin } from './plugin'
+import { Btn, IconBtn, iconTooltip, usePauseButton } from './mui'
+import { parsePluginConfig, showPluginOptions } from './pluginOptions'
 
 // updates=true will show the "check updates" version of the page
 export default function InstalledPlugins({ updates }: { updates?: true }) {
+    const [reveal, setReveal] = useState(getInstalledPluginToReveal)
     const { list, error, setList, initializing } = useApiList<any>(updates ? 'get_plugin_updates' : 'get_plugins', {}, {
-        map(x: any) { x.config &&= tryJson(x.config, s => evalWrapper('()=>('+s+')')()) }
+        map: parsePluginConfig, reconnectGraceSeconds: 60,
     })
     const [sortAgain, setSortAgain] = useState(0)
     useEffect(() => {
         setList(list =>
-            _.sortBy(list, x => (x.error ? 0 : x.started ? 1 : x.badApi ? 2 : 3) + treatPluginName(x.repo?.split('/').reverse().join('/') || x.id).toLowerCase()))
+            _.sortBy(list,
+                x => x.error ? 0 : x.started ? 1 : x.badApi ? 2 : 3,
+                x => pluginName(x.repo?.split('/').pop() || x.id).toLowerCase(),
+                x => x.repo?.split('/')[0].toLowerCase()))
     }, [list.length, sortAgain])
+    useEffect(() => {
+        if (reveal && _.some(list, { id: reveal.id })) // consume the handoff only once the installed list confirms the plugin
+            clearInstalledPluginToReveal(reveal.id)
+    }, [list, reveal])
+    useEventListener(INSTALLED_PLUGIN_REVEAL_EVENT, ev => setReveal(ev.detail)) // keep an already-mounted Installed tab in sync with installs finishing elsewhere
     const size = 'small'
     const { pause, pauseButton } = usePauseButton("plugins", () => getSingleConfig(CFG.suspend_plugins).then(x => !x), {
         async onClick() {
@@ -36,8 +47,9 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             setSortAgain(Date.now())
         }
     })
-    const theme = useTheme()
     return h(DataTable, {
+        key: reveal?.id,
+        initialState: reveal && { filter: { filterModel: { items: [], quickFilterValues: [reveal.filter] } } },
         error: isPrimitive(error) ? xlate(error, PLUGIN_ERRORS)
             : _.map(error, (v, k) => `Error ${k} for: ${v.join(', ')}`).join('; '), // complex error for updates
         rows: list.length ? list : [], // workaround for DataGrid's bug causing 'no rows' message to be not displayed after 'loading' was also used
@@ -47,19 +59,19 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
         quickFilter: !updates,
         actionsHeader: !updates && pauseButton,
         getRowHeight: updates && (({ model }) => model.changelog ? 'auto' as const : 50),
-        noRows: updates && `No updates available. Only plugins available on "search online" are checked.`,
+        noRows: updates && t`plugin_updates_scope_notice`,
         columns: [
             {
                 field: 'id',
-                headerName: "name",
+                headerName: t`Name`,
                 flex: .3,
                 minWidth: 150,
-                renderCell: renderName,
+                renderCell: renderPluginName,
                 valueGetter(_value: any, row: any) { return row.repo || row.id },
                 mergeRender: { [updates ? 'changelog' : 'description']: { sx: { fontSize: 'x-small' } } }
             },
             {
-                field: 'version',
+                field: 'version', headerName: t`Version`,
                 width: 70,
                 hideUnder: 'sm',
                 cellInnerProps: { className: HIDE_IN_TESTS },
@@ -72,14 +84,14 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 hideUnder: 'sm',
             },
             {
-                field: 'installedVersion',
+                field: 'installedVersion', headerName: t`Installed version`,
                 hideUnder: true,
-                dialogHidden: true,
-                renderCell: ({ value }) => value && `Yours ${value}`
+                hiddenInDetails: true,
+                renderCell: ({ value }) => value && t('installed_version_value', { version: value })
             },
             {
                 field: 'changelog',
-                headerName: "Change log",
+                headerName: t`Change log`,
                 flex: 2,
                 hideUnder: !updates || 'sm',
                 sx: { flexDirection: 'column', alignItems: 'flex-start' },
@@ -100,62 +112,58 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
         actions: ({ row, id }) => updates ? [
             h(IconBtn, {
                 icon: Upgrade,
-                title: row.downloading ? "Downloading" : row.updated ? "Already updated" : "Update",
+                title: row.downloading ? t`Downloading` : row.updated ? t`Already updated` : t`Update`,
                 disabled: row.updated,
                 progress: row.downloading,
                 size,
                 async onClick() {
                     await apiCall('update_plugin', { id }, { timeout: false }).catch(e => {
                         throw e.code !== HTTP_FAILED_DEPENDENCY ? e
-                            : Error("Failed dependencies: " + e.cause?.map((x: any) => prefix(`plugin "`, x.id || x.repo, `" `) + x.error).join('; '))
+                            : Error(t('failed_plugin_dependencies', { dependencies: e.cause?.map((x: any) =>
+                                t('plugin_dependency_error', { pluginId: x.id || x.repo, error: x.error })).join('; ') }))
                     })
-                    toast("Plugin updated")
+                    toast(t`Plugin updated`)
                 }
             })
         ] : [
             h(IconBtn, row.started ? {
                 icon: StopCircle,
-                title: h(Box, { 'aria-hidden': true }, `Stop ${id}`, h('br'), `Started ` + new Date(row.started as string).toLocaleString()),
-                'aria-label': `Stop ${id}`,
+                title: h(Box, { 'aria-hidden': true }, t("Stop {id}", { id: id }), h('br'), t('started_at', { startedAt: new Date(row.started as string).toLocaleString(locale) })),
+                'aria-label': t("Stop {id}", { id: id }),
                 size,
                 color: 'success',
                 doneAnimation: true,
                 onClick: () => apiCall('stop_plugin', { id }),
             } : {
                 icon: PlayCircle,
-                title: `Start ${id}`,
-                disabled: pause && "All plugins are paused – Click the Resume button below",
+                title: t("Start {id}", { id: id }),
+                disabled: pause && t`All plugins are paused – Click the Resume button below`,
                 size,
                 onClick: () => startPlugin(id),
             }),
             h(IconBtn, {
                 icon: row.config || !row.started || !row.log ? Settings : ListAlt,
-                title: row.config || !row.log ? "Options" : "Log",
+                title: row.config || !row.log ? t`Options` : t`Log`,
                 size,
-                disabled: !row.started && "Start plugin to access options"
-                    || !row.config && !row.log && "No options and no log for this plugin",
+                disabled: !row.started && t`Start plugin to access options`
+                    || !row.config && !row.log && t`No options and no log for this plugin`,
                 onClick() {
-                    const cd = row.configDialog
-                    // support css values for maxWidth without having to wrap in sx, as in DialogProps it only supports breakpoints
-                    let maxWidth = theme.breakpoints.values[cd?.maxWidth as Breakpoint] || cd?.sx?.maxWidth || xlate(cd?.maxWidth, { xs: 0 }) || 432
-                    if (typeof maxWidth === 'number')  // @ts-ignore
-                        maxWidth += 'px'
-                    return showPluginOptions(row, maxWidth)
+                    return showPluginOptions(row)
                 }
             }),
             h(IconBtn, {
                 icon: Delete,
-                title: "Uninstall",
+                title: t`Uninstall`,
                 size,
                 async onClick() {
-                    const res = await confirmDialog(`${id}: delete configuration too?`, {
-                        trueText: "Yes",
-                        falseText: "No",
-                        after: ({ onClick }) => h(Btn, { variant: 'outlined', onClick(){ onClick(undefined) } }, "Abort")
+                    const res = await confirmDialog(t("{id}: delete configuration too?", { id: id }), {
+                        trueText: t`Yes`,
+                        falseText: t`No`,
+                        after: ({ onClick }) => h(Btn, { variant: 'outlined', onClick(){ onClick(undefined) } }, t`Abort`)
                     })
                     if (res === undefined) return
                     await apiCall('uninstall_plugin', { id, deleteConfig: res })
-                    toast("Plugin uninstalled")
+                    toast(t`Plugin uninstalled`)
                 }
             }),
         ]
@@ -166,53 +174,19 @@ function getSingleConfig(k: string) {
     return apiCall('get_config', { only: [k] }).then(x => x[k])
 }
 
-// hide the hfs- prefix, as one may want to use it for its repository, because github is the context, but in the hfs context the prefix it's not only redundant, but also ruins the sorting
-function treatPluginName(name: string) {
-    return name.replace(/hfs-/, '')
-}
-
-export function renderName({ row, value }: any) {
-    const { repo } = row
-    return h(Fragment, {},
-        row.downgrade && errorIcon("This version is older than the one you installed. It is possible that the author found a problem with your version and decided to retire it.", true),
-        errorIcon(row.error || row.badApi, !row.error),
-        repo?.includes('//') ? h(Link, { href: repo, target: 'plugin' }, value)
-            : with_(repo?.split('/'), arr => arr?.length !== 2 ? value
-                : h(Fragment, {},
-                    h(Link, { href: 'https://github.com/' + repo, target: 'plugin', onClick(ev) { ev.stopPropagation() } }, treatPluginName(arr[1])),
-                    NBSP + 'by ', arr[0]
-                ))
-)
-
-    function errorIcon(msg: string, warning=false) {
-        return msg && hTooltip(msg, msg, h(ErrorIcon, { fontSize: 'small', color: warning ? 'warning' : 'error', sx: { ml: -.5, mr: .5 } }))
-    }
-}
-
-export async function startPlugin(id: string) {
-    try {
-        await apiCall('start_plugin', { id })
-        toast("Plugin started", h(PlayCircle, { color: 'success' }))
-        return true
-    }
-    catch(e: any) {
-        alertDialog(`Plugin ${id} didn't start, with error: ${String(e?.message || e)}`, 'error')
-    }
-}
-
 export const descriptionField: DataTableColumn = {
-    field: 'description',
+                field: 'description', headerName: t`Description`,
     mergeRender: { isTheme: {} } ,
     mergeRenderSx: { float: 'left' },
 }
 
 export const themeField: DataTableColumn = {
     field: 'isTheme',
-    headerName: "is theme",
+    headerName: t`is theme`,
     hideUnder: true,
-    dialogHidden: true,
+    hiddenInDetails: true,
     type: 'boolean',
     renderCell({ value }) {
-        return value && iconTooltip(ThemeIcon, _.isString(value) ? `${value} theme` : "theme", { fontSize: '1.2rem', mr: '.3em' })
+        return value && iconTooltip(ThemeIcon, _.isString(value) ? t('named_theme', { themeName: value }) : t`theme`, { fontSize: '1.2rem', mr: '.3em' })
     }
 }

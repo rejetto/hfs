@@ -1,7 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    Callback, getHFS, hfsEvent, hIcon, Html, isPrimitive, onlyTruthy, prefix, noAriaTitle, formatBytes, useStateMounted
+    Callback, getHFS, hfsEvent, hIcon, Html, isPrimitive, onlyTruthy, prefix, noAriaTitle, formatBytes, useStateMounted,
+    callAsPromise,
 } from './misc'
 import {
     ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, forwardRef, Fragment,
@@ -87,12 +88,14 @@ export function CustomCode({ name, children, render, ...props }: {
         [name, children, ...props ? Object.values(props) : []])
     const [out, setOut] = useStateMounted<null | ReactNode[]>([])
     useEffect(() => {
+        let active = true
         if (raw.isDefaultPrevented() || raw.some(x => x === null)) // null means skip this
             return setOut(null)
         const worked: ReactNode[] = raw.map(toElement)
         raw.forEach((x, i) => {
             if (typeof x?.then === 'function') // then-able
                 x.then((resolved: any) => {
+                    if (!active) return // old promises must not overwrite content for newer props
                     worked[i] = toElement(resolved, i)
                     setOut(onlyTruthy(worked))
                 }, () => {})
@@ -108,6 +111,7 @@ export function CustomCode({ name, children, render, ...props }: {
                     : _.isArray(x) ? h(Fragment, { key }, ...x)
                         : null
         }
+        return () => { active = false }
     }, [raw])
     render ??= _.identity
     return h(Fragment, {}, render(out && (out?.length || !children ? out : children)) )
@@ -139,17 +143,15 @@ export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, 
     const [working, setWorking] = useState(false)
     const [success, setSuccess] = useState(false)
     const t = useRef<any>()
-    return h(asText ? 'a' : 'button', {
+    return h('button', {
         title: label + prefix(' - ', tooltip),
         'aria-label': label,
         'aria-pressed': toggled,
-        onClick(ev) {
-            if (asText)
-                ev.preventDefault()
+        onClick() {
             if (!onClick) return
             if (onClickAnimation !== false)
                 setWorking(true)
-            Promise.resolve().then(onClick).finally(() => setWorking(false))
+            callAsPromise(onClick).finally(() => setWorking(false))
                 .then(() => {
                     if (!successFeedback) return
                     setSuccess(true)
@@ -158,8 +160,8 @@ export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, 
                 }, e => alertDialog(e, 'error'))
         },
         ...rest,
-        ...asText ? { role: 'button', style: { cursor: 'pointer', ...rest.style } } : undefined,
-        className: [rest.className, toggled && 'toggled', working && 'ani-working', success && 'success'].filter(Boolean).join(' '),
+        ...asText ? { type: 'button' } : undefined,
+        className: [rest.className, asText && 'as-text', toggled && 'toggled', working && 'ani-working', success && 'success'].filter(Boolean).join(' '),
     }, icon && (isValidElement(icon) ? icon : hIcon(icon)),
         h('span', { className: 'label' }, label) ) // don't use <label> as VoiceOver will get redundant
 }

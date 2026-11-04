@@ -2,17 +2,17 @@
 
 import { newDialog } from './dialog'
 import { state, useSnapState } from './state'
-import { createElement as h } from 'react'
-import { Checkbox, FlexV, Select } from './components'
+import { createElement as h, Fragment } from 'react'
+import { Checkbox, CustomCode, FlexV, Select } from './components'
 import { getHFS, hIcon, MAX_TILE_SIZE, SORT_BY_OPTIONS, THEME_OPTIONS } from './misc'
 import { MenuLink } from './menu'
 import _ from 'lodash'
 import i18n from './i18n'
-const { t, useI18N } = i18n
+const { useI18N } = i18n
 
 export function showOptions (){
     newDialog({
-        title: t`Options`,
+        title: () => h(Fragment, {}, useI18N().t(`Options`)),
         className: 'options-dialog',
         icon: () => hIcon('options'),
         Content
@@ -22,6 +22,8 @@ export function showOptions (){
         const snap = useSnapState()
         const {t} = useI18N()
         return h(FlexV, { gap: '1.5em' },
+            h(CustomCode, { name: 'beforeOptions' }),
+
             snap.adminUrl && h(MenuLink, {
                 id: 'admin-link',
                 icon: 'admin',
@@ -33,7 +35,7 @@ export function showOptions (){
                 id: 'option-sort-by',
                 options: SORT_BY_OPTIONS.map(x => ({
                     value: x,
-                    label: t("Sort by:", { by: t(x) }, t`Sort by` + ': ' + t(x))
+                    label: t("Sort by:", { by: t(x) })
                 })),
                 value: snap.sort_by,
                 onChange(v) { state.sort_by = v }
@@ -58,6 +60,7 @@ export function showOptions (){
                 h('div', {}, t`Tiles mode:`, ' ', state.tile_size || t`off`),
                 h('input', {
                     type: 'range',
+                    'aria-label': t`Tiles mode`,
                     min: 0, max: MAX_TILE_SIZE,
                     value: snap.tile_size,
                     onChange(ev: any) {
@@ -68,7 +71,7 @@ export function showOptions (){
 
             !getHFS().forceTheme && h(Select, {
                 id: 'option-theme',
-                options: _.map(THEME_OPTIONS, (value, label) => ({ label: t(["theme:", "Theme:", ]) + ' ' + t(label), value })),
+                options: _.map(THEME_OPTIONS, (value, label) => ({ label: t`theme:` + ' ' + t(label), value })),
                 value: snap.theme,
                 onChange(v) {
                     state.theme = v
@@ -82,6 +85,8 @@ export function showOptions (){
                     i18n.state.disabled = state.disableTranslation = v
                 }
             }, "English"),
+
+            h(CustomCode, { name: 'afterOptions' }),
         )
     }
 }

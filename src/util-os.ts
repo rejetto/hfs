@@ -11,8 +11,11 @@ import { statfs } from 'node:fs/promises'
 const DF_TIMEOUT = 2000
 
 export function getDiskSpaceSync(path: string) {
-    while (path && !isWindowsDrive(path) && !existsSync(path))
-        path = dirname(path)
+    while (path && !isWindowsDrive(path) && !existsSync(path)) {
+        const parent = dirname(path)
+        if (parent === path) break // an unavailable root has no other parent to try
+        path = parent
+    }
     const res = statfsSync(path)
     return { free: res.bavail * res.bsize, total: res.blocks * res.bsize, name: path }
 }
@@ -26,8 +29,11 @@ export function cmdEscape(par: string) {
 }
 
 export async function getDiskSpace(path: string) {
-    while (path && !isWindowsDrive(path) && !await exists(path))
-        path = dirname(path)
+    while (path && !isWindowsDrive(path) && !await exists(path)) {
+        const parent = dirname(path)
+        if (parent === path) break // an unavailable root has no other parent to try; this test covers UNC as well
+        path = parent
+    }
     const res = await statfs(path)
     return { free: res.bavail * res.bsize, total: res.blocks * res.bsize, name: path }
 }

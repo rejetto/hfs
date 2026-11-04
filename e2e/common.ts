@@ -37,6 +37,13 @@ export function forwardConsole(page: Page) {
     page.on('console', msg => console.log(msg.type(), msg.text()));
 }
 
+export async function gotoFrontend(page: Page, url=FRONTEND_URL, options?: Parameters<Page['goto']>[1]) {
+    const listRequest = page.waitForRequest(request => new URL(request.url()).pathname === '/~/api/get_file_list')
+    const [response] = await Promise.all([page.goto(url, options), listRequest])
+    await page.waitForFunction(() => !(window as any).HFS.state.loading)
+    return response
+}
+
 export async function clickAdminMenu(page: Page, sectionName: string | RegExp) {
     const isPhone = (page as any).isPhone ??= await page.evaluate(() => window.matchMedia('(max-width: 600px)').matches)
     if (isPhone) {

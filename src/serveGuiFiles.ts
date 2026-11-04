@@ -20,6 +20,7 @@ import { getAllSections, getSection } from './customHtml'
 import _ from 'lodash'
 import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
+import { adminLang, getAdminLangs, getAdminLangData } from './adminLang'
 import { dontOverwriteUploading } from './upload'
 import { customizedIcons, CustomizedIcons } from './icons'
 import { getProxyDetected } from './middlewares'
@@ -27,7 +28,12 @@ import { getProxyDetected } from './middlewares'
 const size1024 = defineConfig(CFG.size_1024, false, x => formatBytes.k = x ? 1024 : 1000) // we both configure formatBytes, and also provide a compiled version (number instead of boolean)
 const splitUploads = defineConfig(CFG.split_uploads, 0)
 export const logGui = defineConfig(CFG.log_gui, false)
-_.each(FRONTEND_OPTIONS, (v,k) => defineConfig(k, v)) // define default values
+type ConfigDefinitions<T extends Record<string, unknown>> = { [K in keyof T]: ReturnType<typeof defineConfig<T[K]>> }
+const frontendOptions = newObj(FRONTEND_OPTIONS, (v,k) => defineConfig(k, v)) as ConfigDefinitions<typeof FRONTEND_OPTIONS> // define default values
+frontendOptions[CFG.menu_at_top].sub((v, { version, set }) => {
+    if (!v && version?.olderThan('3.3.0-alpha1')) // preserve the layout used before this option existed for upgraded installations
+        set(true)
+})
 
 function serveStatic(uri: string): Koa.Middleware {
     const folder = (DEV ? 'dist/' : '') + uri.slice(2,-1)
@@ -39,10 +45,10 @@ function serveStatic(uri: string): Koa.Middleware {
             ctx.state.dontLog = true
         if(ctx.method === 'OPTIONS') {
             ctx.status = HTTP_NO_CONTENT
-            ctx.set({ Allow: 'OPTIONS, GET' })
+            ctx.set({ Allow: 'OPTIONS, GET, HEAD' })
             return
         }
-        if (ctx.method !== 'GET')
+        if (!ctx.state.getOrHead)
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
         const serveApp = shouldServeApp(ctx)
         const fullPath = join(root, serveApp ? '/index.html': ctx.path)
@@ -118,7 +124,19 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
         return !_.isEmpty(configs) && [name, configs]
     })))
     const timestamp = await getFaviconTimestamp()
-    const lang = await getLangData(ctx)
+    const adminLangs = isFrontend ? [] : await getAdminLangs()
+    const lang = isFrontend ? await getLangData(ctx) : await getAdminLangData(ctx, adminLangs)
+    let group = 0 // this represents the loading-group: all plugins with the same group can be loaded concurrently
+    const loadScripts = onlyTruthy(mapPlugins((p, id) => {
+        const js = p.frontend_js?.map(f => f.includes('//') ? f : pub + id + '/' + f)
+        if (!js?.length) return
+        if (p.afterPlugin) // an afterPlugin constraint needs a loading barrier before this plugin's scripts
+            group++
+        const ret = { id, group, js }
+        if (p.beforePlugin) // a beforePlugin constraint creates a loading barrier after this plugin's scripts
+            group++
+        return ret
+    }))
     return body
         .replace(/((?:src|href) *= *['"])\/?(?!([a-z]+:\/)?\/)(?!\?)/g, '$1' + ctx.state.revProxyPath + filesUri)
         .replace(/<(\/)?(head|body)>/g, (all, isClose, name) => { // must make these changes in one .replace call, otherwise we may encounter head/body tags due to customHtml. This simple trick makes html parsing unnecessary.
@@ -133,19 +151,22 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         API_VERSION,
                         SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
                         pathSeparator: sep,
+                        platform: isFrontend ? undefined : process.platform,
                         session: session instanceof ApiError ? null : session,
                         plugins,
-                        loadScripts: Object.fromEntries(mapPlugins((p, id) =>  [id, p.frontend_js?.map(f => f.includes('//') ? f : pub + id + '/' + f)])),
+                        loadScripts,
                         prefixUrl: ctx.state.revProxyPath || '',
                         proxyDetected: Boolean(getProxyDetected()),
                         dontOverwriteUploading: dontOverwriteUploading.get(),
                         splitUploads: splitUploads.get(),
+                        disableDefaultStyle: mapPlugins(p => p.disableDefaultStyle).some(Boolean),
                         kb: size1024.compiled(),
                         forceTheme: mapPlugins(p => _.isString(p.isTheme) ? p.isTheme : undefined).find(Boolean),
                         customHtml: _.omit(getAllSections(), ['top', 'bottom', 'htmlHead', 'style']), // exclude the sections we already apply in this phase
                         ...newObj(FRONTEND_OPTIONS, (v, k) => getConfig(k)),
                         icons: Object.assign({}, ...mapPlugins(p => iconsToObj(p.icons, p.id + '/')), iconsToObj(customizedIcons)), // name-to-uri 
-                        lang
+                        lang,
+                        ...(isFrontend ? {} : { adminLangs, adminLang: adminLang.get() })
                     }, null, 4).replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
                     document.documentElement.setAttribute('ver', HFS.VERSION.split('-')[0])
                     document.documentElement.setAttribute('browser', ${JSON.stringify(shortenAgent(ctx.get('user-agent')))})
@@ -217,7 +238,7 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
         proxy = lib.default('127.0.0.1:'+port, {
             parseReqBody: false, // the dev GUI proxy serves app/assets, so avoid koa-better-http-proxy trying to reread ctx.req
             proxyReqPathResolver: (ctx) =>
-                shouldServeApp(ctx) ? '/' : ctx.path,
+                shouldServeApp(ctx) ? '/' : ctx.url,
             userResDecorator(_res, data, ctx) {
                 return shouldServeApp(ctx) ? treatIndex(ctx, uri, String(data))
                     : adjustBundlerLinks(ctx, uri, data)

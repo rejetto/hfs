@@ -1,7 +1,6 @@
 {	
 	"author":	"Club Microtel Vernon",
 	"version":	"1.5",
-	"hfs_version":	"0.56.0",
 	"translate": {
 		"Select": "Selectionner",
 		"n_files": "{n,plural, one{# fichier} other{# fichiers}}",
@@ -40,6 +39,7 @@
 		"Password": "Mot de Passe",
 		"login_untrusted": "Connexion annulée: problème de certificat du serveur",
 		"login_bad_credentials": "Identifiant ou mot de passe invalide",
+		"confirm_url_login": "Ce lien essaie de vous connecter en tant que « {username} »",
 		"login_bad_cookies": "Problème de cookies : échec de la connexion",
 		"User panel": "Connexion Utilisateur",
 		"Change password": "Changer le mot de passe",
@@ -62,7 +62,7 @@
 		"ready_to_upload": "{n,plural,one{# fichier} other{# fichiers}}, {size}, prêt à téléverser",
 		"Send": "Envoyer",
 		"Clear": "Effacer",
-		"failed_upload": "Impossible de transférer {name}",
+		"failed_upload": "Impossible de téléverser {name}",
 		"confirm_resume": "Reprendre le télé-versement?",
 		"file too large": "Fichier trop gros",
 		"Enter folder name": "Saisissez le nom du dossier",
@@ -97,11 +97,12 @@
 		"Not found": "Non trouvé",
 		"Server error": "Erreur du serveur",
 
-		"Upload": "Envoyer",
-		"upload_concluded": "Envoi terminé:",
+		"Upload": "Téléverser",
+		"upload_concluded": "Téléversement terminé:",
 		"upload_finished": "{n} terminé(s) ({size})",
 		"upload_errors": "{n} échoués",
 		"upload_file_rejected": "Certains fichiers ont été refusés",
+		"delete_unfinished_upload": "Supprimer le téléversement inachevé ?",
 
 		"File menu": "Menu du fichier",
 		"Folder menu": "Menu du dossier",
@@ -116,11 +117,13 @@
 		"Timestamp": "Horodatage",
 		"Show": "Afficher",
 		"Loading failed": "Le chargement a échoué",
+		"Download limit reached": "Limite de téléchargements atteinte",
+		"Retry": "Réessayer",
 		"Rename": "Renommer",
 		"Tiles mode:": "Mode tuiles:",
 		"off": "Désactivé",
 		"Operation successful": "Opération réussie",
-		"Uploader": "Téléchargeur",
+		"Uploader": "Téléverseur",
 		"download counter": "Compteur de téléchargements",
 		"Switch zoom mode": "Changer le mode zoom",
         "Full screen": "Plein écran",
@@ -195,6 +198,9 @@
 		"No":  "Non",
 		"esc_again": "Appuyez ESC deux fois pour fermer",
 		"insufficient storage": "espace insuffisant",
-		"Account disabled": "Compte désactivé"
-	}
+		"Account disabled": "Compte désactivé",
+        "upload_name": "Téléverser sous un nouveau nom",
+        "Uploading": "Téléversement",
+        "proxy_413": "Vérifiez cette limite sur le serveur proxy"
+    }
 }

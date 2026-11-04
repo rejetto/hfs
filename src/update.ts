@@ -5,11 +5,11 @@ import { ARGS_FILE, HFS_REPO, IS_BINARY, IS_WINDOWS, IS_MAC, PREVIOUS_TAG, RUNNI
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
 import {
-    DAY, exists, unzip, prefix, xlate, HOUR, httpStream, statWithTimeout, repeat, debounceAsync, formatPerc, retrySync
+    CFG, DAY, exists, unzip, prefix, xlate, HOUR, httpStream, httpString, statWithTimeout, repeat, debounceAsync, formatPerc, retrySync
 } from './misc'
-import { createReadStream, createWriteStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
+import { constants, createReadStream, createWriteStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { pluginsWatcher } from './plugins'
-import { chmod, rename, rm } from 'fs/promises'
+import { access, chmod, rename, rm } from 'fs/promises'
 import open from 'open'
 import { configReady, currentVersion, defineConfig, versionToScalar } from './config'
 import { cmdEscape, runningAsWindowsService } from './util-os'
@@ -18,9 +18,11 @@ import { storedMap } from './persistence'
 import _ from 'lodash'
 import { argv } from './argv'
 import { pipeline } from 'stream/promises'
+import { updateChangelog } from './updateChangelog'
+import { XMLParser } from 'fast-xml-parser'
 
-const updateToBeta = defineConfig('update_to_beta', false)
-const autoCheckUpdate = defineConfig('auto_check_update', true)
+const updateToBeta = defineConfig(CFG.update_to_beta, false)
+const autoCheckUpdate = defineConfig(CFG.auto_check_update, true)
 const lastCheckUpdate = storedMap.singleSync<number>('lastCheckUpdate', 0)
 const AUTO_CHECK_EVERY = DAY
 
@@ -61,25 +63,29 @@ export type Release = { // not using interface, as it will not work with kvstora
     isNewer: boolean
     versionScalar: number
 }
-const ReleaseKeys = ['prerelease', 'tag_name', 'name', 'body', 'assets', 'isNewer', 'versionScalar'] satisfies (keyof Release)[]
-const ReleaseAssetKeys = ['name', 'browser_download_url'] satisfies (keyof Release['assets'][0])[]
+const releaseKeys = ['prerelease', 'tag_name', 'name', 'body', 'assets', 'isNewer', 'versionScalar'] satisfies (keyof Release)[]
+const releaseAssetKeys = ['name', 'browser_download_url'] satisfies (keyof Release['assets'][0])[]
+const assetPrefix = `hfs-${xlate(process.platform, { win32: 'windows', darwin: 'mac' })}-${process.arch}`
 
 const curV = currentVersion.scalar
 function prepareRelease(r: Release) {
     const v = versionToScalar(r.name)
-    return Object.assign(_.pick(r, ReleaseKeys), { // prune a bit, as it will be serialized, and it has a lot of unused data
+    return Object.assign(_.pick(r, releaseKeys), { // prune a bit, as it will be serialized, and it has a lot of unused data
         versionScalar: v,
         isNewer: v > curV, // make easy to know what's newer
-        assets: r.assets.map((a: any) => _.pick(a, ReleaseAssetKeys))
+        assets: r.assets.map((a: any) => _.pick(a, releaseAssetKeys))
     })
 }
 
-export async function getVersions(filter?: (r: Release) => boolean, max=30) {
+export async function getVersions(filter?: (r: Release) => boolean, max=30, stopAtCurrent=false) {
     const ret: Release[] = []
     for await (const x of apiGithubPaginated(`repos/${HFS_REPO}/releases`)) {
         if (x.name.endsWith('-ignore')) continue
         const rel = prepareRelease(x)
-        if (rel.versionScalar === curV) continue
+        if (rel.versionScalar === curV) {
+            if (stopAtCurrent) break // stop at the installed release, not at older maintenance releases published more recently
+            continue
+        }
         if (!filter || filter(rel))
             ret.push(rel)
         if (ret.length >= max) break
@@ -90,13 +96,50 @@ export async function getVersions(filter?: (r: Release) => boolean, max=30) {
 export async function getUpdates(strict=false) {
     console.log("Checking for updates")
     void getProjectInfo() // also check for alerts and print them asap in the console
-    const stable: Release = prepareRelease(await getRepoInfo(HFS_REPO + '/releases/latest'))
     const includeBetas = updateToBeta.get() || RUNNING_BETA
-    // we don't consider betas before stable
+    const latest = await httpStream(`https://github.com/${HFS_REPO}/releases/latest`, { method: 'HEAD', noRedirect: true })
+    const stableTag = latest.headers.location?.split('/').at(-1)
+    if (!stableTag)
+        throw Error('Cannot determine latest stable version')
+    if (versionToScalar(stableTag) === curV && !includeBetas)
+        return []
+    let stable = prepareRelease({ prerelease: false, tag_name: stableTag, name: stableTag, body: '', assets: [probableAsset(stableTag)], isNewer: false, versionScalar: 0 })
+    if (stable.isNewer || RUNNING_BETA && !strict)
+        stable = await getRepoInfo(HFS_REPO + '/releases/tags/' + stableTag).then(prepareRelease).catch(() => stable)
     const betas = !includeBetas ? [] : await getVersions(x => x.prerelease && x.versionScalar > stable.versionScalar && (!strict || x.isNewer))
+        // preserve update detection when GitHub's REST quota is exhausted
+        .catch(() => getVersionsFromAtom(x => x.prerelease && x.versionScalar > stable.versionScalar && (!strict || x.isNewer)))
     if (stable.isNewer || RUNNING_BETA && !strict)
         betas.push(stable)
-    return betas
+    if (stable.isNewer && stable.body) {
+        const history = await getVersions(r => !r.prerelease && r.isNewer && r.versionScalar <= stable.versionScalar, Infinity, true)
+            .catch(() => []) // missing history must not prevent installing an available update
+        stable.body = updateChangelog(stable, history, curV)
+    }
+    return _.sortBy(betas, x => -x.versionScalar)
+
+    async function getVersionsFromAtom(filter: (release: Release) => boolean) {
+        const feed = new XMLParser({ ignoreAttributes: false })
+            .parse(await httpString(`https://github.com/${HFS_REPO}/releases.atom`))?.feed
+        return _.sortBy(_.castArray(feed?.entry)
+            .map((x: any) => prepareRelease({
+                prerelease: /^v?\d+\.\d+\.\d+-/.test(x.title),
+                tag_name: x.id.split('/').at(-1),
+                name: x.title,
+                body: x.content?.['#text'] || '',
+                assets: [probableAsset(x.id.split('/').at(-1))],
+                isNewer: false,
+                versionScalar: 0,
+            }))
+            .filter(x => Number.isFinite(x.versionScalar) && !x.name.endsWith('-ignore')
+                && x.versionScalar !== curV && filter(x)), x => -x.versionScalar)
+    }
+
+    function probableAsset(tag: string) {
+        const name = `${assetPrefix}-${tag.replace(/^v/, '')}.zip`
+        // release-assets.yml uses this predictable name, keeping degraded checks installable
+        return { name, browser_download_url: `https://github.com/${HFS_REPO}/releases/download/${tag}/${name}` }
+    }
 }
 
 const LOCAL_UPDATE = 'hfs-update.zip' // update from file takes precedence over net
@@ -111,14 +154,17 @@ export function previousAvailable() {
     return exists(PREVIOUS_FN)
 }
 
-export function updateSupported() {
-    return !process.env.DISABLE_UPDATE && (argv.forceupdate || IS_BINARY)
+export function updateNotSupported() {
+    return process.env.DISABLE_UPDATE ? "Automatic updates are disabled"
+        : !(argv.forceupdate || IS_BINARY) ? "Only binary versions support automatic updates"
+        : access(dirname(process.execPath), constants.W_OK | constants.X_OK)
+            .then(() => '', () => `Executable directory is not writable: ${dirname(process.execPath)}`)
 }
 
 export async function update(tagOrUrl: string='') {
-    if (!updateSupported())
-        throw process.env.DISABLE_UPDATE ? "Automatic updates are disabled"
-            : "Only binary versions support automatic updates"
+    const error = await updateNotSupported()
+    if (error)
+        throw error
     let url = tagOrUrl.includes('://') && tagOrUrl
     if (tagOrUrl === PREVIOUS_TAG)
         await rename(PREVIOUS_FN, LOCAL_UPDATE)
@@ -132,11 +178,9 @@ export async function update(tagOrUrl: string='') {
             }) as Release | undefined
         if (!update)
             throw "No update has been found"
-        const plat = '-' + xlate(process.platform, { win32: 'windows', darwin: 'mac' })
-        const assetSearch = `${plat}-${process.arch}`
-        const asset = update.assets.find((x: any) => x.name.includes(assetSearch) && x.name.endsWith('.zip'))
+        const asset = update.assets.find((x: any) => x.name.includes(assetPrefix) && x.name.endsWith('.zip'))
         if (!asset)
-            throw `Asset not found: ${assetSearch}`
+            throw `Asset not found: ${assetPrefix}`
         url = asset.browser_download_url
     }
     if (url) {
@@ -167,8 +211,14 @@ export async function update(tagOrUrl: string='') {
     while (existsSync(join(binPath, newBinFile)))
     pluginsWatcher.pause()
     try {
-        await unzip(createReadStream(LOCAL_UPDATE), path =>
-            join(binPath, path === binFile ? newBinFile : path))
+        try {
+            await unzip(createReadStream(LOCAL_UPDATE), path =>
+                join(binPath, path === binFile ? newBinFile : path))
+        }
+        catch(e) {
+            await rename(LOCAL_UPDATE, 'hfs-update-bad.zip') // quarantine failed archives so they don't take precedence over future downloads
+            throw e
+        }
         const newBin = join(binPath, newBinFile)
         if (!existsSync(newBin)) {
             if (url) // the file was downloaded, and the UI would show the "update from local file" button until we remove it

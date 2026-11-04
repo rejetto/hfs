@@ -1,20 +1,20 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getNodeName, hasPermission, nodeIsFolder, nodeIsLink, urlToNode, VfsNode, walkNode, statusCodeForMissingPerm } from './vfs'
+import { getNodeName, hasPermission, nodeIsFolder, nodeIsLink, urlToNode, VfsNode, VfsNodeWithPath, walkNode, statusCodeForMissingPerm } from './vfs'
 import Koa from 'koa'
-import { filterMapGenerator, isWindowsDrive, pathDecodeSegments, safeDecodeURIComponent, statWithTimeout, wantArray } from './misc'
+import { CFG, filterMapGenerator, isWindowsDrive, pathDecodeSegments, safeDecodeURIComponent, statWithTimeout, wantArray } from './misc'
 import { QuickZipStream } from './QuickZipStream'
 import { createReadStream } from 'fs'
 import { defineConfig } from './config'
 import { basename, dirname } from 'path'
-import { applyRange, forceDownload, monitorAsDownload } from './serveFile'
+import { applyRange, enforceDownloadLimits, forceDownload, monitorAsDownload } from './serveFile'
 import { HTTP_OK, IS_WINDOWS } from './const'
 import { paramsToFilter } from './api.get_file_list'
 import { getCommentFor } from './comments'
 import { decodeUrlList } from './urlList'
 
 // expects 'node' to have had permissions checked by caller
-export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
+export async function zipStreamFromFolder(node: VfsNodeWithPath, ctx: Koa.Context) {
     const list = decodeUrlList(wantArray(ctx.query.list)[0])
     if (!list && statusCodeForMissingPerm(node, 'can_archive', ctx)) return
     ctx.status = HTTP_OK
@@ -75,6 +75,8 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
         catch {}
     })
     const zip = new QuickZipStream(mappedWalker)
+    ctx.body = zip
+    if (await enforceDownloadLimits(ctx)) return
     const time = 1000 * zipSeconds.get()
     const size = await zip.calculateSize(time)
     const range = applyRange(ctx, size) // keep var size as ctx.response.length won't preserve a NaN
@@ -82,13 +84,12 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
         return
     if (range)
         zip.applyRange(range.start, range.end)
-    ctx.body = zip
     ctx.req.on('close', ()=> zip.destroy())
     ctx.state.archive = 'zip'
     monitorAsDownload(ctx, size, range?.start)
 }
 
-const zipSeconds = defineConfig('zip_calculate_size_for_seconds', 5)
+const zipSeconds = defineConfig(CFG.zip_calculate_size_for_seconds, 5)
 
 declare module "koa" {
     interface DefaultState {

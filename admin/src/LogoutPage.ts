@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment } from "react"
+import { t } from './i18n'
 import { Alert, Box } from '@mui/material'
 import { apiCall, useApiEx } from './api'
 import { alertDialog } from "./dialog"
@@ -15,26 +16,26 @@ export default function LogoutPage() {
     if (element)
         return element
     return h(Box, { sx: { display: 'flex', flexDirection:'column', alignItems: 'flex-start', gap: 2 } },
-        !username ? h(Alert, { severity: 'info' }, "You are not logged in, because authentication is not required on localhost")
+        !username ? h(Alert, { severity: 'info' }, t`localhost_auth_not_required`)
             : h(Fragment, {},
-                "You are logged in as: " + username,
+                t("You are logged in as: {username}", { username: username }),
                 h(Btn, {
                     icon: Logout,
                     size: 'large',
                     onClick: () => apiCall('logout').catch(err => // we expect 401
                             err.code !== HTTP_UNAUTHORIZED && alertDialog(err))
-                }, "I want to logout")
+                }, t`I want to logout`)
             ),
         h(Btn, {
             icon: PowerSettingsNew,
             size: 'large',
             color: 'warning',
-            confirm: "Stopping the server, this interface won't respond anymore",
+            confirm: t`server_stopping_notice`,
             async onClick() {
                 await apiCall('quit')
-                await alertDialog("Good-bye", 'success')
+                await alertDialog(t`Good-bye`, 'success')
                 location.reload()
             },
-        }, "Quit HFS")
+        }, t`Quit HFS`)
     )
 }

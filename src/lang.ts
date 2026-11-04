@@ -10,7 +10,6 @@ import { mapPlugins } from './plugins'
 import { join } from 'path'
 import _ from 'lodash'
 
-const PREFIX = 'hfs-lang-'
 const SUFFIX = '.json'
 
 export function normalizeLangCode(code: string) {
@@ -18,12 +17,16 @@ export function normalizeLangCode(code: string) {
     return /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/.test(code) ? code : ''
 }
 
-export function code2file(code: string) {
-    return PREFIX + code.toLowerCase() + SUFFIX
+export function langCodeForLookup(code: string) {
+    return ['zh-tw', 'zh-hk', 'zh-mo'].includes(code) ? 'zh-hant' : code
 }
 
-export function file2code(fn: string) {
-    return fn.replace(PREFIX, '').replace(SUFFIX, '')
+export function code2file(code: string, admin=false) {
+    return (admin ? 'hfs-admin-lang-' : 'hfs-lang-') + code.toLowerCase() + SUFFIX
+}
+
+export function file2code(fn: string, admin=false) {
+    return fn.replace(admin ? 'hfs-admin-lang-' : 'hfs-lang-', '').replace(SUFFIX, '')
 }
 
 const cache = expiringCache<Dict>(3_000) // 3 seconds for both a good dx and acceptable performance
@@ -37,12 +40,14 @@ export async function getLangData(ctxOrLangCsv: Koa.Context | string) {
     }
     const csv = ctxOrLangCsv.toLowerCase()
     return cache.try(csv, async () => {
-        const langs = csv.split(',').map(normalizeLangCode).filter(Boolean)
+        const langs = csv.split(',').map(normalizeLangCode).map(langCodeForLookup).filter(Boolean)
+        if (!langs.includes(EMBEDDED_LANGUAGE))
+            langs.push(EMBEDDED_LANGUAGE)
         const ret: Dict = {}
         let i = 0
         while (i < langs.length) {
             let k = langs[i] || '' // shut up ts
-            if (!k || k === EMBEDDED_LANGUAGE) break
+            if (!k) break
             const fn = code2file(k)
             try { ret[k] = JSON.parse(await readFile(fn, 'utf8')) } // allow external files to override embedded translations
             catch {
@@ -71,14 +76,21 @@ export async function getLangData(ctxOrLangCsv: Koa.Context | string) {
 let forceLangData: any
 let undo: any
 defineConfig(CFG.force_lang, '', v => {
+    v = langCodeForLookup(v)
     undo?.()
     if (!v)
         return forceLangData = undefined
     const translation = (EMBEDDED_TRANSLATIONS as any)[v]
-    forceLangData = { [v]: translation }
+    forceLangData = {
+        [v]: translation,
+        ...v === EMBEDDED_LANGUAGE ? {} : { [EMBEDDED_LANGUAGE]: EMBEDDED_TRANSLATIONS.en },
+    }
     if (v === EMBEDDED_LANGUAGE) return
     const res = watchLoad(code2file(v), data => {
-        forceLangData = { [v]: tryJson(data) || translation }
+        forceLangData = {
+            [v]: tryJson(data) || translation,
+            [EMBEDDED_LANGUAGE]: EMBEDDED_TRANSLATIONS.en,
+        }
     })
     undo = res.unwatch
 })

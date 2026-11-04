@@ -11,19 +11,22 @@ import {
     HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED
 } from './const'
 import {
-    hasPermission, isRoot, nodeIsFolder, nodeStats,
-    simpleWhoToError, statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
+    getVirtualName, hasPermission, isRoot, isSameFilePath, nodeIsFolder, nodeStats,
+    simpleWhoToError, statusCodeForMissingPerm, urlToNode, VfsNode, VfsNodeWithPath, walkNode
 } from './vfs'
 import fs from 'fs'
 import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
-import { getUploadMeta } from './upload'
-import { apiAssertTypes, CFG, moveStoredFileAttrs, pathDecode, pathEncode, popKey, Who, WHO_ADMIN } from './misc'
+import { getUploadMeta, isUploading, saveUploadMeta, setUploadApproved, whileUploadMetaPending } from './upload'
+import { getNodeMime, isActiveContentMime } from './serveFile'
+import { apiAssertTypes, CFG, join as joinVfs, moveStoredFileAttrs, pathDecode, pathEncode, popKey, Who, WHO_ADMIN } from './misc'
+import { deleteUploadOwner, moveUploadOwner, setUploadOwner } from './uploadOwners'
 import { defineConfig } from './config'
 import { getCommentFor, setCommentFor } from './comments'
 import { SendListReadable } from './SendList'
 import { ctxAdminAccess } from './adminApis'
 import _ from 'lodash'
+import { isWebdavLocked } from './webdav'
 
 const partialFolderSize: any = {}
 const showUploader = defineConfig<Who>(CFG.show_uploader, WHO_ADMIN)
@@ -36,11 +39,11 @@ export const frontEndApis: ApiHandlers = {
         apiAssertTypes({ string: { channel } })
         const list = new SendListReadable()
         list.ready() // on chrome109 EventSource doesn't emit 'open' until something is sent
-        return list.events(ctx, {
-            [NOTIFICATION_PREFIX + channel](name, data) {
-                list.custom(name, data)
-            }
-        }, { warnAfter: 10_000 }) // we may have many clients on the same channel (eg: chat), and we don't want to be spammed with console warnings
+        // channel names are literal: events.multi would split spaces into subscriptions to unrelated internal events
+        ctx.res.once('close', events.on(NOTIFICATION_PREFIX + channel, (name, data) => {
+            list.custom(name, data)
+        }, { warnAfter: 10_000 })) // many clients may share a channel (eg: chat)
+        return list
     },
 
     async get_file_details({ uris }, ctx) {
@@ -59,9 +62,21 @@ export const frontEndApis: ApiHandlers = {
                     if (!upload) return
                     if (!isAdmin)
                         upload = _.omit(upload, 'ip')
-                    return { upload }
+                    return { upload, activeContent: isAdmin && isActiveContentMime(getNodeMime(node)) }
                 }))
         }
+    },
+
+    async set_upload_approved({ uri, approved }, ctx) {
+        apiAssertTypes({ string: { uri }, boolean: { approved } })
+        if (!ctxAdminAccess(ctx))
+            return new ApiError(HTTP_UNAUTHORIZED)
+        const node = await urlToNode(uri, ctx)
+        if (!node?.source)
+            return new ApiError(HTTP_NOT_FOUND)
+        if (!isActiveContentMime(getNodeMime(node)))
+            return new ApiError(HTTP_BAD_REQUEST)
+        return await setUploadApproved(node.source, approved) ? {} : new ApiError(HTTP_FAILED_DEPENDENCY)
     },
 
     async create_folder({ uri, name }, ctx) {
@@ -76,8 +91,15 @@ export const frontEndApis: ApiHandlers = {
         const err = statusCodeForMissingPerm(parentNode, 'can_upload', ctx)
         if (err)
             return new ApiError(err)
+        if (!parentNode.source)
+            return new ApiError(HTTP_BAD_REQUEST)
+        const dest = join(parentNode.source, name)
+        const destUri = joinVfs(parentNode.vfsPath, pathEncode(getVirtualName(name, parentNode, dest)))
+        if (isWebdavLocked(destUri, ctx))
+            return new ApiError(ctx.status)
         try {
-            await mkdir(join(parentNode.source!, name))
+            await mkdir(dest)
+            await setUploadOwner(destUri, ctx, dest)
             return {}
         }
         catch(e:any) {
@@ -104,11 +126,21 @@ export const frontEndApis: ApiHandlers = {
     },
 
     async copy_files({ uri_from, uri_to }, ctx) {
-        return moveFiles(uri_from, uri_to, ctx, (srcNode: VfsNode, dest: string) => // override behavior
-            statusCodeForMissingPerm(srcNode, 'can_read', ctx)
-                || copyFile(srcNode.source!, dest, fs.constants.COPYFILE_EXCL | fs.constants.COPYFILE_FICLONE) // .source is checked by moveFiles
-                    .catch(e => e.code || String(e))
-        )
+        return moveFiles(uri_from, uri_to, ctx, async (srcNode: VfsNode, dest: string) => { // override behavior
+            const err = statusCodeForMissingPerm(srcNode, 'can_read', ctx)
+            if (err) return err
+            const upload = await getUploadMeta(srcNode.source!)
+            try {
+                return await whileUploadMetaPending(dest, async () => {
+                    await copyFile(srcNode.source!, dest, fs.constants.COPYFILE_EXCL | fs.constants.COPYFILE_FICLONE)
+                    if (upload && !await saveUploadMeta(dest, upload)) {
+                        await unlink(dest)
+                        return HTTP_SERVER_ERROR
+                    }
+                })
+            }
+            catch(e: any) { return e.code || String(e) }
+        })
     },
 
     async comment({ uri, comment }, ctx) {
@@ -122,7 +154,10 @@ export const frontEndApis: ApiHandlers = {
             return new ApiError(HTTP_UNAUTHORIZED)
         if (!node.source)
             return new ApiError(HTTP_FAILED_DEPENDENCY)
-        await setCommentFor(node.source, comment)
+        if (isWebdavLocked(node.vfsPath, ctx))
+            return new ApiError(ctx.status)
+        if (!await setCommentFor(node.source, comment))
+            return new ApiError(HTTP_SERVER_ERROR)
         return {}
     },
 
@@ -180,50 +215,85 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
             const srcNode = await urlToNode(from1, ctx)
             const src = srcNode?.source
             if (!src) return HTTP_NOT_FOUND
+            if (isUploading(src)) return HTTP_CONFLICT
+            if (!override && isWebdavLocked(srcNode.vfsPath, ctx)) return ctx.status
             const destName = basename(src)
-            const destChild = await urlToNode(destName, ctx, destNode!)
+            const dest = join(destNode!.source!, destName)
+            const visibleName = getVirtualName(destName, destNode!, dest)
+            const destChild = await urlToNode(pathEncode(visibleName), ctx, destNode!, { includeHidden: true })
+            if (fs.existsSync(dest) && (!destChild?.source || !await isSameFilePath(destChild.source, dest)))
+                return HTTP_FORBIDDEN
             if (destChild && statusCodeForMissingPerm(destChild, 'can_delete', ctx))
                 return ctx.status
-            const dest = join(destNode!.source!, destName)
+            const destUri = destChild?.vfsPath || joinVfs(destNode!.vfsPath, pathEncode(visibleName))
+            if (isWebdavLocked(destUri, ctx))
+                return ctx.status
             if (_.isFunction(override))
                 return override?.(srcNode, dest)
+            const upload = await getUploadMeta(src)
             return statusCodeForMissingPerm(srcNode, 'can_delete', ctx)
                 || rename(src, dest).catch(async e => {
                     if (e.code !== 'EXDEV') throw e // exdev = different drive
-                    await copyFile(src, dest)
-                    await unlink(src)
+                    await whileUploadMetaPending(dest, async () => {
+                        await copyFile(src, dest)
+                        if (upload && !await saveUploadMeta(dest, upload)) {
+                            await unlink(dest)
+                            throw Error("couldn't move upload metadata")
+                        }
+                        await unlink(src)
+                    })
                 }).then(() => moveStoredFileAttrs(src, dest))
+                    .then(() => moveUploadOwner(srcNode.vfsPath, destUri, dest))
                     .catch(e => e.code || String(e))
         }))
     }
 }
 
-export async function requestedRename(node: VfsNode | undefined, newName: string, ctx: Koa.Context) {
+export async function requestedRename(node: VfsNodeWithPath | undefined, newName: string, ctx: Koa.Context) {
     if (!node)
         throw new ApiError(HTTP_NOT_FOUND)
+    if (node.source && isUploading(node.source))
+        throw new ApiError(HTTP_CONFLICT)
     // requestedRename is exported, so keep disk rename confinement here even when callers pre-validate
     if (!isValidFileName(newName))
         throw new ApiError(HTTP_BAD_REQUEST)
     if (statusCodeForMissingPerm(node, 'can_delete', ctx))
+        throw new ApiError(ctx.status)
+    const uri = node.vfsPath
+    const destSource = !node.name && node.source ? join(dirname(node.source), newName) : undefined
+    const virtualDestName = node.name || !node.parent ? newName : getVirtualName(newName, node.parent, destSource)
+    const destUri = joinVfs(dirname(uri), pathEncode(virtualDestName))
+    if (isWebdavLocked(uri, ctx)
+    || isWebdavLocked(destUri, ctx))
         throw new ApiError(ctx.status)
     if (node.name) // virtual name = virtual rename
         node.name = newName
     else {
         if (!node.source)
             throw new ApiError(HTTP_FAILED_DEPENDENCY)
-        const destNode = await urlToNode(pathEncode(newName), ctx, node.parent)
+        const destNode = await urlToNode(pathEncode(virtualDestName), ctx, node.parent, { includeHidden: true })
+        if (destSource && fs.existsSync(destSource)
+        && (!destNode?.source || !await isSameFilePath(destNode.source, destSource)))
+            throw new ApiError(HTTP_FORBIDDEN)
         if (destNode && statusCodeForMissingPerm(destNode, 'can_delete', ctx)) // if destination exists, you need delete permission
             throw new ApiError(ctx.status)
+        const overwritesAliasedEntry = uri === destUri && destNode?.source
+            && !await isSameFilePath(node.source, destNode.source)
         try {
-            const destSource = join(dirname(node.source), newName)
-            await rename(node.source, destSource)
-            await moveStoredFileAttrs(node.source, destSource)
-            getCommentFor(node.source).then(c => {
-                if (!c) return
-                void setCommentFor(node.source!, '')
-                void setCommentFor(destSource, c)
-            })
-            return {}
+            await rename(node.source, destSource!)
+            await moveStoredFileAttrs(node.source, destSource!)
+            // one VFS key cannot preserve ownership while overwriting a different physical alias
+            if (overwritesAliasedEntry)
+                await deleteUploadOwner(destUri)
+            else
+                await moveUploadOwner(uri, destUri, destSource!)
+                getCommentFor(node.source).then(c => {
+                    if (!c) return
+                    void setCommentFor(node.source!, '')
+                    void setCommentFor(destSource!, c)
+                })
+                return {}
+
         }
         catch (e: any) {
             throw new ApiError(HTTP_SERVER_ERROR, e)

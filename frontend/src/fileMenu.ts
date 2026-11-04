@@ -45,7 +45,7 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
                 const open = {
                     id: 'open',
                     icon: 'play',
-                    label: t('file_open', "Open"),
+                    label: t`file_open`,
                     href: uri,
                     target: isFolder || entry.web ? undefined : '_blank',
                     rel: isFolder || entry.web ? undefined : 'noopener noreferrer',
@@ -103,8 +103,9 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
         restoreFocus: ev.screenY || ev.screenX ? false : undefined,
         Content() {
             const {t} = useI18N()
-            const { data } = useApi<typeof frontEndApis.get_file_details>('get_file_details', { uris: [entry.uri] })
+            const { data, reload } = useApi<typeof frontEndApis.get_file_details>('get_file_details', { uris: [entry.uri] })
             const details = data?.details?.[0]
+            const revoked = details?.upload?.approved === false
             const showProps = [ ...props,
                 with_(renderUploaderFromDetails(details), value =>
                     value && { id: 'uploader', label: t`Uploader`, value })
@@ -118,7 +119,23 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
                     entry.cantOpen && h('div', {}, hIcon('password', { style: { marginRight: '.5em', marginTop: '.5em' } }), t(MISSING_PERM)),
                 ),
                 h('div', { className: 'file-menu' },
-                    dontBotherWithKeys(menu.map((entry: FileMenuEntry, i) => // render menu entries
+                    dontBotherWithKeys([
+                        ...menu,
+                        details?.activeContent && {
+                            id: 'approve-active-content',
+                            label: revoked ? t`Approve active content` : t`Revoke approval`,
+                            icon: revoked ? 'check' : 'cancel',
+                            async onClick() {
+                                await apiCall('set_upload_approved', {
+                                    uri: entry.uri,
+                                    approved: revoked,
+                                }, { modal: working })
+                                operationSuccessful()
+                                reload()
+                                return false
+                            }
+                        }
+                    ].filter(Boolean).map((entry: FileMenuEntry, i) => // render menu entries
                         isValidElement(entry) ? entry
                             : entry?.label && h('a', {
                                 key: i,
@@ -165,8 +182,8 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
             return data && (
                 data.code ? err2msg(data)
                     : h('span', {}, h(Bytes, _.pick(data,'bytes')),
-                        ' / ', t('n_files', { n: data.files.toLocaleString() }, '{n,plural,one{# file} other{# files}}'),
-                        ' / ', t('n_folders', { n: data.folders.toLocaleString() }, '{n,plural,one{# folder} other{# folders}}'),
+                        ' / ', t('n_files', { n: data.files.toLocaleString() }),
+                        ' / ', t('n_folders', { n: data.folders.toLocaleString() }),
                     )
             )
         }
@@ -183,7 +200,8 @@ async function rename(entry: DirEntry) {
     const { n, uri } = entry
     await apiCall('rename', { uri, dest }, { modal: working })
     const MSG = t`Operation successful`
-    if (uri === location.pathname) //current folder
+    // location is fully encoded, while entry.uri uses pathEncode
+    if (decodeURI(uri) === decodeURI(location.pathname)) //current folder
         return alertDialog(MSG)?.then(() =>
             getHFS().navigate(uri + '../' + pathEncode(dest) + '/') )
     // update state instead of re-getting the list

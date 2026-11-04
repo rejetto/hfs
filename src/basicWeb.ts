@@ -2,19 +2,23 @@ import { getCurrentUsername, setLoggedIn } from './auth'
 import { BASIC_AUTHENTICATE_HEADER, HTTP_UNAUTHORIZED } from './cross-const'
 import Koa from 'koa'
 import { defineConfig } from './config'
-import { getNodeName, getDefaultFile, nodeIsFolder, VfsNode, walkNode } from './vfs'
-import { asyncGeneratorToReadable, Dict, escapeHTML, filterMapGenerator, pathEncode } from './misc'
+import { getNodeName, getDefaultFile, nodeIsFolder, VfsNodeWithPath, walkNode } from './vfs'
+import { asyncGeneratorToReadable, CFG, Dict, escapeHTML, filterMapGenerator, pathEncode, try_ } from './misc'
 import _ from 'lodash'
 import { title } from './adminApis'
 import { getSection } from './customHtml'
 
-const autoBasic = defineConfig<boolean|string, null|RegExp>('auto_basic', true, v => _.isString(v) ? new RegExp(v, 'i') : null)
+const autoBasic = defineConfig<boolean|string, null|RegExp>(CFG.auto_basic, true, v => _.isString(v) ? new RegExp(v, 'i') : null)
 
-export function basicWeb(ctx: Koa.Context, node: VfsNode) {
+export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
     const { get } = ctx.query
     if (get === 'login') {
-        if (getCurrentUsername(ctx))
-            ctx.redirect(ctx.get('referer'))
+        if (getCurrentUsername(ctx)) {
+            const referer = ctx.get('referer')
+            const url = referer && try_(() => new URL(referer, ctx.URL))
+            // keep the origin in Location because a same-origin path starting with // would redirect externally
+            ctx.redirect(url && url.origin === ctx.URL.origin ? url.origin + url.pathname + url.search + url.hash : '/')
+        }
         else {
             ctx.set('WWW-Authenticate', BASIC_AUTHENTICATE_HEADER)
             ctx.status = HTTP_UNAUTHORIZED
@@ -27,16 +31,15 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
         ctx.status = HTTP_UNAUTHORIZED // not effective on firefox52, but the redirection is
         return true
     }
-    const forced = get === 'basic'
-    const goBasic = forced || detectBasicAgent(ctx) && get !== 'nobasic'
-    if (!goBasic) return
+    if (!shouldBeBasic(ctx)) return
     ctx.type = 'html'
-    const force = forced ? '?get=basic' : ''
+    const force = get === 'basic' ? '?get=basic' : ''
     const walker = walkNode(node, { ctx, depth: 0 })
     const stream = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
         const isFolder = nodeIsFolder(el)
         const name = getNodeName(el) + (isFolder ? '/' : '')
-        return `<li>${a(pathEncode(name) + (isFolder && !await getDefaultFile(el, ctx) ? force : ''), name)}\n`
+        const forceThis = isFolder && (el.see_without_probing || !await getDefaultFile(el, ctx)) ? force : ''
+        return `<li>${a(pathEncode(name) + forceThis, name)}\n`
     }))
     ctx.body = stream
     stream.push(`<meta name="viewport" content="width=device-width" />`)
@@ -58,7 +61,12 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
 
 }
 
-export function detectBasicAgent(ctx: Koa.Context) {
+export function shouldBeBasic(ctx: Koa.Context) {
+    const { get } = ctx.query
+    return get === 'basic' || detectBasicAgent(ctx) && get !== 'nobasic'
+}
+
+function detectBasicAgent(ctx: Koa.Context) {
     const ua = ctx.get('user-agent')
     return autoBasic.get() && /^$|Mozilla\/4|WebKit\/([234]\d\d|5[012]\d|53[0123456])[. ]|Trident|Lynx|curl|Firefox\/(\d|[1234]\d)\./.test(ua)
         || autoBasic.compiled()?.test(ua)

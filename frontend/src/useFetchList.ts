@@ -23,12 +23,37 @@ export function usePath() {
     return location.pathname // this is encoded, while useLocation returned decoded
 }
 
+const REMOTE_SEARCH_KEYS = ['search', 'searchComment', 'wild'] as const
+
 // allow links with ?search
 let firstListRequest: any
 setTimeout(() => {// wait, urlParams is defined at top level
-    state.remoteSearch = urlParams.search ? { search: urlParams.search } : undefined
+    syncRemoteSearch(urlParams)
     firstListRequest = objFromKeys(['onlyFiles', 'onlyFolders'], x => x in urlParams || undefined)
 })
+addEventListener('popstate', () => syncRemoteSearch()) // resync state when browser history restores a searched URL
+subscribeKey(state, 'remoteSearch', value => {
+    const url = new URL(location.href)
+    for (const key of REMOTE_SEARCH_KEYS) {
+        const v = value?.[key]
+        if (v)
+            url.searchParams.set(key, v)
+        else
+            url.searchParams.delete(key)
+    }
+    history.replaceState(history.state, '', url)
+})
+
+function readRemoteSearch(params: Record<string, string>) {
+    const ret = _.pickBy(_.pick(params, REMOTE_SEARCH_KEYS))
+    return ret.search || ret.searchComment ? ret : undefined
+}
+
+function syncRemoteSearch(params=Object.fromEntries(new URLSearchParams(location.search))) {
+    const value = readRemoteSearch(params)
+    if (!_.isEqual(value, state.remoteSearch && readRemoteSearch(state.remoteSearch)))
+        state.remoteSearch = value
+}
 
 let autoPlayOnce: string | undefined = urlParams.autoplay // this will be consumed, so to only act once
 
@@ -50,13 +75,14 @@ export default function useFetchList() {
             state.stopSearch?.()
         }
         state.searchManuallyInterrupted = false
-        if (previous && previous !== uri && remoteSearch) {
+        if (previous && previous !== uri && remoteSearch && !readRemoteSearch(Object.fromEntries(new URLSearchParams(location.search)))) {
             state.remoteSearch = undefined
             return
         }
 
         const params = { uri, ...remoteSearch, ...firstListRequest }
         if (snap.listReloader === lastReloader.current && _.isEqual(params, lastParams.current)) return
+        const selected = previous === uri && snap.listReloader !== lastReloader.current ? state.selected : {}
         lastParams.current = params
         lastReloader.current = snap.listReloader
 
@@ -75,6 +101,10 @@ export default function useFetchList() {
             if (!chunk.length) return
             hfsEvent('newListEntries', { entries: chunk })
             state.list = sort([...state.list, ...chunk])
+            // restore only entries returned by the reload, leaving removed files unselected
+            for (const entry of chunk)
+                if (selected[entry.uri] && entry.canSelect())
+                    state.selected[entry.uri] = true
             if (playShuffle) // find first proper file, and play it
                 for (const x of chunk)
                     if (getShowComponent(x)) {
@@ -121,7 +151,7 @@ export default function useFetchList() {
                         // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then get_file_list the file (because we didn't know it was file or folder)
                         // it also happens accessing a web-page folder, and the reload is the right solution too.
                         if (error === HTTP_METHOD_NOT_ALLOWED) {
-                            state.messageOnly = t('download_starting', "Your download should now start")
+                            state.messageOnly = t`download_starting`
                             window.location.reload() // reload will start the download, because now we got authenticated
                             continue
                         }
@@ -131,7 +161,7 @@ export default function useFetchList() {
                             if (error === HTTP_UNAUTHORIZED && snap.username)
                                 apiCall('refresh_session').then(x => {
                                     if (x.username) // check if username was actually considered (or instead session was refused)
-                                        void alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning')
+                                        void alertDialog(t('wrong_account', { u: snap.username }), 'warning')
                                 })
                             state.loginRequired = error === HTTP_UNAUTHORIZED
                             lastParams.current = null
@@ -199,7 +229,7 @@ function sort(list: DirList) {
         if (!re.exec(a)) return 0
         const i = re.lastIndex
         if (i) { // doesn't start with a number
-            if (!b.startsWith(a.slice(0, i -1))) return 0 // b is comparable only if it has same leading part
+            if (textSortCompare(a.slice(0, i -1), b.slice(0, i -1))) return 0 // b is comparable only if it has same leading part
             a = a.slice(i-1)
             b = b.slice(i-1)
         }

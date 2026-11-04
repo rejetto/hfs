@@ -1,20 +1,20 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
+import { registerAcmeDnsProvider } from './acmeDns'
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
 import {
-    API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, IS_WINDOWS, MIME_AUTO, PLUGINS_PUB_URI, EMBEDDED_LANGUAGE,
-    HTTP_NOT_FOUND,
+    API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, MIME_AUTO, PLUGINS_PUB_URI, EMBEDDED_LANGUAGE, HTTP_NOT_FOUND,
 } from './const'
 import * as Const from './const'
 import Koa from 'koa'
 import {
-    escapeGlobPath, callable, Callback, CFG, debounceAsync, Dict, onlyTruthy, prefix,
+    escapeGlobPath, callable, Callback, callAsPromise, CFG, debounceAsync, Dict, onlyTruthy, prefix,
     PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir, objFromKeys, patchKey
 } from './misc'
 import * as misc from './misc'
-import { defineConfig, getConfig, subMultipleConfigs } from './config'
+import { currentVersion, defineConfig, getConfig, subMultipleConfigs, Version } from './config'
 import { DirEntry } from './api.get_file_list'
 import { normalizeFilename, VfsNode } from './vfs'
 import { serveFile } from './serveFile'
@@ -22,7 +22,7 @@ import events from './events'
 import { mkdir, readdir, readFile, rm } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
 import { getConnections } from './connections'
-import { dirname, join, resolve } from 'path'
+import { dirname, join, resolve, sep } from 'path'
 import { watchLoadCustomHtml } from './customHtml'
 import { KvStorage, KvStorageOptions } from '@rejetto/kvstorage'
 import { onProcessExit } from './first'
@@ -35,6 +35,7 @@ import { addAccount, ctxBelongsTo, delAccount, getAccount, getUsernames, renameA
 import { getCurrentUsername } from './auth'
 import { CustomizedIcons, watchIconsFolder } from './icons'
 import { getServerStatus } from './listen'
+import { parseServerCode } from './serverCode'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
@@ -84,9 +85,9 @@ export async function startPlugin(id: string) {
 }
 
 async function waitRunning(id: string, state=true) {
-    while (isPluginRunning(id) !== state) {
-        await wait(500)
-        const error = getError(id)
+    while (state ? !isPluginRunning(id) : plugins.has(id)) { // unload clears started before closing resources; the map entry is removed only after cleanup finishes
+        await wait(50)
+        const error = state && getError(id)
         if (error)
             throw Error(error)
     }
@@ -123,9 +124,11 @@ export function getPluginConfigFields(id: string) {
     return plugins.get(id)?.getData().config
 }
 
-async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict) {
-    const undoEvents: any[] = []
+async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict, onInitError?: () => Promisable<unknown>) {
+    const cleanups: (() => unknown)[] = []
     const timeouts: NodeJS.Timeout[] = []
+    let unloading = false
+    let unload = pl.unload
     const controlledEvents = Object.create(events, objFromKeys(['on', 'once', 'multi'], k => ({
         value() {
             if (k === 'multi')
@@ -133,7 +136,7 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict) {
             else
                 arguments[1] = trap(arguments[1])
             const ret = (events[k] as any)(...arguments)
-            undoEvents.push(ret)
+            cleanups.push(ret)
             return ret
 
             function trap(cb: unknown) {
@@ -156,7 +159,7 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict) {
 
         }
     })))
-    const res = await pl.init?.({
+    const res = await callAsPromise(() => pl.init?.({
         Const, require,
         // intercept all subscriptions, so to be able to undo them on unload
         events: controlledEvents,
@@ -181,28 +184,56 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict) {
             timeouts.push(ret)
             return ret
         },
-        async onServer(cb: Callback<object>) {
+        async onServer(cb: Callback<object, unknown>) {
             const res = await getServerStatus()
-            if (res.http.srv)
-                cb(res.http.srv)
-            if (res.https.srv)
-                cb(res.https.srv)
-            controlledEvents.on('listening', ({ server }: any) => cb(server))
+            if (unloading) return
+            // subscribe before awaiting callbacks so new servers are not missed during async setup
+            controlledEvents.on('listening', ({ server }: any) => handleServer(server))
+            await Promise.all([res.http.srv, res.https.srv].map(server => server && handleServer(server)))
+
+            async function handleServer(server: object) {
+                if (unloading) return
+                const result = await cb(server)
+                if (typeof result === 'function') {
+                    // an async callback may finish after the plugin has already unloaded
+                    if (unloading)
+                        await callAsPromise(() => result()).catch(console.error)
+                    else
+                        cleanups.push(() => result())
+                }
+                return result
+            }
+        },
+        registerAcmeDnsProvider(...args: Parameters<typeof registerAcmeDnsProvider>) {
+            if (unloading) throw Error("Plugin is unloading")
+            const unregister = registerAcmeDnsProvider(...args)
+            cleanups.push(unregister)
+            return unregister
         },
         misc, _,
         customApiCall, notifyClient, addBlock, ctxBelongsTo, getConnections, normalizeFilename,
         getCurrentUsername, getAccount, getUsernames, addAccount, delAccount, updateAccount, renameAccount,
         ...morePassedToInit
+    })).catch(async e => {
+        // failed initialization must not leave any partially allocated plugin resources active
+        await cleanup().catch(console.error)
+        await onInitError?.()
+        throw e
     })
     Object.assign(pl, typeof res === 'function' ? { unload: res } : res)
-    patchKey(pl, 'unload', was => () => {
-        for (const x of timeouts) clearTimeout(x)
-        for (const cb of undoEvents) cb()
-        if (typeof was === 'function')
-            return was(...arguments)
-    })
+    unload = pl.unload
+    patchKey(pl, 'unload', () => cleanup)
     events.emit('pluginInitialized', pl)
     return pl
+
+    async function cleanup() {
+        unloading = true
+        for (const x of timeouts) clearTimeout(x)
+        // run every cleanup even if one fails, and finish before the plugin's unload hook
+        await Promise.all(cleanups.map(cb => callAsPromise(cb).catch(console.error)))
+        if (typeof unload === 'function')
+            return unload()
+    }
 }
 
 export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
@@ -238,8 +269,8 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
             const a = path.substring(PLUGINS_PUB_URI.length).split('/')
             const name = a.shift()!
             if (plugins.has(name)) { // do it only if the plugin is loaded
-                if (ctx.get('referer')?.endsWith('/'))
-                    ctx.state.considerAsGui = true
+                // this server-owned route is GUI content; client headers must not grant the exemption
+                ctx.state.considerAsGui = true
                 await serveFile(ctx, plugins.get(name)!.folder + '/public/' + a.join('/'), MIME_AUTO)
             }
             return
@@ -258,7 +289,7 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
 
 
     function printChange(id: string) {
-        if (id === SERVER_CODE_ID || (lastStatus === ctx.status && lastBody === ctx.body)) return
+        if (id.startsWith(SERVER_CODE_ID) || (lastStatus === ctx.status && lastBody === ctx.body)) return
         console.debug("Plugin changed response:", id)
         lastStatus = ctx.status
         lastBody = ctx.body
@@ -325,11 +356,13 @@ export class Plugin implements CommonPluginInterface {
     get version(): undefined | number { return this.data?.version }
     get description(): undefined | string { return this.data?.description }
     get apiRequired(): undefined | number | [number,number] { return this.data?.apiRequired }
+    get versionRequired(): undefined | string | [string,string] { return this.data?.versionRequired }
     get isTheme(): undefined | boolean { return this.data?.isTheme }
     get repo(): undefined | Repo { return this.data?.repo }
     get depend(): undefined | Depend { return this.data?.depend }
     get afterPlugin(): undefined | string { return this.data?.afterPlugin }
     get beforePlugin(): undefined | string { return this.data?.beforePlugin }
+    get disableDefaultStyle(): undefined | boolean { return this.data?.disableDefaultStyle }
 
     get middleware(): undefined | PluginMiddleware {
         return this.data?.middleware
@@ -357,33 +390,41 @@ export class Plugin implements CommonPluginInterface {
             console.log('Error unloading plugin', id, String(e))
         }
         await this.onUnload()
-        if (!reloading && id !== SERVER_CODE_ID) // we already printed 'reloading'
+        if (!reloading && !id.startsWith(SERVER_CODE_ID)) // we already printed 'reloading'
             console.log('Unloaded plugin', id)
         if (this.data)
             this.data.unload = undefined
     }
 }
 
-export const SERVER_CODE_ID = '.' // a name that will surely be not found among plugin folders
-const serverCode = defineConfig('server_code', '', async (script, { k }) => {
-    try { (await serverCode.compiled())?.unload() }
-    catch {}
-    const res: any = {}
-    try {
-        new Function('exports,require', script)(res, require) // parse
-        await initPlugin(res)
-        res.getCustomHtml = () => callable(res.customHtml) || {}
-        return new Plugin(SERVER_CODE_ID, '', res, _.noop)
-    }
-    catch (e: any) {
-        return console.error(k + ':', e.message || String(e))
-    }
+export const SERVER_CODE_ID = '/' // a name that will surely be not found among plugin folders
+let unloadServerCode = _.noop
+defineConfig(CFG.server_code, '').sub(async text => {
+    await unloadServerCode()
+    const asPlugins = await Promise.all(parseServerCode(text).map(async ({ name, code }, i) => {
+        const res: any = {}
+        try {
+            new Function('exports,require', code)(res, require) // parse
+            await initPlugin(res)
+            res.getCustomHtml = () => callable(res.customHtml) || {}
+            // server-code sections can share or omit names, so include the index to keep internal plugin ids unique
+            return new Plugin(SERVER_CODE_ID + i + ':' + name, '', res, _.noop)
+        }
+        catch (e: any) {
+            return console.error(name + ':', e.message || String(e))
+        }
+    }))
+    // server_code is a side-effect config, so keep its cleanup outside compiled()
+    unloadServerCode = () => Promise.all(asPlugins.map(p => {
+        try { return p?.unload() } // catch sync errors
+        catch(e) { console.error(e) }
+    })).catch(console.error)
 })
 
 export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string, idx:number)=> T, includeServerCode=true) {
     let i = 0
     return Array.from(plugins).map(([plName,pl]) => {
-        if (!includeServerCode && plName === SERVER_CODE_ID) return
+        if (!includeServerCode && plName.startsWith(SERVER_CODE_ID)) return
         try { return cb(pl,plName,i++) }
         catch(e) {
             console.log('Plugin error', plName, String(e))
@@ -393,7 +434,7 @@ export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string, id
 
 export function firstPlugin<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T, includeServerCode=true) {
     for (const [plName, pl] of plugins.entries()) {
-        if (!includeServerCode && plName === SERVER_CODE_ID) continue
+        if (!includeServerCode && plName.startsWith(SERVER_CODE_ID)) continue
         try {
             const ret = cb(pl,plName)
             if (ret !== undefined)
@@ -411,18 +452,20 @@ type CallMeAfter = ()=>any
 
 export type Repo = string | { web?: string, main: string, zip?: string, zipRoot?: string } // string is github, object is custom
 type Depend = { repo: string, version?: number }[]
-export interface CommonPluginInterface {
+export type CommonPluginInterface = {
     id: string
     description?: string
     version?: number
     apiRequired?: number | [number,number]
+    versionRequired?: string | [string,string]
     repo?: Repo
     depend?: Depend
     isTheme?: boolean | 'light' | 'dark'
+    disableDefaultStyle?: boolean
     preview?: string | string[]
-    changelog?: unknown
+    changelog?: { version: number, message: string }[]
 }
-export interface InactivePlugin extends CommonPluginInterface {
+export type InactivePlugin = CommonPluginInterface & {
     branch?: string
     badApi?: string
     error?: string
@@ -440,12 +483,12 @@ if (!existsSync(PATH))
     catch {}
 export const pluginsWatcher = watchDir(PATH, rescanAsap)
 
-export const enablePlugins = defineConfig('enable_plugins', ['antibrute'])
+export const enablePlugins = defineConfig(CFG.enable_plugins, ['antibrute'])
 enablePlugins.sub(rescanAsap)
 
 export const suspendPlugins = defineConfig(CFG.suspend_plugins, false)
 
-export const pluginsConfig = defineConfig('plugins_config', {} as Record<string,any>)
+export const pluginsConfig = defineConfig(CFG.plugins_config, {} as Record<string,any>)
 export const PLUGIN_MAIN_FILE = 'plugin.js'
 
 const pluginWatchers = new Map<string, ReturnType<typeof watchPlugin>>()
@@ -549,7 +592,7 @@ function watchPlugin(id: string, path: string) {
 
             await alreadyRunning?.unload(true)
             console.debug("Starting plugin", id)
-            const storageDir = resolve(PATH, id, STORAGE_FOLDER) + (IS_WINDOWS ? '\\' : '/')
+            const storageDir = resolve(PATH, id, STORAGE_FOLDER) + sep
             await mkdir(storageDir, { recursive: true })
             const openDbs: KvStorage[] = []
             const subbedConfigs: Callback[] = []
@@ -602,7 +645,7 @@ function watchPlugin(id: string, path: string) {
                 async i18n(ctx: any) {
                     return i18nFromTranslations(await getLangData(ctx), EMBEDDED_LANGUAGE)
                 },
-            })
+            }, unloadResources)
             const folder = dirname(module)
             const { sections, unwatch } = watchLoadCustomHtml(folder)
             pluginData.getCustomHtml = () =>
@@ -612,9 +655,7 @@ function watchPlugin(id: string, path: string) {
             const plugin = new Plugin(id, folder, pluginData, async () => {
                 unwatchIcons()
                 unwatch()
-                for (const x of subbedConfigs) x()
-                await Promise.allSettled(openDbs.map(x => x.close()))
-                openDbs.length = 0
+                await unloadResources()
             })
             pluginReady.resolve()
             if (alreadyRunning)
@@ -626,6 +667,12 @@ function watchPlugin(id: string, path: string) {
                 events.emit(wasInstalled ? 'pluginStarted' : 'pluginInstalled', plugin)
             }
             events.emit('pluginStarted:'+id)
+
+            async function unloadResources() {
+                for (const x of subbedConfigs) x()
+                await Promise.allSettled(openDbs.map(x => x.close()))
+                openDbs.length = 0
+            }
         } catch (e: any) {
             await markItInactive()
             const parsed = e.stack?.split('\n\n') // this form is used by syntax-errors inside the plugin, which is useful to show
@@ -690,12 +737,17 @@ export function parsePluginSource(id: string, source: string) {
     pl.repo = tryJson(/exports.repo\s*=\s*([^\s;]+)/.exec(source)?.[1])
     pl.version = Number(/exports.version\s*=\s*(\d*\.?\d+)/.exec(source)?.[1]) ?? undefined
     pl.apiRequired = tryJson(/exports.apiRequired\s*=\s*([ \d.,[\]]+)/.exec(source)?.[1]) ?? undefined
+    pl.versionRequired = tryJson(/exports.versionRequired\s*=\s*("(?:[^"\\]|\\.)*"|\[[\s\S]*?])/.exec(source)?.[1]) ?? undefined
     pl.isTheme = tryJson(/exports.isTheme\s*=\s*(true|false|"light"|"dark")/.exec(source)?.[1]) ?? (id.endsWith('-theme') || undefined)
     pl.preview = tryJson(/exports.preview\s*=\s*("(?:[^"\\]|\\.)*"|\[[\s\S]*?\])/.exec(source)?.[1]) ?? undefined
     pl.depend = tryJson(/exports.depend\s*=\s*(\[[\s\S]*?])/m.exec(source)?.[1])?.filter((x: any) =>
         typeof x.repo === 'string' && x.version === undefined || typeof x.version === 'number'
             || console.warn("Plugin dependency discarded", x) )
     pl.changelog = tryJson(/exports.changelog\s*=\s*(\[[\s\S]*?])/m.exec(source)?.[1])
+    if (!Array.isArray(pl.changelog))
+        delete pl.changelog
+    else if (_.remove(pl.changelog, entry => !Number.isFinite(entry?.version) || typeof entry?.message !== 'string').length)
+        console.warn("Invalid plugin changelog entries discarded", id)
     if (Array.isArray(pl.apiRequired) && (pl.apiRequired.length !== 2 || !pl.apiRequired.every(_.isFinite))) // validate [from,to] form
         pl.apiRequired = undefined
     calculateBadApi(pl)
@@ -704,10 +756,14 @@ export function parsePluginSource(id: string, source: string) {
 
 function calculateBadApi(data: InactivePlugin) {
     const r = data.apiRequired
+    const v = data.versionRequired
     const [min=0, max=Infinity] = Array.isArray(r) ? r : [r] // normalize data type
-    data.badApi = !r ? "missing mandatory property apiRequired"
-        : min > API_VERSION ? "may not work correctly as it is designed for a newer version of HFS - check for updates"
-        : min < COMPATIBLE_API_VERSION || max < API_VERSION ? "may not work correctly as it is designed for an older version of HFS - check for updates"
+    const versions = Array.isArray(v) ? v : v === undefined ? [] : [v]
+    const [minVersion, maxVersion] = versions
+    data.badApi = !r && !v ? "missing mandatory property apiRequired or versionRequired"
+        : (Array.isArray(v) && v.length !== 2) || !versions.every(version => typeof version === 'string' && Number.isFinite(new Version(version).scalar)) ? "invalid versionRequired"
+        : min > API_VERSION || minVersion && currentVersion.olderThan(minVersion) ? "may not work correctly as it is designed for a newer version of HFS - check for updates"
+        : r && (min < COMPATIBLE_API_VERSION || max < API_VERSION) || maxVersion && new Version(maxVersion).olderThan(Const.VERSION) ? "may not work correctly as it is designed for an older version of HFS - check for updates"
             : undefined
 }
 

@@ -3,7 +3,7 @@ import {
     HTTP_PRECONDITION_FAILED, UPLOAD_TEMP_HASH, MTIME_CHECK,
     buildUrlQueryString, getHFS, pathEncode, pendingPromise, prefix, randomId, tryJson, wait, with_,
 } from '@hfs/shared'
-import { state } from './state'
+import { getUploadOnExisting, state, type UploadOnExisting } from './state'
 import { alertDialog, toast } from './dialog'
 import { reloadList } from './useFetchList'
 import { proxy, ref, snapshot, subscribe } from 'valtio'
@@ -13,14 +13,14 @@ import { UploadStatus } from './upload'
 import i18n from './i18n'
 const { t } = i18n
 
-export interface ToUpload { file: File, comment?: string, path: string, to?: string, error?: string }
+export interface ToUpload { file: File, comment?: string, path: string, error?: string }
 export const uploadState = proxy<{
     done: (ToUpload & { response?: any })[] // res will contain the response from the server,
     doneByte: number
     errors: ToUpload[]
     interrupted: ToUpload[]
     adding: ToUpload[]
-    qs: { to: string, entries: ToUpload[] }[]
+    qs: { to: string, entries: ToUpload[], existing: UploadOnExisting }[]
     paused: boolean
     uploading?: ToUpload
     hashing?: number
@@ -47,7 +47,7 @@ export const uploadState = proxy<{
 window.onbeforeunload = ev => {
     if (!uploadState.qs.length) return
     ev.preventDefault()
-    return ev.returnValue = t("Uploading") // modern browsers ignore this message
+    return ev.returnValue = t`Uploading` // modern browsers ignore this message
 }
 
 let stuckSince = Infinity
@@ -81,6 +81,8 @@ setInterval(() => {
 }, 2_000)
 
 let currentReq: XMLHttpRequest | undefined
+// cleanup must wait for the aborted request to register its temp file server-side
+let currentRequestIsOver: Promise<unknown> | undefined
 const id = randomId()
 let userAborted = false
 let closeLastDialog: undefined | (() => void)
@@ -92,7 +94,7 @@ export function resetReloadOnClose() {
     return true
 }
 
-export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
+export async function startUpload(toUpload: ToUpload, to: string, resume=0, existing=getUploadOnExisting()) {
     console.debug('start upload', toUpload.path, resume)
     uploadState.uploading = toUpload
     uploadState.progress = 0
@@ -105,6 +107,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     do { // at least one iteration, even for empty files
         let req = currentReq = new XMLHttpRequest()
         const requestIsOver = pendingPromise()
+        currentRequestIsOver = requestIsOver
         stuckSince = Date.now()
         // beware of 'abort' event: it isn't triggered if connection isn't established yet
         req.onloadend = async () => { // loadend = fired for both success and error. Safari doesn't always fire this on disconnections, leaving readyState = 3. The problem is mitigated by the abort-when-stuck mechanism above.
@@ -145,7 +148,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
                 if (userAborted || status === HTTP_CONFLICT) { // HTTP_CONFLICT = skipped because existing, or upload in progress
                     if (req.responseText === 'retry') // it's our previous request that didn't release the lock yet
                         return await wait(2000) // wait before resolving `finished`
-                    toUpload.error = status ? t('upload_conflict', "already exists") : t`Interrupted` // the I is uppercase because we are just recycling an old string (with all its translations)
+                    toUpload.error = status ? t`upload_conflict` : t`Interrupted` // the I is uppercase because we are just recycling an old string (with all its translations)
                     uploadState.interrupted.push(toUpload)
                 }
                 else if (status >= 400)
@@ -166,6 +169,8 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
             }
             finally {
                 requestIsOver.resolve()
+                if (currentRequestIsOver === requestIsOver) // a stale callback must not hide a newer in-flight upload request
+                    currentRequestIsOver = undefined
             }
         }
         let lastProgress = 0
@@ -184,7 +189,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
             resume: resume + (strictResume ? '!' : ''),
             partial: partial ? fullSize - resume : undefined, // how much space we need
             comment: toUpload.comment || undefined,
-            existing: with_(state.uploadOnExisting, x => x !== 'rename' ? x : undefined), // rename is the default
+            existing: with_(existing, x => x !== 'rename' ? x : undefined), // rename is the default
         })
         req.open('PUT', uriPath + queryString, true)
         const body = toUpload.file.slice(resume, splitSize ? resume + splitSize : undefined)
@@ -194,14 +199,14 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
 
     function error(status: number) {
         const ERRORS = {
-            [HTTP_PAYLOAD_TOO_LARGE]: t`file too large` + (getHFS().proxyDetected ?  '\n– ' + t('proxy_413', "Check for this limit on the proxy server") : ''),
-            [HTTP_CONFLICT]: t('upload_conflict', "already exists"),
+            [HTTP_PAYLOAD_TOO_LARGE]: t`file too large` + (getHFS().proxyDetected ?  '\n– ' + t`proxy_413` : ''),
+            [HTTP_CONFLICT]: t`upload_conflict`,
             [HTTP_INSUFFICIENT_STORAGE]: t`insufficient storage`,
         }
         const specifier = (ERRORS as any)[status] || HTTP_MESSAGES[status] || status
         toUpload.error = specifier
         if (uploadState.errors.push(toUpload) > 1) return
-        const msg = t('failed_upload', { name: toUpload.path }, "Couldn't upload {name}") + prefix(': ', specifier)
+        const msg = t('failed_upload', { name: toUpload.path }) + prefix(': ', specifier)
         closeLastDialog?.()
         closeLastDialog = alertDialog(msg, 'error')?.close
     }
@@ -221,7 +226,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         // freeze and reset
         const snap = snapshot(uploadState)
         resetCounters()
-        const msg = h('div', {}, t(['upload_concluded', "Upload terminated"], "Upload concluded:"),
+        const msg = h('div', {}, t`upload_concluded`,
             h(UploadStatus, { snapshot: snap, display: 'flex', flexDirection: 'column' }) )
         if (snap.errors.length || snap.interrupted.length)
             alertDialog(msg, 'warning')
@@ -232,32 +237,36 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
 
 export function abortCurrentUpload(userAskedForIt=false) {
     userAborted = userAskedForIt
+    const requestIsOver = currentRequestIsOver
     currentReq?.abort()
+    return requestIsOver
 }
+
 subscribe(uploadState, () => {
     const [cur] = uploadState.qs
     if (cur?.entries.length && !uploadState.uploading && !uploadState.paused)
-        void startUpload(cur.entries[0], cur.to)
+        void startUpload(cur.entries[0], cur.to, 0, cur.existing)
 })
 
-export async function enqueueUpload(entries: ToUpload[], to=location.pathname) {
-    if (_.remove(entries, x => !simulateBrowserAccept(x.file)).length)
-        await alertDialog(t('upload_file_rejected', "Some files were not accepted"), 'warning')
+export async function enqueueUpload(entries: ToUpload[], to=location.pathname, accept=state.props?.accept,
+                                    existing=getUploadOnExisting()) {
+    // keep queued uploads independent from later navigation or option changes
+    if (_.remove(entries, x => !simulateBrowserAccept(x.file, accept)).length)
+        await alertDialog(t`upload_file_rejected`, 'warning')
 
     entries = _.uniqBy(entries, x => x.path)
     if (!entries.length) return
     entries = entries.map(x => ({ ...x, file: ref(x.file) })) // avoid valtio to mess with File object
-    const q = _.find(uploadState.qs, { to })
+    const q = _.find(uploadState.qs, { to, existing })
     if (!q)
-        return uploadState.qs.push({ to, entries })
+        return uploadState.qs.push({ to, entries, existing })
     const missing = _.differenceBy(entries, q.entries, x => x.path)
     q.entries.push(...missing.map(ref))
 }
 
-export function simulateBrowserAccept(f: File) {
-    const { props } = state
-    if (!props?.accept) return true
-    return normalizeAccept(props?.accept)!.split(/ *[|,] */).some(pattern =>
+export function simulateBrowserAccept(f: File, accept=state.props?.accept) {
+    if (!accept) return true
+    return normalizeAccept(accept)!.split(/ *[|,] */).some(pattern =>
         pattern.startsWith('.') ? f.name.endsWith(pattern)
             : f.type.match(pattern.replace('.','\\.').replace('*', '.*')) // '.' for .ext and '*' for 'image/*'
     )
@@ -323,4 +332,3 @@ async function calcHash(file: File, limit=Infinity) {
         return ret
     }
 }
-

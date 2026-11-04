@@ -4,7 +4,7 @@ import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, formDialog, toast } from './dialog'
 import {
-    err2msg, ErrorMsg, onlyTruthy, prefix, useStateMounted, working, buildUrlQueryString, hIcon,
+    err2msg, ErrorMsg, onlyTruthy, prefix, working, buildUrlQueryString, hIcon,
     WIKI_URL, HTTP_NOT_FOUND
 } from './misc'
 import { loginDialog } from './login'
@@ -34,12 +34,13 @@ export function MenuPanel() {
 
     const {t} = useI18N()
 
-    const [justStarted, setJustStarted] = useStateMounted(false)
+    const [justStarted, setJustStarted] = useState(false)
     useEffect(() => {
-        if (!stopSearch) return
         setJustStarted(false)
-        setTimeout(() => setJustStarted(true), 1000)
-    }, [stopSearch, setJustStarted])
+        if (!stopSearch) return
+        const timeout = setTimeout(() => setJustStarted(true), 1000)
+        return () => clearTimeout(timeout)
+    }, [stopSearch])
 
     // compact repeated folder names so search selections from the same folders are less likely to hit URL limits (64kb)
     const ofs = location.pathname.length
@@ -60,7 +61,7 @@ export function MenuPanel() {
                 id: 'select-button',
                 icon: 'check',
                 label: t`Select`,
-                tooltip: t('select_tooltip', `Selection applies to "Zip" and "Delete" (when available), but you can also filter the list`),
+                tooltip: t`select_tooltip`,
                 toggled: showFilter,
                 onClick() {
                     state.showFilter = !showFilter
@@ -70,16 +71,15 @@ export function MenuPanel() {
                 id: 'delete-button',
                 icon: 'delete',
                 label: t`Delete`,
-                className: 'show-sliding',
                 disabled: !list,
-                tooltip: t('delete_select', "Select something to delete"),
+                tooltip: t`delete_select`,
                 onClick: () => deleteFiles(Object.keys(selected))
             } : {
                 id: 'upload-button',
                 icon: 'upload',
                 label: t`Upload`,
                 disabled: !changingButton,
-                tabIndex: changingButton ? undefined : -1,
+                'aria-hidden': !changingButton,
                 className: 'sliding ' + (changingButton ? '' : 'hide-sliding') + (uploading && !uploadDialogIsOpen ? '  ani-working' : ''),
                 onClick: showUpload,
             }),
@@ -87,6 +87,7 @@ export function MenuPanel() {
                 id: 'cut-button',
                 icon: 'cut',
                 label: t`Cut`,
+                disabled: !list,
                 onClick() {
                     cut(onlyTruthy(Object.keys(selected).map(uri => _.find(state.list, { uri }))))
                 }
@@ -117,22 +118,24 @@ export function MenuPanel() {
                 icon: 'archive',
                 label: t`Zip`,
                 disabled: !can_archive,
-                tooltip: list ? t('zip_tooltip_selected', "Download selected elements as a single zip file")
-                    : t('zip_tooltip_whole', "Download whole list (unfiltered) as a single zip file. If you select some elements, only those will be downloaded."),
+                'aria-hidden': !can_archive,
+                className: 'sliding ' + (can_archive ? '' : 'hide-sliding'),
+                tooltip: list ? t`zip_tooltip_selected`
+                    : t`zip_tooltip_whole`,
                 href: buildUrlQueryString(_.pickBy({
                     get: 'zip',
                     ...remoteSearch,
                     list: isAllSelected() ? undefined : list
                 })),
                 ...!list && {
-                    confirm: remoteSearch ? t('zip_confirm_search', "Download ALL results of this search as ZIP archive?")
-                        : t('zip_confirm_folder', "Download WHOLE folder as ZIP archive?"),
+                    confirm: remoteSearch ? t`zip_confirm_search`
+                        : t`zip_confirm_folder`,
                     confirmOptions: {
                         afterButtons: h('button', {
                             onClick() {
                                 state.showFilter = true
                                 closeDialog(false)
-                                return alertDialog(t('zip_checkboxes', "Use checkboxes to select the files, then you can use Zip again"))
+                                return alertDialog(t`zip_checkboxes`)
                             },
                         }, t`Select some files`),
                     }
@@ -163,12 +166,14 @@ function isAllSelected() {
     return state.list.every(x => state.selected[x.uri])
 }
 
-export function MenuLink({ href, target, confirm, confirmOptions, id, ...rest }: BtnProps & { href: string, target?: string, confirm?: string, confirmOptions?: ConfirmOptions }) {
+export function MenuLink({ href, target, confirm, confirmOptions, id, className, ...rest }: BtnProps & { href: string, target?: string, confirm?: string, confirmOptions?: ConfirmOptions }) {
     return h('a', {
         tabIndex: -1,
         href,
         target,
         id,
+        className,
+        'aria-hidden': rest['aria-hidden'],
         async onClick(ev) {
             if (!confirm) return
             ev.preventDefault()
@@ -197,7 +202,7 @@ function LoginButton() {
 
 export async function deleteFiles(uris: string[]) {
     const n = uris.length
-    if (!await confirmDialog(t('delete_confirm', {n}, "Delete {n,plural, one{# item} other{# items}}?")))
+    if (!await confirmDialog(t('delete_confirm', {n})))
         return false
     const stop = working()
     const errors = onlyTruthy(await Promise.all(uris.map(uri =>
@@ -207,13 +212,14 @@ export async function deleteFiles(uris: string[]) {
     stop()
     reloadList()
     const e = errors.length
-    const msg = t('delete_completed', {n: n-e}, "Deletion: {n} completed")
+    const msg = t('delete_completed', {n: n-e})
     if (n === 1 && !e)
         return toast(msg, 'success')
     void alertDialog(h(Fragment, {},
-        msg, e > 0 && t('delete_failed', {n:e}, ", {n} failed"),
+        msg, e > 0 && t('delete_failed', {n:e}),
         h('div', { style: { textAlign: 'left', marginTop: '1em', } },
-            ...errors.map(e => h(ErrorMsg, { err: t(err2msg(e.err)) + ': ' + e.uri }))
+            ...errors.map(e => h(ErrorMsg, { err: t(err2msg(e.err)) + ': ' + (e.err.data?.uri || e.uri)
+                + (e.err.data?.uri ? '. ' + t`Nothing was deleted for this item.` : '') }))
         )
     ))
 }
@@ -226,7 +232,7 @@ function searchDialog() {
         Content() {
             const style = { width: 0, minWidth: '100%', maxWidth: '100%', boxSizing: 'border-box' }
             return h(Fragment, {},
-                t('search_msg', "Search this folder and sub-folders"),
+                t`search_msg`,
                 h('div', { className: 'field name' },
                     h('label', { htmlFor: 'name' }, t`Name`),
                     h('input', { name: 'name', style, autoFocus: true, defaultValue: was?.search }),
@@ -245,11 +251,11 @@ function searchDialog() {
         }
     }).then(res => {
         if (!res) return
-        state.remoteSearch = !res.name && !res.comment ? undefined : {
+        state.remoteSearch = !res.name && !res.comment ? undefined : _.pickBy({
             search: res.name || undefined,
             searchComment: res.comment || undefined,
             wild: res.wild ? undefined : 'no'
-        }
+        })
         state.stopSearch?.()
     })
 }

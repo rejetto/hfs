@@ -16,7 +16,7 @@ import netApis from './api.net'
 import logApis from './api.log'
 import certApis from './api.cert'
 import { getConnections } from './connections'
-import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, try_, typedEntries, waitFor } from './misc'
+import { normalizeIp, apiAssertTypes, CFG, debounceAsync, isLocalHost, makeNetMatcher, try_, typedEntries, waitFor } from './misc'
 import { accountCanLoginAdmin, accounts } from './perm'
 import Koa from 'koa'
 import { cloudflareDetected, getProxyDetected } from './middlewares'
@@ -25,7 +25,7 @@ import { promisify } from 'util'
 import { customHtmlSections, customHtml, saveCustomHtml, disableCustomHtml } from './customHtml'
 import _ from 'lodash'
 import {
-    autoCheckUpdateResult, getUpdates, getVersions, localUpdateAvailable, update, updateSupported, previousAvailable
+    autoCheckUpdateResult, getUpdates, getVersions, localUpdateAvailable, update, updateNotSupported, previousAvailable
 } from './update'
 import { resolve } from 'path'
 import { getErrorSections } from './errorPages'
@@ -36,6 +36,7 @@ import { get_dynamic_dns_error } from './ddns'
 import { addBlock, BlockingRule, isBlocked } from './block'
 import { alerts, blacklistedInstalledPlugins, getProjectInfo } from './github'
 import { acmeRenewError } from './acme'
+import { quit } from './first'
 
 export const adminApis = {
 
@@ -109,7 +110,7 @@ export const adminApis = {
         })
         const res = await Promise.allSettled(ips.map(ip2country))
         return {
-            codes: res.map(x => x.status === 'rejected' || x.value === '-' ? '' : x.value)
+            codes: res.map(x => x.status === 'rejected' ? '' : x.value)
         }
     },
     is_ip_blocked({ ips }) {
@@ -137,11 +138,11 @@ export const adminApis = {
     },
 
     quit() {
-        setTimeout(() => process.exit())
+        setTimeout(quit) // let the API response finish before starting ordered cleanup
         return {}
     },
 
-    async get_status() {
+    async get_status(_params, ctx) {
         return {
             started: HFS_STARTED,
             build: BUILD_TIMESTAMP,
@@ -154,10 +155,11 @@ export const adminApis = {
             configFile: configFile.getPath(),
             urls: await getUrls(),
             ips: await getIps(false),
+            connectionAddress: normalizeIp(ctx.socket.localAddress || ''),
             baseUrl: await getBaseUrlOrDefault(),
             roots: roots.get(),
             anyAccountCanLoginAdmin: anyAccountCanLoginAdmin(),
-            updatePossible: !await updateSupported() ? false : (await localUpdateAvailable()) ? 'local' : true,
+            updatePossible: !await updateNotSupported() && (await localUpdateAvailable() ? 'local' : true),
             previousVersionAvailable: await previousAvailable(),
             autoCheckUpdateResult: autoCheckUpdateResult.get(), // in this form, we get the same type of the serialized json
             alerts,
@@ -172,7 +174,7 @@ export const adminApis = {
         }
     },
 
-    async add_block({ merge, ip, expire, comment }: BlockingRule & { merge?: Partial<BlockingRule> }) {
+    add_block({ merge, ip, expire, comment }: BlockingRule & { merge?: Partial<BlockingRule> }) {
         apiAssertTypes({
             string: { ip },
             string_undefined: { comment, expire },
@@ -195,6 +197,7 @@ export const adminApis = {
 
 } satisfies ApiHandlers
 
+// wrap every admin API so individual handlers cannot skip access control
 for (const [k, was] of typedEntries(adminApis))
     (adminApis[k] as any) = ((params, ctx) => {
         if (ctxAdminAccess(ctx))
@@ -205,10 +208,10 @@ for (const [k, was] of typedEntries(adminApis))
             : new ApiError(HTTP_UNAUTHORIZED, props)
     }) satisfies ApiHandler
 
-export const localhostAdmin = defineConfig('localhost_admin', true)
-export const adminNet = defineConfig('admin_net', '', v => makeNetMatcher(v, true) )
-export const favicon = defineConfig('favicon', '')
-export const title = defineConfig('title', "File server")
+export const localhostAdmin = defineConfig(CFG.localhost_admin, true)
+export const adminNet = defineConfig(CFG.admin_net, '', v => makeNetMatcher(v, true) )
+export const favicon = defineConfig(CFG.favicon, '')
+export const title = defineConfig(CFG.title, "File server")
 
 export function ctxAdminAccess(ctx: Koa.Context) {
     if (preventAdminAccess(ctx))
@@ -235,5 +238,6 @@ export function anyAccountCanLoginAdmin() {
 }
 
 export function preventAdminAccess(ctx: Koa.Context) {
-    return !isLocalHost(ctx) && !adminNet.compiled()(ctx.ip)
+    // only direct localhost requests are exempt from admin_net; reject proxy-reported loopback
+    return isLocalHost(ctx) ? Boolean(ctx.state.whenProxyDetected) : !adminNet.compiled()(ctx.ip)
 }

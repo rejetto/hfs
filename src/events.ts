@@ -22,8 +22,7 @@ export class BetterEventEmitter {
             this.emit(e + LISTENERS_SUFFIX, cbs, listener)
         }
         if (callNow)
-            try { listener() }
-            catch {}
+            Promise.resolve().then(listener).catch(console.error)
         return () => {
             for (const e of event) {
                 const cbs = this.listeners.get(e)
@@ -57,6 +56,11 @@ export class BetterEventEmitter {
     }
     anyListener(event: string) {
         return Boolean(this.listeners.get(event)?.size)
+    }
+    hasOtherListeners(event: string, mine: Listener) {
+        for (const x of this.listeners.get(event) || [])
+            if (x !== mine) return true
+        return false
     }
     emit(event: string, ...args: any[]) {
         let cbs = this.listeners.get(event)

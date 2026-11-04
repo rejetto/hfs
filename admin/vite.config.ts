@@ -14,12 +14,23 @@ export default defineConfig({
         outDir: '../dist/admin',
         emptyOutDir: true,
         target: "es2015",
-        rollupOptions: {
+        rolldownOptions: {
             onwarn(warning, warn) {
                 if (warning.code === 'MODULE_LEVEL_DIRECTIVE' && warning.message.includes(`"use client"`)) return
                 warn(warning)
             },
-        }
+            output: {
+                codeSplitting: {
+                    groups: [
+                        { name: 'index', tags: ['$initial'] },
+                        {
+                            name: 'icons',
+                            test: /node_modules[\\/]@mui[\\/]icons-material[\\/]/,
+                        },
+                    ],
+                },
+            },
+        },
     },
     plugins: [
         muiIconsDeepImportPlugin(),

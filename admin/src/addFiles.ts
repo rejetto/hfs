@@ -2,9 +2,10 @@
 
 import { alertDialog, newDialog, promptDialog, toast } from './dialog'
 import { createElement as h, Fragment } from 'react'
+import { t } from './i18n'
 import { Box } from '@mui/material'
-import { reindexVfs, VfsNodeAdmin } from './VfsPage'
-import { addToChildrenOf } from './VfsTree'
+import { reindexVfs, VfsNodeAdmin } from './state'
+import { addToChildrenOf } from './VfsMove'
 import { prepareVfsUndo, state } from './state'
 import FilePicker from './FilePicker'
 import { basename, extname, focusSelector, getHFS, Optional } from '@hfs/shared'
@@ -12,20 +13,22 @@ import { basename, extname, focusSelector, getHFS, Optional } from '@hfs/shared'
 let lastFolder: undefined | string
 export default function addFiles() {
     const { close } = newDialog({
-        title: "Add files or folders",
+        title: t`Add files or folders`,
         dialogProps: { sx:{ minWidth: 'min(80vw, 40em)', minHeight: 'calc(100vh - 9em)' } },
         Content() {
             const parent = getFolderFromSelected()
             return h(Fragment, {},
                 h(Box, { sx:{ typography: 'body1', px: 1, py: 2 } },
-                    "Selected elements will be added under ",
-                    parent.isRoot ? h('i', {}, "Home") : decodeURI(parent.id)
+                    t`Selected elements will be added under `,
+                    parent.isRoot ? h('i', {}, t`Home`) : decodeURI(parent.id)
                 ),
                 h(FilePicker, {
                     from: lastFolder ?? parent.source,
                     async onSelect(sel) {
                         addNodes(parent, sel.map(source => ({ source, name: getFreeName(parent, basename(source)) })))
-                        lastFolder = sel[0].slice(0, sel[0].lastIndexOf('/'))
+                        const source = sel[0]
+                        // retain the delimiter for roots; Windows also accepts paths typed with forward slashes
+                        lastFolder = source.slice(0, Math.max(source.lastIndexOf('/'), source.lastIndexOf(getHFS().pathSeparator)) + 1)
                         close()
                     }
                 })
@@ -69,15 +72,15 @@ function isSameFilenameAs(name: string) {
 
 export async function addVirtual() {
     try {
-        let name = await promptDialog("Enter folder name")
+        let name = await promptDialog(t`Enter folder name`)
         if (!name) return
         const parent = getFolderFromSelected()
         name = getFreeName(parent, name)
         if (!name) return
         addNodes(parent, [{ name, type: 'folder' }])
     }
-    catch(e) {
-        await alertDialog(e as Error)
+    catch(e: any) {
+        await alertDialog(e)
     }
 }
 
@@ -87,16 +90,16 @@ export async function addLink() {
         const name = getFreeName(parent, 'new link')
         if (!name) return
         addNodes(parent, [{ name, url: 'https://example.com' }])
-        toast("Link created", 'success', {
+        toast(t`Link created`, 'success', {
             onClose: () => focusSelector('input[name=url]')
         })
     }
-    catch(e) {
-        await alertDialog(e as Error)
+    catch(e: any) {
+        await alertDialog(e)
     }
 }
 
 function getFolderFromSelected() {
     const f = state.selectedFiles[0] || state.vfs
-    return f.type === 'folder' ? f : f.parent!
+    return f.type === 'folder' || f.isRoot ? f : f.parent!
 }

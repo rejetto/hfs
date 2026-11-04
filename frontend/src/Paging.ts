@@ -27,8 +27,13 @@ interface AlphabetGroup {
 export const Paging = memo(({ nPages, current, pageSize, list, changePage, changePageToIndex, atBottom }: PagingProps) => {
     const [alphabetOpen, setAlphabetOpen] = useState(false)
     useEffect(() => {
-        document.body.style.overflowY = 'scroll'
-        return () => { document.body.style.overflowY = '' }
+        const { style } = document.body
+        if (style.overflowY) return
+        // keep an existing scroll lock and only clean up the style this component still owns
+        style.overflowY = 'scroll'
+        return () => {
+            if (style.overflowY === 'scroll') style.overflowY = ''
+        }
     }, [])
     const lastScrollTimeRef = useRef(0)
     useEffect(() => domOn('scroll', () => lastScrollTimeRef.current = Date.now()), [])
@@ -49,7 +54,7 @@ export const Paging = memo(({ nPages, current, pageSize, list, changePage, chang
     }, [alphabetGroups.length])
     return h('div', { id: 'paging' },
         h('button', {
-            title: t('go_first', "Go to first item"),
+            title: t`go_first`,
             className: !current ? 'toggled' : undefined,
             onClick() { changePage(0) },
         }, hIcon('to_start')),
@@ -66,7 +71,7 @@ export const Paging = memo(({ nPages, current, pageSize, list, changePage, chang
             })
         ),
         h('button', {
-            title: t('go_last', "Go to last item"),
+            title: t`go_last`,
             className: atBottom ? 'toggled' : undefined,
             onClick(){ changePage(nPages-1, true) }
         }, hIcon('to_end')),
@@ -103,18 +108,19 @@ function AlphabetPaging({ groups, open, toggleOpen, close, changePage }: Alphabe
         })
     }, [open, close])
     return h('div', { ref, id: 'alphabet-paging', className: open ? 'open' : undefined },
+        h('button', {
+            id: 'alphabet-paging-toggle',
+            title: t`alpha_idx`,
+            'aria-expanded': open,
+            onClick: toggleOpen,
+        }, t`alpha_idx_button`),
         open && h('div', { id: 'alphabet-paging-bar' },
             groups.map(({ label, index }) =>
                 h('button', {
                     key: label,
                     onClick: () => changePage(index),
                 }, label))
-        ),
-        h('button', {
-            id: 'alphabet-paging-toggle',
-            title: t('alpha_idx', "Alphabetical index"),
-            onClick: toggleOpen,
-        }, t('alpha_idx_button', "AZ"))
+        )
     )
 }
 

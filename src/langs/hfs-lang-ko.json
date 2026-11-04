@@ -1,7 +1,6 @@
 {
     "author": "배서연, Hawk1335",
     "version": 1.1,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "선택",
         "n_files": "{n,plural,one{1개의 파일} =2 =3{파일 #개} other{#개 파일}}",
@@ -40,6 +39,7 @@
         "Password": "비밀번호",
         "login_untrusted": "로그인 중단: 서버를 신뢰할 수 없음",
         "login_bad_credentials": "잘못된 자격 증명",
+        "confirm_url_login": "이 링크가 사용자 \"{username}\" 계정으로 로그인하려고 합니다",
         "login_bad_cookies": "쿠키 오류 - 로그인 실패",
         "User panel": "사용자 패널",
         "Change password": "비밀번호 변경",
@@ -102,6 +102,7 @@
         "upload_finished": "{n}개 파일 완료 ({size})",
         "upload_errors": "{n}개 파일 실패",
         "upload_file_rejected": "일부 파일은 업로드되지 않았습니다.",
+        "delete_unfinished_upload": "완료되지 않은 업로드를 제거할까요?",
 
         "File menu": "파일 메뉴",
 	    "Folder menu": "폴더 메뉴",
@@ -116,6 +117,8 @@
         "Timestamp": "수정한 날짜",
         "Show": "보기",
         "Loading failed": "불러오기 실패",
+        "Download limit reached": "다운로드 한도에 도달했습니다",
+        "Retry": "다시 시도",
         "Rename": "이름 바꾸기",
         "Tiles mode:": "표시 모드:",
         "off": "꺼짐",
@@ -191,6 +194,9 @@
         "No":  "안",
         "esc_again": "ESC 두번 페스하기",
         "insufficient storage": "저장 공간 부족",
-        "Account disabled": "계정이 비활성화되었습니다"
+        "Account disabled": "계정이 비활성화되었습니다",
+        "upload_name": "새 이름으로 업로드",
+        "Uploading": "업로드 중",
+        "proxy_413": "프록시 서버에서 이 제한을 확인하세요."
     }
 }

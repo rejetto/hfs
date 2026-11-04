@@ -1,7 +1,6 @@
 {
     "author": "Mefistofell, SanokKule, ItsNeverLight",
     "version": 2.71,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Выбор",
         "n_files": "{n,plural, one{# файл} few{# файла} many{# файлов}}",
@@ -40,6 +39,7 @@
         "Password": "Пароль",
         "login_untrusted": "Вход отменён: личности сервера нельзя доверять",
         "login_bad_credentials": "Неверное имя пользователя или пароль",
+        "confirm_url_login": "Эта ссылка пытается войти в систему под именем «{username}»",
         "login_bad_cookies": "Не удалось войти - отключены cookies",
         "User panel": "Панель пользователя",
         "Change password": "Изменить пароль",
@@ -62,7 +62,7 @@
         "ready_to_upload": "{n,plural, one{# файл} few{# файла} many{# файлов}}, {size}, готово к загрузке",
         "Send": "Загрузить",
         "Clear": "Очистить",
-        "failed_upload": "Не удалась загрузить {name}",
+        "failed_upload": "Не удалось загрузить {name}",
         "confirm_resume": "Возобновить загрузку?",
         "file too large": "слишком большой файл",
         "Enter folder name": "Введите имя папки",
@@ -102,6 +102,7 @@
         "upload_finished": "{n,plural, one{# файл загружен} few{# файла загружено} many{# файлов загружено}} ({size})",
         "upload_errors": "{n,plural, one{# файл} few{# файла} many{# файлов}} неуспешно",
         "upload_file_rejected": "Некоторые файлы не были приняты",
+        "delete_unfinished_upload": "Удалить незавершённую загрузку?",
 
         "File menu": "Меню файла",
         "Folder menu": "Меню папки",
@@ -116,11 +117,13 @@
         "Timestamp": "Дата",
         "Show": "Просмотр файла",
         "Loading failed": "Не удалось загрузить",
+        "Download limit reached": "Достигнут лимит скачиваний",
+        "Retry": "Повторить",
         "Rename": "Переименовать",
         "Tiles mode:": "Плитки:",
         "off": "выключено",
         "Operation successful": "Операция успешна",
-        "Uploader": "Загружено",
+        "Uploader": "Загрузил",
         "Download counter": "Счётчик загрузок",
         "Switch zoom mode": "Переключить увеличение",
         "Full screen": "Полный экран",
@@ -194,6 +197,9 @@
         "No":  "Нет",
         "esc_again": "Нажмите ESC дважды для закрытия",
         "insufficient storage": "недостаточно места",
-        "Account disabled": "Учетная запись отключена"
+        "Account disabled": "Учетная запись отключена",
+        "upload_name": "Загрузить под новым именем",
+        "Uploading": "Загрузка",
+        "proxy_413": "Проверьте этот лимит на прокси-сервере"
     }
 }

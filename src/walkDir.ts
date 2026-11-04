@@ -1,5 +1,5 @@
 import { makeQ } from './makeQ'
-import { opendir } from 'fs/promises'
+import { opendir, realpath } from 'fs/promises'
 import { IS_WINDOWS } from './const'
 import { join } from 'path'
 import { pendingPromise, Promisable } from './cross'
@@ -8,6 +8,7 @@ import events from './events'
 import _ from 'lodash'
 import { Context } from 'koa'
 import fswin from 'fswin'
+import type { Find } from 'fswin'
 import { isDirectory, statWithTimeout } from './util-files'
 
 interface DirStreamEntry extends Dirent {
@@ -29,14 +30,14 @@ export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRec
     return new Promise(async (resolve, reject) => {
         if (!await isDirectory(path))
             return reject(Error('ENOTDIR'))
-        dirQ.add(() => readDir('', depth)
+        dirQ.add(() => readDir('', depth, [path])
             .then(res => { // don't make the job await for it, but use it to know it's over
                 Promise.resolve(res?.branchDone).then(resolve)
             }, reject)
         )
     })
 
-    async function readDir(relativePath: string, depth: number) {
+    async function readDir(relativePath: string, depth: number, ancestorPaths: string[]) {
         if (stopped) return
         const base = join(path, relativePath)
         const subDirsDone: Promise<any>[] = []
@@ -48,6 +49,8 @@ export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRec
         const pluginIterator = _.isFunction(res?.[Symbol.asyncIterator] || res?.[Symbol.iterator]) && res as Dir
 
         if (IS_WINDOWS && !pluginIterator) { // use native apis to read the 'hidden' attribute
+            // fswin callbacks cannot await, so track their work before closing the branch
+            const entriesWorking: Promise<unknown>[] = []
             const direntMethods = {
                 isDir: false,
                 isFile(){ return !this.isDir },
@@ -55,35 +58,42 @@ export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRec
                 isBlockDevice(){ return false },
                 isCharacterDevice() { return false },
             }
-            await new Promise<void>(res => fswin.find(base + '\\*', (event, f) => {
-                if (event !== 'FOUND') return res()
+            await new Promise<void>((resolve, reject) => fswin.find(base + '\\*', (event, f) => {
+                if (event !== 'FOUND') {
+                    Promise.all(entriesWorking).then(() => resolve())
+                    return false
+                }
                 if (stopped) return true // stop signal
-                if (!hidden && f.IS_HIDDEN) return
-                work(Object.assign(Object.create(direntMethods), {
-                    isDir: f.IS_DIRECTORY,
-                    name: f.LONG_NAME,
+                const file = f as Find.File // fswin pairs FOUND with File, but its callback type doesn't express that relation
+                if (!hidden && file.IS_HIDDEN) return false
+                entriesWorking.push(work(Object.assign(Object.create(direntMethods), {
+                    isDir: file.IS_DIRECTORY,
+                    name: file.LONG_NAME,
                     stats: {
-                        size: f.SIZE,
-                        birthtime: f.CREATION_TIME, birthtimeMs: f.CREATION_TIME.getTime(),
-                        mtime: f.LAST_WRITE_TIME, mtimeMs: f.LAST_WRITE_TIME.getTime(),
-                        isFile: () => !f.IS_DIRECTORY,
-                        isDirectory: () => f.IS_DIRECTORY,
+                        size: file.SIZE,
+                        birthtime: file.CREATION_TIME, birthtimeMs: file.CREATION_TIME.getTime(),
+                        mtime: file.LAST_WRITE_TIME, mtimeMs: file.LAST_WRITE_TIME.getTime(),
+                        isFile: () => !file.IS_DIRECTORY,
+                        isDirectory: () => file.IS_DIRECTORY,
                     } as Stats
-                }))
+                }), Boolean(file.REPARSE_POINT_TAG)).catch(reject))
+                return false
             }, true))
         }
         else for await (let entry of (pluginIterator || await opendir(base))) {
             if (stopped) break
             if (!hidden && !IS_WINDOWS && entry.name[0] === '.')
                 continue
-            const stats = entry.isSymbolicLink?.() && await statWithTimeout(join(base, entry.name)).catch(() => null)
+            // stat follows links, so preserve their identity for cycle detection
+            const isSymlink = entry.isSymbolicLink?.()
+            const stats = isSymlink && await statWithTimeout(join(base, entry.name)).catch(() => null)
             if (stats === null) continue
             if (stats)
                 entry = new DirentFromStats(entry.name, stats)
             const expanded: DirStreamEntry = entry
             if (stats)
                 expanded.stats = stats
-            await work(expanded)
+            await work(expanded, isSymlink)
         }
         pluginReceiver?.(!stopped)
         const branchDone = Promise.allSettled(subDirsDone)
@@ -94,7 +104,7 @@ export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRec
         // don't return the promise directly, as this job ends here, but communicate to caller the promise for the whole branch
         return { branchDone, n }
 
-        async function work(entry: DirStreamEntry) {
+        async function work(entry: DirStreamEntry, isSymlink=false) {
             entry.path = (relativePath && relativePath + '/') + entry.name
             pluginReceiver?.(entry)
             if (last && closingQ.length) // pending entries
@@ -105,10 +115,17 @@ export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRec
             if (res === false) return
             n++
             if (!depth || !entry.isDirectory()) return
+            const entryPath = join(base, entry.name)
+            if (isSymlink) {
+                // compare only with ancestors so separate links to the same folder still work
+                const [target, ...ancestors] = await Promise.all(
+                    [entryPath, ...ancestorPaths].map(x => realpath(x).catch(() => '')))
+                if (!target || ancestors.includes(target)) return
+            }
             const branchDone = pendingPromise() // per-job
             subDirsDone.push(branchDone)
             const job = () =>
-                readDir(entry.path, depth - 1) // recur
+                readDir(entry.path, depth - 1, [...ancestorPaths, entryPath]) // recur
                     .then(x => x, () => {}) // mute errors
                     .then(res => { // don't await, as readDir must resolve without branch being done
                         if (!res?.n)

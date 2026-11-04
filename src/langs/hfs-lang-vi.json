@@ -2,7 +2,6 @@
     "_comment_": "This is Vietnamese translation for HFS (Đây là file ngôn ngữ tiếng việt của HFS)",
     "author": "thenoppy12 (Nguyễn Văn Ngu)",
     "version": 3.1,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Chọn",
         "n_files": "{n,plural,one{# tập tin} other{# tập tin}}",
@@ -41,6 +40,7 @@
         "Password": "Password",
         "login_untrusted": "Đăng nhập bị hủy bỏ: Danh tính server không tin cậy.",
         "login_bad_credentials": "Sai username hoặc password.",
+        "confirm_url_login": "Liên kết này đang cố đăng nhập bạn bằng tài khoản \"{username}\"",
         "login_bad_cookies": "Cookies không hoạt động. Đang dùng ẩn danh hay gì? Bật cookies giùm.",
         "User panel": "User",
         "Change password": "Đổi password.",
@@ -103,6 +103,7 @@
         "upload_finished": "{n} thành công ({size})",
         "upload_errors": "{n} thất bại",
         "upload_file_rejected": "Một số file bị cấm...",
+        "delete_unfinished_upload": "Xóa bản upload chưa hoàn tất?",
 
         "Download counter": "Bộ đếm download",
 
@@ -119,6 +120,8 @@
         "Timestamp": "Mốc thời gian",
         "Show": "Hiện",
         "Loading failed": "Load thất bại (?)",
+        "Download limit reached": "Đã đạt giới hạn tải xuống",
+        "Retry": "Thử lại",
         "Rename": "Đổi tên",
         "Tiles mode:": "Chia ô:",
         "off": "Tắt",
@@ -196,6 +199,9 @@
         "No":  "Không",
         "esc_again": "Nhấn ESC hai lần để đóng",
         "insufficient storage": "không đủ dung lượng",
-        "Account disabled": "Tài khoản đã bị vô hiệu hóa"
+        "Account disabled": "Tài khoản đã bị vô hiệu hóa",
+        "upload_name": "Tải lên với tên mới",
+        "Uploading": "Đang tải lên",
+        "proxy_413": "Kiểm tra giới hạn này trên máy chủ proxy"
     }
 }

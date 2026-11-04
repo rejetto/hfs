@@ -3,10 +3,9 @@
 import { state, useSnapState } from './state'
 import { createElement as h } from 'react'
 import { alertDialog, newDialog, promptDialog } from './dialog'
-import { apiCall } from '@hfs/shared/api'
 import { logout } from './login'
 import { Btn, CustomCode } from './components'
-import { formatTimestamp, hIcon, fallbackToBasicAuth, working, apiNewPassword } from './misc'
+import { formatTimestamp, hIcon, fallbackToBasicAuth, working, apiNewPassword, hfsEvent } from './misc'
 import i18n from './i18n'
 const { t } = i18n
 
@@ -44,18 +43,21 @@ export default function showUserPanel() {
 }
 
 export async function changePassword(required=false) {
-    const pwd = await promptDialog(t('enter_pass', "Enter new password"), {
+    const pwd = await promptDialog(t`enter_pass`, {
         type: 'password',
-        helperText: required && t('required_change_password', "You are required to change your password")
+        helperText: required && t`required_change_password`
     })
     if (!pwd) return
-    const check = await promptDialog(t('enter_pass2', "Re-enter the same new password"), { type: 'password' })
+    const error = (await Promise.all(hfsEvent('validatePassword', { username: state.username, password: pwd }))).find(Boolean)
+    if (error === true) return
+    if (error) return alertDialog(error, 'error')
+    const check = await promptDialog(t`enter_pass2`, { type: 'password' })
     if (!check) return
     if (check !== pwd)
-        return alertDialog(t('pass2_mismatch', "The second password you entered did not match the first. Procedure aborted."), 'warning')
+        return alertDialog(t`pass2_mismatch`, 'warning')
 
     const modal = working()
     await apiNewPassword(state.username, pwd)
-        .then(() => alertDialog(t('password_changed', "Password changed")), alertDialog)
+        .then(() => alertDialog(t`password_changed`), alertDialog)
         .finally(modal)
 }

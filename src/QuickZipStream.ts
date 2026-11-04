@@ -29,16 +29,23 @@ interface QuickZipEntry {
 // the point of this class is the method applyRange, which allows seeking forward in the zip file quickly (useful to resume downloads)
 export class QuickZipStream extends Readable {
     private workingFile: Readable | undefined
+    private findingFile = false
     private finished = false
     private readonly entries: QuickZipEntry[] = []
     private dataWritten = 0
     private consumedCalculating: ZipSource[] = []
-    private skip: number = 0
+    private skip = 0
     private limit?: number
     private now = new Date()
 
     constructor(private readonly walker:  AsyncIterableIterator<ZipSource>) {
         super({})
+    }
+
+    _destroy(error: Error | null, callback: (error: Error | null) => void) {
+        // a paused source will not emit more data, so its data handler cannot clean up after an abort
+        this.workingFile?.destroy()
+        callback(error)
     }
 
     getArchiveEntries() {
@@ -86,9 +93,12 @@ export class QuickZipStream extends Readable {
 
     async calculateSize(howLong:number = 1000) {
         const endBy = Date.now() + howLong
-        for await (const value of this.walker) { // getting the entries is the slow part
+        // explicit next() keeps the walker open when the calculation budget expires
+        while (true) {
             if (Date.now() >= endBy)
                 return NaN
+            const { value, done } = await this.walker.next()
+            if (done) break
             this.consumedCalculating.push(value) // keep the same shape of the generator, so
         }
         // if we reach here, then we were able to consume all entries of the walker (in time)
@@ -118,8 +128,13 @@ export class QuickZipStream extends Readable {
         if (this.finished || this.destroyed) return
         if (this.workingFile)
             return this.workingFile.resume()
+        if (this.findingFile) return
+        // _read can reenter while slow enumeration is pending, but files must stream one at a time
+        this.findingFile = true
         const file = this.consumedCalculating.shift()
             || (await this.walker.next()).value as ZipSource
+        this.findingFile = false
+        if (this.destroyed) return // the client may disconnect while the next entry is being resolved
         if (!file)
             return this.closeArchive()
         let { path, sourcePath, getData, size=0, ts=this.now, mode=0o40775 } = file
@@ -300,7 +315,7 @@ function buffer(pairs: number[]) {
     return ret
 }
 
-function ts2buf(ts:Date) {
+function ts2buf(ts: Date) {
     const date = ((ts.getFullYear() - 1980) & 0x7F) << 9 | (ts.getMonth() + 1) << 5 | ts.getDate()
     const time = ts.getHours() << 11 | ts.getMinutes() << 5 | (ts.getSeconds() / 2) & 0x0F
     return [

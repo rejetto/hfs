@@ -1,63 +1,76 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react';
+import { t } from './i18n'
 import { apiCall, useApiEx, useApiList } from './api'
-import { DataTable, fillFlexParentSx } from './DataTable'
-import { Alert, Box } from '@mui/material'
+import { DataTable } from './DataTable'
+import { Box, Typography } from '@mui/material'
 import { Delete, Upload } from '@mui/icons-material'
-import { CFG, readFile, selectFiles } from './misc'
-import { Btn, IconBtn } from './mui'
+import { CFG, getHFS, readFile, selectFiles } from './misc'
+import { fillFlexParentSx, IconBtn, wikiLink } from './mui'
 import { PageProps } from './App'
 import _ from 'lodash'
 import { alertDialog, toast } from './dialog'
 import { Field, SelectField } from '@hfs/mui-grid-form';
 
 export default function LangPage({ setTitleSide }: PageProps) {
-    const { list, error, connecting, reload } = useApiList('get_langs')
-    const langs = useMemo(() => ['en', ..._.uniq(list.map(x => x.code))], [list])
-    setTitleSide(useMemo(() =>
-        h(Alert, { severity: 'info', sx: { display: { xs: 'none', sm: 'inherit' }  } }, "Translation is limited to the Front-end and doesn't apply to the Admin-panel"),
-        []))
+    const { list, error, connecting, initializing, reload } = useApiList('get_langs')
+    const langs = useMemo(() => _.uniq(['en', ...list.filter(x => !x.admin).map(x => x.code)]), [list])
+    setTitleSide(null)
     return h(Fragment, {},
         h(Box, { sx: { mt: 1, maxWidth: '50em', flex: 1, ...fillFlexParentSx } },
-            h(Box, { sx: { mb: 1, display: 'flex' } },
-                h(Btn, { icon: Upload, onClick: add }, "Add"),
-                h(Box, { sx: { flex: 1 } }),
-                h(ForceLang, { langs }),
+            h(Box, { sx: { mb: 1, display: 'flex', gap: 1, flexDirection: { xs: 'column', sm: 'row' } } },
+                h(Box, { sx: { flex: 1 } }, h(FrontendLanguage, { langs })),
+                h(Box, { sx: { flex: 1 } }, h(AdminLanguage)),
             ),
+            h(Typography<'h2'>, { component: 'h2', variant: 'subtitle1', sx: { mb: 1 } }, t`Uploaded languages`),
+            h(Typography, { variant: 'body2', sx: { mb: 1 } }, wikiLink('Translation#hfs-34-beta', t`See the documentation`)),
             h(DataTable, {
                 error,
                 loading: connecting,
-                rows: useMemo(() => _.sortBy(list, x => (x.embedded ? 2 : 1) + x.code), [list.length]), // multi-sorting is only in pro version of DataGrid
+                initializing,
+                rows: useMemo(() => _.sortBy(list.filter(x => !x.embedded), 'code', 'admin'), [list]),
                 hideFooter: true,
                 fillFlex: true,
                 columns: [
                     {
-                        field: 'code',
+                        field: 'admin', headerName: t`Interface`,
+                        width: 110,
+                        valueGetter: (_value, row) => row.admin ? t`Admin` : t`Frontend`,
+                    },
+                    {
+                        field: 'code', headerName: t`Code`,
                         width: 110,
                         valueFormatter: (value: string | undefined) => value?.toUpperCase(),
                     },
                     {
-                        field: 'version',
+                        field: 'language', headerName: t`Language`,
+                        flex: 1, minWidth: 100,
+                        valueGetter: (_value, row) => languageName(row.code),
+                    },
+                    {
+                        field: 'version', headerName: t`Version`,
                         width: 120,
                         hideUnder: 'sm',
                     },
                     {
-                        field: 'author',
+                        field: 'author', headerName: t`Author`,
                         flex: 1,
                         hideUnder: 'sm',
                     }
                 ],
+                actionsHeader: h(IconBtn, { icon: Upload, title: t`Add`, onClick: add }),
+                actionsProps: { width: 52 },
                 actions: ({ row }) => [
                     h(IconBtn, {
                         icon: Delete,
-                        title: row.embedded ? "Cannot delete (embedded)" : "Delete",
-                        confirm: `Delete language code "${row.code}"?`,
-                        disabled: row.embedded,
+                        title: t`Delete`,
+                        confirm: t("Delete language code \"{code}\"?", { code: row.code }),
                         async onClick() {
-                            await apiCall('del_lang', _.pick(row, 'code'))
-                            reload()
-                            toast("Deleted")
+                            await apiCall('del_lang', _.pick(row, 'code', 'admin'))
+                            if (row.admin) location.reload()
+                            else reload()
+                            toast(t`Deleted`)
                         }
                     }),
                 ]
@@ -68,22 +81,25 @@ export default function LangPage({ setTitleSide }: PageProps) {
     function add() {
         selectFiles(async list => {
             if (!list) return
-            const langs: any = {}
-            for (const f of list)
-                langs[f.name] = await readFile(f)
-            try {
-                await apiCall('add_langs', { langs })
-                reload()
-                toast("Loaded")
-            }
-            catch (e: any) {
-                await alertDialog(e)
-            }
+            const errors = await Promise.all(Array.from(list, f =>
+                readFile(f)
+                    .then(content => apiCall('add_langs', { langs: { [f.name]: content } }))
+                    .then(() => '', e => `${f.name}: ${e.data || e.message || e}`)
+            ))
+            reload()
+            const failed = errors.filter(Boolean)
+            if (failed.length)
+                await alertDialog(failed.join('.\n'), 'error')
+            else
+                toast(t`Loaded`)
+            // Admin translations and available languages are injected when the page loads
+            if (Array.from(list).some(f => f.name.startsWith('hfs-admin-lang-')))
+                location.reload()
         }, { accept: '.json' })
     }
 }
 
-function ForceLang({ langs }: { langs: string[] }) {
+function FrontendLanguage({ langs }: { langs: string[] }) {
     const K = CFG.force_lang
     const { data, reload, loading } = useApiEx('get_config', { only: [K] })
     const [lang, setLang] = useState()
@@ -91,21 +107,52 @@ function ForceLang({ langs }: { langs: string[] }) {
     const [saving, setSaving] = useState<string>()
 
     return h(SelectField as Field<string>, {
-        fullWidth: false,
+        fullWidth: true,
+        label: t`Frontend language`,
         size: 'small',
         disabled: Boolean(loading) || typeof saving === 'string',
         value: saving ?? lang,
         async onChange(v) {
             setSaving(v)
             try {
-                await apiCall('set_config', { values: { [K]: v } })
+                await apiCall('set_config', { values: { [K]: v } }).catch(alertDialog)
                 await reload()
             }
             finally { setSaving(undefined) }
         },
         options: [
-            { label: "Respect browser language", value: '' },
-            ...langs.map(x => ({ value: x, label: "Force language: " + x }))
+            { label: t`Respect browser language`, value: '' },
+            ..._.sortBy(langs).map(code => ({ value: code, label: `${code.toUpperCase()} — ${languageName(code)}` }))
         ]
     })
+}
+
+function AdminLanguage() {
+    const langs: string[] = getHFS().adminLangs
+    const current = langs.includes(getHFS().adminLang) ? getHFS().adminLang : ''
+    return h(SelectField as Field<string>, {
+        fullWidth: true,
+        size: 'small',
+        sx: { minWidth: '12em' },
+        label: t`Admin language`,
+        value: current,
+        options: [
+            { value: '', label: t`Respect browser language` },
+            ..._.sortBy(langs).map((code: string) => ({ value: code, label: `${code.toUpperCase()} — ${languageName(code)}` }))
+        ],
+        async onChange(value) {
+            await apiCall('set_config', { values: { [CFG.admin_lang]: value } })
+            location.reload()
+        },
+    })
+}
+
+function languageName(code: string) {
+    try {
+        const name = new Intl.DisplayNames([code], { type: 'language' }).of(code)
+        return name ? name[0].toLocaleUpperCase(code) + name.slice(1) : code.toUpperCase()
+    }
+    catch {
+        return code.toUpperCase()
+    }
 }

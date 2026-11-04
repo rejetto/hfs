@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { basename, dirname, join } from 'path'
+import { basename } from 'path'
 import Koa from 'koa'
 import { Connection } from './connections'
 export * from './util-http'
@@ -91,15 +91,15 @@ export function asyncGeneratorToReadable<T>(generator: AsyncIterable<T>) {
     const iterator = generator[Symbol.asyncIterator]()
     return new Readable({
         objectMode: true,
-        destroy() {
-            void iterator.return?.()
+        destroy(error, callback) {
+            Promise.resolve(iterator.return?.()).then(() => callback(error), callback)
         },
         read() {
             iterator.next().then(it => {
                 if (it.done)
                     this.emit('ending')
                 return this.push(it.done ? null : it.value)
-            })
+            }, e => this.destroy(e))
         }
     })
 }
@@ -141,4 +141,3 @@ export function retrySync(cb: Callback, attempts=20, sleep=500) {
         }
     }
 }
-

@@ -7,11 +7,50 @@ import { Readable } from 'node:stream'
 import _ from 'lodash'
 import { text as stream2string, buffer } from 'node:stream/consumers'
 import * as tls from 'node:tls'
-import { enforceStarting } from './cross'
+import { enforceStarting, MB } from './cross'
+import type Koa from 'koa'
+import { HTTP_PAYLOAD_TOO_LARGE } from './cross-const'
 export { stream2string }
 
-export async function httpString(url: string, options?: XRequestOptions): Promise<string> {
-    return await stream2string(await httpStream(url, options))
+export async function readTextLimited(stream: IncomingMessage, maxBytes: number) {
+    if (Number(stream.headers['content-length']) > maxBytes)
+        return { error: 'too_large' as const }
+    const chunks: Buffer[] = []
+    let size = 0
+    // keep the socket alive so callers can send the rejection before closing an undrained request
+    for await (const chunk of stream.iterator({ destroyOnReturn: false })) {
+        const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+        size += buffer.length
+        if (size > maxBytes)
+            return { error: 'too_large' as const }
+        chunks.push(buffer)
+    }
+    return { text: new TextDecoder().decode(Buffer.concat(chunks, size)) }
+}
+
+export async function readRequestBodyLimited(ctx: Koa.Context, maxBytes: number) {
+    const body = await readTextLimited(ctx.req, maxBytes)
+    if (!('error' in body))
+        return body
+    ctx.set('Connection', 'close') // an unread rejected body makes this connection unsafe to reuse
+    ctx.status = HTTP_PAYLOAD_TOO_LARGE
+}
+
+export async function httpString(url: string, { maxBytes=10*MB, ...options }: XStringRequestOptions ={}): Promise<string> {
+    const stream = await httpStream(url, options)
+    if (maxBytes === Infinity)
+        return await stream2string(stream)
+    const chunks: Buffer[] = []
+    let size = 0
+    for await (const chunk of stream) {
+        size += chunk.length
+        if (size > maxBytes) {
+            stream.destroy()
+            throw Object.assign(Error('response too large'), { code: 'ERR_HTTP_RESPONSE_TOO_LARGE' })
+        }
+        chunks.push(chunk)
+    }
+    return new TextDecoder().decode(Buffer.concat(chunks, size))
 }
 
 export async function httpWithBody(url: string, options?: XRequestOptions): Promise<IncomingMessage & { ok: boolean, body: Buffer | undefined }> {
@@ -23,7 +62,7 @@ export async function httpWithBody(url: string, options?: XRequestOptions): Prom
 }
 
 export interface XRequestOptions extends https.RequestOptions {
-    body?: string | Buffer | Readable
+    body?: string | Buffer | Readable | object
     proxy?: string // url format
     // very basic cookie store
     jar?: { [host: string]: { [cookieName: string]: string } }
@@ -32,13 +71,19 @@ export interface XRequestOptions extends https.RequestOptions {
     httpThrow?: boolean
 }
 
+export interface XStringRequestOptions extends XRequestOptions {
+    maxBytes?: number
+}
+
 export declare namespace httpStream {
+    let defaultLocalAddress: string | undefined
     let defaultProxy: string | undefined
     let defaultUA: string | undefined
 }
 export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThrow=true, ...options }: XRequestOptions ={}, redirected: string[]=[]) {
     const controller = new AbortController()
     options.signal ??= controller.signal
+    options.localAddress ??= httpStream.defaultLocalAddress
     return Object.assign(new Promise<IncomingMessage>(async (resolve, reject) => {
         proxy ??= httpStream.defaultProxy
         options.headers ??= {}
@@ -46,12 +91,13 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
             options.headers['user-agent'] = httpStream.defaultUA
         if (body) {
             options.method ||= 'POST'
-            if (_.isPlainObject(body)) {
-                options.headers['content-type'] ??= 'application/json'
-                body = JSON.stringify(body)
-            }
-            if (!(body instanceof Readable))
+            if (!(body instanceof Readable)) {
+                if (typeof body === 'object' && !(body instanceof Buffer)) {
+                    options.headers['content-type'] ??= 'application/json'
+                    body = JSON.stringify(body)
+                }
                 options.headers['content-length'] ??= Buffer.byteLength(body)
+            }
         }
         const { auth, ...parsed } = parseHttpUrl(url)
         const hostJar = jar && (jar[parsed.hostname || ''] ||= {})
@@ -87,15 +133,16 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
                 else delete hostJar[k]
             }
             if (!res.statusCode || httpThrow && res.statusCode >= 400)
-                return reject(Error(String(res.statusCode), { cause: res }))
+                return fail(String(res.statusCode), res)
             let r = res.headers.location
             if (r && !noRedirect) {
                 const dest = new URL(r, url) // rewrite in case r is just a path, and thus relative to the current url
                 r = dest.toString()
                 const src = new URL(url)
                 const sameOrigin = src.protocol === dest.protocol && src.host === dest.host
-                return redirected.includes(r) ? reject(Error('endless http redirection'))
-                    : redirected.length > 20 ? reject(Error('excessive http redirection'))
+                return redirected.includes(r) ? fail('endless http redirection')
+                    : redirected.length > 20 ? fail('excessive http redirection')
+                    : src.protocol === 'https:' && dest.protocol !== 'https:' ? fail('https-to-http is forbidden')
                     : resolve(httpStream(r, {
                             httpThrow, jar, proxy,
                             ..._.pick(options, ['agent', 'rejectUnauthorized', 'timeout']),
@@ -104,6 +151,14 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
                         }, [...redirected, r]))
             }
             resolve(res)
+
+            function fail(message: string, cause?: any) {
+                // preserve error responses because callers may inspect their body
+                if (!cause)
+                    res.destroy()
+                return reject(Error(message, cause && { cause }))
+            }
+
         }).on('error', (e: any) => {
             if (proxy && e?.code === 'ECONNREFUSED')
                 console.debug("Cannot connect to proxy ", proxy)
@@ -113,7 +168,7 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
         if (options.timeout) // node only emits the timeout event, so destroy the request to unblock callers waiting for the body
             req.setTimeout(options.timeout, () => req.destroy(Object.assign(Error('timeout'), { code: 'ETIMEDOUT' })))
         if (body && body instanceof Readable)
-            body.pipe(req).on('end', () => req.end())
+            body.on('error', e => req.destroy(e)).pipe(req)
         else
             req.end(body)
 
@@ -123,6 +178,7 @@ export function httpStream(url: string, { body, proxy, jar, noRedirect, httpThro
                 ;(proxyParsed.protocol === 'https:' ? https : http).request({
                     ...proxyParsed,
                     auth: undefined, // void proxyParsed.auth
+                    localAddress: options.localAddress, // the proxy socket is the actual outbound connection when tunneling HTTPS
                     method: 'CONNECT',
                     path,
                     headers: { Host: path, ...proxyAuth }

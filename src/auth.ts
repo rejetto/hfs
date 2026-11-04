@@ -1,5 +1,6 @@
 import { Account, getAccount, normalizeUsername, updateAccount } from './perm'
-import { ALLOW_SESSION_IP_CHANGE, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './cross-const'
+import { ALLOW_SESSION_IP_CHANGE, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED } from './cross-const'
+import _ from 'lodash'
 import * as srp from 'tssrp6a'
 import { Context } from 'koa'
 import { srpClientPart } from './srp'
@@ -7,6 +8,7 @@ import { DAY } from './cross'
 import { expiringCache } from './expiringCache'
 import { createHash } from 'node:crypto'
 import events from './events'
+import { getSessionStamp } from './sessionStamp'
 
 const srp6aNimbusRoutines = new srp.SRPRoutines(new srp.SRPParameters())
 
@@ -25,13 +27,17 @@ const cache = expiringCache<Promise<boolean>>(60_000)
 export async function srpCheck(username: string, password: string) {
     const account = getAccount(username)
     if (!account?.srp || !password) return
-    const k = createHash('sha256').update(username + password + account.srp).digest("hex")
+    const verifier = account.srp
+    const sessionStamp = getSessionStamp(account.username)
+    const k = createHash('sha256').update(username + password + verifier).digest("hex")
     const good = await cache.try(k, async () => {
         const { srpServer, salt, pubKey } = await srpServerStep1(account)
         const client = await srpClientPart(srp, username, password, salt, pubKey)
         return srpServer.step2(client.A, client.M1).then(() => true, () => false)
     })
-    return good ? account : undefined
+    // verification can finish after a password change or account replacement
+    return good && getAccount(username) === account && account.srp === verifier && getSessionStamp(account.username) === sessionStamp
+        ? account : undefined
 }
 
 export function getCurrentUsername(ctx: Context): string {
@@ -40,16 +46,22 @@ export function getCurrentUsername(ctx: Context): string {
 
 export async function clearTextLogin(ctx: Context, u: string, p: string, via: string) {
     if (!p) return
-    if ((await events.emitAsync('attemptingLogin', { ctx, username: u, via }))?.isDefaultPrevented()) return
-    const plugins = await events.emitAsync('clearTextLogin', { ctx, username: u, password: p, via }) // provide clear password to plugins
-    const a = plugins?.some(x => x === true) ? getAccount(u) : await srpCheck(u, p)
-    if (!a && u)
-        events.emit('failedLogin', { ctx, username: u, via })
-    return a
+    let account: Account | undefined
+    try {
+        if ((await events.emitAsync('attemptingLogin', { ctx, username: u, via }))?.isDefaultPrevented()) return
+        const plugins = await events.emitAsync('clearTextLogin', { ctx, username: u, password: p, via }) // provide clear password to plugins
+        account = plugins?.some(x => x === true) ? getAccount(u) : await srpCheck(u, p)
+        if (!account && u)
+            events.emit('failedLogin', { ctx, username: u, via })
+        return account
+    }
+    finally {
+        events.emit('loginAttemptFinished', { ctx, username: u, via, success: Boolean(account) })
+    }
 }
 
 // centralized log-in state
-export async function setLoggedIn(ctx: Context, username: string | false) {
+export async function setLoggedIn(ctx: Context, username: string | false, via?: 'body' | 'srp' | 'url' | 'header' | 'net') {
     const s = ctx.session
     if (!s)
         return ctx.throw(HTTP_SERVER_ERROR,'session')
@@ -64,18 +76,24 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
     delete s.loggingIn // clear pending SRP handshake state
     const a = ctx.state.account = getAccount(username)
     if (!a) return
-    await events.emitAsync('finalizingLogin', { ctx, username, inputs: { ...ctx.state.params, ...ctx.query } })
+    const sessionStamp = getSessionStamp(a.username)
+    const result = await events.emitAsync('finalizingLogin', { ctx, username: a.username, via, inputs: { ...ctx.state.params, ...ctx.query } })
+    // async plugin checks must not let a revoked login acquire the new session stamp
+    const error = result?.find(x => x && _.isString(x)) || (result?.isDefaultPrevented()
+        || !sessionStamp || getAccount(username) !== a || getSessionStamp(a.username) !== sessionStamp) && "Login denied"
+    if (error) {
+        // restore the session identity: the candidate account was exposed only for plugin checks
+        ctx.state.account = getAccount(s.username, false)
+        delete ctx.state.usernames
+        ctx.throw(HTTP_UNAUTHORIZED, error)
+    }
     const normalized = normalizeUsername(username)
-    if (s.username !== normalized)
-        delete s.allowNet // discard restrictions cached for another identity before replacing the session account
     s.username = normalized
-    s.ts = Date.now()
+    s.ip = ctx.ip
+    s.stamp = sessionStamp
     const k = ALLOW_SESSION_IP_CHANGE
     s[k] = k in ctx.query || Boolean(ctx.state.params?.[k]) || undefined // login APIs will get ctx.state.params, others can rely on ctx.query
     if (!a.expire && a.days_to_live)
         updateAccount(a, { expire: new Date(Date.now() + a.days_to_live! * DAY) })
     await events.emitAsync('login', ctx)
 }
-
-// since session are currently stored in cookies, we need to store this information
-export const invalidateSessionBefore = new Map<string, number>()

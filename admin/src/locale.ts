@@ -1,7 +1,9 @@
 /// <reference types="vite/client" />
 import { findDefined } from './misc'
+import dayjs from 'dayjs'
+import { locale as regionalLocale } from './i18n'
 
-const localeLoaders = import.meta.glob('../../node_modules/dayjs/esm/locale/*.js')
+const localeLoaders = import.meta.glob<{ default: ILocale }>('../../node_modules/dayjs/esm/locale/*.js')
 const localePaths = new Map(Object.keys(localeLoaders).map(path => [path.match(/([^/]+)\.js$/)![1], path]))
 const localeAliases: Record<string, string> = { zn: 'zh-cn', no: 'nb' }
 
@@ -14,14 +16,16 @@ function lang2locale(lang: string): string | undefined {
 }
 
 export function getLocale() {
-    return findDefined([navigator.language, ...navigator.languages], lang2locale)
+    return findDefined([regionalLocale], lang2locale)
 }
 
 export async function loadLocale() {
     const locale = getLocale()
     if (!locale)
         return
-    // AdapterDayjs needs the matching dayjs locale module registered before adapterLocale can use it.
-    await localeLoaders[localePaths.get(locale)!]?.()
+    const loaded = await localeLoaders[localePaths.get(locale)!]?.()
+    // esm uses a separate instance; preserve already registered locales and their plugin extensions
+    if (loaded && !dayjs.Ls[locale])
+        dayjs.locale(loaded.default, undefined, true)
     return locale
 }

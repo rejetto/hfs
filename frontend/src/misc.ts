@@ -4,7 +4,7 @@ import React, { createElement as h } from 'react'
 import { Btn, iconBtn, Spinner } from './components'
 import { newDialog, toast } from './dialog'
 import { Icon, IconProps } from './icons'
-import { Callback, Dict, domOn, getHFS, getOrSet, Html, HTTP_MESSAGES, prefix, urlParams, useBatch } from '@hfs/shared'
+import { Callback, Dict, domOn, getHFS, getOrSet, Html, HTTP_MESSAGES, urlParams, useBatch } from '@hfs/shared'
 import * as cross from '../../src/cross'
 import * as shared from '@hfs/shared'
 import { apiCall, getNotifications, useApi } from '@hfs/shared/api'
@@ -38,20 +38,31 @@ export function ErrorMsg({ err }: { err: any }) {
 
 let isWorking = false // we want the 'working' thing to be singleton
 export function working() {
+    return openWorking()
+}
+
+export function workingWith(Content: React.FunctionComponent) {
+    return openWorking(Content)
+}
+
+function openWorking(Content?: React.FunctionComponent) {
     if (isWorking)
         return ()=>{} // noop
     isWorking = true
     const { close } = newDialog({
         closable: false,
-        noFrame: true,
-        Content: Spinner,
+        noFrame: !Content,
+        Content: Content || Spinner,
         reserveClosing: true,
-        className: 'working',
+        className: 'working' + (Content ? ' working-content' : ''),
         onClose(){
             isWorking = false
         }
     })
-    return close
+    return () => {
+        isWorking = false
+        close()
+    }
 }
 
 export function hfsEvent(name: string, params?:Dict) {
@@ -127,7 +138,7 @@ Object.assign(getHFS(), {
         const up = k.split('upload.')[1]
         const thisState = up ? uploadState : state as any
         if (callNow)
-            cb(thisState[k])
+            cb(thisState[up || k])
         return subscribeKey(thisState, up || k, cb, true)
     },
     customRestCall(name: string, ...rest: any[]) {
@@ -138,7 +149,7 @@ Object.assign(getHFS(), {
         if (!(el instanceof HTMLElement)) return
         const a = el.closest('li')?.querySelector('.link-wrapper a')
         if (!(a instanceof HTMLAnchorElement)) return
-        try { return _.find(state.list, { uri: new URL(a.href).pathname }) }
+        try { return _.find(state.list, entry => decodeURI(entry.uri) === decodeURI(a.pathname)) }
         catch {}
     },
     customizeText(mods: Dict<string>, lang=ANY_LANGUAGE) {
@@ -158,7 +169,7 @@ function markVideoComponent(Component: any) {
     Component.hfs_show_video = true
     return Component
 }
-function isAudioComponent(Component: any) {
+export function isAudioComponent(Component: any) {
     return Boolean(Component?.hfs_show_audio)
 }
 function markAudioComponent(Component: any) {

@@ -10,7 +10,7 @@ import { frontEndApis } from './frontEndApis'
 import { logMw } from './log'
 import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
-import { headRequests, gzipper, someSecurity, prepareState, paramsDecoder, sessionMiddleware } from './middlewares'
+import { blockFilter, gzipper, someSecurity, prepareConnection, prepareState, paramsDecoder, sessionMiddleware } from './middlewares'
 import { serveSharedFiles, guiFilesMiddleware } from './serveGuiAndSharedFiles'
 import { webdav } from './webdav'
 import './listen'
@@ -19,16 +19,17 @@ import { adminApis } from './adminApis'
 import { defineConfig, Version } from './config'
 import { ok } from 'assert'
 import _ from 'lodash'
-import { httpStream } from './misc'
+import { CFG, httpStream } from './misc'
 import { randomBytes } from 'node:crypto'
 import { selfCheckMiddleware } from './selfCheck'
 import { acmeMiddleware } from './acme'
 import './geo'
 import { geoFilter } from './geo'
-import { rootsMiddleware } from './roots'
+import { rootsHostGuard, rootsMiddleware } from './roots'
 import events from './events'
 import { trackIpsMw } from './ips'
 import './outboundProxy'
+import './pluginUsage'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints, don't clash
 
@@ -45,15 +46,17 @@ export const app = new Koa({ keys })
 app.use(sessionMiddleware)
     .use(selfCheckMiddleware)
     .use(acmeMiddleware)
-    .use(prepareState)
+    .use(prepareConnection)
+    .use(blockFilter) // denied clients must not reach credential verification or its session/account side effects
     .use(geoFilter)
+    .use(prepareState)
     .use(trackIpsMw)
     .use(gzipper)
-    .use(paramsDecoder) // must be done before plugins, so they can manipulate params
-    .use(headRequests)
-    .use(rootsMiddleware)
+    .use(rootsHostGuard)
     .use(logMw)
     .use(someSecurity)
+    .use(paramsDecoder) // must be done before plugins, so they can manipulate params
+    .use(rootsMiddleware)
     .use(throttler)
     .use(pluginsMiddleware)
     .use(mount(API_URI, apiMiddleware({ ...frontEndApis, ...adminApis })))
@@ -70,6 +73,7 @@ function errorHandler(err: Error & { code?: string, path?: string }) {
         || code === 'ERR_STREAM_WRITE_AFTER_END' // happens disconnecting uploads, don't care
         || code === 'ERR_STREAM_PREMATURE_CLOSE' // happens when many files are sent (not locally), but I checked that the files are written completely. Introduced after node18.5.0 and is thrown by pipeline() used by PUT method handler.
         || code === 'ERR_SSL_SSL/TLS_ALERT_BAD_RECORD_MAC' // tls peers/proxies can abort encrypted streams after headers are already sent
+        || code === 'ERR_SSL_DECRYPTION_FAILED_OR_BAD_RECORD_MAC' // corrupted TLS records come from the peer/network, not server logic
         || code?.startsWith('HPE')) return // malformed client/probe HTTP parser errors, not internal failures
     console.error('Server error', err)
 }
@@ -83,7 +87,7 @@ process.on('uncaughtException', (err: any) => {
 const original = process.emitWarning
 process.emitWarning = warn => String(warn).startsWith('An error event has already been emitted') || original.call(process, warn)
 
-defineConfig('proxies', 0).sub(n => {
+defineConfig(CFG.proxies, 0).sub(n => {
     app.proxy = n > 0
     app.maxIpsCount = n
 })

@@ -25,7 +25,14 @@ been built, so their files are available in `dist` folder.
 To run tests
 - `npm run build-all`
 - `npm run test-with-server` (backend tests)
-- `npx playwright test` (UI tests)
+- `node --import tsx --test tests/acme-dns.test.ts tests/acme-dns-providers.test.ts tests/acme-config.test.ts` (DNS recipes, local DNS propagation and persisted settings/plugin lifecycle; compile the server and copy `central.json` to `dist/` first).
+- For the ACME Admin form, run `npx playwright test admin-acme --project=chromium`. The test exercises the real form with API and progress-stream fixtures.
+- `node --import tsx --test tests/plugin-catalog.test.ts` (persistent plugin catalog, no server needed)
+- `node --import tsx --test tests/shutdown.test.ts` (shutdown tests, no server needed)
+- `node --import tsx --test tests/plugin-server-cleanup.test.ts` (after compiling the server; starts isolated HTTP and HTTPS servers)
+- Docker bootstrap: build with `docker build --build-arg HFS_VERSION=3.3.0 -t hfs:bootstrap-test .`, then run `HFS_DOCKER_TEST_IMAGE=hfs:bootstrap-test node --import tsx --test tests/docker-bootstrap.test.ts` (requires Docker; uses temporary containers and configuration directories).
+- `npm run test-ui` (all UI tests; Playwright starts the HFS and Admin Vite fixture servers)
+- To run a specific UI regression, pass its filename to Playwright, for example `npx playwright test admin-data-table --workers=1 --project=chromium`.
 
 # File organization
 
@@ -65,7 +72,3 @@ Additionally, you have the following folders:
   the complexity of the admin-panel.
 
   Of course this comes with a price to pay on the programmer's side, more work to do.
-
-# Thanks to
-
-[![JetBrains logo.](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)](https://jb.gg/OpenSource)

@@ -1,7 +1,6 @@
 {
 	"author": "Flis666",
 	"version": 1.0,
-	"hfs_version": "0.57.5",
 	"translate": {
         "Select": "Wybierz",
         "n_files": "{n,plural,one{# plik} other{# plików}}",
@@ -40,6 +39,7 @@
         "Password": "Hasło",
         "login_untrusted": "Logowanie przerwane: tożsamość serwera nie może być uznana za wiarygodną",
         "login_bad_credentials": "Nieprawidłowe dane logowania",
+        "confirm_url_login": "Ten link próbuje zalogować Cię jako „{username}”",
         "login_bad_cookies": "Ciasteczka nie działają - logowanie nie powiodło się",
         "User panel": "Panel użytkownika",
         "Change password": "Zmień hasło",
@@ -101,6 +101,7 @@
         "upload_finished": "{n} zakończonych ({size})",
         "upload_errors": "{n} nieudanych",
         "upload_file_rejected": "Niektóre pliki nie zostały zaakceptowane",
+        "delete_unfinished_upload": "Usunąć niedokończone przesyłanie?",
 
         "File menu": "Menu pliku",
         "Folder menu": "Menu folderu",
@@ -115,6 +116,8 @@
         "Timestamp": "Znacznik czasu",
         "Show": "Pokaż",
         "Loading failed": "Nieudane ładowanie",
+        "Download limit reached": "Osiągnięto limit pobierania",
+        "Retry": "Spróbuj ponownie",
         "Rename": "Zmień nazwę",
         "Tiles mode:": "Tryb kafelków:",
         "off": "wyłączony",
@@ -190,6 +193,9 @@
         "No":  "Nie",
         "esc_again": "Naciśnij ESC dwukrotnie do zamkniecia",
         "insufficient storage": "za mało miejsca",
-        "Account disabled": "Konto wyłączone"
+        "Account disabled": "Konto wyłączone",
+        "upload_name": "Prześlij pod nową nazwą",
+        "Uploading": "Przesyłanie",
+        "proxy_413": "Sprawdź ten limit na serwerze proxy"
     }
 }

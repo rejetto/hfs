@@ -2,12 +2,13 @@ import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
 import { createElement as h, forwardRef, Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import {
     basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation, useStateMounted,
-    isNumeric, safeDecodeURIComponent,
+    isNumeric, safeDecodeURIComponent, isAudioComponent,
 } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
 import { Btn, FlexV, iconBtn, Spinner } from './components'
 import { openFileMenu } from './fileMenu'
+import { deleteFiles } from './menu'
 import { alertDialog, toast } from './dialog'
 import _ from 'lodash'
 import { getId3Tags } from './id3'
@@ -36,7 +37,13 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             onClose?.()
         },
         Content() {
-            const { uri } = useSnapState()
+            useEffect(() => {
+                const viewport = document.querySelector<HTMLMetaElement>('meta[name="viewport"]')!
+                const original = viewport.content
+                viewport.content = 'width=device-width, initial-scale=1' // allow native pinch zoom in the viewer, restoring the list's policy on close
+                return () => { viewport.content = original }
+            }, [])
+            const { uri, list } = useSnapState()
             useEffect(() => {
                 if (uri === firstUri) return
                 firstUri ??= uri // init
@@ -48,6 +55,12 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             const lastGood = useRef(entry)
             const [mode, setMode] = useState(ZoomMode.contain)
             const [shuffle, setShuffle] = useState<undefined | DirList>()
+            useEffect(() => {
+                const sameKey = _.find(state.list, { key: cur.key || cur.n }) // rename replaces the list entry to preserve list focus, so follow that replacement in the viewer
+                if (!sameKey || sameKey.n === cur.n) return // different name?
+                setShuffle(x => x?.map(entry => entry.n === cur.n ? sameKey : entry))
+                goTo(sameKey)
+            }, [list, cur])
             useEffect(() => toggleShuffle(startShuffle), [])
             const shufflePlayed = useRef(0) // keep track of how many entries of the shuffle list we played
             if (!shuffle) shufflePlayed.current = 0
@@ -62,7 +75,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                     if (escOnce)
                         return close()
                     escOnce = true
-                    onClose = toast(t('esc_again', "Press ESC twice to close")).close
+                    onClose = toast(t`esc_again`).close
                     return
                 }
                 escOnce = false
@@ -88,13 +101,19 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             })
             const [showNav, setShowNav] = useState(false)
             const component = useMemo(() => getShowComponent(cur), [cur])
-            const isAudio = component === Audio
+            const isAudio = isAudioComponent(component)
             useEffect(() => setShowNav(isAudio), [isAudio])
             const timerRef = useRef(0)
             const navClass = 'nav' + (showNav ? '' : ' nav-hidden')
 
             const [loading, setLoading] = useState(false)
             const [failed, setFailed] = useState<false | string>(false)
+            const [limited, setLimited] = useState(false)
+            const [reload, setReload] = useState(0)
+            const [checking, setChecking] = useState(false)
+            const retried = useRef(false)
+            const probe = useMemo(() => ({ controller: new AbortController(), pending: false }), [cur, reload])
+            useEffect(() => () => probe.controller.abort(), [probe]) // cancel only this attempt, not a new file's probe started before cleanup
             const containerRef = useRef<HTMLDivElement>()
             const mainRef = useRef<HTMLDivElement>()
             useEffect(() => { scrollY(-1E9) }, [cur])
@@ -102,33 +121,33 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             const [tags, setTags] = useState<any>()
             useEffect(() => setTags(undefined), [cur]) // reset
 
-            const { auto_play_seconds } = useSnapState()
-            const [autoPlaying, setAutoPlaying] = useState(startPlaying)
+            const { auto_play_seconds, autoPlay } = useSnapState()
+            const [autoPlaying, setAutoPlaying] = useState(startPlaying || autoPlay)
             function getShowElement() {
                 return containerRef.current?.querySelector('.showing') // like this, we don't require component to forward ref (easier for plugins)
             }
             useEffect(() => {
                 const showElement = getShowElement()
-                try {
-                    if (!autoPlaying && !justOpen || !showElement) return
-                } finally {
-                    justOpen = false
-                }
+                const playOnOpen = justOpen
+                justOpen = false
+                if (!showElement || failed || checking || !autoPlaying && !playOnOpen) return
                 if (showElement instanceof HTMLMediaElement) {
                     showElement.play().catch(playFailed)
-                    return domOn('ended', goNext, { target: showElement })
+                    if (autoPlaying)
+                        return domOn('ended', goNext, { target: showElement })
+                    return
                 }
                 if (!autoPlaying) return // we reached here because of the justOpen, but we are not interested in images
                 // we are supposedly showing an image
                 const h = setTimeout(goNext, state.auto_play_seconds * 1000)
                 return () => clearTimeout(h)
-            }, [autoPlaying, cur])
+            }, [autoPlaying, cur, reload, failed, checking])
             const {mediaSession} = navigator
             mediaSession?.setActionHandler('nexttrack', goNext)
             mediaSession?.setActionHandler('previoustrack', goPrev)
 
             const {t} = useI18N()
-            const autoPlaySecondsLabel = t('autoplay_seconds', "Seconds to wait on images")
+            const autoPlaySecondsLabel = t`autoplay_seconds`
             const folder = dirname(cur.n)
             const failOnce = useRef<typeof cur>()
             useEffect(() => {
@@ -171,7 +190,8 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                             }),
                         ),
                         iconBtn('menu', ev => openFileMenu(cur, ev, [
-                            'open', 'delete',
+                            'open',
+                            cur.canDelete() && { id: 'delete', label: t`Delete`, icon: 'delete', onClick: deleteCurrent },
                             { id: 'zoom', icon: 'zoom', label: t`Switch zoom mode`, onClick: switchZoomMode },
                             { id: 'fullscreen', icon: 'fullscreen', label: t`Full screen`, onClick: toggleFullScreen },
                             { id: 'shuffle', icon: 'shuffle', label: t`Shuffle`, toggled: Boolean(shuffle), onClick: () => toggleShuffle() },
@@ -185,13 +205,15 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                     failed === cur.n ? h(FlexV, { alignItems: 'center', textAlign: 'center' },
                         hIcon('error', { style: { fontSize: '20vh' } }),
                         h('div', {}, cur.name),
-                        t`Loading failed`
+                        h('div', {}, limited ? t`Download limit reached` : t`Loading failed`),
+                        limited && h(Btn, { label: t`Retry`, onClick: retry })
                     ) : h('div', { className: 'showing-container', ref: containerRef },
                         h('div', {
                             className: 'cover ' + (cover ? '' : 'none'),
                             style: { backgroundImage: cover && `url("${cover}")` }
                         }),
                         component && h(component, {
+                            key: reload,
                             src: cur.uri,
                             className: 'showing',
                             onLoad() {
@@ -242,11 +264,53 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
 
             function goNext() { go(+1) }
 
-            function onError() {
+            async function deleteCurrent() {
+                const list = shuffle || state.list
+                const i = _.findIndex(list, { n: cur.n })
+                const canShow = (entry: DirEntry) => !entry.isFolder && Boolean(getShowComponent(entry))
+                const next = _.find(list.slice(i + 1), canShow) || _.findLast(list.slice(0, i), canShow)
+                if (!await deleteFiles([cur.uri])) return
+                if (shuffle)
+                    setShuffle(list.filter(x => x.n !== cur.n))
+                next ? goTo(next) : close()
+            }
+
+            async function onError() {
+                if (!component) return loadingFailed()
+                const { controller } = probe
+                if (probe.pending || controller.signal.aborted) return
+                probe.pending = true
+                setChecking(true)
+                // media error events hide HTTP status; HEAD checks the current limit without downloading the file
+                const response = await fetch(cur.uri, { method: 'HEAD', cache: 'no-store', signal: controller.signal }).catch(() => undefined)
+                if (controller.signal.aborted || getCur() !== cur) return
+                probe.pending = false
+                setChecking(false)
+                if (response?.status === 429) {
+                    setAutoPlaying(false)
+                    setLoading(false)
+                    setLimited(true)
+                    setFailed(cur.n)
+                }
+                else if (response?.ok && !retried.current) {
+                    retried.current = true // a slot may have freed up, but a broken file must not cause endless retries
+                    retry()
+                }
+                else loadingFailed()
+            }
+
+            function retry() {
+                setFailed(false)
+                setLimited(false)
+                setLoading(true)
+                setReload(x => x + 1)
+            }
+
+            function loadingFailed() {
                 const mediaError = (document.querySelector('.showing-container .showing') as any)?.error?.code // only present in video/audio elements
                 if (mediaError === 2) return // happens when chrome fails to fetch cover for videos. We don't skip the file for this reason. Tested on chrome129/windows
                 if (cur !== lastGood.current)
-                    return go()
+                    return go(moving.current || 1)
                 setLoading(false)
                 setFailed(cur.n)
             }
@@ -319,6 +383,10 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             }
 
             function goTo(to: typeof cur) {
+                if (to !== cur) probe.controller.abort()
+                setChecking(false)
+                retried.current = false
+                setLimited(false)
                 setFailed(false)
                 setLoading(to !== lastGood.current)
                 setCur(to)
@@ -346,7 +414,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             }
 
             function toggleAutoPlay() {
-                setAutoPlaying(x => !x)
+                setAutoPlaying(x => state.autoPlay = !x)
             }
 
             function scrollY(dy: number) {
@@ -399,10 +467,10 @@ function showHelp() {
         title: t`File Show help`,
         className: 'file-show-help',
         Content: () => h(Fragment, {},
-            t('showHelpMain', {}, "You can use the keyboard for some actions:"),
+            t('showHelpMain', {}),
             _.map({
-                "←/→": t('showHelp_←/→_body', "Go to previous/next file"),
-                "↑/↓": t('showHelp_↑/↓_body', "Scroll tall images"),
+                "←/→": t`showHelp_←/→_body`,
+                "↑/↓": t`showHelp_↑/↓_body`,
                 "space": t`Select`,
                 "D": t`Download`,
                 "Z": t`Switch zoom mode`,
@@ -412,7 +480,7 @@ function showHelp() {
                 "A": t`Auto-play`,
             }, (v,k) => h('div', { key: k }, h('kbd', {}, t('showHelp_' + k, k)), ' ', v) ),
             h('div', { style: { marginTop: '1em' } },
-                t('showHelpListShortcut', { key: isMac ? 'SHIFT' : 'WIN' }, "From the file list, click while holding {key} to Show")
+                t('showHelpListShortcut', { key: isMac ? 'SHIFT' : 'WIN' })
             )
         )
     })

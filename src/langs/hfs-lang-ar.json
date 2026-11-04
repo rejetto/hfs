@@ -1,7 +1,6 @@
 {
     "author": "Hussein M. Alghazal (hmg3099)",
     "version": 1.0,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "اختر",
         "n_files": "{n,plural,one{# file} other{# files}}",
@@ -40,6 +39,7 @@
         "Password": "كلمة المرور",
         "login_untrusted": "تم إيقاف تسجيل الدخول: لا يمكن الوثوق بهوية الخادم",
         "login_bad_credentials": "بيانات اعتماد غير صالحة",
+        "confirm_url_login": "يحاول هذا الرابط تسجيل دخولك باسم «{username}»",
         "login_bad_cookies": "الكوكيز لا تعمل - فشل تسجيل الدخول",
         "User panel": "لوحة المستخدم",
         "Change password": "تغيير كلمة المرور",
@@ -102,6 +102,7 @@
         "upload_finished": "{n} تم رفعه ({size})",
         "upload_errors": "{n} فشلوا",
         "upload_file_rejected": "بعض الملفات لم تُقبل",
+        "delete_unfinished_upload": "هل تريد إزالة الرفع غير المكتمل؟",
 
         "File menu": "قائمة الملف",
         "Folder menu": "قائمة المجلد",
@@ -116,6 +117,8 @@
         "Timestamp": "الطابع الزمني",
         "Show": "عرض",
         "Loading failed": "فشل التحميل",
+        "Download limit reached": "تم بلوغ حد التنزيلات",
+        "Retry": "إعادة المحاولة",
         "Rename": "إعادة تسمية",
         "Tiles mode:": "وضع الشبكة:",
         "off": "إيقاف",
@@ -191,6 +194,9 @@
         "No":  "لا",
         "esc_again": "انقر على ESC ثانية لاغلاق",
         "insufficient storage": "مساحة تخزين غير كافية",
-        "Account disabled": "تم تعطيل الحساب"
+        "Account disabled": "تم تعطيل الحساب",
+        "upload_name": "تحميل بالاسم الجديد",
+        "Uploading": "جارٍ التحميل",
+        "proxy_413": "تحقق من هذا الحد على الخادم الوكيل"
     }
 }

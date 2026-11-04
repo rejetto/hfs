@@ -5,7 +5,7 @@ allowed_referer: x.com
 localhost_admin: false
 vfs:
   masks:
-    "**/config.yaml*|test.ts|work|*uploaded|work2|tmp":
+    "**/config.yaml*|tsconfig.json|*test.ts|work|*uploaded|work2|tmp":
       can_see: false
     tests/page/!*.png:
       mime: text/plain
@@ -32,7 +32,7 @@ vfs:
         - name: pic
           mime: png
           source: ../page/gpl.png
-        - source: ../page
+        - source: ../page/
           default: index.html
         - name: protected
           source: ../page/gpl.png
@@ -50,7 +50,7 @@ vfs:
       can_see: can_read
       children:
         - name: upload
-          source: ../tmp
+          source: ../tmp/
           can_upload:
             - admins
           can_delete:
@@ -58,7 +58,7 @@ vfs:
           children:
             - source: ../tmp/no-upload
               can_upload: false
-        - source: ../work/cant-overwrite
+        - source: ../work/cant-overwrite/
           can_upload:
             - admins
           can_delete: false
@@ -67,7 +67,7 @@ vfs:
       can_list:
         - disabled_account
     - name: tests
-      source: ..
+      source: ../
       masks:
         "**/!*.png|files|":
           can_see: false
@@ -78,7 +78,7 @@ vfs:
     - name: renameChild
       can_upload: true
       children:
-        - source: ..
+        - source: ../
           can_upload: false
           rename:
             alfa.txt: renamed1
@@ -98,18 +98,18 @@ vfs:
             - name: C
               order: -3
     - name: cantListBut
-      source: ..
+      source: ../
       can_list: false
       masks:
         "*":
           can_list: true
     - name: zipNoList
-      source: ../page
+      source: ../page/
       can_see: false
       can_list: false
       can_archive: true
     - name: cantSearchForMasks
-      source: ..
+      source: ../
     - name: onlyFilesDeep
       can_see:
         this: false
@@ -120,7 +120,7 @@ vfs:
               children:
                 - source: ../alfa.txt
     - name: cantSearchForMasksDeep
-      source: ..
+      source: ../
       can_see:
         this: false
       rename:
@@ -129,7 +129,7 @@ vfs:
         page/gpl.png:
           can_see: false
     - name: maskOverlap
-      source: ..
+      source: ../
       can_see:
         this: false
       rename:
@@ -151,14 +151,14 @@ vfs:
           can_see: false
       children:
         - name: nested
-          source: ..
+          source: ../
           rename:
             page/gpl.png: renamed-gpl-nested.png
           masks:
             page/renamed*:
               can_see: false
     - name: cantReadBut
-      source: ..
+      source: ../
       can_read: false
       masks:
         "*":
@@ -171,13 +171,13 @@ vfs:
           can_read:
             - rejetto
     - name: cantListPage
-      source: ..
+      source: ../
       masks:
         page:
           can_see: false
           can_list: false
     - name: cantListPageAlt
-      source: ..
+      source: ../
       masks:
         page:
           can_see: false
@@ -187,13 +187,13 @@ vfs:
           can_read:
             - rejetto
     - name: cantReadPage
-      source: ..
+      source: ../
       masks:
-        page|*.ts|*.yaml*:
+        page|*.ts|*.mjs|*.yaml*|tsconfig.json:
           can_read: false
           can_list: false
     - name: cantReadRealFolder
-      source: ..
+      source: ../
       can_read: false
       can_list: false
     - name: cantSeeThis
@@ -207,7 +207,7 @@ vfs:
         this: false
       children:
         - name: hi
-          source: ..
+          source: ../
       masks:
         "*/page":
           can_list: false
@@ -238,7 +238,7 @@ accounts:
   admins:
     allow_net: ::1
     admin: true
-version: 3.2.1
+version: 3.4.0-rc5
 max_downloads_per_account: 2
 max_downloads: 1
 roots:

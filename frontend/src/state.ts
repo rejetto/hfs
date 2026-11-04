@@ -6,6 +6,8 @@ import { subscribeKey } from 'valtio/utils'
 import { FRONTEND_OPTIONS, getHFS, hfsEvent, hIcon, pathEncode, typedKeys } from './misc'
 import { DirEntry as ServerDirEntry } from '../../src/api.get_file_list'
 
+export type UploadOnExisting = 'skip' | 'overwrite' | 'rename'
+
 export const state = proxy<typeof FRONTEND_OPTIONS & {
     stopSearch?: ()=>void,
     searchManuallyInterrupted?: boolean,
@@ -38,10 +40,12 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
     }
     canChangePassword: boolean
     uri: string
-    uploadOnExisting: 'skip' | 'overwrite' | 'rename'
+    uploadOnExisting: UploadOnExisting
+    autoPlay: boolean
     expandedUsername?: string[]
 }>({
     uploadOnExisting: getHFS().dontOverwriteUploading ? 'rename' : 'skip',
+    autoPlay: false,
     uri: '',
     canChangePassword: false,
     props: {},
@@ -62,11 +66,15 @@ export function useSnapState() {
     return useSnapshot(state)
 }
 
+export function getUploadOnExisting(value=state.uploadOnExisting, canOverwrite=state.props?.can_overwrite): UploadOnExisting {
+    return value === 'overwrite' && canOverwrite === false ? 'skip' : value
+}
+
 const SETTINGS_KEY = 'hfs_settings'
 type StateKey = keyof typeof state
-const SETTINGS_WITHOUT_GUI: StateKey[] = ['file_menu_on_link', 'page_size', 'title_with_path']
+const SETTINGS_WITHOUT_GUI: StateKey[] = ['file_menu_on_link', 'menu_at_top', 'page_size', 'title_with_path']
 const SETTINGS_TO_STORE: StateKey[] = _.difference(typedKeys(FRONTEND_OPTIONS), SETTINGS_WITHOUT_GUI)
-    .concat(['uploadOnExisting']) // not adding this to FRONTEND_OPTIONS, as its possible values vary with the user permissions, but still makes sense to save on a single browser, supposedly for a single user
+    .concat(['uploadOnExisting', 'autoPlay']) // not adding these to FRONTEND_OPTIONS, as they are per-browser preferences rather than server defaults
 
 loadSettings()
 for (const k of SETTINGS_TO_STORE)

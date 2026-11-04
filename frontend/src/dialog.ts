@@ -120,14 +120,15 @@ export type AlertType = 'error' | 'warning' | 'info'
 
 let msgShowing: any
 export function alertDialog(msg: ReactElement | string | Error, type:AlertType='info', title='') {
-    if (msg === msgShowing) return // no sense in having 2 on the screen. While not strictly our responsibility, it can be handy off-loader for the caller
+    const originalMsg = msg
+    if (originalMsg === msgShowing) return // no sense in having 2 on the screen. While not strictly our responsibility, it can be handy off-loader for the caller
     const was = msgShowing
-    msgShowing = msg
+    msgShowing = originalMsg
     if (msg instanceof Error)
         type = 'error'
     const ret = pendingPromise()
     ret.finally(() => {
-        if (msg === msgShowing) // check, in the unlikely case the order of open/close of alertDialog is not strictly a "stack"
+        if (originalMsg === msgShowing) // check, in the unlikely case the order of open/close of alertDialog is not strictly a "stack"
             msgShowing = was
     })
     return Object.assign(ret, newDialog({

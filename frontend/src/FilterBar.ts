@@ -1,24 +1,31 @@
 import { state, useSnapState } from './state'
-import { createElement as h, useEffect, useState } from 'react'
+import { createElement as h, useEffect, useMemo, useRef, useState } from 'react'
 import { useDebounce } from 'usehooks-ts'
 import { Checkbox, CustomCode } from './components'
-import { usePath } from './useFetchList'
-import { onHfsEvent, with_ } from './misc'
+import { getHFS, with_ } from './misc'
+import { scrollIntoView } from './Paging'
 import i18n from './i18n'
 const { useI18N } = i18n
 
 export function FilterBar() {
     const { list, filteredList, selected, patternFilter, showFilter } = useSnapState()
-    const [all, setAll] = useState(false)
     const [filter, setFilter] = useState(patternFilter)
-    useEffect(() => setAll(false), [patternFilter, usePath()]) // reset on change
+    const ref = useRef<HTMLDivElement>(null)
     const {t} = useI18N()
 
+    useEffect(() => {
+        if (showFilter && getHFS().menu_at_top) // a long folder comment can keep the filter below the viewport before it reaches its sticky position
+            scrollIntoView(ref.current, 'nearest')
+    }, [showFilter])
+
     state.patternFilter = useDebounce(showFilter ? filter : '', 300)
-    useEffect(() => onHfsEvent('', 'entryToggleSelection', () => setAll(false)), [])
+    const entries = filteredList || list
+    const all = useMemo(() => showFilter
+        && entries.some(x => x.canSelect())
+        && entries.every(x => !x.canSelect() || selected[x.uri]), [showFilter, entries, selected])
 
     const tabIndex = showFilter ? undefined : -1
-    return h('div', { id: 'filter-bar', style: { display: showFilter ? undefined : 'none' } },
+    return h('div', { id: 'filter-bar', ref, style: { display: showFilter ? undefined : 'none' } },
         h(Checkbox, {
             value: all,
             tabIndex,
@@ -35,7 +42,7 @@ export function FilterBar() {
         }),
         h('input', {
             id: 'filter',
-            placeholder: t('filter_placeholder', "Type here to filter the list below"),
+            placeholder: t`filter_placeholder`,
             autoComplete: 'off',
             value: filter,
             tabIndex,
@@ -46,8 +53,8 @@ export function FilterBar() {
         }),
         h(CustomCode, { name: 'afterFilter' }),
         h('span', {}, [
-            with_(Object.keys(selected).length, n => n && t('select_count', { n }, "{n} selected")),
-            with_(filteredList?.length, n => n !== undefined && n < list.length && t('filter_count', {n}, "{n} filtered")),
+            with_(Object.keys(selected).length, n => n && t('select_count', { n })),
+            with_(filteredList?.length, n => n !== undefined && n < list.length && t('filter_count', {n})),
         ].filter(Boolean).join(', ') ),
     )
 
@@ -62,7 +69,5 @@ export function FilterBar() {
             else if (e.canSelect())
                 sel[uri] = true
         }
-        if (will !== undefined)
-            setAll(will)
     }
 }

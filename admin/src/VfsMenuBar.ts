@@ -1,11 +1,12 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, ReactNode } from 'react'
+import { t } from './i18n'
 import { Alert, Box, ButtonProps, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
 import { Add, Save, Storage, Undo } from '@mui/icons-material'
 import addFiles, { addLink, addVirtual } from './addFiles'
 import MenuButton from './MenuButton'
-import { osIcon } from './LogsPage'
+import { osIcon } from './agentIcons'
 import { reloadVfs } from './VfsPage'
 import { Dict, prefix, VFS_STORED_KEYS } from './misc'
 import { state, undoVfs, useSnapState } from './state'
@@ -13,16 +14,17 @@ import _ from 'lodash'
 import { Btn, Flex, reloadBtn, useBreakpoint, useCtrlShortcutButton } from './mui'
 import { apiCall, ApiObject, useApi } from './api'
 import VfsPathField from './VfsPathField'
-import { alertDialog, promptDialog } from './dialog'
+import { alertDialog, promptDialog, waitDialog } from './dialog'
 import { formatDiskSpace } from './FilePicker'
 import { getDiskSpaces } from '../../src/util-os'
 import { adminApis } from '../../src/adminApis'
+import VfsActionButtons from './VfsActionButtons'
 
-export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusApi: ApiObject }) {
-    const { vfsModified, vfsUndo } = useSnapState()
+export default function VfsMenuBar({ statusApi, add, isSideBreakpoint }: { add: ReactNode, statusApi: ApiObject, isSideBreakpoint: boolean }) {
+    const { vfsModified, vfsUndo, selectedFiles } = useSnapState()
     return h(Flex, {
         zIndex: 2,
-        gap: 1,
+        gap: .5,
         backgroundColor: 'background.paper',
         width: 'fit-content',
         flexWrap: 'wrap',
@@ -31,22 +33,24 @@ export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusA
         h(Btn, {
             ref: useCtrlShortcutButton(['s']).ref,
             icon: Save,
-            title: "Save\n(ctrl+s)",
-            disabled: !vfsModified && "No changes to save",
+            title: t`Save
+(ctrl+s)`,
+            disabled: !vfsModified && t`No changes to save`,
             modified: vfsModified,
             doneAnimation: true,
-            onClick: () => saveVfs().finally(statusApi.reload)
+            onClick: () => saveVfs().finally(waitDialog()).finally(statusApi.reload)
         }),
         h(Btn, {
             icon: Undo,
-            title: "Undo/redo last change",
-            disabled: !vfsUndo && "No changes to undo",
+            title: t`Undo/redo last change`,
+            disabled: !vfsUndo && t`No changes to undo`,
             onClick: undoVfs,
         }),
+        isSideBreakpoint && h(VfsActionButtons, { files: selectedFiles, pasteTo: selectedFiles[0] }),
         reloadBtn(() => reloadVfs()),
         h(Btn, {
             icon: Storage,
-            title: "Disk spaces",
+            title: t`Disk spaces`,
             onClick: () => apiCall<Awaited<ReturnType<typeof getDiskSpaces>>>('get_disk_spaces').then(res =>
                 alertDialog(h(List, { dense: true }, res.map(x => h(ListItem, { key: x.name },
                     h(ListItemIcon, {}, h(Storage)),
@@ -55,7 +59,7 @@ export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusA
                         primary: x.name + prefix(' (', x.description, ')'),
                         secondary: formatDiskSpace(x)
                     }),
-                ))), { title: "Disk spaces" })
+                ))), { title: t`Disk spaces` })
                     .then(() => false), // no success-animation for IconBtn
                 alertDialog)
         }),
@@ -68,12 +72,12 @@ export function AddVfsBtn(props: Partial<ButtonProps>) {
     return h(MenuButton, {
         variant: 'contained',
         icon: Add,
-        title: "Add item to virtual file system",
+        title: t`Add item to virtual file system`,
         ...props,
         items: [
-            { children: "virtual folder", onClick: addVirtual },
-            { children: "file or folder from disk", onClick: addFiles },
-            { children: "web-link", onClick: addLink  },
+            { children: t`virtual folder`, onClick: addVirtual },
+            { children: t`file or folder from disk`, onClick: addFiles },
+            { children: t`web-link`, onClick: addLink  },
         ]
     })
 }
@@ -87,15 +91,15 @@ function SystemIntegrationButton({ platform }: { platform: string | undefined })
         variant: 'outlined',
         doneMessage: true,
         ...(!integrated?.is ? {
-            children: "System integration",
+            children: t`System integration`,
             async onClick() {
                 const msg = h(Box, { sx: { width: { xs: '100%', sm: '34em' } } },
                     h('img', { src: 'win-shell.png', style: { display: 'block', width: '100%' }  }),
-                    h(Alert, { severity: 'info' }, "We are going to add a command in the right-click of Windows File Manager.",
-                        h(Box, {}, "It will also automatically copy the URL, ready to paste!")),
+                    h(Alert, { severity: 'info' }, t`windows_file_manager_command_notice`,
+                        h(Box, {}, t`windows_file_manager_copy_url_notice`)),
                 )
                 const parent = await promptDialog(msg, {
-                    field: { comp: VfsPathField, files: false, label: "Add to this folder", placeholder: "home",
+                    field: { comp: VfsPathField, files: false, label: t`Add to this folder`, placeholder: t`home`,
                         autoFocus: sm }, // this dialog is tall, and mobile keyboard will disrupt user's ability to view its content
                     form: { saveOnEnter: false }
                 })
@@ -103,7 +107,7 @@ function SystemIntegrationButton({ platform }: { platform: string | undefined })
             }
         } : {
             confirm: true,
-            children: "Remove integration",
+            children: t`Remove integration`,
             onClick: () => apiCall('windows_remove').then(reload),
         })
     })

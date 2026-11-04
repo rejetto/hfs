@@ -1,16 +1,16 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import fs from 'fs/promises'
-import { basename, dirname, join, resolve } from 'path'
+import { basename, dirname, extname, join, resolve, sep } from 'path'
 import {
-    makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, WhoVfs, debounceAsync,
+    CFG, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, WhoVfs, debounceAsync, pathEncode,
     isWhoObject, WHO_ANY_ACCOUNT, WHO_ADMIN, defaultPerms, PERM_KEYS, HTTP_SERVER_ERROR, try_, matches, Promisable,
-    statWithTimeout, safeDecodeURIComponent, getUncHost, Who,
+    statWithTimeout, safeDecodeURIComponent, getUncHost, Who, enforceFinal, hasFinalSlash, normalizeFilenameForPlatform,
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
-import { defineConfig, setConfig } from './config'
-import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_MAC, IS_WINDOWS } from './const'
+import { defineConfig, saveConfigAsap } from './config'
+import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_WINDOWS } from './const'
 import events from './events'
 import { ctxBelongsTo } from './perm'
 import { getCurrentUsername } from './auth'
@@ -21,7 +21,8 @@ import { walkDir } from './walkDir'
 import { Readable } from 'node:stream'
 import { ctxAdminAccess } from './adminApis'
 
-const showHiddenFiles = defineConfig('show_hidden_files', false)
+const showHiddenFiles = defineConfig(CFG.show_hidden_files, false)
+const sourceNames = new Map<string, string[]>()
 
 type Masks = Record<string, VfsNode>
 
@@ -39,6 +40,8 @@ export interface VfsNodeStored extends VfsPerms {
     comment?: string
     icon?: string
     order?: number
+    gui_asset?: boolean
+    see_without_probing?: boolean // show this folder in its parent without waking its disk source
 }
 export interface VfsNode extends VfsNodeStored { // include fields that are only filled at run-time
     isTemp?: true // this node doesn't belong to the tree and was created by necessity
@@ -46,6 +49,17 @@ export interface VfsNode extends VfsNodeStored { // include fields that are only
     parent?: VfsNode // available when original is available (therefore, only for isTemp)
     isFolder?: boolean // use nodeIsFolder() instead of relying on this field
     stats?: Promisable<Stats>
+    vfsPath?: string // runtime-only; assign with setHidden so saveVfs doesn't persist it
+}
+export interface VfsNodeWithPath extends VfsNode {
+    parent?: VfsNodeWithPath
+    vfsPath: string
+}
+
+function setVfsPath(node: VfsNode, vfsPath: string, parent?: VfsNodeWithPath) {
+    return setHidden(node, { // setHidden because we don't want to persist vfsPath
+        vfsPath: enforceFinal('/', parent?.vfsPath) + pathEncode(vfsPath)
+    }) as VfsNodeWithPath
 }
 
 export function permsFromParent(parent: VfsNode, child: VfsNode) {
@@ -77,6 +91,7 @@ function inheritFromParent(child: VfsNode) {
         if (parent.mime) child.mime ??= parent.mime
     if (parent.accept) child.accept ??= parent.accept
     if (parent.default) child.default ??= parent.default
+    child.gui_asset ??= parent.gui_asset
     return child
 }
 
@@ -87,20 +102,72 @@ export function isSameFilenameAs(name: string) {
 }
 
 export function normalizeFilename(x: string) {
-    return (IS_WINDOWS || IS_MAC ? x.toLocaleLowerCase() : x).normalize()
+    return normalizeFilenameForPlatform(x, process.platform)
 }
 
-export async function applyParentToChild(child: VfsNode | undefined, parent: VfsNode, name?: string) {
-    const ret: VfsNode = {
+export async function isSameFilePath(a: string, b: string) {
+    if (normalizeFilename(resolve(a)) === normalizeFilename(resolve(b)))
+        return true
+    try {
+        if (IS_WINDOWS) { // pkg's realpath preserves 8.3 names; expanding them here also preserves junction identity
+            const [longA, longB] = await Promise.all([convertWindowsPath(a, true), convertWindowsPath(b, true)])
+            if (longA && longB && normalizeFilename(resolve(longA)) === normalizeFilename(resolve(longB)))
+                return true
+        }
+        const stats = await Promise.all([fs.lstat(a), fs.lstat(b)])
+        if (stats.some(x => x.isSymbolicLink()))
+            return false
+        const [realA, realB] = await Promise.all([fs.realpath(a), fs.realpath(b)])
+        return normalizeFilename(realA) === normalizeFilename(realB)
+    }
+    catch {
+        return false
+    }
+}
+
+// security state follows the displayed VFS identity even when I/O uses its physical alias
+export function getVirtualName(name: string, parent: VfsNodeWithPath, source?: string) {
+    if (source) {
+        const child = getChildBySource(parent, source)
+        if (child)
+            return getNodeName(child)
+    }
+    const entries = Object.entries(parent.rename || {})
+    const fromSource = source && entries.find(([from]) => isSameFilenameAs(basename(source))(from))
+    if (fromSource)
+        return fromSource[1]
+    const sameName = isSameFilenameAs(name)
+    return entries.find(([, to]) => sameName(to))?.[1]
+        || entries.find(([from]) => sameName(from))?.[1]
+        || name
+}
+
+export function getChildBySource(parent: VfsNode, source: string) {
+    const normalizedSource = normalizeFilename(resolve(source))
+    return parent.children?.find(x => x.source
+        && normalizeFilename(resolve(x.source)) === normalizedSource)
+}
+
+export function getFreeVfsName(siblings: VfsNode[] | undefined, name: string) {
+    const ext = extname(name)
+    const noExt = ext ? name.slice(0, -ext.length) : name
+    let idx = 2
+    while (siblings?.find(isSameFilenameAs(name)))
+        name = `${noExt} ${idx++}${ext}`
+    return name
+}
+
+export function applyParentToChild(child: VfsNode | undefined, parent: VfsNodeWithPath, name?: string) {
+    name ||= child ? getNodeName(child) : ''
+    const ret = setVfsPath({
         original: child, // this can be overridden by passing an 'original' in `child`
         ...child,
         isFolder: child?.isFolder ?? (child?.children?.length! > 0 || undefined), // isFolder is hidden in original node, so we must copy it explicitly
         isTemp: true,
         parent,
-    }
-    name ||= child ? getNodeName(child) : ''
+    }, name, parent)
     inheritMasks(ret, parent, name)
-    await parentMaskApplier(parent)(ret, name)
+    parentMaskApplier(parent)(ret, name)
     inheritFromParent(ret)
     return ret
 }
@@ -108,9 +175,9 @@ export async function applyParentToChild(child: VfsNode | undefined, parent: Vfs
 export async function urlToNode(
     url: string,
     ctx?: Koa.Context,
-    parent: VfsNode=vfs,
-    allowMissing?: boolean // true means missing path segments still resolve to temporary nodes with a computed source path
-) : Promise<VfsNode | undefined> {
+    parent: VfsNodeWithPath=vfs.compiled(),
+    options: { allowMissing?: boolean, includeHidden?: boolean }={}
+) : Promise<VfsNodeWithPath | undefined> {
     let initialSlashes = 0
     while (url[initialSlashes] === '/')
         initialSlashes++
@@ -123,15 +190,16 @@ export async function urlToNode(
         return
     const hasTrailingSlash = url.endsWith('/')
     const rest = nextSlash < 0 ? '' : url.slice(nextSlash+1, hasTrailingSlash ? -1 : undefined)
-    const assumeFolder = allowMissing && (rest > '' || hasTrailingSlash)
+    const assumeFolder = options.allowMissing && (rest > '' || hasTrailingSlash)
     const ret = await getNodeByName(name, parent, assumeFolder)
     if (!ret)
         return
+    if (!ret.original && ret.source && !options.includeHidden && !showHiddenFiles.get() && await isHiddenFile(ret.source))
+        return
     if (rest || ret?.original)
-        return urlToNode(rest, ctx, ret, allowMissing)
+        return urlToNode(rest, ctx, ret, options)
     if (ret.source)
-        if (!showHiddenFiles.get() && await isHiddenFile(ret.source)
-        || !allowMissing && await setIsFolder(ret) === undefined)  // undefined = not found on disk
+        if (!options.allowMissing && await setIsFolder(ret) === undefined)  // undefined = not found on disk
             return
     return ret
 }
@@ -151,71 +219,175 @@ async function isHiddenFile(path: string) {
         : path[path.lastIndexOf('/') + 1] === '.'
 }
 
-export async function getNodeByName(name: string, parent: VfsNode, assumeMissingToBeFolder=false) {
+export async function getNodeByName(name: string, parent: VfsNodeWithPath, assumeMissingToBeFolder=false) {
     // does the tree node have a child that goes by this name, otherwise attempt disk
+    let virtualName = name
     let child = parent.children?.find(isSameFilenameAs(name))
-    if (child) // found as vfs node
+    const sameName = isSameFilenameAs(name)
+    const sourceName = Object.entries(parent.rename || {}).find(([, to]) => sameName(to))?.[0] || name
+    if (!child) {
+        child = findSourceChild()
+        // a shared alias may publish comment storage only through its explicit VFS name
+        if (child?.source && isCommentsFileName(basename(child.source))) return
+        if (!child && IS_WINDOWS && parent.source) {
+            const aliases = await windowsPathNames(join(parent.source, sourceName), parent.source)
+            if (!aliases) return
+            child = findSourceChild(aliases)
+            if (!child) {
+                const normalized = new Set(aliases.map(normalizeFilename))
+                const candidates = parent.children?.filter(candidate => candidate.source
+                    && normalized.has(normalizeFilename(basename(candidate.source)))) || []
+                if (candidates.length > 1) return // an unverified physical alias must identify one VFS child
+                const [candidate] = candidates
+                if (candidate?.source && await isSameFilePath(dirname(candidate.source), parent.source))
+                    child = candidate
+            }
+        }
+    }
+    if (child) { // found as vfs node
+        virtualName = getNodeName(child)
         await setIsFolder(child) // in case it's pointing to a folder that didn't exist at loading time
+    }
     else
         child = await childFromDisk()
-    return child && applyParentToChild(child, parent, name)
+    return child && applyParentToChild(child, parent, virtualName)
 
     async function childFromDisk() {
         if (!parent.source) return
         const ret: VfsNode = {}
         let onDisk = name
         if (parent.rename) { // reverse the mapping
-            for (const [from, to] of Object.entries(parent.rename))
-                if (name === to) {
-                    onDisk = from
-                    break // found, search no more
-                }
-            ret.rename = renameUnderPath(parent.rename, name)
+            const entries = Object.entries(parent.rename)
+            // search display names first: with { A: B, C: A }, A must resolve to C rather than be hidden
+            const asDisplayName = entries.find(([, to]) => sameName(to))
+            if (asDisplayName) {
+                onDisk = asDisplayName[0]
+                virtualName = asDisplayName[1]
+            }
+            else {
+                if (!await canonicalizeWindowsAlias()) return
+                const sameSourceName = isSameFilenameAs(onDisk)
+                const asPhysicalName = entries.find(([from]) => sameSourceName(from))
+                if (asPhysicalName) return // a VFS rename replaces the original public name
+            }
+            ret.rename = renameUnderPath(parent.rename, onDisk)
         }
+        else if (!await canonicalizeWindowsAlias()) return
         if (!isValidFileName(onDisk)) return
         ret.source = join(parent.source, onDisk)
         ret.original = undefined // this will overwrite the 'original' set in applyParentToChild, so we know this is not part of the vfs
         await setIsFolder(ret)
+        if (ret.isFolder === false && isCommentsFileName(onDisk)) return // implicit comment storage contains metadata for files the requester may not be allowed to see
         if (assumeMissingToBeFolder)
             ret.isFolder ??= true
         return ret
+
+        async function canonicalizeWindowsAlias() {
+            if (!IS_WINDOWS || !name.includes('~')) return true
+            // Windows exposes 8.3 aliases that must keep the long name's VFS identity
+            const longPath = await convertWindowsPath(join(parent.source!, name), true)
+            if (!longPath) return true // new names containing '~' are still valid
+            if (!await isSameFilePath(dirname(longPath), parent.source!)) return false
+            onDisk = virtualName = basename(longPath)
+            return true
+        }
+    }
+
+    function findSourceChild(names=[sourceName]) {
+        const normalized = new Set(names.map(normalizeFilename))
+        return parent.children?.find(x => getSourceNames(x, parent).some(source => normalized.has(normalizeFilename(source))))
     }
 }
 
-const smartUncFolderDetection = defineConfig('smart_unc_folder_detection', false)
+function isCommentsFileName(name: string) {
+    return usingDescriptIon() && [DESCRIPT_ION, DESCRIPT_ION_ALT].some(isSameFilenameAs(name))
+}
+
+const smartUncFolderDetection = defineConfig(CFG.smart_unc_folder_detection, false)
 
 async function setIsFolder(node: VfsNode) {
     if (!node.source) return
-    const isFolder = /[\\/]$/.test(node.source)
+    const isFolder = hasFinalSlash(node.source)
         || smartUncFolderDetection.get() && getUncHost(node.source) && !basename(node.source).includes('.') // no dot = folder; not very reliable but fast for unreachable unc hosts, and it's an opt-in
         || await nodeStats(node).then(x => x?.isDirectory(), () => undefined)
     setHidden(node, { isFolder })
+    if (isFolder)
+        persistFolderMarker(node)
     return isFolder
 }
 
-export let vfs: VfsNode = {}
-defineConfig('vfs', vfs).sub(async x => {
-    await reviewVfs(x)
+// compiled is the stable mutable tree, while get() may return a fresh clone of the default
+export const vfs = defineConfig<VfsNode, VfsNodeWithPath>(CFG.vfs, {}, x =>
+    setVfsPath(structuredClone(x && typeof x === 'object' ? x : {}), '')) // ensure the type is right
+vfs.sub(async () => {
+    await reviewVfs()
     console.log('VFS ready')
 })
 
-async function reviewVfs(data=vfs) {
-    await (async function recur(node) {
+async function reviewVfs() {
+    await (async function recur(node: VfsNode) {
         if (node.source && !node.children?.length && node.isFolder === undefined)
             await setIsFolder(node)
-        if (node.children)
-            await Promise.allSettled(node.children.map(recur))
-    })(data)
-    vfs = data
+        if (!node.children) return
+        // we rename your node in case you got 2 nodes with the same name
+        const usedNames = new Set<string>()
+        for (const child of node.children) {
+            const name = getNodeName(child)
+            const normalized = normalizeFilename(name)
+            if (usedNames.has(normalized))
+                child.name = getFreeVfsName(node.children, name)
+            usedNames.add(normalizeFilename(getNodeName(child)))
+        }
+
+        await Promise.allSettled(node.children.map(recur))
+        await Promise.allSettled(node.children.map(child => setSourceNames(child, node)))
+    })(vfs.compiled())
+
+}
+
+async function setSourceNames(node: VfsNode, parent: VfsNode) {
+    if (!node.source || !parent.source) return
+    const sameParent = normalizeFilename(dirname(resolve(node.source))) === normalizeFilename(resolve(parent.source))
+    if (!sameParent && (!IS_WINDOWS || !await isSameFilePath(dirname(node.source), parent.source))) return
+    const names = [basename(node.source)]
+    const key = sourceNamesKey(node, parent)
+    if (IS_WINDOWS) {
+        const converted = await Promise.all([convertWindowsPath(node.source), convertWindowsPath(node.source, true)])
+        names.push(...converted.map(x => x && basename(x)).filter(Boolean) as string[])
+    }
+    sourceNames.set(key, _.uniq(names))
+}
+
+function convertWindowsPath(path: string, isLong=false) {
+    return new Promise<string | undefined>(resolvePromise => {
+        if (!fswin.convertPath(path, converted => resolvePromise(converted || undefined), isLong))
+            resolvePromise(undefined)
+    })
+}
+
+async function windowsPathNames(path: string, parent: string) {
+    const converted = await Promise.all([convertWindowsPath(path), convertWindowsPath(path, true)])
+    const existing = converted.find(Boolean)
+    if (existing && !await isSameFilePath(dirname(existing), parent)) return
+    return _.uniq([basename(path), ...converted.map(x => x && basename(x)).filter(Boolean) as string[]])
+}
+
+function getSourceNames(node: VfsNode, parent: VfsNode) {
+    return node.source && parent.source ? sourceNames.get(sourceNamesKey(node, parent)) || [] : []
+}
+
+function sourceNamesKey(node: VfsNode, parent: VfsNode) {
+    return normalizeFilename(resolve(parent.source!)) + '\0' + normalizeFilename(resolve(node.source!))
 }
 
 export const saveVfs = debounceAsync(async () => {
-    await reviewVfs()
-    await setConfig({ vfs }, true)
+    await reviewVfs() // refresh runtime-derived folder flags before saving mutated VFS state
+    vfs.set(vfs.compiled()) // sync the mutable runtime tree back to config state before persisting it
+    saveConfigAsap()
 })
 
 export function isRoot(node: VfsNode) {
-    return node === vfs
+    return node === vfs.compiled()
 }
 
 export function getNodeName(node: VfsNode) {
@@ -246,14 +418,27 @@ export function nodeIsFolder(node: VfsNode) {
     function reconsider() {
         // a networked source may be offline at startup, and become online later: recalculate in the background
         nodeStats(node).then(s => {
-            if (s)
-                setHidden(node.original || node, { isFolder: s.isDirectory() })
+            if (s) {
+                const isFolder = s.isDirectory()
+                setHidden(node.original || node, { isFolder })
+                if (isFolder)
+                    persistFolderMarker(node)
+            }
         }, () => {})
         return undefined
     }
 }
 
-export async function getDefaultFile(node: VfsNode, ctx: Koa.Context) {
+// we mark folder paths with a final slash – the UI already does so, but the config may be modified
+function persistFolderMarker(node: VfsNode) {
+    if ('original' in node && !node.original) return // disk-derived nodes are temporary and must not persist VFS changes
+    const stored = node.original || node // temporary VFS nodes must update their stored original for saveVfs to persist the marker
+    if (!stored.source || hasFinalSlash(stored.source)) return
+    stored.source += sep
+    void saveVfs()
+}
+
+export async function getDefaultFile(node: VfsNodeWithPath, ctx: Koa.Context) {
     return node.default && nodeIsFolder(node) && await urlToNode(node.default, ctx, node) || undefined
 }
 
@@ -265,7 +450,7 @@ export function hasPermission(node: VfsNode, perm: keyof VfsPerms, ctx: Koa.Cont
    return !statusCodeForMissingPerm(node, perm, ctx, false)
 }
 
-export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ctx: Koa.Context, assign=true) {
+export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ctx: Koa.Context, assign=true, checkListeners=true) {
     const ret = getCode()
     if (ret && assign) {
         ctx.status = ret
@@ -296,12 +481,9 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
         } while (1)
         if (isWhoObject(who) || isWhoVfsPerms(who))
             throw Error(`permission type-guard: ${JSON.stringify(who)}`)
-        const eventName = 'checkVfsPermission'
-        if (events.anyListener(eventName)) {
-            const first = _.max(events.emit(eventName, { who, node, perm, ctx }))
-            if (first !== undefined)
-                return first
-        }
+        const first = checkListeners ? _.max(events.emit('checkVfsPermission', { who, node, perm, ctx })) : undefined
+        if (first !== undefined)
+            return first
 
         return simpleWhoToError(who, ctx)
             ?? throw_(Error(`invalid permission: ${perm}=${try_(() => JSON.stringify(who))}`))
@@ -331,7 +513,7 @@ interface WalkNodeOptions {
     parallelizeRecursion?: boolean,
 }
 // it's the responsibility of the caller to verify you have list permission on parent, as callers have different needs.
-export async function* walkNode(parent: VfsNode, {
+export async function* walkNode(parent: VfsNodeWithPath, {
     ctx,
     depth = Infinity,
     prefixPath = '',
@@ -348,23 +530,24 @@ export async function* walkNode(parent: VfsNode, {
             started = true
             const { source } = parent
             const taken = new Set()
-            const maskApplier = parentMaskApplier(parent)
-            const visitLater: [VfsNode, string][] = []
+            const takenSources = new Set()
+            const visitLater: [VfsNodeWithPath, string][] = []
             const childrenWorking = parent.children?.length && Promise.all(parent.children.map(async child => {
                 if (ctx?.isAborted()) return
                 const nodeName = getNodeName(child)
                 const name = prefixPath + nodeName
-                taken?.add(normalizeFilename(name))
-                const item = { ...child, original: child, name, parent }
-                if (await cantSee(item)) return
-                if (item.source && !item.children?.length) // real items must be accessible, unless there's more to it
+                taken.add(normalizeFilename(name))
+                for (const sourceName of getSourceNames(child, parent))
+                    takenSources.add(normalizeFilename(prefixPath + sourceName))
+                const item = setVfsPath({ ...child, original: child, name, parent }, name, parent)
+                if (await cantSee(item, parent, nodeName)) return
+                if (item.source && !item.children?.length && !item.see_without_probing) // real items must be accessible, unless probing was explicitly disabled
                     try { await fs.access(item.source) }
                     catch { return }
                 const isFolder = nodeIsFolder(child)
-                if (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
+                if (canEmit(item, isFolder))
                     stream.push(item)
                 if (!depth || !isFolder || cantRecur(item)) return
-                inheritMasks(item, parent)
                 visitLater.push([item, name]) // prioritize siblings
             }))
 
@@ -376,30 +559,51 @@ export async function* walkNode(parent: VfsNode, {
                     && !masksCouldGivePermission(parent.masks, requiredPerm))
                     return
 
-                const pathMaskApplier = parentMaskApplier(parent, true)
+                const diskFolders = new Map<string, { node: VfsNodeWithPath, virtualPath: string }>()
+                diskFolders.set('', { node: parent, virtualPath: '' })
+                const applyPathMask = parentMaskApplier(parent, true, true)
+                const applyRootNameMask = parentMaskApplier(parent, false, true)
                 try {
                     await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion }, async entry => {
                         if (ctx?.isAborted())
                             return null
-                        if (usingDescriptIon() && (entry.name === DESCRIPT_ION || entry.name === DESCRIPT_ION_ALT))
-                            return
                         const {path} = entry // this path is not the original deprecated property: we are overwriting/reusing it
                         const isFolder = entry.isDirectory()
-                        let renamed = parent.rename?.[path]
-                        if (renamed) {
-                            const dir = dirname(path) // if `path` isn't just the name, copy its dir in renamed
-                            if (dir !== '.')
-                                renamed = dir + '/' + renamed
-                        }
-                        const name = prefixPath + (renamed || path)
-                        if (taken?.has(normalizeFilename(name))) // taken by vfs node above
+                        if (!isFolder && isCommentsFileName(entry.name))
+                            return
+                        const parentPath = dirname(path) === '.' ? '' : dirname(path)
+                        const evaluatedParent = diskFolders.get(parentPath)
+                        if (!evaluatedParent) return false
+                        const physicalName = basename(path)
+                        const virtualName = evaluatedParent.node.rename?.[physicalName] || physicalName
+                        const virtualPath = evaluatedParent.virtualPath
+                            ? evaluatedParent.virtualPath + '/' + virtualName
+                            : virtualName
+                        const name = prefixPath + virtualPath
+                        if (taken.has(normalizeFilename(name))
+                        || takenSources.has(normalizeFilename(prefixPath + path))) // taken by vfs node above
                             return false // false just in case it's a folder
-                        const item: VfsNode = { name, isFolder, source: join(source, path), parent, stats: entry.stats }
-                        // masks containing '/' must be matched against the relative path while keeping walkDir recursion enabled
-                        await pathMaskApplier(item, renamed || path)
-                        if (await cantSee(item)) // can't see: don't produce and don't recur
+                        const item = setVfsPath({
+                            name: virtualName,
+                            isFolder,
+                            source: join(source, path),
+                            parent: evaluatedParent.node,
+                            rename: renameUnderPath(evaluatedParent.node.rename, physicalName),
+                            stats: entry.stats,
+                        }, virtualName, evaluatedParent.node)
+                        const rootMaskProperties: VfsNode = { isFolder }
+                        const exceptions = applyPathMask(rootMaskProperties, virtualPath)
+                        for (const key of applyRootNameMask(rootMaskProperties, virtualName))
+                            exceptions.add(key)
+                        for (const key of exceptions)
+                            if (!(key in rootMaskProperties))
+                                rootMaskProperties[key] = parent[key]
+                        if (await cantSee(item, evaluatedParent.node, virtualName, rootMaskProperties)) // can't see: don't produce and don't recur
                             return false
-                        if (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
+                        if (isFolder)
+                            diskFolders.set(path, { node: item, virtualPath })
+                        item.name = name
+                        if (canEmit(item, isFolder))
                             stream.push(item)
                         if (cantRecur(item))
                             return false
@@ -420,14 +624,21 @@ export async function* walkNode(parent: VfsNode, {
                 stream.push(null)
             }
 
-            function cantRecur(item: VfsNode) {
+            function cantRecur(item: VfsNodeWithPath) {
                 return ctx && !hasPermission(item, 'can_list', ctx)
             }
 
+            function canEmit(item: VfsNodeWithPath, isFolder: boolean | undefined) {
+                return !(requiredPerm && ctx && !hasPermission(item, requiredPerm, ctx))
+                    && (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
+            }
+
             // item will be changed, so be sure to pass a temp node
-            async function cantSee(item: VfsNode) {
-                await maskApplier(item)
+            async function cantSee(item: VfsNodeWithPath, itemParent: VfsNodeWithPath, virtualName: string, pathPermissions?: VfsPerms) {
+                inheritMasks(item, itemParent, virtualName)
+                await parentMaskApplier(itemParent)(item, virtualName)
                 inheritFromParent(item)
+                Object.assign(item, pathPermissions)
                 if (ctx && !hasPermission(item, 'can_see', ctx)) return true
                 item.isTemp = true
             }
@@ -437,7 +648,7 @@ export async function* walkNode(parent: VfsNode, {
     // must use a stream to be able to work with the callback-based mechanism of walkDir, but Readable is not typed so we wrap it with a generator
     for await (const item of stream) {
         if (ctx?.isAborted()) return
-        yield item as VfsNode
+        yield item as VfsNodeWithPath
     }
 }
 
@@ -446,7 +657,7 @@ export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof V
         props[perm] || masksCouldGivePermission(props.masks, perm))
 }
 
-export function parentMaskApplier(parent: VfsNode, pathBased=false) {
+export function parentMaskApplier(parent: VfsNode, pathBased=false, trackExceptions=false) {
     // rules are met in the parent.masks object from nearest to farthest, but since we finally apply with _.defaults, the nearest has precedence in the final result
     const matchers = onlyTruthy(_.map(parent.masks, (mods, mask) => {
         if (!mods) return
@@ -460,30 +671,39 @@ export function parentMaskApplier(parent: VfsNode, pathBased=false) {
         })()
         if (pathBased) {
             if (!mask.includes('/')) return
-            // avoid evaluating twice masks like **/*.png because parentMaskApplier already handles them by basename
-            const m = /^(!?)\*\*\//.exec(mask)
-            // this keeps the fast basename path as source-of-truth for patterns that collapse to a filename after **/
-            if (m && !mask.slice(m[0].length).includes('/')) return
         }
         else {
             const m = /^(!?)\*\*\//.exec(mask) // ** globstar matches also zero subfolders, so this mask must be applied here too
             mask = m ? m[1] + mask.slice(m[0].length) : !mask.includes('/') ? mask : ''
             if (!mask) return
         }
-        return mask && { matcher: makeMatcher(mask), mods, mustBeFolder }
+        return mask && {
+            matcher: makeMatcher(mask),
+            exceptionMatcher: trackExceptions && mask.startsWith('!') ? makeMatcher(mask.slice(1)) : undefined,
+            mods,
+            mustBeFolder,
+        }
     }))
-    return async (item: VfsNode, virtualName=(pathBased ? _.identity : basename)(getNodeName(item))!) => {
+    return (item: VfsNode, virtualName=(pathBased ? _.identity : basename)(getNodeName(item))!) => {
         // depth traversal passes full relative paths, while node traversal still matches only basenames
+        const exceptions = new Set<keyof VfsPerms>()
         let isFolder: boolean | undefined = undefined
-        for (const { matcher, mods, mustBeFolder } of matchers) {
+        for (const { matcher, exceptionMatcher, mods, mustBeFolder } of matchers) {
             if (mustBeFolder !== undefined) {
                 isFolder ??= nodeIsFolder(item)
                 if (mustBeFolder !== isFolder) continue
             }
-            if (!matcher(virtualName)) continue
+            if (!matcher(virtualName)) {
+                if (exceptionMatcher?.(virtualName))
+                    for (const key of PERM_KEYS)
+                        if (mods[key] !== undefined && !(key in item))
+                            exceptions.add(key)
+                continue
+            }
             item.masks &&= _.merge(_.cloneDeep(mods.masks), item.masks) // item.masks must take precedence
             _.defaults(item, mods)
         }
+        return exceptions
     }
 }
 
@@ -493,7 +713,7 @@ function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename=getNodeNam
     if (!masks) return
     const o: Masks = {}
     for (const [k,v] of Object.entries(masks)) {
-        if (k.startsWith('**')) {
+        if (/^!?\*\*/.test(k)) {
             o[k] = v
             continue
         }
@@ -506,11 +726,13 @@ function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename=getNodeNam
         item.masks = Object.assign(o, item.masks) // don't change item.masks object as it is the same object of item.original
 }
 
-function renameUnderPath(rename:undefined | Record<string,string>, path: string) {
+export function renameUnderPath(rename:undefined | Record<string,string>, path: string) {
     if (!rename) return rename
-    const match = path+'/'
-    rename = Object.fromEntries(Object.entries(rename).map(([k, v]) =>
-        [k.startsWith(match) ? k.slice(match.length) : '', v]))
+    const sameName = isSameFilenameAs(path)
+    rename = Object.fromEntries(Object.entries(rename).map(([k, v]) => {
+        const i = k.indexOf('/')
+        return [i >= 0 && sameName(k.slice(0, i)) ? k.slice(i + 1) : '', v]
+    }))
     delete rename['']
     return _.isEmpty(rename) ? undefined : rename
 }
@@ -523,7 +745,7 @@ events.on('accountRenamed', ({ from, to }) => {
         if (n.masks)
             Object.values(n.masks).forEach(renameInNode)
         n.children?.forEach(renameInNode)
-    })(vfs)
+    })(vfs.compiled())
     saveVfs()
 
     function renameInPerm(a?: WhoVfs) {

@@ -1,4 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
+import { t } from './i18n'
+
 // all content here is shared between client and server
 
 import { PauseCircle, PlayCircle, Refresh, SvgIconComponent } from '@mui/icons-material'
@@ -18,7 +21,7 @@ import { dontBotherWithKeys, restartAnimation, useBatch, useStateMounted } from 
 import { mergeSx, Promisable, StringField } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import { Link as RouterLink, useLocation } from 'wouter'
-import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
+import { SvgIconProps } from '@mui/material/SvgIcon'
 import _ from 'lodash'
 import { ALL as COUNTRIES } from './countries'
 import { apiCall } from '@hfs/shared/api'
@@ -27,6 +30,8 @@ import { StringFieldProps } from '@hfs/mui-grid-form/StringField'
 export function spinner() {
     return h(CircularProgress)
 }
+
+export const fillFlexParentSx = { display: 'flex', flexDirection: 'column' } as const
 
 // return true if same size or larger
 export function useBreakpoint(breakpoint: Breakpoint) {
@@ -78,8 +83,9 @@ export function IconProgress({ icon, progress, offset, title, sx }: IconProgress
 export { mergeSx }
 
 type FlexProps = { vert?: boolean, center?: boolean, children?: ReactNode, props?: Omit<BoxProps, 'sx'>, component?: ElementType } & Record<string, any>
-export function Flex({ vert=false, center=false, children=null, props={}, component, ...rest }: FlexProps) {
+export const Flex = forwardRef<HTMLElement, FlexProps>(({ vert=false, center=false, children=null, props={}, component, ...rest }, ref) => {
     return h(Box as any, {
+        ref,
         sx: {
             display: 'flex',
             gap: '.8em',
@@ -91,7 +97,7 @@ export function Flex({ vert=false, center=false, children=null, props={}, compon
         component,
         ...props
     }, children)
-}
+})
 
 
 export function wikiLink(uri: string, content: ReactNode) {
@@ -101,11 +107,11 @@ export function wikiLink(uri: string, content: ReactNode) {
 }
 
 export function WildcardsSupported() {
-    return wikiLink('Wildcards', "Wildcards supported")
+    return wikiLink('Wildcards', t`Wildcards supported`)
 }
 
 export function reloadBtn(onClick: any, props?: any) {
-    return h(IconBtn, { icon: Refresh, title: "Reload", onClick, ...props })
+    return h(IconBtn, { icon: Refresh, title: t`Reload`, onClick, ...props })
 }
 
 export function useCtrlShortcutButton(keys: readonly string[]) {
@@ -166,7 +172,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
     const [loadingState, setLoadingState] = useStateMounted(false)
     if (typeof disabled === 'string')
         title = disabled
-    disabled = progress || disabled ? true : undefined
+    disabled = progress || disabled || loading ? true : undefined
     if (link)
         onClick = () => window.open(link)
     const showLabel = useBreakpoint(_.isString(labelIf) ? labelIf : 'xs') && (_.isBoolean(labelIf) ? labelIf : true)
@@ -179,17 +185,16 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
         'aria-hidden': disabled,
         async onClick(...args: any[]) {
             if (loadingState) return
-            if (confirm && !await confirmDialog(confirm === true ? "Are you sure?" : confirm)) return
-            const ret = onClick?.apply(this, args as any)
-            if (ret instanceof Promise) {
-                setLoadingState(true)
-                ret.finally(()=> setLoadingState(false))
-            }
+            if (confirm && !await confirmDialog(confirm === true ? t`Are you sure?` : confirm)) return
             try {
+                const ret = onClick?.apply(this, args as any)
+                if (ret instanceof Promise)
+                    setLoadingState(true)
                 if (await ret !== false)
                     execDoneMessage(doneMessage, doneAnimation && ref.current)
             }
             catch(e: any) { alertDialog(e) }
+            finally { setLoadingState(false) }
         },
     } as const, rest)
     const iconElement = isValidElement(icon) ? icon : (icon && h(icon))
@@ -208,7 +213,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
             // we need a direct accessible name on the actual clickable element for testing
             'aria-label': !children || !showLabel ? rest['aria-label'] ?? (_.isString(title) ? title : undefined) : rest['aria-label'],
         }),
-            (progress || loadingState) && progress !== false  // false is also useful to inhibit behavior with loading
+            (progress || loading || loadingState) && progress !== false  // false is also useful to inhibit behavior with loading
             && h(CircularProgress, {
                 ...(typeof progress === 'number' ? { value: progress*100, variant: 'determinate' } : null),
                 style: { position:'absolute', top: '10%', left: '10%', width: '80%', height: '80%' }
@@ -231,7 +236,7 @@ export function execDoneMessage(msg: boolean | string | undefined, el?: HTMLElem
     if (el)
         restartAnimation(el, 'success .5s')
     if (msg)
-        toast(msg === true ? "Operation completed" : msg, 'success')
+        toast(msg === true ? t`Operation completed` : msg, 'success')
 }
 
 export function iconTooltip(icon: SvgIconComponent, tooltip: ReactNode, sx?: SxProps, props?: SvgIconProps) {
@@ -273,7 +278,7 @@ export function LinkBtn({ ...rest }: LinkProps) {
 }
 
 export function usePauseButton(name='', def: ToggleButtonDefault=true, props?: Partial<IconBtnProps>) {
-    const [going, btn] = useToggleButton(`Pause ${name}`, `Resume ${name}`, v => ({
+    const [going, btn] = useToggleButton(t("Pause {name}", { name: name }), t("Resume {name}", { name: name }), v => ({
         icon: v ? PauseCircle : PlayCircle,
         sx: { rotate: v ? '180deg' : '0deg' },
         ...props,
@@ -317,12 +322,12 @@ export function NetmaskField({ setApi, helperText, ...props }: StringFieldProps)
         }
     })
     return h(StringField, {
-        helperText: h('span', {}, helperText, helperText && ' – ', wikiLink('Wildcards#network-masks', "Wildcards supported")),
+        helperText: h('span', {}, helperText, helperText && ' – ', wikiLink('Wildcards#network-masks', t`Wildcards supported`)),
         ...props,
         onTyping(v) {
             if (!warned.current && v?.includes('127.0.0.1') && !v.includes('::1')) {
                 warned.current = true
-                alertDialog(`Hostname "localhost" is normally translated as ::1 instead of 127.0.0.1`, 'warning')
+                alertDialog(t`localhost_resolution_hint`, 'warning')
             }
             return props.onTyping?.(v) ?? v
         },

@@ -37,8 +37,15 @@ Configuration can be done in several ways
 - using envs in the form `HFS_<uppercase property name>`, like `HFS_PORT=80` if you want to change the config `port`, 
   but the same applies to any other config available. Values can use JSON syntax.
 - after HFS has started you can enter console command in the form `config NAME VALUE`
-- setting special env `HFS_ENV_BOOTSTRAP=true` will disable other envs when file config.yaml already exists. 
+- setting `HFS_ENV_BOOTSTRAP=true` applies `HFS_*` configuration values only when the configuration loaded at startup is empty.
+  A missing, empty, or comments-only config file allows these values; a non-empty configuration makes HFS ignore them all, not just `HFS_CREATE_ADMIN`.
+  Command-line configuration arguments still apply. To disable this option, unset it: any non-empty value, including `false`, enables it.
+  The Docker entrypoint creates a non-empty configuration before HFS starts, so this option also excludes values such as `HFS_PORT` on a fresh Docker installation.
 - env `DISABLE_UPDATE` (designed for containers) will disable updating, but check-for-update will still be possible.  
+- Docker-only env `HFS_INITIAL_ADMIN_PASSWORD` sets the password for `admin` only when the entrypoint creates a missing `config.yaml`.
+  Existing files, including empty files, are left unchanged. Later password changes are managed in HFS.
+  A non-empty `HFS_CREATE_ADMIN` takes precedence; if neither variable is non-empty, the initial password is `please-change`.
+  This does not require `HFS_ENV_BOOTSTRAP` and does not prevent other configuration envs from applying at startup.
 
 `NAME` stands for the property name that you want to change. See the complete list below.
 
@@ -58,6 +65,9 @@ Some properties use a `Who` descriptor, with one of these values:
 - `log_api` should api calls be logged? Default is `true`. 
 - `log_gui` should GUI files be logged? Default is `false`.
 - `log_spam` log *failed* requests that are considered spam. Default is false.
+- `log_spam_regex` case-sensitive regular expression matched against request paths when `log_spam` is false. 
+  Default: `wlwmanifest.xml$|\.(php|asp)$|cgi|robots.txt$`. Matching requests are omitted from logs only for 404 or 307
+  responses whose path is absent from the VFS.
 - `log_ua` include user-agent in the logs. Default is false.
 - `track_ips` keep track of all IP addresses seen. Default is true.
 - `error_log` path of the log file for errors. Default is `error.log`.
@@ -74,6 +84,8 @@ Some properties use a `Who` descriptor, with one of these values:
 - `cert` use this file for https certificate. Minimum to start https is to give a cert and a private_key. Default is none.
 - `private_key` use this file for https private key. Default is none.
 - `allowed_referer` you can decide what domains can link to your files. Wildcards supported. Default is any.
+- `allowed_upload_origin` browser origin mask allowed to submit cross-origin multipart uploads.
+  Wildcards and `|` alternatives are supported, for example `https://*.example.com|https://forms.example.net`. Default is none. No UI.
 - `block` a list of rules that will block connections. E.g.:
     ```
     block:
@@ -84,10 +96,18 @@ Some properties use a `Who` descriptor, with one of these values:
 - `enable_plugins` if a plugin is not present in this list, it won't run. Defaults is `[ antibrute ]`.
 - `localhost_admin` should Admin be accessed without credentials when on localhost. Default is true.
 - `proxies` number of proxies between server and clients to be trusted about providing clients' IP addresses. Default is 0.
+  When enabled, HFS trusts forwarded IP addresses from any connection. Restrict direct access to trusted proxies, set the count correctly, and ensure the proxies sanitize forwarded headers.
 - `delete_unfinished_uploads_after` should unfinished uploads be deleted after a number of seconds. 0 for immediate, empty for never. Default is 1 day.
+- `require_upload_approval_for_active_content` require admin approval before serving HTML or SVG uploaded by non-admins. Default is true.
+- `own_upload_delete_hours` for how many hours an uploader can delete their own uploaded file. 0 disables. Default is 24.
 - `favicon` path to file to be used as favicon. Default is none.
 - `force_https` redirect http traffic to https. Requires https to be working. Default is true.
 - `force_lang` force translation for frontend. Default is none, meaning *let browser decide*.
+- `admin_lang` force translation for the Admin panel. Default is none, meaning *let browser decide*.
+  Upload frontend translations as `hfs-lang-<code>.json` and Admin translations as `hfs-admin-lang-<code>.json` from Admin → Language. 
+  Both use a JSON `translate` object, with optional `author` and `version`. 
+  Uploaded files are stored in the CWD and override built-in translations for the same interface and code;
+  deleting an override restores the built-in translation. New language codes are also supported.
 - `admin_net` net-mask specifying what addresses are allowed to access Admin-panel. Default is any.
 - `title` text displayed in the tab of your browser. Default is "File server".
 - `file_menu_on_link` if to display file-menu when clicking on a link, or have a dedicated button instead. Default is true.
@@ -97,9 +117,17 @@ Some properties use a `Who` descriptor, with one of these values:
 - `keep_session_alive` keeps you logged in while the page is left open and the computer is on. Default is true.
 - `session_duration` after how many seconds should the login session expire. Default is a day.
 - `force_webdav_login` force WebDAV clients to authenticate. Accepts: `false` (disabled), `true` (all user-agents), or a case-insensitive regex string (only matching user-agents). Default is true.
-- `webdav_initial_auth` one-time login prompt for matching WebDAV user-agents (used only when `force_webdav_login` does not match). Accepts: `false` (disabled), `true` (all user-agents), or a case-insensitive regex string. Default is `WebDAVFS`.
+- `webdav_initial_auth` one-time login prompt for matching WebDAV user-agents (used only when `force_webdav_login` does not match). 
+  Accepts: `false` (disabled), `true` (all user-agents), or a case-insensitive regex string. Default is `WebDAVFS`.
 - `acme_domain` domain used for ACME certificate generation. Default is none. 
 - `acme_renew` automatically renew acme certificate close to expiration. Default is false.
+- `acme_challenge` certificate validation method: `http-01` (default) or `dns-01`. 
+  DNS is required for wildcard names and does not require an incoming connection to port 80. 
+  Each `*.example.com` also includes `example.com`; `*.files.example.com` includes `files.example.com`, not `example.com`.
+- `acme_dns` list of DNS configurations, currently limited to one through the Admin UI. 
+  Each entry contains `id` (for example `main`), `provider` (the catalog ID), `config_version`, and `credentials`. 
+  DNS validation uses the first entry. The format allows future configurations without changing existing entries. 
+  See [Certificate validation](https://github.com/rejetto/hfs/wiki/Certificate-validation).
 - `listen_interface` network interface to listen on, by specifying IP address. Default is any.
 - `base_url` URL to be used for links generation. Default is automatic.
 - `force_address` disconnect any request not made with one of the hosts specified in `roots` or `base_url`. Default is false.
@@ -115,18 +143,28 @@ Some properties use a `Who` descriptor, with one of these values:
 - `sort_numerics` starting value for sort-numeric-names. Default is false.
 - `folders_first` starting value for sort-folders-first. Default is true.
 - `invert_order` starting value for invert-order. Default is false.
+- `show_hidden_files` includes hidden files and folders discovered inside shared folders. Default is `false`.
+  Hidden means the hidden attribute on Windows, or a name starting with `.` on macOS/Linux.
+  Despite the configuration key's name, disabling it also blocks direct access to hidden entries, not just their appearance in lists.
+  Entries explicitly added to the VFS are not handled by this option.
+  To hide an entry from listings while still allowing downloads, use `can_see: false` instead.
 - `show_uploader` who can see who uploaded files. Value is a `Who` descriptor. Default is `"admin"`.
 - `update_to_beta` includes beta versions searching for updates. Default is false.
+- `share_usage_stats` opts in to sharing a random installation ID, HFS version, and installed plugin repositories, versions, and enabled states once a day. Default is false.
 - `roots` maps hosts (or mask of hosts) to a root different from the home folder. Default is none. E.g.
   ```
   roots:
     music.domain.com: /music
     image.domain.com: /image
   ``` 
-- `max_downloads` limit the number of concurrent downloads on the whole server. Default is unlimited.
-- `max_downloads_per_ip` limit the number of concurrent downloads for the same IP address. Default is unlimited.
-- `max_downloads_per_account` limit the number of concurrent downloads for each account. This is enforced only for connections that are logged in and will override other similar settings. Default is unlimited.
+- `max_downloads` limits the total number of concurrent downloads across the server. Shared files count even when viewed or
+  embedded (images, audio, video and web pages); GUI assets do not. You can mark shared files and folders as GUI assets.
+  This also applies to the per-IP and per-account limits below. Default is unlimited.
+- `max_downloads_per_ip` limits the number of concurrent downloads for the same IP address. Default is unlimited.
+- `max_downloads_per_account` limits the number of concurrent downloads for each account.
+  This is enforced only for connections that are logged in and will override other similar settings. Default is unlimited.
 - `geo_enable` when enabled, country is determined for each request/connection. The necessary database will be downloaded every month (2MB).
+- `geo_ignore_net` IP mask ignored by Geo IP filtering. Default is none.
 - `geo_allow` set true if `geo_list` should be treated as whitelist, set false for blacklist. Default will ignore the list.
 - `geo_list` list of country codes to be used as whitelist or blacklist. Default is none.
 - `geo_allow_unknown` set false to disconnect connections for which country cannot be determined. Works only if `geo_allow` is set. Default is true. 
@@ -135,6 +173,7 @@ Some properties use a `Who` descriptor, with one of these values:
   Multiple URLs are supported, and you can specify one for each line.
 - `outbound_proxy` if you need outgoing http(s) requests to pass through an HTTP proxy. E.g.: `http://user:password@localhost:8888`. Default is none.
   Setting one will trigger a test request to google.com. You can skip this with env HFS_SKIP_PROXY_TEST=1 . 
+- `outbound_interface` IP address to use for outgoing HTTP(S) requests made by HFS. Default is automatic.
 - `auto_basic` automatically detect (based on user-agent) when the basic web interface should be served, to support legacy browsers. Default is true. No UI.
   You can disable it setting it to `false`, or recognize additional user-agents by setting a regular expression. 
 - `file_timeout` number of seconds to wait before giving up when accessing a file. Default is 3. No UI.
@@ -144,7 +183,9 @@ Some properties use a `Who` descriptor, with one of these values:
 - `cache_control_disk_files` number of seconds after which the browser should bypass the cache and check the server for an updated version of the file. Default is 5. No UI.
 - `disable_custom_html` disable the content of `custom_html`. Default is false.
 - `split_uploads` The size in megabytes of the chunks the upload will be split into. Default is none.
-- `create-admin` special entry to quickly create an admin account. The value will be set as the password. As soon as the account is created, this entry is removed.
+- `create-admin` creates or updates the account named `admin` with administrator access.
+  The value is **only the password**. For example: `create-admin: 'YOUR_PASSWORD'`. 
+  A "create-admin" entry is added to the existing config, and HFS removes it after processing it.
 
 #### Virtual File System (VFS)
 
@@ -166,11 +207,14 @@ In the second example, HFS shows a folder named "data" at the root (name inferre
 
 Valid keys in a node are:
 - `name`: this is the name we'll use to display this file/folder. If not provided, HFS will infer it from the source. At least `name` or `source` must be provided.
-- `source`: absolute or relative path of where to get the content
+- `source`: absolute or relative path of where to get the content. If it's a folder, it should end with `/` (or `\\` on Windows).
+- `see_without_probing`: for folders whose disk source may be slow or unavailable, show the folder in its parent's list
+  without checking the source or reading its metadata
 - `children`: just for folders, specify its virtual children.
   Value is a list and its entries are nodes.
 - `rename`: when `source` is a folder, you can rename entries *virtually* as they are read from disk.
   Value is a map "original name" → "new name". No UI.
+  The original name stays unchanged on disk, but is no longer accessible through the VFS; clients must use the new name.
 - `mime`: specify what mime to use for this resource. Use "auto" for automatic detection.
 - `url`: when this value is present, the element is a link to the URL you specify.
 - `order`: a number that you can set if you want to force the position of this element to the top or the bottom of the list. 
@@ -181,6 +225,7 @@ Valid keys in a node are:
   The value must be the name of the file to serve. E.g.: `index.html`. 
   The value must be an absolute or relative path in the VFS, not a path on the disk. It works also with other types of files.
   Using this will make `mime` default to "auto".
+- `gui_asset`: mark this entry and its descendants as interface assets. They are excluded from concurrent download limits, and access logging follows `log_gui`. A child can set this to `false` to override inheritance. Default is `false`.
 - `can_read`: specify who can download this entry. Value is a `Who` descriptor, or a VFS-specific extension. Default is `true`.
 
   VFS permissions also accept these extra forms:
@@ -195,8 +240,12 @@ Valid keys in a node are:
   Value uses the same permission descriptor described above. Default is `can_read`.
 - `can_upload`: specify who can upload. Applies to folders with a source. Default is `"admin"`.
 - `can_list`: specify who can see the content of a folder. Default is `can_read`.
-- `can_archive`: specify who can get the zip a folder or a set of files. Default is `can_read`.
+- `can_archive`: specify who can include this entry in a ZIP download. Default is `can_read`.
 - `can_delete`: specify who can delete. Applies to folders with a source. Default is `"admin"`.
+  Deleting a folder requires permission to delete its contents too. HFS checks before deleting anything;
+  a denied descendant aborts the request and is identified in the error when visible to the user.
+  Renaming or moving a folder only checks the folder itself and the operation's destination requirements.
+  Filesystem errors after deletion starts can still leave a partially deleted folder.
 - `masks`: maps a file mask to a set of properties as the one documented in this section. E.g.
   ```
   myfile.txt:
@@ -232,6 +281,7 @@ accounts:
     group1:
 ```
 
+Usernames are case-insensitive.
 As soon as the config is read, HFS will encrypt passwords (if necessary) in a non-reversible way. It means that `password` property is replaced with an encrypted property: `srp`.
 
 As you can see in the example, `group1` has no password. This implies that you cannot log in as `group1`, but still `group1` exists and its purpose is to
@@ -239,6 +289,10 @@ gather multiple accounts and refer to them collectively as `group1`, so you can 
 
 For each account entry, this is the list of properties you can have:
 
+- `auto_login_net` automatically logs in clients whose IP matches this net-mask. Default is none.
+  To prevent DNS rebinding, the requested host must be a literal IP address, `localhost`, the host in `base_url`, or a match in `roots` (including the port, when present).
+  Configure hostnames under Admin → Internet → Address. Only trust domains you control; broad `roots` wildcards broaden this trust.
+  Other hosts skip automatic login; explicit credentials and existing sessions are unaffected. With `proxies` enabled, the effective host can come from `X-Forwarded-Host`, which your trusted proxy must sanitize.
 - `ignore_limits` to ignore speed limits. Default is `false`.
 - `redirect` provide a URL if you want the user to be redirected upon login. Default is none.
 - `admin` set `true` if you want to let this account log in to the Admin-panel. Default is `false`.

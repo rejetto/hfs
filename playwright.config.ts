@@ -4,9 +4,41 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import yaml from 'yaml';
 
+// isolated Admin logic regressions need one browser; end-to-end flows, calendars and drag retain all projects
+const adminLogicTests = [
+  '**/admin-acme.spec.ts',
+  '**/admin-accounts.spec.ts',
+  '**/admin-config-file.spec.ts',
+  '**/admin-custom-html.spec.ts',
+  '**/admin-data-table.spec.ts',
+  '**/admin-file-field.spec.ts',
+  '**/admin-file-form.spec.ts',
+  '**/admin-form-validation.spec.ts',
+  '**/admin-home.spec.ts',
+  '**/admin-languages.spec.ts',
+  '**/admin-list-reconnect.spec.ts',
+  '**/admin-online-plugins.spec.ts',
+]
+
 const snapshotBranch = getSnapshotBranch()
 // use the same test port source as tests/test.ts to avoid config drift
 const testPort = Number(yaml.parse(readFileSync(resolve(process.cwd(), 'tests/config.yaml'), 'utf8')).port)
+const secondaryPort = Number(process.env.HFS_TEST_SECONDARY_PORT || 8082)
+const adminPort = Number(process.env.HFS_TEST_ADMIN_PORT || 3112)
+const adminViteUrl = `http://127.0.0.1:${adminPort}/`
+
+// fixture tests replace an Admin page module, so they must load from Vite instead of the packaged Admin app
+for (const name of [
+  'ACME', 'API_LIST', 'DATA_TABLE', 'DATE_TIME', 'DIALOG', 'FILE_FIELD', 'FILE_FORM', 'CSV', 'FORM_VALIDATION',
+  'PLUGIN_OPTIONS', 'STATE', 'WHO_FIELD', 'VFS_MOVE', 'VFS_TREE',
+])
+  process.env[`ADMIN_${name}_URL`] ||= adminViteUrl + '#/monitoring'
+process.env.ADMIN_ADD_FILES_URL ||= adminViteUrl + '#/shared'
+process.env.ADMIN_VFS_PAGE_URL ||= adminViteUrl + '#/shared'
+process.env.ADMIN_LANGUAGES_URL ||= adminViteUrl + '#/language'
+process.env.ADMIN_LOGS_URL ||= adminViteUrl + '#/logs'
+process.env.ADMIN_CATALOG_URL ||= adminViteUrl
+process.env.ADMIN_LIST_URL ||= adminViteUrl
 
 /**
  * Read environment variables from file.
@@ -27,6 +59,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI, // Fail the build on CI if you accidentally left test.only in the source code.
   retries: process.env.CI ? 2 : 0, // Retry on CI only
   updateSnapshots: 'missing', // keep new baseline screenshots from failing the run; existing screenshots still compare normally
+  ignoreSnapshots: Boolean(process.env.NO_SS),
   //workers: process.env.CI ? 1 : undefined, // Opt out of parallel tests on CI.
   reporter: 'html', // Reporter to use. See https://playwright.dev/docs/test-reporters
   use: { // Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions.
@@ -50,14 +83,17 @@ export default defineConfig({
     },
     {
       name: 'Android',
+      testIgnore: adminLogicTests,
       use: { ...devices['Pixel 7'] },
     },
     {
       name: 'iPhone 6',
+      testIgnore: adminLogicTests,
       use: { ...devices['iPhone 6'] },
     },
     {
       name: 'firefox',
+      testIgnore: adminLogicTests,
       use: {
         ...devices['Desktop Firefox'],
         launchOptions: {
@@ -99,6 +135,9 @@ export default defineConfig({
   ],
 
   expect: {
+    toMatchAriaSnapshot: {
+      pathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}-{projectName}-{platform}{ext}',
+    },
     toHaveScreenshot: {
       stylePath: 'e2e/screenshot.css',
       threshold: 0.5,
@@ -106,13 +145,18 @@ export default defineConfig({
   },
   /* Run your local dev server before starting the tests */
    webServer: [{
-     command: `mkdir -p tests/work/plugins/test`
+     command: `mkdir -p tests/work/plugins/test tests/work/cant-overwrite`
      + ` && printf '%s\\n' "exports.apiRequired = 1" "exports.config = {" "    icons: { type: 'array', fields: { iconFile: { type: 'real_path' } } }," "}" > tests/work/plugins/test/plugin.js`
      + ` && npm run server-for-test${process.env.TEST_WITH_UI ? '-dev' : ''}`, // use server-for-test-dev only for "test-with-ui"
-     url: `http://127.0.0.1:${testPort}`,
+     // concurrent frontend tests need the first real list response, not just an open HTTP port
+     url: `http://[::1]:${testPort}/~/api/get_file_list`,
      reuseExistingServer: !process.env.CI,
    }, { // launch a second server for tests with an empty/default config
-       command: 'rm -rf tests/work2 && node dist/src --cwd tests/work2 --debug --port 8082 --open_browser_at_start false', // the port here is just to avoid getting the "port busy" console warning
+       command: `rm -rf tests/work2 && node dist/src --cwd tests/work2 --debug --port ${secondaryPort} --open_browser_at_start false`,
+       reuseExistingServer: !process.env.CI,
+   }, {
+       command: `npm run start --workspace=admin -- --host 127.0.0.1 --port ${adminPort} --strictPort`,
+       url: adminViteUrl,
        reuseExistingServer: !process.env.CI,
    }]
 });

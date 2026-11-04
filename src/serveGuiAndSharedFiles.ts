@@ -1,6 +1,7 @@
 import Koa from 'koa'
+import { checkDeletePermission } from './deletePermission'
 import { basename, dirname, join } from 'path'
-import { getDefaultFile, getNodeName, nodeIsFolder, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, walkNode } from './vfs'
+import { getDefaultFile, getNodeName, nodeIsFolder, statusCodeForMissingPerm, urlToNode, vfs, VfsNodeWithPath, walkNode } from './vfs'
 import { sendErrorPage } from './errorPages'
 import events from './events'
 import {
@@ -10,7 +11,7 @@ import {
 } from './cross-const'
 import { getUploadTempFor, uploadWriter } from './upload'
 import { handleMultipartUpload } from './multipartUpload'
-import { once } from 'events'
+import { pipeline } from 'stream/promises'
 import { Transform } from 'stream'
 import { serveFile, serveFileNode } from './serveFile'
 import { BUILD_TIMESTAMP, DEV, MIME_AUTO, VERSION } from './const'
@@ -28,9 +29,10 @@ import XXH from 'xxhashjs'
 import fs from 'fs'
 import { rm } from 'fs/promises'
 import { setCommentFor } from './comments'
-import { basicWeb, detectBasicAgent } from './basicWeb'
+import { basicWeb, shouldBeBasic } from './basicWeb'
 import { customizedIcons, ICONS_FOLDER } from './icons'
 import { getPluginInfo } from './plugins'
+import { deleteUploadOwner } from './uploadOwners'
 
 const serveFrontendFiles = serveGuiFiles(process.env.FRONTEND_PROXY, FRONTEND_URI)
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontendFiles)
@@ -72,7 +74,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
         const decPath = safeDecodeURIComponent(path, '')
         const fn = basename(decPath)
         const folderUri = pathEncode(dirname(decPath)) // re-encode to get readable urls
-        const folder = await urlToNode(folderUri, ctx, vfs, true) // we don't require the folder to already exist, but to be mapped on disk AND to have proper permissions
+        const folder = await urlToNode(folderUri, ctx, vfs.compiled(), { allowMissing: true }) // we don't require the folder to already exist, but to be mapped on disk AND to have proper permissions
         if (!folder)
             return sendErrorPage(ctx, HTTP_NOT_FOUND)
         ctx.state.uploadPath = decPath
@@ -96,7 +98,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
         }
         return
     }
-    if (/^\/favicon.ico(\??.*)/.test(ctx.originalUrl) && favicon.get() && ctx.method === 'GET') // originalUrl to not be subject to changes (vhosting plugin)
+    if (ctx.state.getOrHead && /^\/favicon.ico(\??.*)/.test(ctx.originalUrl) && favicon.get()) // originalUrl to not be subject to changes (vhosting plugin)
         return serveFile(ctx, favicon.get())
     let node = await urlToNode(path, ctx)
     if (!node)
@@ -107,13 +109,14 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
         const { source } = node
         if (!source)
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
-        if (statusCodeForMissingPerm(node, 'can_delete', ctx))
-            return
         try {
+            if (!await checkDeletePermission(node, ctx))
+                return
             if ((await events.emitAsync('deleting', { node, ctx }))?.isDefaultPrevented())
                 return ctx.status = HTTP_FAILED_DEPENDENCY
             await rm(source, { recursive: true })
             await deleteStoredFileAttrs(source)
+            deleteUploadOwner(node.vfsPath)
             void setCommentFor(source, '') // necessary only to clean a possible descript.ion or kvstorage
             return ctx.status = HTTP_OK
         } catch (e: any) {
@@ -121,11 +124,11 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
             return ctx.status = HTTP_SERVER_ERROR
         }
     }
-    if (path.endsWith('/') && !get) { // final slash needed on browsers to make resource urls working with html pages
-        const found = await getDefaultFile(node, ctx)
-        if (found && /\.html?/i.test(getNodeName(node = found)))
-            ctx.state.considerAsGui = true
-    }
+    if (path.endsWith('/') && !get) // final slash needed on browsers to make resource urls working with html pages
+        node = await getDefaultFile(node, ctx) || node
+    // classify the resolved default so a file can override its folder's GUI status
+    if (node.gui_asset)
+        ctx.state.considerAsGui = true
     if (get === 'icon')
         return serveFile(ctx, node.icon || '|') // pipe to cause not-found
     if (!nodeIsFolder(node))
@@ -133,18 +136,18 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
             : !node.source ? sendErrorPage(ctx, HTTP_METHOD_NOT_ALLOWED) // !dir && !source is not supported at this moment
             : !statusCodeForMissingPerm(node, 'can_read', ctx) ? serveFileNode(ctx, node) // all good
             : ctx.status !== HTTP_UNAUTHORIZED ? null // all errors don't need extra handling, except unauthorized
-            : detectBasicAgent(ctx) ? (ctx.set('WWW-Authenticate', BASIC_AUTHENTICATE_HEADER), sendErrorPage(ctx))
+            : shouldBeBasic(ctx) ? (ctx.set('WWW-Authenticate', BASIC_AUTHENTICATE_HEADER), sendErrorPage(ctx))
             : ctx.query.dl === undefined && (ctx.state.serveApp = true) && serveFrontendFiles(ctx, next)
     if (!path.endsWith('/'))
         return ctx.redirect(ctx.state.revProxyPath + ctx.originalUrl.replace(/(\?|$)/, '/$1')) // keep query-string, if any
     if (statusCodeForMissingPerm(node, 'can_list', ctx)) {
         if (ctx.status === HTTP_FORBIDDEN)
             return sendErrorPage(ctx, HTTP_FORBIDDEN)
-        // detect if we are dealing with a download-manager, as it may need basic authentication, while we don't want it on browsers
+        // basic mode and download managers need HTTP authentication instead of the frontend login
         const { authenticate } = ctx.query
         const downloadManagerDetected = /DAP|FDM|[Mm]anager/.test(ctx.get('user-agent'))
-        if (downloadManagerDetected || authenticate || detectBasicAgent(ctx))
-            return ctx.set('WWW-Authenticate', authenticate || BASIC_AUTHENTICATE_HEADER) // basic authentication for DMs getting the folder as a zip
+        if (downloadManagerDetected || authenticate || shouldBeBasic(ctx))
+            return ctx.set('WWW-Authenticate', authenticate || BASIC_AUTHENTICATE_HEADER)
         ctx.state.serveApp = true
         return serveFrontendFiles(ctx, next)
     }
@@ -154,7 +157,7 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
         : (basicWeb(ctx, node) || serveFrontendFiles(ctx, next))
 }
 
-async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
+async function sendFolderList(node: VfsNodeWithPath, ctx: Koa.Context) {
     if ((await events.emitAsync('getList', { node, ctx }))?.isDefaultPrevented())
         return
     let { depth=0, folders, prepend } = ctx.query
@@ -191,9 +194,8 @@ async function calcHash(fn: string, limit=Infinity) {
             done()
         }
     })
-    fs.createReadStream(fn, { end: limit - 1 }).pipe(stream)
     console.debug('Hashing', fn)
-    await once(stream, 'finish')
+    await pipeline(fs.createReadStream(fn, { end: limit - 1 }), stream)
     console.debug('Hashed', fn)
     return hash.digest().toString(16)
 }

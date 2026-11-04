@@ -14,12 +14,15 @@ type WriteFile = (data: string, options?: { reparse: boolean }) => Promise<void>
 interface WatchLoadReturn { unwatch:WatchLoadCanceller, save: WriteFile, emitter: BetterEventEmitter, getText: () => string | undefined, getPath: () => string }
 export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { failedOnFirstAttempt, immediateFirst }:Options={}): WatchLoadReturn {
     let doing = false
+    let cancelled = false
     let watcher: FSWatcher | undefined
-    const debounced = debounceAsync(load, { wait: 500, maxWait: 1000, reuseRunning: true })
+    const debounced = debounceAsync<true>(load, { wait: 500, maxWait: 1000, reuseRunning: true, cancelable: true })
     let retry: NodeJS.Timeout
     let last: string | undefined
     const emitter = new BetterEventEmitter()
     const save = debounceAsync(async (data: string, { reparse=false }={}) => {
+        if (doing)
+            await debounced.isWorking()
         await fs.writeFile(path, data, 'utf8')
         last = data
         if (reparse)
@@ -30,6 +33,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
     return { unwatch, save, emitter, getText: () => last, getPath: () => path }
 
     function install(first=false) {
+        if (cancelled) return
         try {
             watcher = watch(path, () => {
                 if (!save.isWorking())
@@ -47,6 +51,13 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
     }
 
     function unwatch() {
+        // a pending or running load must not resurrect a watcher cancelled by its owner
+        cancelled = true
+        debounced.cancel!()
+        closeWatcher()
+    }
+
+    function closeWatcher() {
         watcher?.close()
         clearTimeout(retry)
         watcher = undefined
@@ -54,9 +65,10 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
 
     async function load(){
         if (doing) return
+        const saving = save.flush() // saves started after this handoff wait for the read, while we wait only for the save captured here
         doing = true
         try {
-            await save.flush() // apply pending saves first
+            await saving // apply pending saves first
             const text = await readFileWithBusyRetry(path).catch(e => { // ignore read errors
                 if (e.code === 'EPERM')
                     console.error("Missing permissions on file", path) // warn user, who could be clueless about this problem
@@ -65,12 +77,14 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
                     return ''
                 throw e
             })
+            if (cancelled)
+                return
             if (text === last)
                 return
             last = text
             emitter.emit('change', last)
             console.debug('Loaded', path)
-            unwatch(); install() // reinstall, as the original file could have been renamed. We watch by the name.
+            closeWatcher(); install() // reinstall, as the original file could have been renamed. We watch by the name.
             await parser(text)
         }
         catch(e) {

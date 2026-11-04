@@ -16,14 +16,16 @@ export function ClipBar() {
     const here = usePath()
     if (!clip.length)
         return null
-    const there = dirname(clip[0].uri) + '/'
+    const there = dirname(clip[0].uri.replace(/\/$/, '')) + '/'
+    const hereDecoded = safeDecodeURI(here) // location is fully encoded, while entry uris use pathEncode
+    const isThere = hereDecoded === safeDecodeURI(there)
     return h('div', { id: 'clipBar' },
-        h(Btn, { label: t('clipboard', { content: t('n_items', { n: clip.length }, "{n,plural, one{# item} other{# items}}"), }, `Clipboard ({content})`),
+        h(Btn, { label: t('clipboard', { content: t('n_items', { n: clip.length }), }),
             onClick: show, style: { flex: 1 } }),
-        h(Btn, { label: t`Paste`, icon: 'paste', onClick: paste, disabled: here === there || !props?.can_upload }),
+        h(Btn, { label: t`Paste`, icon: 'paste', onClick: paste, disabled: isThere || _.some(clip, x => safeDecodeURI(x.uri) === hereDecoded) || !props?.can_upload }),
         h(Btn, { label: t`Cancel clipboard`, icon: 'close', onClick: emptyIt }),
-        h(Btn, { label: t('to_clipboard_source', "Back to source folder"), icon: 'parent', onClick: goBack, disabled: here === there,
-            tooltip: t('to_clipboard_source_tooltip', "Go to the folder where the clipboard contents are located"),
+        h(Btn, { label: t`to_clipboard_source`, icon: 'parent', onClick: goBack, disabled: isThere,
+            tooltip: t`to_clipboard_source_tooltip`,
         }),
     )
 
@@ -37,28 +39,35 @@ export function ClipBar() {
 
     function show() {
         alertDialog(h('div', { id: 'clipboard-content' },
-            t('clipboard_list', "Items in clipboard:"),
+            t`clipboard_list`,
             clip.map(x => h('li', {}, x.name)),
         ))
     }
 
     async function paste() {
         if (hfsEvent('paste', { from: state.clip, to: here }).isDefaultPrevented()) return
-        if (await moveFiles(clip.map(x => x.uri), here))
-            emptyIt()
+        const files = [...state.clip]
+        const errors = await moveFiles(files.map(x => x.uri), here)
+        if (errors)
+            state.clip = files.filter((_x, i) => errors[i])
     }
+}
+
+function safeDecodeURI(s: string) {
+    try { return decodeURI(s) }
+    catch { return s }
 }
 
 export function cut(files: DirList) {
     state.clip = files
     if (files.length)
-        return toast(t('after_cut', "Your selection is now in the clipboard.\nGo to destination folder to paste."), 'info')
+        return toast(t`after_cut`, 'info')
 }
 
 export function moveFiles(uri_from: string[], uri_to: string) {
     return apiCall('move_files', { uri_from, uri_to }).then(res => {
         const bad = _.sumBy(res.errors, x => x ? 1 : 0)
-        const msg = t(['move_results', 'good_bad'], { bad, good: uri_from.length - bad }, "{good} moved{bad,plural, =0{} other{, # failed}}")
+        const msg = t(['move_results', 'good_bad'], { bad, good: uri_from.length - bad })
         if (!bad)
             toast(msg, 'success')
         else
@@ -70,6 +79,6 @@ export function moveFiles(uri_from: string[], uri_to: string) {
                 }))),
             ), 'warning')
         reloadList()
-        return true
+        return res.errors
     }, e => void alertDialog(e))
 }

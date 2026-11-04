@@ -5,6 +5,11 @@ import { createElement as h, useMemo } from 'react'
 import { state, useSnapState } from './state'
 import { Btn, BtnProps } from './mui'
 import { Brightness4, Brightness7 } from '@mui/icons-material'
+import type {} from '@mui/x-data-grid/themeAugmentation'
+import { enUS as materialEn } from '@mui/material/locale'
+import { enUS as dataGridEn } from '@mui/x-data-grid/locales'
+import { enUS as pickersEn } from '@mui/x-date-pickers/locales'
+import { isRtl, translateObject, t } from './i18n'
 
 export function useDark() {
     return useMediaQuery('(prefers-color-scheme: dark)')
@@ -16,6 +21,7 @@ export function useMyTheme() {
     const detected = useDark()
     const lightMode = (darkTheme ?? detected) ? null : EMPTY
     return useMemo(() => createTheme({
+        direction: isRtl ? 'rtl' : 'ltr',
         palette: lightMode || {
             mode: 'dark',
             text: { primary: '#bbb', secondary: '#fff6' },
@@ -26,6 +32,11 @@ export function useMyTheme() {
             fontFamily: 'Roboto, "Noto sans", "Segoe UI", "San Francisco", "Helvetica Neue", Arial, sans-serif'
         },
         components: {
+            MuiDataGrid: {
+                styleOverrides: {
+                    panel: ({ theme }) => ({ color: theme.palette.text.primary }), // DataGrid panels are portaled and don't inherit the grid's foreground color
+                },
+            },
             MuiLink: {
                 defaultProps: lightMode || { color: 'primary.light' }, // primary.main too dark for dark theme
             },
@@ -46,7 +57,7 @@ export function useMyTheme() {
                 }
             }
         }
-    }), [lightMode])
+    }, ...[materialEn, dataGridEn, pickersEn].map(translateObject)), [lightMode])
 }
 
 export function SwitchThemeBtn(props: BtnProps) {
@@ -60,5 +71,5 @@ export function SwitchThemeBtn(props: BtnProps) {
             return state.darkTheme = darkDetected === v ? undefined : v
         },
         ...props,
-    }, currentlyDark ? "Light theme" : "Dark theme")
+    }, currentlyDark ? t`Light theme` : t`Dark theme`)
 }

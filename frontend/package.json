@@ -11,22 +11,22 @@
   "dependencies": {
     "@hfs/shared": "*",
     "lodash": "^4.17.21",
-    "preact": "^10.28.1",
-    "usehooks-ts": "^2.6.0",
+    "preact": "^10.29.8",
+    "usehooks-ts": "^2.16.0",
     "valtio": "^1.13.0",
-    "wouter": "^3.4.1",
+    "wouter": "^3.13.0",
     "xxhashjs": "^0.2.2"
   },
   "devDependencies": {
-    "@preact/preset-vite": "^2.10.5",
-    "@types/lodash": "^4.14.178",
-    "@types/react": "^18.3.14",
-    "@types/react-dom": "^18.3.2",
+    "@preact/preset-vite": "^2.10.6",
+    "@types/lodash": "^4.17.25",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
     "@types/xxhashjs": "^0.2.4",
-    "@vitejs/plugin-legacy": "^8.0.2",
-    "sass": "^1.54.5",
-    "sonda": "^0.10.1",
-    "vite": "*"
+    "@vitejs/plugin-legacy": "^8.2.3",
+    "sass": "^1.105.1",
+    "sonda": "^0.10.2",
+    "vite": "^8.3.3"
   },
   "eslintConfig": {
     "extends": [

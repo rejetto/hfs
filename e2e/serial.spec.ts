@@ -1,8 +1,236 @@
 import { expect, test, type ConsoleMessage, type Page, type Request, type Response, type TestInfo } from '@playwright/test'
-import { ADMIN_URL, clearUploads, clickAdminMenu, clickIconBtn, loginAdmin, password, uploadName, FRONTEND_URL, username } from './common'
+import fs from 'fs'
+import { randomUUID } from 'node:crypto'
+import { ADMIN_URL, clearUploads, clickAdminMenu, clickIconBtn, gotoFrontend, loginAdmin, password, uploadName, FRONTEND_URL, username } from './common'
 
 // this test is separated to run serially, as it will modify folder timestamp for a few seconds, during which other tests may fail
 test.describe.configure({ mode: 'serial' }) // to disconnect the upload consistently, i need only 1 upload at a time
+
+test('uploaded admin languages render independently and refresh after replacement and deletion', async ({ page }, testInfo) => {
+    // admin_lang is global, so only one project may change it while the other browsers run
+    test.skip(testInfo.project.name !== 'chromium')
+    const code = `zz-${randomUUID().slice(0, 8)}`
+    const adminFile = `hfs-admin-lang-${code}.json`
+    const frontFile = `hfs-lang-${code}.json`
+    const adminMarker = 'Custom Admin Home'
+    const updatedMarker = 'Updated Admin Home'
+    const frontMarker = 'Custom Frontend Home'
+    await loginAdmin(page)
+    await expect(page.getByRole('link', { name: /^Home/ })).toBeVisible()
+    const original = await api('get_config', { only: ['admin_lang'] })
+    try {
+        await api('add_langs', { langs: {
+            [adminFile]: JSON.stringify({ translate: { Home: adminMarker } }),
+            [frontFile]: JSON.stringify({ translate: { Home: frontMarker, home: frontMarker } }),
+        } })
+        await api('set_config', { values: { admin_lang: code } })
+        await page.reload()
+        await expect(page.getByRole('link', { name: new RegExp('^' + adminMarker) })).toBeVisible()
+        expect(await page.evaluate(() => JSON.stringify((window as any).HFS.lang))).not.toContain(frontMarker)
+        await gotoFrontend(page, `${FRONTEND_URL}?lang=${code}`)
+        await expect(page.locator('#breadcrumb-home')).toHaveAccessibleName(frontMarker)
+        expect(await page.evaluate(() => JSON.stringify((window as any).HFS.lang))).not.toContain(adminMarker)
+
+        await api('add_langs', { langs: { [adminFile]: JSON.stringify({ translate: { Home: updatedMarker } }) } })
+        await page.goto(ADMIN_URL)
+        await expect(page.getByRole('link', { name: new RegExp('^' + updatedMarker) })).toBeVisible()
+        expect(await page.evaluate(() => JSON.stringify((window as any).HFS.lang))).not.toContain(adminMarker)
+        await api('set_config', { values: { admin_lang: '' } })
+        await page.route('**/~/admin/', route => route.continue({
+            headers: { ...route.request().headers(), 'accept-language': code },
+        }))
+        await page.reload()
+        await expect(page.getByRole('link', { name: new RegExp('^' + updatedMarker) })).toBeVisible()
+        await api('set_config', { values: { admin_lang: code } })
+        await api('del_lang', { code, admin: true })
+        await page.reload()
+        await expect(page.getByRole('link', { name: /^Home/ })).toBeVisible()
+        expect(await page.evaluate(() => JSON.stringify((window as any).HFS.lang))).not.toContain(updatedMarker)
+    }
+    finally {
+        await api('set_config', { values: original })
+        for (const file of [adminFile, frontFile])
+            fs.rmSync(`tests/work/${file}`, { force: true })
+    }
+
+    async function api(name: string, data: object) {
+        const response = await page.request.post(`${FRONTEND_URL}~/api/${name}`, {
+            headers: { 'x-hfs-anti-csrf': '1' }, data,
+        })
+        expect(response.ok()).toBe(true)
+        return response.json()
+    }
+})
+
+test('cancelled internal drag does not affect a later external drop', async ({ page, browserName }, testInfo) => {
+    if (browserName !== 'chromium') return
+    const fixtureName = `cancelled-drag-${testInfo.workerIndex}`
+    const sourceName = 'cancelled-drag-source.txt'
+    const targetName = 'cancelled-drag-target'
+    const fixturePath = `tests/tmp/${fixtureName}`
+    const sourcePath = `${fixturePath}/${sourceName}`
+    const targetPath = `${fixturePath}/${targetName}`
+    let addedName: string | undefined
+    cleanup()
+    try {
+        await page.route('**/~/api/move_files', route => route.fulfill({ json: { errors: [null] } }))
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        addedName = await addDragFixture(page, fixtureName, `../tmp/${fixtureName}/`)
+        fs.mkdirSync(targetPath, { recursive: true })
+        fs.writeFileSync(sourcePath, 'source')
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/${addedName}/`)
+
+        const source = page.getByRole('link', { name: sourceName })
+        const target = page.getByRole('link', { name: `${targetName}, Folder` })
+        const internalDrag = await page.evaluateHandle(() => new DataTransfer())
+        await source.dispatchEvent('dragstart', { dataTransfer: internalDrag })
+        await target.dispatchEvent('dragenter', { dataTransfer: internalDrag })
+        await source.dispatchEvent('dragend', { dataTransfer: internalDrag })
+
+        const moveRequest = page.waitForRequest('**/~/api/move_files', { timeout: 500 })
+            .then(() => true, () => false)
+        const externalDrop = await page.evaluateHandle(() => {
+            const data = new DataTransfer()
+            data.items.add(new File(['external'], 'external.txt'))
+            return data
+        })
+        await target.dispatchEvent('dragenter', { dataTransfer: externalDrop })
+        await target.dispatchEvent('dragover', { dataTransfer: externalDrop })
+        await target.dispatchEvent('drop', { dataTransfer: externalDrop })
+
+        expect(await moveRequest).toBe(false)
+        await expect(target).not.toHaveClass(/drop-over/)
+    }
+    finally {
+        cleanup()
+        if (addedName)
+            await deleteDragFixture(page, addedName)
+    }
+
+    function cleanup() {
+        fs.rmSync(fixturePath, { recursive: true, force: true })
+    }
+})
+
+test('uploadable folder accepts drops even when it cannot be deleted', async ({ page, browserName }, testInfo) => {
+    if (browserName !== 'chromium') return
+    const fixtureName = `upload-only-fixture-${testInfo.workerIndex}`
+    const sourceName = `upload-only-source-${testInfo.workerIndex}.txt`
+    const targetName = `upload-only-${testInfo.workerIndex}`
+    const fixturePath = `tests/tmp/${fixtureName}`
+    const sourcePath = `${fixturePath}/${sourceName}`
+    const targetPath = `${fixturePath}/${targetName}`
+    let fixtureVfsName: string | undefined
+    try {
+        await page.route('**/~/api/move_files', route => route.fulfill({ json: { errors: [null] } }))
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        fixtureVfsName = await addDragFixture(page, fixtureName, `../tmp/${fixtureName}/`)
+        fs.mkdirSync(targetPath, { recursive: true })
+        fs.writeFileSync(sourcePath, 'source')
+        const added = await page.request.post(`${FRONTEND_URL}~/api/add_vfs`, {
+            headers: { 'x-hfs-anti-csrf': '1' },
+            data: {
+                parent: `/for-admins/upload/${fixtureVfsName}/`,
+                source: `../tmp/${fixtureName}/${targetName}/`,
+                name: targetName,
+                can_delete: false,
+                skip_source_check: true,
+            },
+        })
+        expect(added.ok()).toBe(true)
+        const addedName = (await added.json()).name
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/${fixtureVfsName}/`)
+
+        const source = page.getByRole('link', { name: sourceName })
+        const target = page.getByRole('link', { name: `${addedName}, Folder` })
+        await expect(source).toHaveAttribute('draggable', 'true')
+        await expect(target).not.toHaveAttribute('draggable', 'true')
+        const data = await page.evaluateHandle(() => new DataTransfer())
+        const moveRequest = page.waitForRequest('**/~/api/move_files', { timeout: 500 })
+            .then(() => true, () => false)
+        await source.dispatchEvent('dragstart', { dataTransfer: data })
+        await target.dispatchEvent('dragenter', { dataTransfer: data })
+        await target.dispatchEvent('dragover', { dataTransfer: data })
+        await target.dispatchEvent('drop', { dataTransfer: data })
+
+        expect(await moveRequest).toBe(true)
+    }
+    finally {
+        fs.rmSync(fixturePath, { recursive: true, force: true })
+        if (fixtureVfsName)
+            await deleteDragFixture(page, fixtureVfsName)
+    }
+})
+
+test('dropping on the parent breadcrumb sends its absolute path', async ({ page, browserName }, testInfo) => {
+    if (browserName !== 'chromium') return
+    const folderName = `parent-drop-current-${testInfo.workerIndex}`
+    const sourceName = 'parent-drop-source.txt'
+    const folderPath = `tests/tmp/${folderName}`
+    let addedName: string | undefined
+    fs.rmSync(folderPath, { recursive: true, force: true })
+    try {
+        await page.route('**/~/api/move_files', route => route.fulfill({ json: { errors: [null] } }))
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        addedName = await addDragFixture(page, folderName, `../tmp/${folderName}/`)
+        fs.mkdirSync(folderPath, { recursive: true })
+        fs.writeFileSync(`${folderPath}/${sourceName}`, 'source')
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/${addedName}/`)
+
+        const source = page.getByRole('link', { name: sourceName })
+        const parent = page.locator('#breadcrumb-parent')
+        const data = await page.evaluateHandle(() => new DataTransfer())
+        const moveRequest = page.waitForRequest('**/~/api/move_files')
+        await source.dispatchEvent('dragstart', { dataTransfer: data })
+        await parent.dispatchEvent('dragenter', { dataTransfer: data })
+        await parent.dispatchEvent('dragover', { dataTransfer: data })
+        await parent.dispatchEvent('drop', { dataTransfer: data })
+
+        expect((await moveRequest).postDataJSON().uri_to).toBe('/for-admins/upload/')
+    }
+    finally {
+        fs.rmSync(folderPath, { recursive: true, force: true })
+        if (addedName)
+            await deleteDragFixture(page, addedName)
+    }
+})
+
+async function addDragFixture(page: Page, name: string, source: string) {
+    const response = await page.request.post(`${FRONTEND_URL}~/api/add_vfs`, {
+        headers: { 'x-hfs-anti-csrf': '1' },
+        data: {
+            parent: '/for-admins/upload/',
+            source,
+            name,
+            can_see: { this: false, children: true },
+            skip_source_check: true,
+        },
+    })
+    expect(response.ok()).toBe(true)
+    return (await response.json()).name as string
+}
+
+async function deleteDragFixture(page: Page, name: string) {
+    await page.request.post(`${FRONTEND_URL}~/api/del_vfs`, {
+        headers: { 'x-hfs-anti-csrf': '1' },
+        data: { uris: [`/for-admins/upload/${encodeURIComponent(name)}`] },
+    })
+}
 
 export const fileToUpload = {
     name: 'upload-test.bin',
@@ -10,11 +238,337 @@ export const fileToUpload = {
     buffer: Buffer.alloc(100_000),
 }
 
+async function loginAndOpenUpload(page: Page) {
+    await gotoFrontend(page)
+    await page.getByRole('button', { name: 'Login' }).click()
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('link', { name: 'for-admins, Folder' }).click()
+    await page.getByRole('link', { name: 'upload, Folder' }).click()
+    await page.getByRole('button', { name: 'Upload' }).click()
+}
+
+test('dropped folder reads all entry batches while staged', async ({ page }) => {
+    await loginAndOpenUpload(page)
+
+    await page.locator('#root > div').evaluate(root => {
+        const entries = ['first.txt', 'second.txt'].map(name => ({
+            isFile: true,
+            file(callback: (file: File) => void) {
+                callback(new File(['test'], name))
+            },
+        }))
+        const directory = {
+            isFile: false,
+            name: 'nested',
+            createReader() {
+                let batch = 0
+                return { readEntries: (callback: (batchEntries: typeof entries) => void) => callback(entries.slice(batch, ++batch)) }
+            },
+        }
+        const event = new Event('drop', { bubbles: true, cancelable: true })
+        Object.defineProperty(event, 'dataTransfer', {
+            value: { items: [{ webkitGetAsEntry: () => directory }] },
+        })
+        root.dispatchEvent(event)
+    })
+
+    await expect(page.locator('.upload-list').getByText('nested/first.txt', { exact: true })).toBeVisible()
+    await expect(page.locator('.upload-list').getByText('nested/second.txt', { exact: true })).toBeVisible()
+})
+
+test('file picker keeps the initial upload list capped at 100 items', async ({ page }) => {
+    await loginAndOpenUpload(page)
+    const chooser = page.waitForEvent('filechooser')
+    await page.getByRole('button', { name: 'Pick files' }).click()
+    await (await chooser).setFiles(Array.from({ length: 101 }, (_, i) => ({
+        name: `picked-${i}.txt`,
+        mimeType: 'text/plain',
+        buffer: Buffer.from('test'),
+    })))
+
+    const stagedFiles = page.locator('.upload-list')
+    await expect(stagedFiles.getByText(/^picked-\d+\.txt$/)).toHaveCount(100)
+    await expect(stagedFiles.getByText('picked-100.txt', { exact: true })).toHaveCount(0)
+    await stagedFiles.getByRole('button', { name: '1 more item(s)' }).click()
+    await expect(stagedFiles.getByText('picked-100.txt', { exact: true })).toBeVisible()
+
+    const nextChooser = page.waitForEvent('filechooser')
+    await page.getByRole('button', { name: 'Pick files' }).click()
+    await (await nextChooser).setFiles({ name: 'picked-101.txt', mimeType: 'text/plain', buffer: Buffer.from('test') })
+    await expect(stagedFiles.getByText('picked-100.txt', { exact: true })).toHaveCount(0)
+    await expect(stagedFiles.getByRole('button', { name: '2 more item(s)' })).toBeVisible()
+})
+
+test('dropped folder scan blocks upload actions until staging completes', async ({ page }) => {
+    // each execution owns its upload directory, including concurrent browser projects
+    const folderName = 'nested-' + randomUUID()
+    const folderPath = `tests/tmp/${folderName}`
+    try {
+        let putRequests = 0
+        page.on('response', response => {
+            if (response.request().method() === 'PUT' && response.ok())
+                putRequests++
+        })
+        await loginAndOpenUpload(page)
+
+        await page.clock.install()
+        await page.locator('#root > div').evaluate((root, folderName) => {
+            const entries = ['first.txt', 'second.txt'].map((name, i) => ({
+                isFile: true,
+                file(callback: (file: File) => void) {
+                    const done = () => callback(new File(['test'], name))
+                    if (i) (window as any).finishDrop = done
+                    else done()
+                },
+            }))
+            const directory = {
+                isFile: false,
+                name: folderName,
+                createReader() {
+                    let done = false
+                    return { readEntries(callback: (batchEntries: typeof entries) => void) {
+                        callback(done ? [] : (done = true, entries))
+                    } }
+                },
+            }
+            const event = new Event('drop', { bubbles: true, cancelable: true })
+            Object.defineProperty(event, 'dataTransfer', { value: {
+                items: [{ webkitGetAsEntry: () => directory }],
+            } })
+            root.dispatchEvent(event)
+        }, folderName)
+
+        await expect.poll(() => page.evaluate(() => typeof (window as any).finishDrop)).toBe('function')
+        await page.clock.runFor(1_000)
+        const uploadDialog = page.locator('#upload-dialog')
+        const send = uploadDialog.locator('button.upload-send')
+        const clear = uploadDialog.locator('button').filter({ hasText: /^Clear$/ })
+        const scanDialog = page.getByRole('dialog').filter({ hasText: 'Scanning files: 1' })
+        await expect(scanDialog).toBeVisible()
+        await expect.poll(async () => {
+            const box = await scanDialog.boundingBox()
+            const viewport = page.viewportSize()
+            return box && viewport && box.x >= 0 && box.x + box.width <= viewport.width
+        }).toBe(true)
+        await expect(page.getByText(/1 file, .*ready to upload/)).toBeVisible()
+        const stagedFiles = page.locator('.upload-list')
+        await expect(stagedFiles.getByText(`${folderName}/first.txt`, { exact: true })).toBeVisible()
+        await expect(stagedFiles.getByText(`${folderName}/second.txt`, { exact: true })).toHaveCount(0)
+        await expect(send).toBeDisabled()
+        await expect(clear).toBeDisabled()
+        await page.keyboard.press('Escape')
+        await expect(uploadDialog).toBeVisible()
+        expect(putRequests).toBe(0)
+        await scanDialog.evaluate(target => {
+            const event = new Event('drop', { bubbles: true, cancelable: true })
+            Object.defineProperty(event, 'dataTransfer', { value: { items: [{
+                webkitGetAsEntry: () => ({
+                    isFile: true,
+                    file() { (window as any).secondDropStarted = true },
+                }),
+            }] } })
+            target.dispatchEvent(event)
+        })
+        expect(await page.evaluate(() => (window as any).secondDropStarted)).toBeUndefined()
+
+        await page.evaluate(() => (window as any).finishDrop())
+        await expect(page.getByText(/Scanning files:/)).toHaveCount(0)
+        await page.clock.resume()
+        await expect(page.getByText(/2 files, .*ready to upload/)).toBeVisible()
+        await expect(stagedFiles.getByText(`${folderName}/second.txt`, { exact: true })).toHaveCount(0)
+        const uploadUrl = page.url()
+        await stagedFiles.getByRole('button', { name: '1 more item(s)' }).click()
+        await expect(stagedFiles.getByText(`${folderName}/second.txt`, { exact: true })).toBeVisible()
+        await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+        await expect(uploadDialog).toBeVisible()
+        expect(page.url()).toBe(uploadUrl)
+        expect(putRequests).toBe(0)
+        await expect(send).toBeEnabled()
+        await send.click()
+        await expect.poll(() => putRequests).toBe(2)
+        await uploadDialog.getByRole('button', { name: 'Close' }).click()
+        await page.getByRole('link', { name: `${folderName}, Folder` }).click()
+        await expect(page.getByRole('link', { name: 'first.txt' })).toBeVisible()
+        await expect(page.getByRole('link', { name: 'second.txt' })).toBeVisible()
+    }
+    finally {
+        fs.rmSync(folderPath, { recursive: true, force: true })
+    }
+})
+
+test('failed folder entry releases the upload scan lock', async ({ page }) => {
+    await loginAndOpenUpload(page)
+
+    await page.locator('#root > div').evaluate(root => {
+        const entries = [{
+            isFile: true,
+            file(_callback: (file: File) => void, onError: (error: DOMException) => void) {
+                onError(new DOMException('File became unavailable'))
+            },
+        }, {
+            isFile: true,
+            file(callback: (file: File) => void) {
+                (window as any).finishRemainingDrop = () => callback(new File(['test'], 'remaining.txt'))
+            },
+        }]
+        const directory = {
+            isFile: false,
+            name: 'nested',
+            createReader() {
+                let done = false
+                return { readEntries(callback: (batchEntries: typeof entries) => void) {
+                    callback(done ? [] : (done = true, entries))
+                } }
+            },
+        }
+        const event = new Event('drop', { bubbles: true, cancelable: true })
+        Object.defineProperty(event, 'dataTransfer', { value: {
+            items: [{ webkitGetAsEntry: () => directory }],
+        } })
+        root.dispatchEvent(event)
+    })
+
+    await expect.poll(() => page.evaluate(() => typeof (window as any).finishRemainingDrop)).toBe('function')
+    await expect(page.getByText(/Scanning files:/)).toBeVisible()
+    await page.evaluate(() => (window as any).finishRemainingDrop())
+    await expect(page.getByText(/Scanning files:/)).toHaveCount(0, { timeout: 1_000 })
+    await expect(page.getByText(/1 file, .*ready to upload/)).toBeVisible()
+    await expect(page.locator('#upload-dialog')).toBeVisible()
+})
+
+test('non-file drop does not break the next upload scan lock', async ({ page }) => {
+    await loginAndOpenUpload(page)
+
+    const root = page.locator('#root > div')
+    await root.evaluate(async target => {
+        const event = new Event('drop', { bubbles: true, cancelable: true })
+        Object.defineProperty(event, 'dataTransfer', { value: {
+            types: ['text/plain'],
+            items: [{ webkitGetAsEntry: () => null }],
+        } })
+        target.dispatchEvent(event)
+        await new Promise(requestAnimationFrame)
+    })
+    await root.evaluate(target => {
+        const event = new Event('drop', { bubbles: true, cancelable: true })
+        Object.defineProperty(event, 'dataTransfer', { value: { items: [{
+            webkitGetAsEntry: () => ({
+                isFile: true,
+                file(callback: (file: File) => void) {
+                    (window as any).finishValidDrop = () => callback(new File(['test'], 'valid.txt'))
+                },
+            }),
+        }] } })
+        target.dispatchEvent(event)
+    })
+
+    await expect(page.getByText('Scanning files: 0')).toBeVisible()
+    await page.evaluate(() => (window as any).finishValidDrop())
+    await expect(page.getByText(/Scanning files:/)).toHaveCount(0)
+    await expect(page.getByText(/1 file, .*ready to upload/)).toBeVisible()
+})
+
+test('dropped folder keeps its upload policy while batching updates', async ({ page }) => {
+    await page.route('**/*', route => route.request().method() === 'PUT'
+        ? route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+        : route.continue())
+    await gotoFrontend(page)
+    await page.getByRole('button', { name: 'Login' }).click()
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('link', { name: 'for-admins, Folder' }).click()
+    await page.getByRole('link', { name: 'upload, Folder' }).click()
+    await expect(page.getByRole('button', { name: 'Upload' })).toBeEnabled()
+
+    await page.evaluate(() => (window as any).HFS.state.uploadOnExisting = 'overwrite')
+    await page.clock.install()
+    const uploadRequest = page.waitForRequest(request => request.method() === 'PUT')
+    await page.locator('#root > div').evaluate(root => {
+        const entries = ['first.txt', 'second.txt'].map((name, i) => ({
+            isFile: true,
+            file(callback: (file: File) => void) {
+                if (i) return
+                callback(new File(['test'], name))
+            },
+        }))
+        const directory = {
+            isFile: false,
+            name: 'nested',
+            createReader() {
+                let done = false
+                return { readEntries(callback: (batchEntries: typeof entries) => void) {
+                    callback(done ? [] : (done = true, entries))
+                } }
+            },
+        }
+        const event = new Event('drop', { bubbles: true, cancelable: true })
+        Object.defineProperty(event, 'dataTransfer', { value: {
+            items: [{ webkitGetAsEntry: () => directory }],
+        } })
+        root.dispatchEvent(event)
+    })
+    await page.evaluate(() => (window as any).HFS.state.uploadOnExisting = 'skip')
+    await page.clock.runFor(1_000)
+
+    expect(new URL((await uploadRequest).url()).searchParams.get('existing')).toBe('overwrite')
+})
+
+test('dropped folder encodes its destination when uploaded immediately', async ({ page }) => {
+    const pageErrors: Error[] = []
+    page.on('pageerror', error => pageErrors.push(error))
+    await page.route('**/*', route => route.request().method() === 'PUT'
+        ? route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+        : route.continue())
+    await gotoFrontend(page)
+    await page.getByRole('button', { name: 'Login' }).click()
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('link', { name: 'for-admins, Folder' }).click()
+    await page.getByRole('link', { name: 'upload, Folder' }).click()
+    await expect(page.getByRole('button', { name: 'Upload' })).toBeEnabled()
+
+    const uploadRequest = page.waitForRequest(request => request.method() === 'PUT')
+    await page.locator('#root > div').evaluate(root => {
+        const file = new File(['test'], 'file.txt')
+        const entry = {
+            isFile: true,
+            file(callback: (file: File) => void) {
+                callback(file)
+            },
+        }
+        const directory = {
+            isFile: false,
+            name: 'unsafe #?%',
+            createReader() {
+                let done = false
+                return { readEntries(callback: (entries: typeof entry[]) => void) {
+                    const entries = done ? [] : [entry]
+                    done = true
+                    callback(entries)
+                } }
+            },
+        }
+        const event = new Event('drop', { bubbles: true, cancelable: true })
+        Object.defineProperty(event, 'dataTransfer', {
+            value: { items: [{ webkitGetAsEntry: () => directory }] },
+        })
+        root.dispatchEvent(event)
+    })
+
+    expect(new URL((await uploadRequest).url()).pathname)
+        .toBe('/for-admins/upload/unsafe%20%23%3F%25/file.txt')
+    expect(pageErrors).toEqual([])
+})
+
 test('upload1', async ({ page, context, browserName }, testInfo) => {
     if (browserName !== 'chromium') return // only chromium has cdpSession
     const diagnostics = await startUpload1Diagnostics(page)
     try {
-        await page.goto(FRONTEND_URL)
+        await gotoFrontend(page)
         await page.getByRole('button', { name: 'Login' }).click()
         await page.getByRole('textbox', { name: 'Username' }).fill(username)
         await page.getByRole('textbox', { name: 'Password' }).fill(password)
@@ -108,12 +662,12 @@ async function startUpload1Diagnostics(page: Page) {
                         total: progress?.lengthComputable ? progress.total : undefined,
                     })).catch(() => {})
                 }
-                for (const event of ['loadstart', 'abort', 'error', 'timeout', 'loadend'])
-                    this.addEventListener(event, log.bind(null, event))
+                for (const event of ['loadstart', 'abort', 'error', 'timeout', 'loadend'] as const)
+                    this.addEventListener(event, e => log(event, e))
                 this.upload.addEventListener('progress', e => log('upload-progress', e))
                 this.addEventListener('readystatechange', () => log('readystatechange'))
             }
-            return originalSend.apply(this, args)
+            return Reflect.apply(originalSend, this, args)
         }
     })
     trackPage(page, 'main')
@@ -189,6 +743,7 @@ const NETWORK_PRESETS = {
 
 // some interactions, no screenshots
 test('admin2', async ({ page, browserName }) => {
+    test.slow(browserName === 'firefox', 'this long interaction flow needs more time in Firefox')
     const isPhone = await loginAdmin(page)
 
     await clickAdminMenu(page, 'Accounts')
@@ -210,9 +765,28 @@ test('admin2', async ({ page, browserName }) => {
 
     await clickAdminMenu(page, 'Options')
     await expect(page.getByText('Correctly working on port')).toBeVisible()
+    const firstOptionsTab = page.getByRole('tab').first()
+    await expect(firstOptionsTab).toHaveAttribute('aria-selected', 'true')
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+    await expect(firstOptionsTab).toBeInViewport()
+    await page.getByRole('tab', { name: 'Front-end' }).click()
+    await expect(page).toHaveURL(/#\/options\/frontend$/)
+    await page.getByRole('spinbutton', { name: 'Auto-play seconds delay' }).fill('0')
+    await page.getByRole('tab', { name: 'Uploads' }).click()
+    await expect(page).toHaveURL(/#\/options\/uploads$/)
+    await expect(page.getByRole('switch', { name: 'Require approval for uploaded HTML/SVG' })).toBeChecked()
+    await expect(page.getByText('Prevents running scripts on your website')).toBeVisible()
+    await page.locator('button.saveBtn').click()
+    await expect(page.getByText('Please review errors')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('tab', { name: 'Front-end' })).toHaveAttribute('aria-selected', 'true')
+    await expect(page).toHaveURL(/#\/options\/frontend$/)
     await page.getByRole('button', { name: 'Reload' }).click()
-    await page.getByRole('row', { name: /^Blocked/ }).getByRole('button', { name: /Add/ }).click()
+    await firstOptionsTab.click()
+    const blockedRow = page.getByRole('row', { name: /^Blocked/ })
+    await blockedRow.getByRole('button', { name: /Add/ }).press('Enter')
     const addDialog = page.getByRole('dialog', { name: /Add/ })
+    await expect(addDialog).toBeVisible()
     await addDialog.getByRole('textbox', { name: 'Blocked IP' }).fill('5.6.7.8')
     if (!isPhone) {
         // This field uses a masked input: selecting from picker is more reliable than typing.
@@ -289,10 +863,10 @@ test('admin2', async ({ page, browserName }) => {
     await page.getByRole('textbox', { name: 'Search text' }).fill('download')
 
     await clickAdminMenu(page, 'Custom HTML')
-    const sectionStyle = page.getByRole('combobox', { name: 'Section Style' })
-    await expect(sectionStyle).toBeVisible()
-    await sectionStyle.click()
-    await page.getByRole('option').nth(1).click()
+    const section = page.getByRole('combobox', { name: /^Section(?: |$)/ })
+    await expect(section).toBeVisible()
+    await section.click()
+    await page.getByRole('option', { name: 'Style', exact: true }).click()
 
     await clickAdminMenu(page, 'Internet')
     await expect(page.getByText('Server')).toBeVisible()

@@ -1,7 +1,6 @@
 {
     "author": "Uwe Wennmann",
     "version": 0.1,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Auswählen",
         "n_files": "{n,plural,one{# Datei} other{# Dateien}}",
@@ -39,6 +38,7 @@
         "Password": "Passwort",
         "login_untrusted": "Anmeldung abgebrochen: Der Serveridentität kann nicht vertraut werden.",
         "login_bad_credentials": "Ungültige Anmeldedaten",
+        "confirm_url_login": "Dieser Link versucht, Sie als „{username}“ anzumelden",
         "login_bad_cookies": "Cookies funktionieren nicht - Anmeldung fehlgeschlagen",
         "User panel": "Benutzer-Panel",
         "Change password": "Das Passwort ändern.",
@@ -96,6 +96,7 @@
         "upload_finished": "{n} fertig ({size})",
         "upload_errors": "{n} fehlgeschlagen",
         "upload_file_rejected": "Einige Dateien wurden nicht akzeptiert",
+        "delete_unfinished_upload": "Unvollständigen Upload entfernen?",
         "File menu": "Dateimenü",
         "Folder menu": "Ordnermenü",
         "Name": "Name",
@@ -109,6 +110,8 @@
         "Timestamp": "Zeitstempel",
         "Show": "Anzeigen",
         "Loading failed": "Laden fehlgeschlagen",
+        "Download limit reached": "Download-Limit erreicht",
+        "Retry": "Erneut versuchen",
         "Rename": "Umbenennen",
         "Tiles mode:": "Kachel-Modus:",
         "off": "aus",
@@ -181,6 +184,9 @@
         "No":  "Nein",
         "esc_again": "Drucken Sie ESC zwei Mal, um das Fenster zu schließen.",
         "insufficient storage": "nicht genügend Speicherplatz",
-        "Account disabled": "Konto deaktiviert"
+        "Account disabled": "Konto deaktiviert",
+        "upload_name": "Mit neuem Namen hochladen",
+        "Uploading": "Hochladen",
+        "proxy_413": "Überprüfen Sie den Proxyserver auf dieses Limit"
     }
 }

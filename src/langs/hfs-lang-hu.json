@@ -1,7 +1,6 @@
 {
     "author": "killersolyom",
     "version": 0.6,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Kiválasztás",
         "n_files": "{n,többes szám,egy{# file} egyéb{# file}}",
@@ -40,6 +39,7 @@
         "Password": "Jelszó",
         "login_untrusted": "A bejelentkezés megszakadt: a kiszolgáló identitása nem megbízható",
         "login_bad_credentials": "Érvénytelen hitelesítő adatok",
+        "confirm_url_login": "Ez a hivatkozás „{username}” néven próbál bejelentkeztetni",
         "login_bad_cookies": "A cookie-k nem működnek - a bejelentkezés sikertelen",
         "User panel": "Felhasználói panel",
         "Change password": "Jelszó módosítása",
@@ -103,6 +103,7 @@
         "upload_finished": "{n} kész ({size})",
         "upload_errors": "{n} sikertelen",
         "upload_file_rejected": "Egyes fájlokat nem sikerült feltölteni",
+        "delete_unfinished_upload": "Eltávolítja a befejezetlen feltöltést?",
 
         "download counter": "letöltés számláló",
 
@@ -119,6 +120,8 @@
         "Timestamp": "Időbélyeg",
         "Show": "Megtekintés",
         "Loading failed": "Betöltés sikertelen",
+        "Download limit reached": "Elérte a letöltési korlátot",
+        "Retry": "Újrapróbálkozás",
         "Rename": "Átnevezés",
         "Tiles mode:": "Csempemód:",
         "off": "ki",
@@ -198,6 +201,9 @@
         "No":  "Nem",
         "esc_again": "Nyomja meg kétszer az ESC gombot a bezáráshoz",
         "insufficient storage": "elégtelen tárhely",
-        "Account disabled": "A fiók deaktiválva"
+        "Account disabled": "A fiók deaktiválva",
+        "upload_name": "Feltöltés új néven",
+        "Uploading": "Feltöltés",
+        "proxy_413": "Ellenőrizze ezt a korlátot a proxyszerveren"
     }
 }

@@ -46,7 +46,7 @@ export default {
             },
             connectionUpdated(conn: Connection, change: Change) {
                 if (conn.socket.closed || _.isEmpty(change)) return
-                if (change.ctx) {
+                if (change.ctx) { // serialize ctx once so all monitor subscribers reuse the resulting change
                     Object.assign(change, fromCtx(change.ctx))
                     change.ctx = undefined
                 }
@@ -112,7 +112,7 @@ export function inferOperation(ctx: Koa.Context) {
             : s.uploadPath ? { op: 'upload', path: safeDecodeURIComponent(s.uploadPath) }
                 : {
                     op: !s.considerAsGui && (ctx.state.archive || ctx.state.vfsNode) ? 'download' : undefined,
-                    path: safeDecodeURIComponent(ctx.originalUrl),
+                    path: safeDecodeURIComponent(s.safeUrl),
                 },
         opProgress: _.isNumber(s.opProgress) ? _.round(s.opProgress, 3) : undefined,
         opTotal: s.opTotal,

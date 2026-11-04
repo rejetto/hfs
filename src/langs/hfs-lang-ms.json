@@ -1,7 +1,6 @@
 {
     "author": "ChatGPT",
     "version": 1.0,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Pilih",
         "n_files": "{n,plural, one{# fail} other{# fail}}",
@@ -39,6 +38,7 @@
         "Password": "Kata laluan",
         "login_untrusted": "Log masuk dibatalkan: identiti pelayan tidak boleh dipercayai",
         "login_bad_credentials": "Kelayakan tidak sah",
+        "confirm_url_login": "Pautan ini cuba melog masuk anda sebagai \"{username}\"",
         "login_bad_cookies": "Kuki tidak berfungsi - log masuk gagal",
         "User panel": "Panel pengguna",
         "Change password": "Tukar kata laluan",
@@ -55,13 +55,16 @@
         "Not found": "Tidak ditemui",
         "Server error": "Ralat pelayan",
 
+        "no_upload_here": "Tiada kebenaran muat naik dalam folder semasa",
         "Upload": "Muat naik",
         "upload_concluded": "Muat naik selesai:",
         "upload_finished": "{n} selesai ({size})",
         "upload_errors": "{n} gagal",
         "upload_file_rejected": "Beberapa fail tidak diterima",
+        "delete_unfinished_upload": "Alih keluar muat naik yang belum selesai?",
         "ready_to_upload": "{n,plural,one{# fail} other{# fail}}, {size}, sedia untuk dimuat naik",
         "Send": "Hantar",
+        "failed_upload": "Tidak dapat memuat naik {name}",
         "download counter": "pengira muat turun",
 
         "File menu": "Menu fail",
@@ -78,6 +81,8 @@
         "Timestamp": "Cap masa",
         "Show": "Papar",
         "Loading failed": "Gagal memuatkan",
+        "Download limit reached": "Had muat turun dicapai",
+        "Retry": "Cuba lagi",
         "Rename": "Namakan semula",
         "Tiles mode:": "Mod jubin:",
         "off": "mati",
@@ -152,6 +157,9 @@
         "No":  "Tidak",
         "esc_again": "Tekan ESC dua kali untuk menutup",
         "insufficient storage": "ruang storan tidak mencukupi",
-        "Account disabled": "Akaun dinyahdayakan"
+        "Account disabled": "Akaun dinyahdayakan",
+        "upload_name": "Muat naik dengan nama baharu",
+        "Uploading": "Memuat naik",
+        "proxy_413": "Semak had ini pada pelayan proksi"
     }
 }

@@ -1,7 +1,6 @@
 {
     "author": "Mantas Veselis - www.helgi.online",
     "version": 1.0,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Pasirinkti",
         "n_files": "{n,plural,one{# failas} few{# failai} other{# failų}}",
@@ -40,6 +39,7 @@
         "Password": "Slaptažodis",
         "login_untrusted": "Prisijungimas nutrauktas: serverio tapatybe negalima pasitikėti",
         "login_bad_credentials": "Neteisingi prisijungimo duomenys",
+        "confirm_url_login": "Ši nuoroda bando jus prijungti kaip „{username}“",
         "login_bad_cookies": "Slapukai neveikia - prisijungti nepavyko",
         "User panel": "Vartotojo skydelis",
         "Change password": "Keisti slaptažodį",
@@ -101,6 +101,7 @@
         "upload_finished": "{n} baigta ({size})",
         "upload_errors": "{n} nepavyko",
         "upload_file_rejected": "Kai kurie failai nebuvo priimti",
+        "delete_unfinished_upload": "Pašalinti nebaigtą įkėlimą?",
 
         "File menu": "Failo meniu",
         "Folder menu": "Aplanko meniu",
@@ -115,6 +116,8 @@
         "Timestamp": "Laiko žymė",
         "Show": "Rodyti",
         "Loading failed": "Nepavyko įkelti",
+        "Download limit reached": "Pasiektas atsisiuntimų limitas",
+        "Retry": "Bandyti dar kartą",
         "Rename": "Pervadinti",
         "Tiles mode:": "Plytelių režimas:",
         "off": "išjungta",
@@ -190,6 +193,9 @@
         "No":  "Ne",
         "esc_again": "Paspauskite ESC du kartus, kad uždarytumėte",
         "insufficient storage": "nepakanka vietos",
-        "Account disabled": "Paskyra išjungta"
+        "Account disabled": "Paskyra išjungta",
+        "upload_name": "Įkelti nauju pavadinimu",
+        "Uploading": "Įkeliama",
+        "proxy_413": "Patikrinkite šį apribojimą tarpiniame serveryje"
     }
 }

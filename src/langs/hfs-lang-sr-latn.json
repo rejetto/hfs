@@ -1,7 +1,6 @@
 {
     "author": "ByteAfterlife",
     "version": 1.0,
-    "hfs_version": "3.0.0",
     "translate": {
         "Select": "Izaberi",
         "n_files": "{n,plural,one{# datoteka} other{# datoteke}}",
@@ -41,6 +40,7 @@
         "Password": "Lozinka",
         "login_untrusted": "Prijava prekinuta: identitet servera se ne može smatrati pouzdanim",
         "login_bad_credentials": "Nevažeći podaci za pristup",
+        "confirm_url_login": "Ova veza pokušava da vas prijavi kao „{username}“",
         "login_bad_cookies": "Kolačići ne rade - prijava nije uspela",
         "User panel": "Korisnički panel",
         "Change password": "Promeni lozinku",
@@ -102,6 +102,7 @@
         "upload_finished": "{n} završeno ({size})",
         "upload_errors": "{n,plural, one{# nije uspeo} other{# neuspešna}}",
         "upload_file_rejected": "Neke datoteke nisu prihvaćene",
+        "delete_unfinished_upload": "Ukloniti nedovršeno otpremanje?",
 
         "File menu": "Meni datoteke",
         "Folder menu": "Meni fascikle",
@@ -116,6 +117,8 @@
         "Timestamp": "Vremenska oznaka",
         "Show": "Prikaži",
         "Loading failed": "Učitavanje nije uspelo",
+        "Download limit reached": "Dostignuto je ograničenje preuzimanja",
+        "Retry": "Pokušaj ponovo",
         "Rename": "Preimenuj",
         "Tiles mode:": "Režim pločica:",
         "off": "isključeno",
@@ -191,6 +194,9 @@
         "No":  "Ne",
         "esc_again": "Pritisnite ESC dva puta da biste zatvorili",
         "insufficient storage": "nedovoljno prostora za skladištenje",
-        "Account disabled": "Nalog je onemogućen"
+        "Account disabled": "Nalog je onemogućen",
+        "upload_name": "Otpremite sa novim imenom",
+        "Uploading": "Otpremanje",
+        "proxy_413": "Proverite ovo ograničenje na proksi serveru"
     }
 }

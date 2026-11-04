@@ -1,10 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { createElement as h, Fragment, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { t } from './i18n'
 import { apiCall, useApi, useApiList } from './api'
 import _ from 'lodash'
 import { Alert, Box, Checkbox, ListItemButton, ListItemIcon, ListItemText, TextField, Typography } from '@mui/material'
-import { enforceFinal, formatBytes, isWindowsDrive, err2msg, basename, formatPerc } from './misc'
+import { enforceFinal, formatBytes, isWindowsDrive, err2msg, basename, formatPerc, hasFinalSlash } from './misc'
 import { spinner, Center, IconBtn, Flex, IconProgress, useBreakpoint, Btn } from './mui'
 import { ArrowUpward, CreateNewFolder, Storage, VerticalAlignTop } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
@@ -46,11 +47,11 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
 
     const [sel, setSel] = useState<string[]>([])
     const [filter, setFilter] = useState('')
-    const setFilterBounced = useMemo(() => _.debounce((x:string) => setFilter(x)), [])
+    const deferredFilter = useDeferredValue(filter) // defer filtering, not the controlled input, to preserve typed text and cursor position
     const filterMatch = useMemo(() => {
-        const re = new RegExp(_.escapeRegExp(filter), 'i')
+        const re = new RegExp(_.escapeRegExp(deferredFilter), 'i')
         return (v:string) => re.test(v)
-    }, [filter])
+    }, [deferredFilter])
 
     const sm = useBreakpoint('sm')
     const [listHeight, setListHeight] = useState(0)
@@ -61,22 +62,22 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
     const isRoot = cwd.length < 2
     return h(Fragment, {},
         h(StringField, {
-            label: "Current folder",
+            label: t`Current folder`,
             value: cwd,
             InputLabelProps: { shrink: true },
-            helperText: "UNC paths are supported",
+            helperText: t`UNC paths are supported`,
             async onChange(v) {
                 if (!v)
                     return setCwd(root)
                 const res = await apiCall('resolve_path', { path: v })
                 if (res.isFolder === false) // the user entered a path to a file
                     return files ? onSelect([v]) // select it, if files are allowed
-                        : setCwd(v.slice(0, -basename(v).length-1)) // otherwise consider its folder
+                        : setCwd(res.path.slice(0, -basename(res.path).length)) // otherwise consider its folder
                 setCwd(res.path)
             },
             end: h(Fragment, {},
                 h(IconBtn, {
-                    title: "root",
+                    title: t`root`,
                     disabled: isRoot,
                     icon: VerticalAlignTop,
                     onClick() {
@@ -84,11 +85,11 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                     }
                 }),
                 h(IconBtn, {
-                    title: "parent folder",
+                    title: t`parent folder`,
                     disabled: isRoot,
                     icon: ArrowUpward,
                     onClick() {
-                        const cwdND = /[\\/]$/.test(cwd) ? cwd.slice(0,-1) : cwd // exclude final delimiter, if any
+                        const cwdND = hasFinalSlash(cwd) ? cwd.slice(0,-1) : cwd // exclude final delimiter, if any
                         const last = cwdND.lastIndexOf(pathDelimiter)
                         const isUNCroot = last === 1 // whe cwd is '\\host'
                         const parent = isWindowsDrive(cwdND) || isUNCroot ? root : cwdND.slice(0, last || 1)
@@ -108,7 +109,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                     },
                     sx: { flex: 1, display: 'flex', flexDirection: 'column' }
                 },
-                    !list.length ? h(Center as any, { sx: { flex: 1, mt: '4em' } }, connecting ? spinner() : "No elements in this folder")
+                    !list.length ? h(Center as any, { sx: { flex: 1, mt: '4em' } }, connecting ? spinner() : t`No elements in this folder`)
                         : h(FixedSizeList, {
                             width: '100%', height: listHeight,
                             itemSize: 46, itemCount: filteredList.length, overscanCount: 5,
@@ -148,25 +149,27 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                         onClick() {
                             onSelect(sel.length ? sel.map(x => cwdDelimiter + x) : [cwdDelimiter])
                         }
-                    }, files && (sel.length || !folders) ? `Select (${sel.length})` : sm ? "Select this folder" : "This folder"),
+                    }, files && (sel.length || !folders) ? t("Select ({length})", { length: sel.length }) : sm ? t`Select this folder` : t`This folder`),
                     folders && h(Btn, {
                         icon: CreateNewFolder,
                         variant: 'outlined',
                         doneMessage: true,
                         labelIf: 'sm',
                         async onClick() {
-                            const s = await promptDialog("New folder name")
+                            const s = await promptDialog(t`New folder name`)
                             if (!s) return false
                             await apiCall('mkdir', { path: `${cwd}/${s}` })
                             reload()
                         }
-                    }, "New folder"),
+                    }, t`New folder`),
                     h(TextField, {
                         size: 'small',
                         value: filter,
-                        label: `Filter results (${filteredList.length}${filteredList.length < list.length ? '/'+list.length : ''})`,
+                        label: filteredList.length < list.length
+                            ? t('filtered_results_count', { filteredCount: filteredList.length, totalCount: list.length })
+                            : t('results_count', { count: filteredList.length }),
                         onChange(ev) {
-                            setFilterBounced(ev.target.value)
+                            setFilter(ev.target.value)
                         },
                         sx: { flex: 1 },
                     }),

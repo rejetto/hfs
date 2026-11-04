@@ -1,7 +1,6 @@
 {
     "author": "Pultsari & Win_7",
     "version": 1.33,
-    "hfs_version": "0.57.3-beta1",
     "translate": {
         "Select": "Valitse",
         "n_files": "{n,plural,one{# tiedosto} other{# tiedostoa}}",
@@ -40,6 +39,7 @@
         "Password": "Salasana",
         "login_untrusted": "Kirjautuminen keskeytetty:: palvelimen identiteettiin ei voida luottaa",
         "login_bad_credentials": "Käyttäjätunnus tai salasana virheellinen.",
+        "confirm_url_login": "Tämä linkki yrittää kirjata sinut sisään käyttäjänä ”{username}”",
         "login_bad_cookies": "Evästeet eivät toimi - kirjautuminen epäonnistui",
         "User panel": "Hallintapaneeli",
         "Change password": "Vaihda salasana",
@@ -59,7 +59,7 @@
         "Create folder": "Tee uusi kansio",
         "Pick files": "Valitse lähetettävät tiedostot",
         "Pick folder": "Valitse lähetettävä kansio",
-        "ready_to_upload": "{n,plural,one{# tiedosto} other{# tiedostot}}, {size}, valmis ladattavaksi",
+        "ready_to_upload": "{n,plural,one{# tiedosto} other{# tiedostot}}, {size}, valmis lähetettäväksi",
         "Send": "Lähetä",
         "Clear": "Tyhjennä",
         "failed_upload": "Lähetys epäonnistui {name}",
@@ -102,6 +102,7 @@
         "upload_finished": "{n} tiedostoa tai kansiota lähetetty onnistuneesti ({size})",
         "upload_errors": "{n} epäonnistui",
         "upload_file_rejected": "Joitakin tiedostoja ei hyväksytty",
+        "delete_unfinished_upload": "Poistetaanko keskeneräinen lähetys?",
 
         "File menu": "Tiedostovalikko",
         "Folder menu": "Kansiovalikko",
@@ -116,6 +117,8 @@
         "Timestamp": "Aikaleima",
         "Show": "Näytä",
         "Loading failed": "Lataaminen epäonnistui",
+        "Download limit reached": "Latausraja saavutettu",
+        "Retry": "Yritä uudelleen",
         "Rename": "Nimeä uudelleen",
         "Tiles mode:": "Kuvakkeiden koko:",
         "off": "pienin",
@@ -195,6 +198,9 @@
         "No":  "Ei",
         "esc_again": "Paina ESC kahdesti sulkeaksesi",
         "insufficient storage": "riittämätön tallennustila",
-        "Account disabled": "Tili on poistettu käytöstä"
+        "Account disabled": "Tili on poistettu käytöstä",
+        "upload_name": "Lähetä uudella nimellä",
+        "Uploading": "Lähetetään",
+        "proxy_413": "Tarkista tämä raja välityspalvelimelta"
     }
 }

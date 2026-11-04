@@ -1,29 +1,37 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, ReactNode, useCallback, useEffect, useState } from 'react'
+import { isRtl, useI18N, t } from './i18n'
+
+import { Component, createElement as h, Fragment, lazy, ReactNode, Suspense, useCallback, useEffect, useState } from 'react'
 import { Route, Router, Switch, useLocation } from 'wouter'
 import { useHashLocation } from 'wouter/use-hash-location'
 import MainMenu, { getMenuLabel, mainMenu, matchesMenuPath } from './MainMenu'
-import { AppBar, Box, BoxProps, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
+import { Alert, AppBar, Box, BoxProps, Button, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
 import { anyDialogOpen, Dialogs } from './dialog'
 import { useMyTheme } from './theme'
-import { Flex, useBreakpoint } from './mui'
+import { Center, fillFlexParentSx, Flex, spinner, useBreakpoint } from './mui'
 import { LoginRequired } from './LoginRequired'
 import { Menu } from '@mui/icons-material'
 import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
-import ConfigFilePage from './ConfigFilePage'
 import { useSnapState } from './state'
 import { useEventListener } from 'usehooks-ts'
 import { AriaOnly, isMac, useFixSticky, xlate } from './misc'
 import { loadLocale } from './locale'
-import { fillFlexParentSx } from './DataTable'
+import { CacheProvider } from '@emotion/react'
+import createCache from '@emotion/cache'
+import { prefixer } from 'stylis'
+import rtlPlugin from 'stylis-plugin-rtl'
+
+const ConfigFilePage = lazy(() => import('./ConfigFilePage'))
+const rtlCache = isRtl && createCache({ key: 'mui-rtl', stylisPlugins: [prefixer, rtlPlugin] })
 
 // always use useMemo with setTitleSide
 export interface PageProps { setTitleSide: (content: ReactNode, fullWidth?: boolean) => void }
 
 function App() {
-    return h(ThemeProvider, { theme: useMyTheme() },
+    useI18N()
+    const content = h(ThemeProvider, { theme: useMyTheme() },
         h(ApplyTheme, {},
             h(Localization, {},
                 h(LoginRequired, {},
@@ -37,6 +45,7 @@ function App() {
                             }
                         }, h(Routed))
                     }) ))))
+    return rtlCache ? h(CacheProvider, { value: rtlCache }, content) : content
 }
 
 function Localization(props: any) {
@@ -92,11 +101,11 @@ function Routed() {
         })
     }, [])
     useEffect(() => {
-        if (!titleSideSet)
+        if (titleSideSet === null) // false is a valid empty title; replacing it with null would keep triggering renders
             set(null)
     })
     return h(Fragment, {},
-        h(AriaOnly, {}, h('h1', {}, "Admin-panel")),
+        h(AriaOnly, {}, h('h1', {}, t`Admin-panel`)),
         !sideMenu && h(StickyBar, {
             title,
             titleSide,
@@ -129,19 +138,39 @@ function Routed() {
                     // @ts-ignore
                     h(Flex, { ...titleSideFullWidth as any && { width: '100%' } }, titleSide),
                 ),
-                h(Switch, {
-                    children: [
-                        ...mainMenu.flatMap((it,idx) => [
-                            h(Route, { key: idx, path: it.path }, h(it.comp, { setTitleSide: set }) ),
-                            // tab pages encode their selected tab after the parent menu path
-                            it.subRoutes && h(Route, { key: it.path + '/:tab', path: `${it.path}/:tab` }, h(it.comp, { setTitleSide: set }) )
-                        ]),
-                        h(Route, { path: '/config' }, h(ConfigFilePage))
-                    ]
-                })
+                h(PageErrorBoundary, { key: current?.path ?? location }, // tab navigation must preserve unsaved fields; reset the boundary only when changing pages
+                    h(Suspense, { fallback: h(spinner) }, h(Switch, {
+                        children: [
+                            ...mainMenu.flatMap((it,idx) => [
+                                h(Route, { key: idx, path: it.path }, h(it.comp, { setTitleSide: set }) ),
+                                // tab pages encode their selected tab after the parent menu path
+                                it.subRoutes && h(Route, { key: it.path + '/:tab', path: `${it.path}/:tab` }, h(it.comp, { setTitleSide: set }) )
+                            ]),
+                            h(Route, { path: '/config' }, h(ConfigFilePage))
+                        ]
+                    }))
+                )
             ),
         )
     )
+}
+
+class PageErrorBoundary extends Component<{ children?: ReactNode }, { failed: boolean }> {
+    state = { failed: false }
+
+    static getDerivedStateFromError() {
+        return { failed: true }
+    }
+
+    render() {
+        return this.state.failed
+            ? h(Center, {},
+                h(Alert, {
+                    severity: 'error',
+                    action: h(Button, { color: 'inherit', onClick: () => window.location.reload() }, t`Reload`)
+                }, t`Failed to load page`))
+            : this.props.children
+    }
 }
 
 function itemTitle(idx: number) {
@@ -156,7 +185,7 @@ function StickyBar({ title, titleSide, openMenu, props }: { props?: BoxProps, ti
                 edge: 'start',
                 color: 'inherit',
                 sx: { mr: 2 },
-                'aria-label': "menu",
+                'aria-label': t`menu`,
                 onClick: openMenu
             }, h(Menu)),
             h(Flex, {

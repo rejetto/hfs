@@ -5,6 +5,7 @@ hfs.plist
 dist
 .DS_Store
 scripts/sec
+tmp
 #produced by running
 tests/work
 tests/work2
@@ -14,6 +15,7 @@ tests/config.yaml.bak
 .ci/
 /test-results/
 /playwright-report/
+/.playwright-mcp/
 /blob-report/
 /playwright/.cache/
 e2e/frontend.spec.ts-snapshots*

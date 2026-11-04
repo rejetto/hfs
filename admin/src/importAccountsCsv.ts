@@ -1,9 +1,10 @@
 import { alertDialog, formDialog, newDialog } from './dialog'
 import { createElement as h, Fragment, useEffect, useState } from 'react'
+import { t } from './i18n'
 import { Group, Upload } from '@mui/icons-material'
 import { Box } from '@mui/material'
 import { apiCall } from './api'
-import { apiNewPassword, HTTP_CONFLICT, prefix, readFile, selectFiles } from './misc'
+import { apiNewPassword, HTTP_CONFLICT, readFile, selectFiles } from './misc'
 import { IconProgress } from './mui'
 import { NumberField, BoolField } from '@hfs/mui-grid-form'
 import Parser from '@gregoranders/csv';
@@ -25,32 +26,34 @@ export async function importAccountsCsv(cb?: () => void) {
             redirectColumn: 4,
             overwriteExistingAccounts: false,
         }
-        const cfg = await formDialog<typeof initialConfig>({
-            title: "Import accounts from CSV",
+        const cfg = await formDialog<typeof initialConfig, typeof initialConfig>({
+            title: t`Import accounts from CSV`,
             dialogProps: { maxWidth: 'sm' },
             values: initialConfig,
             form: values => {
-                const row = rows[values.skipFirstLines || 0]
+                // preview renders before invalid input is rejected by validation
+                const row = rows[values.skipFirstLines || 0] || []
                 const rec = getRec(row, { ...initialConfig, ...values })
                 return {
-                    save: { startIcon: h(Upload), children: 'Go' },
+                    save: { startIcon: h(Upload), children: t`Go` },
                     fields: [
-                        h(Box, { sx: { p: 1 } }, "Total lines:", rows.length),
-                        { k: 'skipFirstLines', comp: NumberField, max: rows.length-1, typing: true, md: 6,
-                            helperText: h(Fragment, {}, "First line: ", h('code', {}, row.join(', ')) ),
+                        h(Box, { sx: { p: 1 } }, t`Total lines:`, rows.length),
+                        { k: 'skipFirstLines', label: t`Skip First Lines`, comp: NumberField, max: rows.length-1, typing: true, md: 6,
+                            getError: value => value != null && !Number.isInteger(value) && "Enter an integer",
+                            helperText: h(Fragment, {}, t`First line: `, h('code', {}, row.join(', ')) ),
                         },
-                        { k: 'overwriteExistingAccounts', comp: BoolField, md: 6 },
-                        { k: 'usernameColumn', ...colField,
-                            helperText: h(Fragment, {}, "First username: ", rec.u),
+                        { k: 'overwriteExistingAccounts', label: t`Overwrite Existing Accounts`, comp: BoolField, md: 6 },
+                        { k: 'usernameColumn', label: t`Username Column`, ...colField,
+                            helperText: h(Fragment, {}, t`First username: `, rec.u),
                         },
-                        { k: 'passwordColumn', ...colField,
-                            helperText: h(Fragment, {}, "First password: ", rec.p),
+                        { k: 'passwordColumn', label: t`Password Column`, ...colField,
+                            helperText: h(Fragment, {}, t`First password: `, rec.p),
                         },
-                        { k: 'groupColumn', ...colField,
-                            helperText: h(Fragment, {}, "First group: ", rec.g),
+                        { k: 'groupColumn', label: t`Group Column`, ...colField,
+                            helperText: h(Fragment, {}, t`First group: `, rec.g),
                         },
-                        { k: 'redirectColumn', ...colField,
-                            helperText: h(Fragment, {}, "First redirect: ", rec.r),
+                        { k: 'redirectColumn', label: t`Redirect Column`, ...colField,
+                            helperText: h(Fragment, {}, t`First redirect: `, rec.r),
                         },
                     ],
                 }
@@ -58,7 +61,7 @@ export async function importAccountsCsv(cb?: () => void) {
         })
         if (!cfg) return
         const { close } = newDialog({
-            title: "Importing...",
+            title: t`Importing...`,
             Content() {
                 const [progress, setProgress] = useState(0)
                 const [record, setRecord] = useState<undefined | ReturnType<typeof getRec>>()
@@ -70,8 +73,8 @@ export async function importAccountsCsv(cb?: () => void) {
                         let already =0
                         let skip = cfg.skipFirstLines
                         const total = rows.length - skip
+                        let worked = 0
                         try {
-                            let i = 0
                             for (const row of rows) {
                                 if (stop) return
                                 if (skip) {
@@ -80,7 +83,7 @@ export async function importAccountsCsv(cb?: () => void) {
                                 }
                                 const rec = getRec(row, cfg)
                                 setRecord(rec)
-                                setProgress(i++ / total)
+                                setProgress(worked++ / total)
                                 await apiCall('add_account', {
                                     username: rec.u,
                                     belongs: rec.g?.split(','),
@@ -89,7 +92,7 @@ export async function importAccountsCsv(cb?: () => void) {
                                 }).then(() => {
                                     if (rec.p)
                                         return apiNewPassword(rec.u, rec.p)
-                                }, e => {
+                                }).catch(e => {
                                     if (e.code === HTTP_CONFLICT)
                                         return already++
                                     bad++
@@ -98,12 +101,13 @@ export async function importAccountsCsv(cb?: () => void) {
                         }
                         finally {
                             close()
-                            const good = total - bad - already
-                            const msg = "Results: " + [
-                                prefix('', bad, " failed"),
-                                prefix('', good, " succeeded"),
-                                prefix('', already, " skipped because already present"),
-                            ].filter(Boolean).join(', ')
+                            const good = worked - bad - already
+                            const msg = [
+                                t`Results:`,
+                                t('account_import_failed', { n: bad }),
+                                t('account_import_succeeded', { n: good }),
+                                t('account_import_skipped_existing', { n: already }),
+                            ].join('\n')
                             alertDialog(msg, !good && bad ? 'error' : (bad || already) ? 'warning' : 'success')
                             cb?.()
                         }

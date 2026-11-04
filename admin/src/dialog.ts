@@ -1,5 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
+import { t } from './i18n'
+
+
 import { Box, Button, CircularProgress, Dialog as MuiDialog, DialogContent, DialogTitle, Modal
 } from '@mui/material'
 import {
@@ -8,12 +11,12 @@ import {
 } from 'react'
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode, pendingPromise,
-    focusSelector, md, focusableSelector, useIsMobile } from '@hfs/shared'
-import { Form, FormProps } from '@hfs/mui-grid-form'
+    focusSelector, focusableSelector, useIsMobile, callable, Functionable } from '@hfs/shared'
+import { Form, FormApi, FormProps } from '@hfs/mui-grid-form'
 import { IconBtn, Flex, Center, mergeSx } from './mui'
 import { useDark } from './theme'
 import _ from 'lodash'
-import { err2msg } from './misc'
+import { err2msg, md } from './misc'
 import { useSnapState } from './state'
 export * from '@hfs/shared/dialogs'
 
@@ -53,7 +56,7 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
         },
             d.icon && componentOrNode(d.icon),
             h(Box, { sx: { flex: 1, minWidth: 40, ml: 1 } }, componentOrNode(d.title)),
-            d.closable && h(IconBtn, { icon: Close, title: "Close", onClick: () => closeDialog() }),
+            d.closable && h(IconBtn, { icon: Close, title: t`Close`, onClick: () => closeDialog() }),
         ),
         h(DialogContent, {
             ref,
@@ -67,7 +70,8 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
 
 export function useDialogBarColors() {
     const { darkTheme } = useSnapState()
-    return darkTheme ?? useDark() ? { bgcolor: '#2d2d2d' } : { bgcolor:'#ccc', color: '#444', }
+    const detected = useDark()
+    return darkTheme ?? detected ? { bgcolor: '#2d2d2d' } : { bgcolor:'#ccc', color: '#444', }
 }
 
 type AlertType = 'error' | 'warning' | 'info' | 'success'
@@ -78,6 +82,7 @@ const type2ico = {
     info: Info,
     success: Check,
 }
+// if msg is a string, newline will be reflected in the formatting
 export function alertDialog(msg: ReactElement | string | Error, options?: AlertType | ({ type?:AlertType, icon?: ReactElement } & Partial<DialogOptions>)) {
     const opt = typeof options === 'string' ? { type: options } : (options ?? {})
     let { type='info', ...rest } = opt
@@ -112,7 +117,7 @@ interface ConfirmOptions extends Omit<DialogOptions, 'Content'> {
     after?: FC<{ onClick: (result: any) => unknown }>
 }
 
-export function confirmDialog(msg: ReactNode, { href, trueText="Go", falseText="Don't", before, after,  ...rest }: ConfirmOptions={}) {
+export function confirmDialog(msg: ReactNode, { href, trueText=t`Go`, falseText=t`Don't`, before, after,  ...rest }: ConfirmOptions={}) {
     const promise = pendingPromise<boolean>()
     const dialog = newDialog({
         className: 'dialog-confirm',
@@ -139,19 +144,27 @@ export function confirmDialog(msg: ReactNode, { href, trueText="Go", falseText="
     }
 }
 
-export type FormDialog<T> = Omit<FormProps<T>, 'values' | 'save' | 'set'>
+type FormDialogSubmit<T> = (onValid?: (values: Partial<T>, dialog: ReturnType<typeof newDialog>) => unknown) => void
+type FormDialogContext<T> = {
+    values: Partial<T>
+    dialog: ReturnType<typeof newDialog>
+    submit: FormDialogSubmit<T>
+}
+
+export type FormDialog<T> = Omit<FormProps<T>, 'values' | 'save' | 'set' | 'addToBar'>
     & Partial<Pick<FormProps<T>, 'save'>>
     & {
         onChange?: (values:Partial<T>, extra: { setValues: Dispatch<SetStateAction<Partial<T>>> }) => void,
         before?: any
+        addToBar?: Functionable<FormProps<T>['addToBar'], [FormDialogContext<T>]>
     }
-export async function formDialog<T>(
+export async function formDialog<T, RT=Partial<T>>(
     { form, values, Wrapper, ...options }: Omit<DialogOptions, 'Content'> & {
         values?: Partial<T>,
-        form: FormDialog<T> | ((values: Partial<T>) => FormDialog<T>), // allow a callback form
+        form: Functionable<FormDialog<T>, [Partial<T>, FormDialogContext<T>]>,
         Wrapper?: FC
     },
-) : Promise<T> {
+): Promise<RT | undefined> {
     let exposedValues: typeof values
     return new Promise(resolve => {
         const dialog = newDialog({
@@ -160,7 +173,10 @@ export async function formDialog<T>(
             ...options,
             Content() {
                 const [curValues, setCurValues] = useState<Partial<T>>(values||{})
-                const { onChange, before, ...props } = typeof form === 'function' ? form(curValues) : form
+                const apiRef = useRef<FormApi>()
+                const submitActionRef = useRef<Parameters<FormDialogSubmit<T>>[0]>()
+                const ctx: FormDialogContext<T> = { values: curValues, dialog, submit }
+                const { onChange, before, addToBar, ...props } = typeof form === 'function' ? form(curValues, ctx) : form
                 if (props.save === false)
                     exposedValues = curValues
                 return h(Wrapper || Fragment, {},
@@ -176,13 +192,30 @@ export async function formDialog<T>(
                             })
                         },
                         save: props.save !== false && {
-                            onClick() {
-                                dialog.close(curValues)
-                            },
+                            children: t`Save`,
                             ...props.save,
-                        }
+                            onClick() {
+                                const { current: submitAction } = submitActionRef
+                                submitActionRef.current = undefined
+                                return submitAction ? submitAction(curValues, dialog) : dialog.close(curValues)
+                            },
+                        },
+                        onValidation(errors, submitting) {
+                            // a rejected alternate action must not leak into the next normal Save
+                            if (errors && submitting)
+                                submitActionRef.current = undefined
+                            props.onValidation?.(errors, submitting)
+                        },
+                        apiRef,
+                        addToBar: _.castArray(callable(addToBar, ctx)),
                     })
                 )
+
+                function submit(onValid?: Parameters<FormDialogSubmit<T>>[0]) {
+                    // keep alternate submit actions on the dialog submit path so validation and value sync stay identical to Save
+                    submitActionRef.current = onValid
+                    apiRef.current?.submit()
+                }
             }
         })
     })
@@ -198,14 +231,14 @@ export async function promptDialog(msg: ReactNode, { value='', field, save, addT
                 { k: 'text', label: null, autoFocus: true, ...field, before: h(Box, { sx: { mb: 2 } }, msg) },
             ],
             save: {
-                children: "Continue",
+                children: t`Continue`,
                 startIcon: h(Forward),
                 ...save,
             },
             saveOnEnter: true,
             barSx: { gap: 2 },
             addToBar: [
-                h(Button, { onClick: closeDialog }, "Cancel"),
+                h(Button, { onClick: closeDialog }, t`Cancel`),
                 ...addToBar,
             ],
             ...props.form,

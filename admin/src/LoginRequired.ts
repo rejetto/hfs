@@ -2,6 +2,7 @@
 
 import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
+import { t } from './i18n'
 import { ALLOW_SESSION_IP_CHANGE, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, makeSessionRefresher, withSrpLib } from './misc'
 import { BoolField, Form } from '@hfs/mui-grid-form'
 import { apiCall } from './api'
@@ -13,8 +14,8 @@ export function LoginRequired({ children }: any) {
     const { loginRequired } = useSnapState()
     if (loginRequired === HTTP_FORBIDDEN)
         return h(Center, {},
-            h(Alert, { severity: 'error' }, "Admin-panel only for localhost"),
-            h(Box, { sx: { mt: 2, fontSize: 'small' } }, "because no admin account was configured")
+            h(Alert, { severity: 'error' }, t`Admin-panel only for localhost`),
+            h(Box, { sx: { mt: 2, fontSize: 'small' } }, t`because no admin account was configured`)
         )
     if (loginRequired)
         return h(LoginForm)
@@ -36,14 +37,14 @@ function LoginForm() {
                 setValues(values => ({ ...values, [k]: v }))
             },
             fields: [
-                { k: 'username', autoComplete: 'username', autoFocus: true, required: true },
-                { k: 'password', type: 'password', autoComplete: 'current-password', required: true },
-                { k: ALLOW_SESSION_IP_CHANGE, comp: BoolField, label: "Allow IP change during this session" },
+                { k: 'username', label: t`Username`, autoComplete: 'username', autoFocus: true, required: true },
+                { k: 'password', label: t`Password`, type: 'password', autoComplete: 'current-password', required: true },
+                { k: ALLOW_SESSION_IP_CHANGE, comp: BoolField, label: t`Allow IP change during this session` },
             ],
             addToBar: [ error && h(Alert, { severity: 'error', sx: { flex: 1 } }, error) ],
             saveOnEnter: true,
             save: {
-                children: "Enter",
+                children: t`Enter`,
                 startIcon: null,
                 async onClick() {
                     try {
@@ -63,13 +64,13 @@ function LoginForm() {
 
 async function login(username: string, password: string, extra?: object) {
     const res = await withSrpLib(srpClientSequence)(username, password, apiCall, extra).catch(err => {
-        throw err?.code === HTTP_UNAUTHORIZED ? err.message || "Wrong username or password"
-            : err === 'trust' ? "Login aborted: server identity cannot be trusted"
-            : err?.name === 'AbortError' ? "Server didn't respond"
-            : (err?.message || "Unknown error")
+        throw err?.code === HTTP_UNAUTHORIZED ? err.message || t`Wrong username or password`
+            : err === 'trust' ? t`Login aborted: server identity cannot be trusted`
+            : err?.name === 'AbortError' ? t`Server didn't respond`
+            : (err?.message || t`Unknown error`)
     })
     if (!res.isAdmin)
-        throw "This account has no Admin access"
+        throw t`This account has no Admin access`
 
     // login was successful, update state
     state.loginRequired = false

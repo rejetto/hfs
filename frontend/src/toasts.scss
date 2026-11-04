@@ -1,5 +1,6 @@
 .toasts {
-  position: fixed; right: 0;
+  position: fixed;
+  left: 50%; transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   margin-top: .5em;
@@ -11,7 +12,6 @@
   color: var(--text-high-contrast);
   transition: all .5s ease-in;
   position: relative;
-  left: -.5em;
   overflow: hidden;
   display: flex;
   align-items: center;

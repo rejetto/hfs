@@ -1,6 +1,6 @@
-exports.version = 3.2
+exports.version = 3.3
 exports.description = "Introduce increasing delays between login attempts."
-exports.apiRequired = 9.6 // addBlock
+exports.apiRequired = 13.7 // loginAttemptFinished
 
 exports.config = {
     increment: { type: 'number', min: 1, defaultValue: 5, unit: "seconds", helperText: "How longer user must wait for each login attempt" },
@@ -16,10 +16,11 @@ exports.configDialog = {
     maxWidth: 'xs',
 }
 
-const byIp = {}
-const byAccount = {}
-const laneByIp = {}
-const laneByAccount = {}
+const byIp = new Map()
+const byAccount = new Map()
+const laneByIp = new Map()
+const laneByAccount = new Map()
+const activeAttempts = new WeakMap()
 const UNKNOWN_ACCOUNT = 'unknown\t'
 
 exports.init = api => {
@@ -29,7 +30,7 @@ exports.init = api => {
     let waitingGlobal = 0
     const QUEUE_FULL = Symbol('queue_full')
     api.events.multi({
-        async attemptingLogin({ ctx, username }) {
+        async attemptingLogin({ ctx, username, via }) {
             const { ip } = ctx
             const account = getAccountKey(username)
             const ipRec = getRecord(byIp, ip)
@@ -47,16 +48,14 @@ exports.init = api => {
                     waitingGlobal++
                     admitted = true
                 })
-                // serialize waits per ip and per account so parallel bursts can't consume the same penalty window
-                await runInLane(getLane(laneByIp, ip), () =>
-                    runInLane(getLane(laneByAccount, account), async () => {
-                        const now = Date.now()
-                        const wait = Math.max(0, ipRec.next - now, accountRec.next - now)
-                        if (wait <= 0) return
-                        api.log('delaying', ip, 'for', Math.round(wait / 1000))
-                        ctx.set('x-anti-brute-force', wait)
-                        await new Promise(resolve => setTimeout(resolve, wait))
-                    }))
+                const lanes = [getLane(laneByIp, ip), getLane(laneByAccount, account)]
+                if (via === 'srp')
+                    await runInLanes(lanes, () => waitForPenalty(ctx, ipRec, accountRec))
+                else {
+                    // hold the lanes through credential verification so a parallel burst observes each preceding result
+                    await enterAttempt(ctx, lanes, { ip, account, ipRec, accountRec })
+                    admitted = false
+                }
             }
             catch (e) {
                 if (e === QUEUE_FULL) {
@@ -77,6 +76,15 @@ exports.init = api => {
                 dropLaneIfIdle(laneByAccount, account)
             }
         },
+        loginAttemptFinished({ ctx, success }) {
+            const attempt = activeAttempts.get(ctx)
+            if (!attempt) return
+            activeAttempts.delete(ctx)
+            if (success)
+                resetRecord(byAccount, attempt.account)
+            finishAdmission(attempt)
+            attempt.release()
+        },
         failedLogin({ ctx, username }) {
             const { ip } = ctx
             const account = getAccountKey(username)
@@ -96,18 +104,25 @@ exports.init = api => {
         },
         login(ctx) {
             if (ctx.state.account) {
-                const { ip } = ctx
                 const account = getAccountKey(ctx.state.account.username)
-                resetRecord(byIp, ip)
                 resetRecord(byAccount, account)
-                dropLaneIfIdle(laneByIp, ip)
                 dropLaneIfIdle(laneByAccount, account)
             }
         }
     })
 
     function getRecord(container, key) {
-        return container[key] ||= { failures: 0, next: 0, waiting: 0 }
+        let rec = container.get(key)
+        if (!rec) {
+            rec = { failures: 0, next: 0, expires: 0, waiting: 0 }
+            container.set(key, rec)
+        }
+        // successful attempts may keep the record alive, but must not extend its penalties
+        if (rec.expires <= Date.now()) {
+            rec.failures = 0
+            rec.next = 0
+        }
+        return rec
     }
 
     function increasePenalty(rec, now) {
@@ -115,6 +130,7 @@ exports.init = api => {
         const max = api.getConfig('max') * 1000
         const delay = Math.min(max, attempts * api.getConfig('increment') * 1000)
         rec.next = Math.max(now, rec.next) + delay
+        rec.expires = now + 24 * HOUR
         return attempts
     }
 
@@ -124,8 +140,8 @@ exports.init = api => {
             // keep records while there are in-flight admissions, otherwise later releases may touch deleted state
             if (rec.waiting)
                 return armCleanup(records, key, rec)
-            delete records[key]
-        }, 24 * HOUR) // no memory leak
+            records.delete(key)
+        }, 24 * HOUR) // idle memory cleanup, independent of penalty expiry
     }
 
     function runGate(job) {
@@ -138,7 +154,12 @@ exports.init = api => {
     }
 
     function getLane(container, key) {
-        return container[key] ||= makeQ(1)
+        let lane = container.get(key)
+        if (!lane) {
+            lane = makeQ(1)
+            container.set(key, lane)
+        }
+        return lane
     }
 
     function runInLane(q, job) {
@@ -150,29 +171,71 @@ exports.init = api => {
         })
     }
 
+    function runInLanes([lane, ...rest], job) {
+        return lane ? runInLane(lane, () => runInLanes(rest, job)) : job()
+    }
+
+    function enterAttempt(ctx, lanes, attempt) {
+        return new Promise((resolve, reject) => {
+            let release
+            const held = runInLanes(lanes, async () => {
+                await waitForPenalty(ctx, attempt.ipRec, attempt.accountRec)
+                await new Promise(done => {
+                    release = done
+                    activeAttempts.set(ctx, { ...attempt, release })
+                    resolve()
+                })
+            })
+            held.catch(reject).finally(() => {
+                dropLaneIfIdle(laneByIp, attempt.ip)
+                dropLaneIfIdle(laneByAccount, attempt.account)
+            })
+        })
+    }
+
+    async function waitForPenalty(ctx, ipRec, accountRec) {
+        const now = Date.now()
+        // accumulated delays must not outlive the failures that caused them
+        const wait = Math.max(0, Math.min(ipRec.next, ipRec.expires) - now,
+            Math.min(accountRec.next, accountRec.expires) - now)
+        if (wait <= 0) return
+        api.log('delaying', ctx.ip, 'for', Math.round(wait / 1000))
+        ctx.set('x-anti-brute-force', wait)
+        await new Promise(resolve => setTimeout(resolve, wait))
+    }
+
+    function finishAdmission({ ip, account, ipRec, accountRec }) {
+        ipRec.waiting--
+        accountRec.waiting--
+        waitingGlobal--
+        armCleanup(byIp, ip, ipRec)
+        armCleanup(byAccount, account, accountRec)
+    }
+
     function dropLaneIfIdle(container, key) {
-        const q = container[key]
+        const q = container.get(key)
         if (q?.isWorking() || q?.queueSize()) return
-        delete container[key]
+        container.delete(key)
     }
 
     function resetRecord(container, key) {
-        const rec = container[key]
+        const rec = container.get(key)
         if (!rec) return
         if (rec.waiting) {
             // successful login must clear penalties without dropping admission counters still needed by concurrent requests
             rec.failures = 0
             rec.next = 0
+            rec.expires = 0
             return
         }
-        delete container[key]
+        clearTimeout(rec.timer) // an old timer must not delete a replacement record for the same account
+        container.delete(key)
     }
 
     function getAccountKey(username) {
         // fold unknown usernames together to avoid unbounded memory growth from random names
-        if (!username || !api.getAccount(String(username)))
-            return UNKNOWN_ACCOUNT
-        return String(username).toLowerCase()
+        const account = username && api.getAccount(String(username))
+        return account ? account.username : UNKNOWN_ACCOUNT
     }
 
     function isExcluded(ip) {

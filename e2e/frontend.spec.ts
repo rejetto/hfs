@@ -1,8 +1,9 @@
-import { test, expect, Page } from '@playwright/test'
+import { test, expect, Page, Locator } from '@playwright/test'
 import fs from 'fs'
+import { createServer, ServerResponse } from 'node:http'
 import { wait } from '../src/cross'
 import {
-    clickAdminMenu, clickIconBtn, forwardConsole, loginAdmin, password, resetTimestamp, FRONTEND_URL, username, TEST_PORT
+    clickAdminMenu, clickIconBtn, forwardConsole, gotoFrontend, loginAdmin, password, resetTimestamp, FRONTEND_URL, username, TEST_PORT
 } from './common'
 
 const screenshotStyle = fs.readFileSync('e2e/screenshot.css', 'utf8')
@@ -12,7 +13,7 @@ const screenshotCounters = new WeakMap<object, number>()
 test('around1', async ({ page }) => {
     forwardConsole(page)
     resetTimestamp()
-    await page.goto(FRONTEND_URL)
+    await gotoFrontend(page)
     await expect(page).toHaveTitle(/File server/)
     await screenshot(page)
     await page.getByRole('button', { name: 'Login' }).click()
@@ -28,6 +29,7 @@ test('around1', async ({ page }) => {
     resetTimestamp()
     await page.getByRole('textbox', { name: 'Username' }).fill(username)
     await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.getByRole('status')).toContainText('Logged in')
     await page.locator('div').filter({ hasText: 'Logged in' }).nth(3).click()
     await screenshot(page)
 
@@ -35,7 +37,7 @@ test('around1', async ({ page }) => {
     await page.getByRole('link', { name: 'for-admins, Folder' }).click()
     await page.getByRole('link', { name: 'upload, Folder' }).click()
     await page.getByRole('link', { name: 'alfa.txt' }).click()
-    await expect(page.getByText('Delete')).toBeVisible() // first check single-delete command
+    await expect(page.getByRole('link', { name: 'Delete', exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Close' }).click()
     await page.getByRole('button', { name: 'Select' }).click()
     await page.getByRole('checkbox', { name: 'alfa.txt' }).check()
@@ -49,6 +51,9 @@ test('around1', async ({ page }) => {
     await page.getByRole('link', { name: 'cantListBut, Folder' }).click()
     await page.getByText('x!WarningForbidden').click()
     await page.getByRole('button', { name: 'Close' }).click()
+    await page.getByRole('link', { name: 'cantListBut, Folder' }).click()
+    await expect(page.getByRole('alertdialog').getByText('Forbidden')).toBeVisible()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Close' }).click()
     await page.getByRole('link', { name: 'cantListPage, Folder' }).click()
     await page.getByRole('link', { name: 'alfa.txt' }).click()
     await expect(page.getByRole('dialog')).toMatchAriaSnapshot(`
@@ -139,14 +144,30 @@ test('around1', async ({ page }) => {
 
 test('search1', async ({ page }) => {
     resetTimestamp()
-    await page.goto(FRONTEND_URL)
+    let listRequests = 0
+    page.on('request', request => {
+        if (request.url().includes('/api/get_file_list'))
+            ++listRequests
+    })
+    await gotoFrontend(page, FRONTEND_URL + '?lang=en')
     await page.getByRole('button', { name: 'Search' }).click()
     await page.locator('input[name="name"]').fill('a')
     await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.locator('#menu-panel')).toHaveCSS('flex-direction', 'column-reverse')
     await page.getByText('12 folders').click()
+    await expect.poll(() => page.evaluate(() => Object.fromEntries(new URL(location.href).searchParams)))
+        .toEqual({ lang: 'en', search: 'a' })
+    await expect(page.getByRole('link', { name: 'cantListPage/ alfa.txt' })).toBeVisible()
+    await page.waitForFunction(() => !(window as any).HFS.state.loading)
+    const beforeDialog = listRequests
     await page.getByRole('link', { name: 'cantListPage/ alfa.txt' }).click()
     await page.getByRole('button', { name: 'Close' }).click()
+    await page.waitForTimeout(500) // allow popstate to restart the list if state normalization is unstable
+    expect(listRequests).toBe(beforeDialog)
     await page.getByRole('button', { name: 'Clear search' }).click()
+    await expect.poll(() => page.evaluate(() => Object.fromEntries(new URL(location.href).searchParams)))
+        .toEqual({ lang: 'en' })
+    await page.waitForFunction(() => !(window as any).HFS.state.loading)
 
     await page.getByRole('button', { name: 'Search' }).click()
     await page.locator('input[name="name"]').fill('a*')
@@ -167,9 +188,12 @@ test('search1', async ({ page }) => {
     await page.getByRole('dialog').locator('div').nth(2).click()
     await page.locator('#option-sort-by').selectOption('size')
     await page.getByRole('checkbox', { name: 'Invert order' }).check()
-    await page.getByRole('slider').fill('6')
+    await page.getByRole('slider', { name: 'Tiles mode' }).fill('6')
     await page.locator('#option-theme').selectOption('dark')
     await page.getByRole('button', { name: 'Close' }).click()
+    // wait for the debounced sort before clicking a folder that changes position
+    await expect(page.locator('.dir .entry-name').filter({ hasText: /^cantListPage(?:Alt)?$/ }))
+        .toHaveText(['cantListPageAlt', 'cantListPage'])
     await page.getByRole('link', { name: 'cantListPageAlt, Folder' }).click()
     await expect(page.getByText('alfa.txt')).toBeVisible() // be sure the folder is loaded
     await page.mouse.click(1, 1) // avoid focus inconsistencies
@@ -194,14 +218,526 @@ test('search1', async ({ page }) => {
     await page.getByRole('textbox', { name: 'Type here to filter the list' }).click()
 })
 
+test('browser history restores search from the URL', async ({ page }) => {
+    await page.goto(FRONTEND_URL + '?search=a&lang=en')
+    await expect(page.getByRole('button', { name: 'Clear search' })).toBeVisible()
+    await page.evaluate(() => history.pushState(history.state, '', '/f1/?lang=en'))
+    await expect(page.getByRole('button', { name: 'Clear search' })).toHaveCount(0)
+
+    await page.goBack()
+    await expect(page.getByRole('button', { name: 'Clear search' })).toBeVisible()
+})
+
+test('numeric name sorting ignores prefix case', async ({ page }) => {
+    const names = ['numeric-case-2.txt', 'NUMERIC-CASE-10.txt']
+    await page.goto(FRONTEND_URL)
+    await expect.poll(() => page.evaluate(() => (window as any).HFS.state.loading)).toBe(false)
+    await page.evaluate(names => {
+        const HFS = (window as any).HFS
+        Object.assign(HFS.state, {
+            sort_by: 'name',
+            sort_numerics: false,
+            invert_order: false,
+        })
+        HFS.state.list = names.slice().reverse().map(name => new HFS.DirEntry('/' + name))
+        HFS.state.sort_numerics = true
+    }, names)
+
+    await expect.poll(() => page.locator('.entry-name').allTextContents()
+        .then(items => items.filter(name => names.includes(name)))).toEqual(names)
+})
+
+test('selection survives reloadList and drops missing entries', async ({ page }) => {
+    // isolate the list from uploads and deletions performed by parallel tests
+    const folder = fs.mkdtempSync('tests/tmp/selection-')
+    const uri = `/for-admins/upload/${folder.split('/').pop()}/`
+    fs.writeFileSync(`${folder}/alfa.txt`, 'a')
+    fs.writeFileSync(`${folder}/beta.txt`, 'b')
+    try {
+        await gotoFrontend(page, FRONTEND_URL + uri.slice(1))
+        await expect(page.getByRole('dialog')).toBeVisible()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByText('alfa.txt')).toBeVisible()
+        await page.getByRole('button', { name: 'Select' }).click()
+
+        const selectAll = page.getByRole('checkbox', { name: 'Select all' })
+        await selectAll.check()
+        await expect(page.getByText(/[1-9]\d* selected/)).toBeVisible()
+        const selected = await page.evaluate(() => Object.keys((window as any).HFS.state.selected).sort())
+        await page.evaluate(uri => (window as any).HFS.state.selected[uri + 'removed.txt'] = true, uri)
+        const reloaded = page.waitForRequest(request => new URL(request.url()).pathname === '/~/api/get_file_list')
+        await page.evaluate(() => (window as any).HFS.reloadList())
+        await reloaded
+        await page.waitForFunction(() => !(window as any).HFS.state.loading)
+        await expect.poll(() => page.evaluate(() => Object.keys((window as any).HFS.state.selected).sort())).toEqual(selected)
+        await expect(selectAll).toBeChecked()
+
+        await page.evaluate(() => {
+            ;(window as any).HFS.state.props.can_archive = false
+            ;(window as any).HFS.state.props.can_delete_children = false
+            ;(window as any).HFS.state.showFilter = false
+        })
+        await expect(page.getByRole('textbox', { name: 'Type here to filter the list below' })).toBeHidden()
+        await page.evaluate(() => {
+            ;(window as any).selectionChecks = 0
+            document.addEventListener('hfs.enableEntrySelection', () => ++(window as any).selectionChecks)
+        })
+        await page.evaluate(() => new Promise(resolve => {
+            const { state } = (window as any).HFS
+            state.list = [...state.list]
+            requestAnimationFrame(() => requestAnimationFrame(resolve))
+        }))
+        expect(await page.evaluate(() => (window as any).selectionChecks)).toBe(0)
+        await page.evaluate(() => {
+            const { state } = (window as any).HFS
+            state.showFilter = true
+            state.selected[state.list[0].uri] = true
+        })
+        await page.getByRole('link', { name: 'home', exact: true }).click()
+        await expect.poll(() => page.evaluate(() => Object.keys((window as any).HFS.state.selected).sort())).toEqual([])
+    }
+    finally {
+        fs.rmSync(folder, { recursive: true, force: true })
+    }
+})
+
+test('overwrite policy resets without overwrite permission', async ({ page }) => {
+    await page.goto(FRONTEND_URL + 'for-admins/upload/')
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('button', { name: 'Upload' }).click()
+    const policy = page.getByRole('combobox', { name: 'Overwrite policy' })
+    await expect(policy).toHaveCount(0)
+    await pickFile('first.txt')
+    await policy.selectOption('overwrite')
+
+    await page.goto(FRONTEND_URL + 'for-admins/cant-overwrite/')
+    await expect(page.getByRole('button', { name: 'Upload' })).toBeEnabled()
+    await page.getByRole('button', { name: 'Upload' }).click()
+
+    await expect(policy).toHaveCount(0)
+    await pickFile('second.txt')
+    await expect(policy).toHaveValue('skip')
+    await expect.poll(() => page.evaluate(() => (window as any).HFS.state.uploadOnExisting)).toBe('overwrite')
+
+    async function pickFile(name: string) {
+        const chooserPromise = page.waitForEvent('filechooser')
+        await page.getByRole('button', { name: 'Pick files' }).click()
+        await (await chooserPromise).setFiles({ name, mimeType: 'text/plain', buffer: Buffer.from(name) })
+    }
+})
+
+test('queued uploads keep their policies across option changes and navigation', async ({ page }) => {
+    const requests: URL[] = []
+    const consoleErrors: string[] = []
+    const policy = page.getByRole('combobox', { name: 'Overwrite policy' })
+    let releaseFirst!: () => void
+    const holdFirst = new Promise<void>(resolve => releaseFirst = resolve)
+    page.on('console', message => {
+        if (message.type() === 'error')
+            consoleErrors.push(message.text())
+    })
+    await page.route('**/*', async route => {
+        if (route.request().method() !== 'PUT')
+            return route.continue()
+        requests.push(new URL(route.request().url()))
+        if (requests.length === 1)
+            await holdFirst
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }).catch(() => {})
+    })
+
+    try {
+        await page.goto(FRONTEND_URL + 'for-admins/upload/')
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await page.getByRole('button', { name: 'Upload' }).click()
+        await expect(policy).toHaveCount(0)
+        await addFile('first.txt', 'overwrite')
+        await expect.poll(() => requests.length).toBe(1)
+
+        await addFile('second.txt', 'skip')
+        await expect(page.getByRole('dialog').getByRole('link', { name: /Destination/ })).toHaveCount(2)
+        expect.soft(consoleErrors.filter(message => /same key|unique.*key/i.test(message))).toEqual([])
+
+        await page.getByTitle('Pause').click()
+        await expect(page.getByTitle('Play')).toBeVisible()
+        await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click()
+        await page.getByRole('link', { name: 'for-admins' }).click()
+        await page.getByRole('link', { name: 'cant-overwrite, Folder' }).click()
+        await expect(page.getByRole('button', { name: 'Upload' })).toBeEnabled()
+        await page.getByRole('button', { name: 'Upload' }).click()
+        await page.getByTitle('Play').click()
+        await expect.poll(() => requests.length).toBe(3)
+
+        expect(requests.map(request => request.searchParams.get('existing')))
+            .toEqual(['overwrite', 'overwrite', 'skip'])
+    }
+    finally {
+        releaseFirst()
+    }
+
+    async function addFile(name: string, existing: 'overwrite' | 'skip') {
+        const chooserPromise = page.waitForEvent('filechooser')
+        await page.getByRole('button', { name: 'Pick files' }).click()
+        const chooser = await chooserPromise
+        await chooser.setFiles({ name, mimeType: 'text/plain', buffer: Buffer.from(name) })
+        await policy.selectOption(existing)
+        await page.getByRole('button', { name: 'Send' }).click()
+        await expect(policy).toHaveCount(0)
+    }
+})
+
+test('filter follows the menu position and keeps its value', async ({ page }) => {
+    await gotoFrontend(page)
+    await page.getByRole('button', { name: 'Select', exact: true }).click()
+    await page.locator('#filter').fill('cant')
+    await expect(page.getByText('5 filtered')).toBeVisible()
+    for (const menuAtTop of [false, true]) {
+        await page.evaluate(top => {
+            const hfs = (window as any).HFS
+            hfs.menu_at_top = top
+            hfs.state.props = { ...hfs.state.props, comment: top ? 'Comment with top menu' : 'Comment with bottom menu' }
+        }, menuAtTop)
+        await expect(page.locator('#filter-bar')).toHaveCount(1)
+        await expect(page.locator('#filter')).toHaveValue('cant')
+        await expect(page.locator('.bottom-bar-stack #filter-bar')).toHaveCount(menuAtTop ? 0 : 1)
+        const filter = (await page.locator('#filter-bar').boundingBox())!
+        if (menuAtTop) {
+            const comment = (await page.getByText('Comment with top menu', { exact: true }).boundingBox())!
+            expect(filter.y).toBeGreaterThanOrEqual(comment.y + comment.height)
+        }
+        else {
+            const menu = (await page.locator('#menu-bar').boundingBox())!
+            expect(filter.y + filter.height).toBeLessThanOrEqual(menu.y)
+        }
+    }
+})
+
+test('opening the filter keeps it in view after scrolling', async ({ page }) => {
+    for (const menuAtTop of [false, true]) {
+        await gotoFrontend(page)
+        await page.evaluate(top => {
+            const hfs = (window as any).HFS
+            hfs.menu_at_top = top
+            hfs.state.props = { ...hfs.state.props, comment: 'Comment before the filter' }
+            hfs.state.page_size = 100
+            hfs.state.list = Array.from({ length: 100 }, (_, i) => new hfs.DirEntry(`file-${i}.txt`))
+        }, menuAtTop)
+        await expect(page.locator('.bottom-bar-stack #filter-bar')).toHaveCount(menuAtTop ? 0 : 1)
+        await page.evaluate(() => window.scrollTo(0, window.innerHeight * 2))
+        await expect.poll(() => page.evaluate(() => window.scrollY > window.innerHeight)).toBe(true)
+        const before = await page.evaluate(() => window.scrollY)
+        await page.getByRole('button', { name: 'Select', exact: true }).click()
+        await expect(page.locator('#filter-bar')).toBeInViewport({ ratio: 1 })
+        if (menuAtTop) {
+            await page.evaluate(() => window.scrollBy(0, window.innerHeight))
+            await expect(page.locator('#filter-bar')).toBeInViewport({ ratio: 1 })
+            await expect.poll(async () => {
+                const filter = (await page.locator('#filter-bar').boundingBox())!
+                const header = (await page.locator('header').boundingBox())!
+                return filter.y >= header.y + header.height
+            }).toBe(true)
+            await page.setViewportSize({ width: 600, height: 500 })
+            await expect.poll(async () => {
+                const filter = (await page.locator('#filter-bar').boundingBox())!
+                const header = (await page.locator('header').boundingBox())!
+                return Math.abs(filter.y - header.y - header.height) < 1
+            }).toBe(true)
+        }
+        else {
+            // tapping the bottom menu can nudge WebKit's viewport by a couple pixels
+            expect(Math.abs(await page.evaluate(() => window.scrollY) - before)).toBeLessThan(5)
+        }
+    }
+})
+
+test('filter resets paging when the first entry stays the same', async ({ page }) => {
+    await gotoFrontend(page)
+    await expect(page.getByRole('link', { name: 'cantListBut, Folder' })).toBeVisible()
+    await page.evaluate(() => (window as any).HFS.state.page_size = 3)
+
+    const toggle = page.locator('#alphabet-paging-toggle')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await toggle.focus()
+    await toggle.press('Enter')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await toggle.press('Tab')
+    await expect(page.locator('#alphabet-paging-bar button').first()).toBeFocused()
+    await toggle.click()
+
+    await page.locator('#paging > button').last().click()
+    await expect(page.getByRole('link', { name: 'tests, Folder' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Select' }).click()
+    await page.locator('#filter').fill('cant')
+    await expect(page.getByText('5 filtered')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'cantListBut, Folder' })).toBeVisible()
+})
+
+test('paging preserves the Options scroll lock when a folder finishes loading', async ({ page }) => {
+    const folder = fs.mkdtempSync('tests/tmp/paging-dialog-')
+    const uri = '/for-admins/upload/' + folder.split('/').pop() + '/'
+    let stream: ServerResponse | undefined
+    let firstBatch = ''
+    let lastBatch = ''
+    // relay the real listing in two batches so Paging mounts while Options owns the scroll lock
+    const server = createServer((_, response) => {
+        stream = response
+        response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Access-Control-Allow-Origin': '*' })
+        response.write(firstBatch)
+    })
+    try {
+        for (let i = 0; i < 101; i++)
+            fs.writeFileSync(`${folder}/file-${i}.txt`, '')
+        await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
+        const address = server.address()
+        if (!address || typeof address === 'string') throw Error('Missing listing relay address')
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login', exact: true }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue', exact: true }).click()
+        await expect(page.getByRole('button', { name: username, exact: true })).toBeVisible()
+        // fetch in the browser to preserve its authenticated cookies, including WebKit on IPv6
+        const listing = await page.evaluate(async uri => (await fetch('/~/api/get_file_list?uri=' + encodeURIComponent(uri), {
+            headers: { Accept: 'text/event-stream' },
+        })).text(), uri)
+        const records = listing.split('\n\n')
+            .filter(line => line.startsWith('data: ') && line.slice(6).trim())
+            .flatMap(line => JSON.parse(line.slice(6)))
+        expect(records.filter(([op]: [string]) => op === '+')).toHaveLength(101)
+        const last = records.findLastIndex(([op]: [string]) => op === '+')
+        firstBatch = `data: ${JSON.stringify(records.slice(0, last))}\n\n`
+        lastBatch = `data: ${JSON.stringify(records.slice(last))}\n\ndata:\n\n`
+        await page.route(url => url.pathname === '/~/api/get_file_list' && url.searchParams.get('uri') === uri,
+            route => route.continue({ url: `http://127.0.0.1:${address.port}/` }))
+        await page.goto(new URL(uri, FRONTEND_URL).href)
+        await expect(page.locator('.dir .entry-name')).toHaveCount(100)
+        await expect(page.locator('#paging')).toHaveCount(0)
+        await page.getByRole('button', { name: 'Options', exact: true }).click()
+        const options = page.getByRole('dialog')
+        await expect(options.getByRole('heading', { name: 'Options', exact: true })).toBeVisible()
+        await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).overflowY)).toBe('hidden')
+        stream!.end(lastBatch)
+        await expect(page.locator('#paging')).toBeAttached()
+        await expect(options).toBeVisible()
+        await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).overflowY)).toBe('hidden')
+        await options.getByRole('button', { name: 'Close', exact: true }).click()
+        await expect(options).toHaveCount(0)
+        await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).overflowY)).not.toBe('hidden')
+    }
+    finally {
+        stream?.end()
+        server.closeAllConnections()
+        await new Promise<void>(resolve => server.close(() => resolve()))
+        fs.rmSync(folder, { recursive: true, force: true })
+    }
+})
+
+test('mobile timestamps keep updating after the first refresh', async ({ page }) => {
+    await page.setViewportSize({ width: 600, height: 700 })
+    await page.clock.install({ time: new Date('2026-08-31T23:55:00+02:00') })
+    await page.goto(FRONTEND_URL) // this test takes control of the initial listing with the mocked clock
+    await page.clock.runFor(2_000)
+    await page.evaluate(() => {
+        const hfs = (window as any).HFS
+        hfs.state.stopSearch?.()
+        hfs.state.list = [new hfs.DirEntry('probe.txt', { m: new Date('2026-09-01T01:00:00+02:00') })]
+        hfs.state.filteredList = undefined
+        hfs.state.loading = false
+    })
+    const timestamp = page.locator('.entry-ts')
+    const expectedTime = await page.evaluate(() => new Date('2026-09-01T01:00:00+02:00')
+        .toLocaleString(navigator.language, { hour: '2-digit', minute: '2-digit' }))
+    await expect(timestamp).toHaveText(expectedTime)
+
+    await page.clock.runFor(10 * 60_000)
+    await page.clock.fastForward(36 * 60 * 60_000)
+    const expectedDate = await page.evaluate(() => new Date('2026-09-01T01:00:00+02:00')
+        .toLocaleString(navigator.language, { year: '2-digit', month: '2-digit', day: '2-digit' }))
+    await expect(timestamp).toHaveText(expectedDate)
+})
+
+test('stopping a regular listing is not labeled as a search', async ({ page }) => {
+    await page.goto(FRONTEND_URL) // this test intentionally changes state while the initial listing is active
+    await page.evaluate(() => (window as any).HFS.state.searchManuallyInterrupted = true)
+    const icon = page.locator('#folder-stats [title="Interrupted"]')
+    await expect(icon).toBeVisible()
+    await expect.poll(() => icon.evaluate(el => getComputedStyle(el, '::before').content)).toMatch(/^".+"$/)
+})
+
+test('a restarted listing gets a fresh delay before showing stop', async ({ page }) => {
+    const streams = new Set<ServerResponse>()
+    const server = createServer((_, response) => {
+        streams.add(response)
+        response.on('close', () => streams.delete(response))
+        response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Access-Control-Allow-Origin': '*' })
+        response.write('data: [["ready"]]\n\n')
+    })
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
+    const address = server.address()
+    if (!address || typeof address === 'string') throw Error('Missing listing relay address')
+    try {
+        await gotoFrontend(page)
+        await page.route(url => url.pathname === '/~/api/get_file_list',
+            route => route.continue({ url: `http://127.0.0.1:${address.port}/` }))
+        await page.clock.install()
+        const firstListing = page.waitForRequest(request => new URL(request.url()).searchParams.get('uri') === '/f1/')
+        await page.getByRole('link', { name: 'f1, Folder' }).click()
+        await firstListing
+        await expect(page.locator('#search-stop-button')).toHaveCount(0)
+        await page.clock.runFor(900)
+
+        const secondListing = page.waitForRequest(request => new URL(request.url()).searchParams.get('uri') === '/')
+        await page.locator('#breadcrumb-home').click()
+        await secondListing
+        await page.clock.runFor(200)
+        await expect(page.locator('#search-stop-button')).toHaveCount(0)
+        await page.clock.runFor(800)
+        await expect(page.locator('#search-stop-button')).toBeVisible()
+    }
+    finally {
+        for (const stream of streams) stream.end()
+        server.closeAllConnections()
+        await new Promise<void>(resolve => server.close(() => resolve()))
+    }
+})
+
+test('text buttons support keyboard activation', async ({ page }) => {
+    await gotoFrontend(page)
+    const folder = page.getByRole('listitem').filter({ has: page.getByRole('link', { name: 'f1, Folder' }) })
+    await folder.getByRole('button', { name: 'Menu' }).click()
+    const calculate = page.getByRole('button', { name: 'Calculate' })
+
+    const [buttonFont, parentFont] = await calculate.evaluate(el => [
+        getComputedStyle(el).font,
+        getComputedStyle(el.parentElement!).font,
+    ])
+    await calculate.hover()
+    const { outlineStyle, textDecorationLine } = await calculate.evaluate(el => {
+        const { outlineStyle, textDecorationLine } = getComputedStyle(el)
+        return { outlineStyle, textDecorationLine }
+    })
+    expect.soft(buttonFont).toBe(parentFont)
+    expect.soft(outlineStyle).toBe('none')
+    expect.soft(textDecorationLine).toContain('underline')
+
+    await calculate.focus()
+    await expect(calculate).toBeFocused()
+    await page.keyboard.press('Space')
+    await expect(calculate).toHaveCount(0)
+})
+
+test('async custom entry content ignores stale results', async ({ page }) => {
+    await gotoFrontend(page)
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        const resolvers = (window as any).customCodeResolvers = {} as Record<string, (value: string) => void>
+        document.addEventListener('hfs.additionalEntryDetails', (event: any) => {
+            const name = event.detail.params.entry.name
+            if (name !== 'old-f1' && name !== 'renamed-f1') return
+            event.detail.output.push(new Promise(resolve => resolvers[name] = resolve))
+        })
+        const i = HFS.state.list.findIndex((entry: any) => entry.name === 'f1')
+        const entry = HFS.state.list[i]
+        HFS.state.list[i] = new HFS.DirEntry('old-f1/', { ...entry, key: entry.n })
+    })
+    await page.waitForFunction(() => (window as any).customCodeResolvers['old-f1'])
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        const i = HFS.state.list.findIndex((entry: any) => entry.name === 'old-f1')
+        const entry = HFS.state.list[i]
+        HFS.state.list[i] = new HFS.DirEntry('renamed-f1/', { ...entry })
+    })
+    await page.waitForFunction(() => (window as any).customCodeResolvers['renamed-f1'])
+
+    await page.evaluate(() => (window as any).customCodeResolvers['renamed-f1']('current custom content'))
+    await expect(page.getByText('current custom content')).toBeVisible()
+    await page.evaluate(() => (window as any).customCodeResolvers['old-f1']('stale custom content'))
+    await expect(page.getByText('stale custom content')).toHaveCount(0)
+    await expect(page.getByText('current custom content')).toBeVisible()
+})
+
+test('a cut folder keeps its parent as clipboard source', async ({ page }) => {
+    await page.goto(FRONTEND_URL)
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        HFS.state.clip = [new HFS.DirEntry('f1/')]
+    })
+    await expect(page.getByRole('button', { name: 'Back to source folder' })).toBeDisabled()
+})
+
+test('paste is disabled inside any cut folder', async ({ page }) => {
+    await page.goto(FRONTEND_URL + 'f1/f2/')
+    await page.waitForFunction(() => !(window as any).HFS.state.loading)
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        HFS.state.props = { ...HFS.state.props, can_upload: true }
+        HFS.state.clip = [new HFS.DirEntry('/f1/pic'), new HFS.DirEntry('/f1/other/')]
+    })
+    await expect(page.getByRole('button', { name: 'Paste' })).toBeEnabled()
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        HFS.state.clip = [new HFS.DirEntry('/f1/pic'), new HFS.DirEntry('/f1/f2/')]
+    })
+    await expect(page.getByRole('button', { name: 'Paste' })).toBeDisabled()
+})
+
+test('paste recognizes encoded cut folder paths', async ({ page }) => {
+    await page.goto(FRONTEND_URL)
+    await page.evaluate(() => (window as any).HFS.navigate('/no-such-città/'))
+    await page.waitForFunction(() => !(window as any).HFS.state.loading)
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        HFS.state.props = { ...HFS.state.props, can_upload: true }
+        HFS.state.clip = [new HFS.DirEntry('/no-such-città/')]
+    })
+    await expect(page).toHaveURL(FRONTEND_URL + 'no-such-citt%C3%A0/')
+    await expect(page.getByRole('button', { name: 'Paste' })).toBeDisabled()
+})
+
+test('malformed clipboard paths do not break the clipboard', async ({ page }) => {
+    await page.goto(FRONTEND_URL)
+    await page.waitForFunction(() => !(window as any).HFS.state.loading)
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        HFS.state.props = { ...HFS.state.props, can_upload: true }
+        HFS.state.clip = [{ uri: '/bad%zz/file', name: 'file' }]
+    })
+    await expect(page.getByRole('button', { name: 'Paste' })).toBeEnabled()
+})
+
+test('failed paste keeps the clipboard for retry', async ({ page }) => {
+    await page.route('**/~/api/move_files', route => route.fulfill({ json: { errors: [null, 404] } }))
+    await page.goto(FRONTEND_URL + 'renameChild/')
+    await page.waitForFunction(() => !(window as any).HFS.state.loading)
+    await page.evaluate(() => {
+        const HFS = (window as any).HFS
+        HFS.state.props = { ...HFS.state.props, can_upload: true }
+        HFS.state.clip = [new HFS.DirEntry('/f1/alfa.txt'), new HFS.DirEntry('/f1/pic')]
+    })
+    await page.getByRole('button', { name: 'Paste' }).click()
+    const warning = page.getByRole('alertdialog')
+    await expect(warning).toBeVisible()
+    await expect(page.getByText(/Your selection is now in the clipboard/)).toHaveCount(0)
+    await warning.getByRole('button', { name: 'Close' }).click()
+    await expect(page.locator('#clipBar')).toBeVisible()
+    await expect.poll(() => page.evaluate(() => (window as any).HFS.state.clip.map((x: any) => x.uri)))
+        .toEqual(['/f1/pic'])
+})
+
 test('frontend-admin', async ({ page }) => {
-    await page.goto(FRONTEND_URL, { waitUntil: 'networkidle' })
+    await gotoFrontend(page, FRONTEND_URL, { waitUntil: 'networkidle' })
     await page.evaluate(() => document.fonts.ready) // aspetta i font
     await page.getByRole('button', { name: 'Options' }).click()
     // no admin button yet,
     await expect(page.getByRole('dialog')).toMatchAriaSnapshot(`
     - dialog:
-      - button "Close"
+      - button "Close": x
       - heading "Options" [level=1]
       - combobox:
         - 'option "Sort by: name" [selected]'
@@ -215,11 +751,13 @@ test('frontend-admin', async ({ page }) => {
       - text: Folders first
       - checkbox "Numeric names"
       - text: "Numeric names Tiles mode: off"
-      - slider: "0"
+      - slider "Tiles mode": "0"
       - combobox:
-        - 'option "Theme: auto" [selected]'
-        - 'option "Theme: light"'
-        - 'option "Theme: dark"'
+        - 'option "theme: auto" [selected]'
+        - 'option "theme: light"'
+        - 'option "theme: dark"'
+      - checkbox "English"
+      - text: English
     `)
     await page.getByRole('button', { name: 'Close' }).click()
     await page.getByRole('button', { name: 'Login' }).click()
@@ -233,9 +771,56 @@ test('frontend-admin', async ({ page }) => {
     await expect(page1).toHaveTitle(/HFS Admin-panel/)
 })
 
+test('current breadcrumb uses current folder delete permission', async ({ page }) => {
+    await gotoFrontend(page, FRONTEND_URL + 'f1/')
+    await expect(page.getByRole('link', { name: 'f2, Folder' })).toBeVisible()
+    const breadcrumb = page.locator('.breadcrumb').last()
+
+    await page.evaluate(() => Object.assign((window as any).HFS.state.props, {
+        can_delete: false,
+        can_delete_children: true,
+    }))
+    await breadcrumb.click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByRole('heading', { name: 'Folder menu' })).toBeVisible()
+    await expect(dialog.locator('#menu-entry-rename')).toHaveCount(0)
+    await dialog.getByRole('button', { name: 'Close' }).click()
+
+    await page.evaluate(() => Object.assign((window as any).HFS.state.props, {
+        can_delete: true,
+        can_delete_children: false,
+    }))
+    await breadcrumb.click()
+    await expect(page.locator('#menu-entry-rename')).toBeVisible()
+})
+
+test('folder deletion explains the blocking descendant', async ({ page }) => {
+    await gotoFrontend(page, FRONTEND_URL + 'f1/?lang=en')
+    await expect(page.getByRole('link', { name: 'f2, Folder' })).toBeVisible()
+    await page.route('**/f1/f2/', route => route.request().method() === 'DELETE'
+        ? route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ uri: '/f1/f2/protected.txt' }) })
+        : route.continue())
+    await page.evaluate(() => { (window as any).HFS.state.props.can_delete_children = true })
+    await page.getByRole('listitem').filter({ has: page.getByRole('link', { name: 'f2, Folder' }) })
+        .getByRole('button', { name: 'Menu' }).click()
+    await page.locator('#menu-entry-delete').click()
+    await page.getByRole('button', { name: 'Yes', exact: true }).click()
+    await expect(page.getByRole('alertdialog')).toContainText('/f1/f2/protected.txt')
+    await expect(page.getByRole('alertdialog')).toContainText('Nothing was deleted for this item.')
+})
+
 test('admin1', async ({ page }) => {
     await fs.promises.rm('tests/work/logs', { force: true, recursive: true }) // clear logs to have consistent screenshots
     const isPhone = await loginAdmin(page)
+    await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible()
+    const apiErrors: string[] = []
+    page.on('response', response => {
+        const path = new URL(response.url()).pathname
+        // this test intentionally removes log files above
+        if (path.startsWith('/~/api/') && response.status() >= 400
+        && !(response.status() === 404 && path.endsWith('/get_log_file')))
+            apiErrors.push(`${response.status()} ${response.request().method()} ${response.url()}`)
+    })
 
     function dataTableLoading() {
         return expect(page.getByRole('grid').getByRole('img')).toBeVisible({ visible: false })
@@ -255,14 +840,31 @@ test('admin1', async ({ page }) => {
     if (isPhone)
         await clickIconBtn('Close', page)
     await clickAdminMenu(page, 'Options')
-    await expect(page.getByText('Correctly working on port')).toBeVisible() // wait for data
-    if (!isPhone)
-        await expect(page.getByText('Expire', { exact: true })).toBeVisible() // wait for layout of 'block' table
+    const portStatus = page.getByText(`Correctly working on port ${TEST_PORT}`, { exact: true })
+    const portNumber = page.getByRole('spinbutton', { name: 'Number', exact: true })
+    await expect(portStatus).toBeVisible() // wait for data
+    await expect(portNumber).toHaveValue(String(TEST_PORT))
+    if (!isPhone) {
+        const header = page.getByRole('row', { name: /^Blocked IP/ })
+        await expect(header.getByRole('columnheader', { name: 'Comment', exact: true })).toBeVisible()
+        await expect(header.getByRole('button', { name: /Add/ })).toBeVisible()
+    }
     await page.mouse.click(1, 1) // avoid focus inconsistencies
-    await screenshot(page)
+    // verify the actual port above, then mask it so manual and isolated CI runs share the same visual baseline
+    await screenshot(page, portNumber.or(portStatus))
 
     await clickAdminMenu(page, 'Logs')
     await dataTableLoading()
+    if (!isPhone) {
+        const uriColumn = page.getByRole('columnheader', { name: 'URI', exact: true })
+        if (!await uriColumn.isVisible()) {
+            // Firefox can miss DataGrid's initial resize, so nudge the viewport to materialize visible columns
+            const viewport = page.viewportSize()!
+            await page.setViewportSize({ ...viewport, width: viewport.width - 1 })
+            await page.setViewportSize(viewport)
+        }
+        await expect(uriColumn).toBeVisible()
+    }
     await screenshot(page)
     await clickIconBtn('Options', page)
     await page.getByRole('textbox', { name: 'Served', exact: true }).click()
@@ -270,7 +872,7 @@ test('admin1', async ({ page }) => {
     await clickAdminMenu(page, 'Language')
     await dataTableLoading()
     if (!isPhone)
-        await expect(page.getByText('author', { exact: true })).toBeVisible() // wait for the layout to be stable
+        await expect(page.getByRole('columnheader', { name: 'Author', exact: true })).toBeVisible() // wait for the layout to be stable
     await screenshot(page, '.MuiDataGrid-root')
     await clickAdminMenu(page, 'Plugins')
     await expect(page.getByText('antibrute')).toBeVisible() // wait for data
@@ -289,26 +891,33 @@ test('admin1', async ({ page }) => {
     await page.getByRole('tab', { name: 'Get more' }).click()
     await page.getByRole('tab', { name: 'updates' }).click()
     await clickAdminMenu(page, 'Custom HTML')
-    await expect(page.getByRole('combobox', { name: 'Section Style' })).toBeVisible() // wait for data to be loaded
-    await screenshot(page)
+    const section = page.getByRole('combobox', { name: /^Section(?: |$)/ })
+    await expect(section).toBeVisible() // wait for data to be loaded
+    await section.click()
+    await page.getByRole('option', { name: 'Style', exact: true }).click()
     await page.getByRole('main').click()
+    await screenshot(page)
     await clickAdminMenu(page, 'Internet')
     await expect(page.getByText(`port ${TEST_PORT}`)).toBeVisible({ timeout: 15000 }) // wait for data (get_nat can be very slow)
+    const mainAddress = page.getByText(`http://127.0.0.1:${TEST_PORT}`, { exact: true })
+    await expect(mainAddress).toBeVisible()
     await page.mouse.click(1, 1) // avoid focus inconsistencies
-    await screenshot(page)
+    // the URL width also moves Change, so mask their shared row after checking the address
+    await screenshot(page, mainAddress.locator('..'))
     await clickAdminMenu(page, 'Logout')
     await screenshot(page)
+    expect(apiErrors).toEqual([])
 })
 
-async function screenshot(page: Page, selectorForMask = '') {
+async function screenshot(page: Page, additionalMask?: string | Locator) {
     if (process.env.NO_SS) return
     const testInfo = test.info()
     const snapshotName = nextScreenshotName(testInfo)
     const snapshotPath = testInfo.snapshotPath(snapshotName, { kind: 'screenshot' })
-    if (selectorForMask)
-        selectorForMask = ',' + selectorForMask
-    await wait(200) // this accounts especially for our DataTable component which takes time to set the layout
-    const mask = [page.locator(`.maskInTests${selectorForMask}`)]
+    await wait(500) // this accounts especially for our DataTable component which takes time to set the layout
+    const mask = [page.locator('.maskInTests')]
+    if (additionalMask)
+        mask.push(typeof additionalMask === 'string' ? page.locator(additionalMask) : additionalMask)
     // write the missing baseline ourselves so Playwright does not turn the first run into a failure
     if (!fs.existsSync(snapshotPath)) {
         await page.screenshot({
@@ -336,7 +945,7 @@ test('anew', async ({ page, browserName }) => {
     forwardConsole(page)
     if (page.viewportSize()?.width! < 1000 || browserName !== 'chromium') return // test only for desktop chromium
     // reset config so each run starts from the same default workspace state
-    const port = 8082
+    const port = Number(process.env.HFS_TEST_SECONDARY_PORT || 8082)
     do {
         fs.writeFileSync('tests/work2/config.yaml', `port: ${port}\nopen_browser_at_start: false\n`)
         await wait(500)
@@ -351,7 +960,12 @@ test('anew', async ({ page, browserName }) => {
     await addBtn.click()
     await adminPage.getByRole('menuitem', { name: 'from disk' }).click()
     await expect(adminPage.getByText('data.kv')).toBeVisible()
-    await adminPage.getByRole('textbox', { name: /Filter results/ }).fill('data')
+    const filter = adminPage.getByRole('textbox', { name: /Filter results/ })
+    await filter.fill('ata')
+    await filter.press('Home')
+    await filter.pressSequentially('d')
+    await expect(filter).toHaveValue('data')
+    await expect(filter).toHaveJSProperty('selectionStart', 1)
     await expect(adminPage.getByText('Filter results (1/')).toBeVisible()
     await adminPage.getByRole('checkbox').first().check()
     await adminPage.getByText('data.kv').first().click()
@@ -382,7 +996,7 @@ test('anew', async ({ page, browserName }) => {
     await page.getByRole('link', { name: 'folder1, Folder' }).click()
     await page.getByRole('link', { name: 'data.kv' }).click()
     await page.getByRole('button', { name: 'Close' }).click()
-    await page.locator('.list-wrapper > div').press('Control+Backspace')
+    await page.keyboard.press('Control+Backspace')
     await page.getByRole('link', { name: 'work2, Folder' }).click()
     await page.getByRole('link', { name: 'config.yaml', exact: true }).click()
     const page2Promise = page.waitForEvent('popup')
@@ -392,11 +1006,358 @@ test('anew', async ({ page, browserName }) => {
 })
 
 test('order field', async ({ page }) => {
-    await page.goto(FRONTEND_URL + 'renameChild/orderTest/')
+    await gotoFrontend(page, FRONTEND_URL + 'renameChild/orderTest/')
     await expect(page.getByText('orderTest')).toBeVisible()
     await expect(page.locator('.entry-name')).toHaveText(['B', 'A', 'C'])
-    await page.goto(FRONTEND_URL + 'renameChild/')
+    await gotoFrontend(page, FRONTEND_URL + 'renameChild/')
     await page.getByRole('link', { name: 'gui#%2, Folder' }).click()
     await expect(page.getByRole('link', { name: 'alfa.txt' })).toBeVisible()
     await expect(page.getByText('Not found')).not.toBeVisible()
+})
+
+test('renaming the current Unicode folder navigates to the new path', async ({ page, browserName }) => {
+    if (browserName !== 'chromium') return
+    const sourceName = 'rename-current-é'
+    const destName = 'rename-current-done'
+    const sourcePath = `tests/tmp/${sourceName}`
+    const destPath = `tests/tmp/${destName}`
+    cleanup()
+    fs.mkdirSync(sourcePath, { recursive: true })
+    fs.writeFileSync(`${sourcePath}/inside.txt`, 'inside')
+    try {
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/${encodeURIComponent(sourceName)}/`)
+        await expect(page.getByRole('link', { name: 'inside.txt' })).toBeVisible()
+
+        await page.locator('.breadcrumb').last().click()
+        const folderDialog = page.getByRole('dialog')
+        await expect(folderDialog.getByRole('heading', { name: 'Folder menu' })).toBeVisible()
+        await folderDialog.getByRole('link', { name: 'Rename' }).click()
+        const renameDialog = page.locator('.dialog-prompt')
+        const renameInput = renameDialog.getByRole('textbox')
+        await expect(renameInput).toHaveValue(sourceName)
+        await renameInput.fill(destName)
+        await renameDialog.getByRole('button', { name: 'Continue' }).click()
+
+        const successDialog = page.getByRole('alertdialog')
+        await expect(successDialog.getByText('Operation successful')).toBeVisible()
+        await successDialog.getByRole('button', { name: 'Close' }).click()
+        await expect(page).toHaveURL(`${FRONTEND_URL}for-admins/upload/${destName}/`)
+        await expect(page.getByRole('link', { name: 'inside.txt' })).toBeVisible()
+    }
+    finally {
+        cleanup()
+    }
+
+    function cleanup() {
+        fs.rmSync(sourcePath, { recursive: true, force: true })
+        fs.rmSync(destPath, { recursive: true, force: true })
+    }
+})
+
+test('plugin resolves a Unicode file element to its entry', async ({ page, browserName }) => {
+    if (browserName !== 'chromium') return
+    const name = 'element-entry-é.txt'
+    const path = `tests/tmp/${name}`
+    fs.rmSync(path, { force: true })
+    fs.mkdirSync('tests/tmp', { recursive: true })
+    fs.writeFileSync(path, 'entry')
+    try {
+        await gotoFrontend(page)
+        const initial = await page.evaluate(() => {
+            let value: unknown = 'callback not called'
+            const unwatch = (window as any).HFS.watchState('upload.progress', (next: unknown) => value = next, true)
+            unwatch()
+            return value
+        })
+        expect(initial).toBe(0)
+
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/`)
+
+        const found = await page.getByRole('link', { name }).evaluate(el =>
+            Boolean((window as any).HFS.elementToEntry(el)))
+        expect(found).toBe(true)
+    }
+    finally {
+        fs.rmSync(path, { force: true })
+    }
+})
+
+test('file show does not advance ended media while auto-play is off', async ({ page, browserName }) => {
+    if (browserName !== 'chromium') return
+    const names = ['show-ended-a.wav', 'show-ended-b.wav']
+    const wav = Buffer.from('UklGRiUAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQEAAACA', 'base64')
+    fs.mkdirSync('tests/tmp', { recursive: true })
+    names.forEach(name => fs.writeFileSync(`tests/tmp/${name}`, wav))
+    await page.addInitScript(() => { HTMLMediaElement.prototype.play = async () => {} })
+    try {
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/`)
+        await page.getByRole('link', { name: names[0], exact: true }).click()
+        await page.getByRole('link', { name: 'Show' }).click()
+        await expect(page.getByRole('button', { name: 'Auto-play' })).toHaveAttribute('aria-pressed', 'false')
+
+        await page.locator('.file-show audio').dispatchEvent('ended')
+        await expect(page.locator('.file-show .filename')).toContainText(names[0])
+    }
+    finally {
+        names.forEach(name => fs.rmSync(`tests/tmp/${name}`, { force: true }))
+    }
+})
+
+test('file show stays on a limited file and can retry', async ({ page }) => {
+    let limited = true
+    let probes = 0
+    await page.route('**/tests/page/gpl.png', route => {
+        if (route.request().method() === 'HEAD') probes++
+        // scripted limits must not compete for the real server's shared download slot
+        return limited ? route.fulfill({ status: 429, headers: { 'Retry-After': '60' } })
+            : route.fulfill({ path: 'tests/page/gpl.png' })
+    })
+    await gotoFrontend(page, `${FRONTEND_URL}tests/page/`)
+    await page.getByRole('link', { name: 'gpl.png', exact: true }).click()
+    await page.getByRole('link', { name: 'Show' }).click()
+    await expect(page.getByText('Download limit reached', { exact: true })).toBeVisible()
+    expect(probes).toBe(1)
+    await expect(page.locator('.file-show .filename')).toContainText('gpl.png')
+    limited = false
+    await page.getByRole('button', { name: 'Retry', exact: true }).click()
+    await expect.poll(() => page.locator('.file-show img').evaluate(el => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
+})
+
+test('file show retries once when the limit has already cleared', async ({ page }) => {
+    let downloads = 0
+    let probes = 0
+    await page.route('**/tests/page/gpl.png', route => {
+        if (route.request().method() === 'HEAD') {
+            probes++
+            return route.fulfill({ path: 'tests/page/gpl.png' })
+        }
+        // keep the cleared limit independent from other tests downloading on the server
+        return ++downloads === 1 ? route.fulfill({ status: 429 }) : route.fulfill({ path: 'tests/page/gpl.png' })
+    })
+    await gotoFrontend(page, `${FRONTEND_URL}tests/page/`)
+    await page.getByRole('link', { name: 'gpl.png', exact: true }).click()
+    await page.getByRole('link', { name: 'Show' }).click()
+    await expect.poll(() => page.locator('.file-show img').evaluate(el => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
+    expect(probes).toBe(1)
+    expect(downloads).toBe(2)
+})
+
+for (const extension of ['mp3', 'mp4'])
+test(`file show reports the download limit for ${extension}`, async ({ page }) => {
+    const name = `show-limited.${extension}`
+    fs.mkdirSync('tests/tmp', { recursive: true })
+    fs.writeFileSync(`tests/tmp/${name}`, 'not transferred')
+    try {
+        await page.route(`**/for-admins/upload/${name}`, route => route.fulfill({ status: 429 }))
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/`)
+        await page.getByRole('link', { name, exact: true }).click()
+        await page.getByRole('link', { name: 'Show' }).click()
+        await expect(page.getByText('Download limit reached', { exact: true })).toBeVisible()
+        await page.getByRole('button', { name: 'Retry', exact: true }).click()
+        await expect(page.getByText('Download limit reached', { exact: true })).toBeVisible()
+        await expect(page.locator('.file-show .filename')).toContainText(name)
+    }
+    finally {
+        fs.rmSync(`tests/tmp/${name}`, { force: true })
+    }
+})
+
+test('file show ignores a limit probe after closing', async ({ page }) => {
+    let release!: () => void
+    const pending = new Promise<void>(resolve => { release = resolve })
+    let probing = false
+    await page.route('**/tests/page/gpl.png', async route => {
+        if (route.request().method() === 'HEAD') {
+            probing = true
+            await pending
+        }
+        await route.fulfill({ status: 429 }).catch(() => {}) // closing cancels the probe
+    })
+    await gotoFrontend(page, `${FRONTEND_URL}tests/page/`)
+    await page.getByRole('link', { name: 'gpl.png', exact: true }).click()
+    await page.getByRole('link', { name: 'Show' }).click()
+    await expect.poll(() => probing).toBe(true)
+    await page.locator('.file-show').getByRole('button', { name: 'Close', exact: true }).click()
+    release()
+    await expect(page.locator('.file-show')).toHaveCount(0)
+    await expect(page.getByText('Download limit reached', { exact: true })).toHaveCount(0)
+})
+
+test('file show keeps direction when skipping a broken image', async ({ page, browserName }) => {
+    if (browserName !== 'chromium') return
+    const names = ['show-prev-a.png', 'show-prev-b.png', 'show-prev-c.png']
+    fs.copyFileSync('tests/page/gpl.png', `tests/page/${names[0]}`)
+    fs.writeFileSync(`tests/page/${names[1]}`, 'broken image')
+    fs.copyFileSync('tests/page/gpl.png', `tests/page/${names[2]}`)
+    try {
+        await gotoFrontend(page, `${FRONTEND_URL}tests/page/`)
+        await page.getByRole('link', { name: names[2], exact: true }).click()
+        await page.getByRole('link', { name: 'Show' }).click()
+        await expect.poll(() => page.locator('.file-show img').evaluate(el => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
+
+        await page.keyboard.press('ArrowLeft')
+        await expect(page.locator('.file-show .filename')).toContainText(names[0])
+    }
+    finally {
+        names.forEach(name => fs.rmSync(`tests/page/${name}`, { force: true }))
+    }
+})
+
+test('file show stops auto-play after a broken last image', async ({ page, browserName }) => {
+    if (browserName !== 'chromium') return
+    const names = ['show-forward-a.png', 'show-forward-b.png']
+    fs.copyFileSync('tests/page/gpl.png', `tests/page/${names[0]}`)
+    fs.writeFileSync(`tests/page/${names[1]}`, 'broken image')
+    try {
+        await gotoFrontend(page, `${FRONTEND_URL}tests/page/`)
+        await expect(page.getByRole('link', { name: names[1], exact: true })).toBeVisible()
+        await page.evaluate(names => {
+            const HFS = (window as any).HFS
+            const entries = Object.fromEntries(HFS.state.list.map((entry: any) => [entry.name, entry]))
+            HFS.state.list = names.map(name => entries[name])
+        }, names)
+        await page.getByRole('link', { name: names[0], exact: true }).click()
+        await page.getByRole('link', { name: 'Show' }).click()
+        const autoPlay = page.getByRole('button', { name: 'Auto-play' })
+        await autoPlay.click()
+        await expect(autoPlay).toHaveAttribute('aria-pressed', 'true')
+
+        await page.locator('.file-show .nav').last().click()
+        await expect(autoPlay).toHaveAttribute('aria-pressed', 'false')
+    }
+    finally {
+        names.forEach(name => fs.rmSync(`tests/page/${name}`, { force: true }))
+    }
+})
+
+test('file show follows rename and advances after deleting the current file', async ({ page, browserName }) => {
+    if (browserName !== 'chromium') return
+    const names = ['show-delete-a.png', 'show-delete-b.png', 'show-delete-c.png']
+    const renamed = 'show-delete-renamed.png'
+    const folder = fs.mkdtempSync('tests/tmp/show-delete-')
+    names.forEach(name => fs.copyFileSync('tests/page/gpl.png', `${folder}/${name}`))
+    try {
+        await gotoFrontend(page)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByRole('textbox', { name: 'Username' }).fill(username)
+        await page.getByRole('textbox', { name: 'Password' }).fill(password)
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByRole('button', { name: username })).toBeVisible()
+        await gotoFrontend(page, `${FRONTEND_URL}for-admins/upload/${folder.split('/').pop()}/`)
+        await page.getByRole('link', { name: names[1], exact: true }).click()
+        await page.getByRole('link', { name: 'Show' }).click()
+
+        await page.locator('.file-show').getByRole('button', { name: 'menu' }).click()
+        await page.locator('.file-dialog').getByRole('link', { name: 'Rename' }).click()
+        const renameDialog = page.locator('.dialog-prompt')
+        const renameInput = renameDialog.getByRole('textbox')
+        await expect(renameInput).toHaveValue(names[1])
+        await renameInput.fill(renamed)
+        await renameDialog.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.locator('.file-show .filename')).toContainText(renamed)
+
+        await deleteShownFile()
+        await expect(page.locator('.file-show .filename')).toContainText(names[2])
+        await page.waitForFunction(name => !(window as any).HFS.state.loading
+            && !(window as any).HFS.state.list.some((x: any) => x.name === name), renamed)
+
+        await deleteShownFile()
+        await expect(page.locator('.file-show .filename')).toContainText(names[0])
+    }
+    finally {
+        fs.rmSync(folder, { recursive: true, force: true })
+    }
+
+    async function deleteShownFile() {
+        await page.locator('.file-show').getByRole('button', { name: 'menu' }).click()
+        await page.locator('.file-dialog').getByRole('link', { name: 'Delete' }).click()
+        await page.locator('.dialog-confirm').getByRole('button', { name: 'Yes' }).click()
+    }
+})
+
+test('English option updates the page language', async ({ page }) => {
+    await gotoFrontend(page, FRONTEND_URL + '?lang=it')
+    const content = page.locator('#root > [lang]')
+    await expect(content).toHaveAttribute('lang', 'it')
+    await expect(page.locator('#options-button')).toHaveAttribute('aria-label', 'Opzioni')
+
+    await page.locator('#options-button').click()
+    await expect(page.getByRole('heading', { name: 'Opzioni' })).toBeVisible()
+    await page.locator('#option-english input').check()
+    await expect(page.locator('#options-button')).toHaveAttribute('aria-label', 'Options')
+    await expect(page.getByRole('heading', { name: 'Options' })).toBeVisible()
+    await expect(content).toHaveAttribute('lang', 'en')
+})
+
+test('plugin icons render keycap emoji', async ({ page }) => {
+    await page.addInitScript(() => {
+        document.addEventListener('hfs.entryIcon', (event: Event) => {
+            const hfs = (window as any).HFS
+            ;(event as CustomEvent).detail.output.push(hfs.h(hfs.Icon, {
+                name: '1️⃣',
+                alt: 'plugin keycap icon',
+            }))
+        })
+    })
+    await gotoFrontend(page)
+
+    await expect(page.getByRole('img', { name: 'plugin keycap icon' }).first()).toHaveText('1️⃣')
+})
+
+test('frontend polyfills are installed before shared code runs', async ({ page }) => {
+    await page.addInitScript(() => {
+        delete (Object as any).fromEntries
+    })
+    await page.goto(FRONTEND_URL)
+
+    await expect(page.locator('#options-button')).toBeVisible()
+})
+
+test('cut is disabled without a selection', async ({ page, browserName }) => {
+    await gotoFrontend(page, FRONTEND_URL + 'for-admins/upload/')
+    if (browserName === 'chromium') {
+        const dialog = page.getByRole('dialog')
+        await expect(dialog).toBeVisible()
+        await page.getByRole('textbox', { name: 'Username' }).press('Escape')
+        await expect(dialog).toBeVisible()
+    }
+    await page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.getByRole('link', { name: 'alfa.txt' })).toBeVisible()
+    await page.getByRole('button', { name: 'Select' }).click()
+
+    const selection = page.getByRole('checkbox', { name: 'alfa.txt' })
+    const cut = page.getByRole('button', { name: 'Cut' })
+    const clipboard = page.getByRole('button', { name: /Clipboard/ })
+    await selection.check()
+    await cut.click()
+    await expect(clipboard).toBeVisible()
+
+    await selection.uncheck()
+    await expect(cut).toBeDisabled()
+    await expect(clipboard).toBeVisible()
 })

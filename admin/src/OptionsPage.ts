@@ -1,32 +1,39 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Box, Button, Divider, FormHelperText } from '@mui/material';
+import { Box, Button, FormHelperText, Tab, Tabs } from '@mui/material';
 import { createElement as h, useEffect, useId, useRef, useState } from 'react'
+import { t } from './i18n'
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'wouter'
-import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
+import { EditNote, Refresh, Warning } from '@mui/icons-material'
 import { adminApis } from '../../src/adminApis'
 import {
-    MAX_TILE_SIZE, REPO_URL, SORT_BY_OPTIONS, THEME_OPTIONS, CFG, IMAGE_FILEMASK,
-    Dict, md, with_, try_, ipForUrl,
+    MAX_TILE_SIZE, REPO_URL, SORT_BY_OPTIONS, THEME_OPTIONS, CFG, IMAGE_FILEMASK, Dict, md, with_, try_, ipForUrl, Html,
+    useFixSticky,
 } from './misc'
 import {
-    iconTooltip, InLink, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported,
+    iconTooltip, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported,
     execDoneMessage,
 } from './mui'
-import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
+import {
+    Form, BoolField, NumberField, SelectField, FieldProps, Field, type FieldDescriptor, type FormProps, type FormApi, StringField,
+} from '@hfs/mui-grid-form'
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
-import { alertDialog, confirmDialog, newDialog, toast } from './dialog'
+import { alertDialog, confirmDialog, toast } from './dialog'
 import { proxyWarning } from './HomePage'
 import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
 import { TextEditorField } from './TextEditor'
-import { WhoField } from './FileForm';
+import { WhoField } from './WhoField';
+import { SERVER_CODE_SPLIT, parseServerCode } from '../../src/serverCode'
+import { highlight, languages } from 'prismjs'
+import { isCertError, isKeyError, suggestMakingCert } from './cert'
+import { useRoutedTab } from './routing'
 
 let loaded: Dict | undefined
-let exposedReloadStatus: undefined | (() => void)
+const TAB_PATHS = ['net', 'frontend', 'uploads', 'others']
 const pageState = proxy({
     changes: {} as Dict
 })
@@ -43,23 +50,32 @@ export default function OptionsPage() {
     const { changes } = useSnapshot(pageState)
     const statusApi  = useApiEx<typeof adminApis.get_status>(data && 'get_status')
     const status = statusApi.data
-    const reloadStatus = exposedReloadStatus = statusApi.reload
+    const reloadStatus = statusApi.reload
+    const makeCert = () => suggestMakingCert(saved => {
+        if (loaded)
+            Object.assign(loaded, saved)
+        setTimeout(reloadStatus, 1000) // give some time for backend to apply
+        setTimeout(reloadStatus, 2000) // try again in case it's very slow
+    })
     useEffect(() => void reloadStatus(), [data]) //eslint-disable-line
-    useEffect(() => () => exposedReloadStatus = undefined, []) // clear this on unmount
     const sm = useBreakpoint('sm')
     const saveBtnRef = useRef<HTMLButtonElement>(null)
+    const tabsSticky = useFixSticky()
+    const formApi = useRef<FormApi>()
+    const [tab, setTab] = useRoutedTab('options', TAB_PATHS)
+    const fieldTabs: Dict<number> = {}
 
     const admins = useApiEx('get_admins').data?.list
 
-    const hn = window.location.hostname
-    const isLH = hn === 'localhost'
-    const isV6 = hn.includes(':')
+    const connectionAddress = status?.connectionAddress
+    const isLH = window.location.hostname === 'localhost'
+    const isV6 = connectionAddress?.includes(':')
     const listenInterfaceOptions = [
-        { label: "any", value: '', disabled: false },
-        { label: "any IPv4", value: '0.0.0.0', disabled: !isLH && isV6 },
-        { label: "any IPv6", value: '::', disabled: !isLH && !isV6 },
-        ...['127.0.0.1', '::1'].map(x => ({ label: x, value: x, disabled: !isLH && hn !== x })),
-        ...status?.ips?.map(x => ({ value: x, disabled: hn !== x })) || [],
+        { label: t`any`, value: '', disabled: false },
+        { label: t`any IPv4`, value: '0.0.0.0', disabled: !isLH && (!connectionAddress || isV6) },
+        { label: t`any IPv6`, value: '::', disabled: !isLH && (!connectionAddress || !isV6) },
+        ...['127.0.0.1', '::1'].map(x => ({ label: x, value: x, disabled: !isLH && connectionAddress !== x })),
+        ...status?.ips?.map(x => ({ value: x, disabled: connectionAddress !== x })) || [],
     ]
 
     if (element)
@@ -71,17 +87,18 @@ export default function OptionsPage() {
         comp: NumberField,
         min: 1,
         unit: "KB/s",
-        placeholder: "no limit",
+        placeholder: t`no limit`,
         sm: 6,
     }
     const maxDownloadsDefaults = {
         comp: NumberField,
-        placeholder: "no limit",
+        placeholder: t`no limit`,
         toField: (x: any) => x || '',
         sm: 4,
     }
-    const httpsEnabled = values.https_port >= 0
+    const httpsEnabled = values[CFG.https_port] >= 0
     return h(Form, {
+        apiRef: formApi,
         sx: { maxWidth: '60em' },
         values,
         set(v, k) {
@@ -89,7 +106,16 @@ export default function OptionsPage() {
         },
         stickyBar: true,
         onError: alertDialog,
+        onValidation(errors: false | Dict, submitting: boolean) {
+            if (!submitting)
+                return
+            const firstError = errors && Object.keys(errors).find(k => errors[k])
+            // reveal the first invalid field before Form scrolls to it
+            if (firstError && fieldTabs[firstError] !== undefined)
+                setTab(fieldTabs[firstError])
+        },
         save: {
+            children: t`Save`,
             ref: saveBtnRef,
             onClick: save,
             ...propsForModifiedValues( Object.keys(changes).length>0),
@@ -98,235 +124,302 @@ export default function OptionsPage() {
         addToBar: [
             h(Button, {
                 onClick() {
-                    reloadConfig()
+                    void reloadConfig().then(() => formApi.current?.resetValidation())
                     reloadStatus()
                 },
                 startIcon: h(Refresh),
-            }, "Reload"),
+            }, t`Reload`),
             h(Button, { // @ts-ignore
                 component: RouterLink,
                 href: "/config",
                 startIcon: h(EditNote),
-            }, sm ? "Config file" : "File"),
+            }, sm ? t`Config file` : t`File`),
         ],
         defaults() {
             return { xs: 6 }
         },
-        fields: [
-            h(Section, { title: "Networking" }),
-            { k: 'port', comp: PortField, xs: 12, sm: 4, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
-            { k: 'https_port', comp: PortField, xs: 12, sm: 4, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
-                onChange(v: number) {
-                    if (v >= 0 && !httpsEnabled && !values.cert)
-                        void suggestMakingCert()
-                    return v
-                }
-            },
-            { k: CFG.upnp_enabled, comp: BoolField, xs: 12, sm: 4, label: "UPnP/SSDP",
-                helperText: "Port forwarding and double-NAT detection" },
+        fields: fieldsForTabs({
+            "Net": [
+                { k: CFG.port, comp: PortField, xs: 12, sm: 4, label:t`HTTP port`, status: status?.http||true, suggestedPort: 80 },
+                { k: CFG.https_port, comp: PortField, xs: 12, sm: 4, label: t`HTTPS port`, status: status?.https||true, suggestedPort: 443,
+                    onChange(v: number) {
+                        if (v >= 0 && !httpsEnabled && !values[CFG.cert])
+                            void makeCert()
+                        return v
+                    }
+                },
+                { k: CFG.upnp_enabled, comp: BoolField, xs: 12, sm: 4, label: t`UPnP/SSDP`,
+                    helperText: t`Port forwarding and double-NAT detection` },
 
-            httpsEnabled && { k: 'cert', comp: FileField, sm: 4, label: "HTTPS certificate file",
-                helperText: wikiLink('HTTPS#certificate', "What is this?"),
-                error: with_(status?.https.error, e => isCertError(e) && (
-                    status!.https.listening ? e
-                        : [e, ' - ', h(LinkBtn, { key: 'fix', onClick: suggestMakingCert }, "make one")] )),
-            },
-            httpsEnabled && { k: 'private_key', comp: FileField, sm: 4, label: "HTTPS private key file",
-                ...with_(status?.https.error, e => isKeyError(e) ? { error: true, helperText: e } : null)
-            },
-            httpsEnabled && { k: 'force_https', comp: BoolField, label: "Force HTTPS", sm: 4, disabled: !httpsEnabled || values.port < 0,
-                helperText: "Not applied to localhost. Doesn't work with proxies."
-            },
+                httpsEnabled && { k: CFG.cert, comp: FileField, sm: 4, label: t`HTTPS certificate file`,
+                    helperText: wikiLink('HTTPS#certificate', t`What is this?`),
+                    error: with_(status?.https.error, e => isCertError(e) && (
+                        status!.https.listening ? e
+                            : [e, ' - ', h(LinkBtn, { key: 'fix', onClick: makeCert }, t`make one`)] )),
+                },
+                httpsEnabled && { k: CFG.private_key, comp: FileField, sm: 4, label: t`HTTPS private key file`,
+                    ...with_(status?.https.error, e => isKeyError(e) ? { error: true, helperText: e } : null)
+                },
+                httpsEnabled && { k: CFG.force_https, comp: BoolField, label: t`Force HTTPS`, sm: 4, disabled: !httpsEnabled || values[CFG.port] < 0,
+                    helperText: t`Not applied to localhost. Doesn't work with proxies.`
+                },
 
-            {
-                k: 'listen_interface',
-                comp: SelectField,
-                sm: 4,
-                afterList: listenInterfaceOptions.some(x => x.disabled)
-                    && h(Box, { sx: { p: '8px 16px 0', borderTop: '1px solid', fontSize: 'small' } }, "Disabled addresses depend on the address you used to connect"),
-                options: listenInterfaceOptions,
-            },
-            { k: 'max_kbps',        ...maxSpeedDefaults, sm: 4, label: "Limit output", helperText: "Doesn't apply to localhost" },
-            { k: 'max_kbps_per_ip', ...maxSpeedDefaults, sm: 4, label: "Limit output per-IP" },
+                {
+                    k: CFG.listen_interface,
+                    comp: SelectField,
+                    label: t`Listen interface`,
+                    sm: 4,
+                    afterList: listenInterfaceOptions.some(x => x.disabled)
+                        && h(Box, { sx: { p: '8px 16px 0', borderTop: '1px solid', fontSize: 'small' } }, t`If an address is disabled, connect through it to select it`),
+                    options: listenInterfaceOptions,
+                },
+                { k: CFG.max_kbps,        ...maxSpeedDefaults, sm: 4, label: t`Limit output`, helperText: t`Doesn't apply to localhost` },
+                { k: CFG.max_kbps_per_ip, ...maxSpeedDefaults, sm: 4, label: t`Limit output per-IP` },
 
-            { k : CFG.max_downloads, ...maxDownloadsDefaults, helperText: "Number of simultaneous downloads" },
-            { k : CFG.max_downloads_per_ip, ...maxDownloadsDefaults, label: "Max downloads per-IP" },
-            { k : CFG.max_downloads_per_account, ...maxDownloadsDefaults, label: "Max downloads per-account", helperText: "Overrides other limits" },
+                { k : CFG.max_downloads, ...maxDownloadsDefaults, label: t`Max downloads`, helperText: t`Number of simultaneous downloads` },
+                { k : CFG.max_downloads_per_ip, ...maxDownloadsDefaults, label: t`Max downloads per-IP` },
+                { k : CFG.max_downloads_per_account, ...maxDownloadsDefaults, label: t`Max downloads per-account`, helperText: t`Overrides other limits` },
 
-            { k: 'admin_net', comp: NetmaskField, xs: 12, sm: 6, label: "Admin-panel accessible from", placeholder: "any address",
-                helperText: "IP address of browser machine – localhost is an exception"
-            },
-            { k: 'localhost_admin', comp: BoolField, xs: 12, sm: 6, label: "Consider localhost access as Admin",
-                getError: x => !x && admins?.length===0 && "First create at least one admin account",
-                helperText: "Access admin-panel without entering credentials"
-            },
+                { k: CFG.admin_net, comp: NetmaskField, xs: 12, sm: 6, label: t`Admin-panel accessible from`, placeholder: t`any address`,
+                    helperText: t`admin_net_localhost_hint`
+                },
+                { k: CFG.localhost_admin, comp: BoolField, xs: 12, sm: 6, label: t`Consider localhost access as Admin`,
+                    getError: x => !x && admins?.length===0 && t`First create at least one admin account`,
+                    helperText: t`Access admin-panel without entering credentials`
+                },
 
-            { k: 'proxies', comp: NumberField, xs: 12, sm: 4, md: 4, max: 9, label: "Number of incoming HTTP proxies", placeholder: "none",
-                error: proxyWarning(values, status),
-                helperText: "Wrong number will prevent detection of users' IP"
-            },
-            { k: CFG.outbound_proxy, xs: 12, sm: 5, md: 4, placeholder: "none", helperText: "URL form",
-                getError: x => try_(() => x && new URL(x) && '', () => "Invalid URL") },
-            { k: 'allowed_referer', comp: AllowedReferer, sm: 3, md: 4, placeholder: "any", label: "Links from other websites",
-                helperText: "In case another website is linking your files" },
+                { k: CFG.proxies, comp: NumberField, xs: 6, md: 3, max: 9, label: t`Number of incoming HTTP proxies`, placeholder: t`none`,
+                    error: proxyWarning(values, status),
+                    helperText: values.proxies > 0
+                        ? h(Box<'span'>, { component: 'span', sx: { color: 'warning.main' } },
+                            t`Configure your firewall to allow only trusted proxies to connect to HFS.`)
+                        : t`Necessary to detect users' IP`
+                },
+                { k: CFG.outbound_interface, comp: SelectField, xs: 6, md: 3, label: t`Outbound interface`,
+                    options: [{ label: t`automatic`, value: '' }, ...status?.ips?.map(value => ({ value })) || []] },
+                { k: CFG.outbound_proxy, xs: 6, md: 4, label: t`Outbound proxy`, placeholder: t`none`, helperText: t`URL form`,
+                    getError: x => try_(() => x && new URL(x) && '', () => "Invalid URL") },
+                { k: CFG.allowed_referer, comp: AllowedReferer, md: 2, placeholder: t`any`, label: t`Links from other websites`,
+                    helperText: t`In case another website is linking your files` },
 
-            { k: 'block', label: false, comp: ArrayField, xs: 12, prepend: true, sm: true, autoRowHeight: true,
-                form: { sx: { maxWidth: '40em' } },
-                fields: [
-                    { k: 'ip', label: "Blocked IP", sm: 12, required: true, wrap: true, $width: 2, comp: NetmaskField,
-                        $column: { mergeRender: { comment: {}, expire: {} } },
-                        helperText: "Be careful to not kick yourself out, by blocking also your IP",
+                { k: CFG.block, label: false, comp: ArrayField, xs: 12, prepend: true, sm: true, autoRowHeight: true,
+                    form: { sx: { maxWidth: '40em' } },
+                    fields: [
+                        { k: 'ip', label: t`Blocked IP`, sm: 12, required: true, wrap: true, $width: 2, comp: NetmaskField,
+                            $column: { mergeRender: { comment: {}, expire: {} } },
+                            helperText: t`block_self_warning`,
+                        },
+                        { k: 'expire', label: t`Expire`, $type: 'dateTime', minDate: new Date(), sm: 6, $hideUnder: 'sm',
+                            helperText: t`Leave empty for no expiration` },
+                        {
+                            k: 'disabled',
+                            $type: 'boolean',
+                            label: t`Enabled`,
+                            helperText: t`geo_rule_disable_hint`,
+                            toField: (x: any) => !x,
+                            fromField: (x: any) => x ? undefined : true,
+                            sm: 6,
+                            $width: 80,
+                        },
+                        { k: 'comment', label: t`Comment`, $hideUnder: 'sm' },
+                    ],
+                },
+            ],
+            "Front-end": [
+                { k: CFG.file_menu_on_link, comp: SelectField, label: t`Access file menu`, md: 3,
+                    options: { [t`by clicking on file name`]: true, [t`by dedicated button`]: false  }
+                },
+                { k: CFG.menu_at_top, comp: SelectField, md: 3, label: t`Menu panel`, options: { [t`at top`]: true, [t`at bottom`]: false } },
+                { k: CFG.title, md: 6, helperText: t`You can see this in the tab of your browser` },
+
+                { k: CFG.auto_play_seconds, comp: NumberField, xs: 6, sm: 3, min: 1, max: 10000, required: true,
+                    label: t`Auto-play seconds delay`, helperText: md(t('show_interface_default_help', { docsUrl: REPO_URL + 'discussions/270' })) },
+                { k: CFG.tile_size, comp: NumberField, xs: 6, sm: 3, max: MAX_TILE_SIZE, required: true,
+                    label: t`Default tiles size`, helperText: wikiLink('Tiles', t`To enable tiles-mode`) },
+                { k: CFG.theme, comp: SelectField, xs: 6, sm: 3, options: THEME_OPTIONS },
+                { k: CFG.sort_by, comp: SelectField, xs: 6, sm: 3, options: SORT_BY_OPTIONS },
+
+                { k: CFG.invert_order, comp: BoolField, xs: 6, md: 3 },
+                { k: CFG.folders_first, comp: BoolField, xs: 6, md: 3 },
+                { k: CFG.sort_numerics, comp: BoolField, xs: 6, md: 3, label: t`Sort numeric names` },
+                { k: CFG.title_with_path, comp: BoolField, xs: 6, md: 3 },
+                { k: CFG.favicon, comp: FileField, placeholder: t`None`, fileMask: '*.ico|' + IMAGE_FILEMASK, xs: 12, sm: 6,
+                    helperText: t`The icon associated to your website` },
+                { k: CFG.show_uploader, label: t`Show uploader to`, comp: WhoField, xs: true },
+                { k: CFG.page_size, comp: NumberField, xs: true, min: 1, required: true, helperText: t`Entries per page` },
+            ],
+            "Uploads": [
+                { k: CFG.dont_overwrite_uploading, comp: BoolField, md: 4, label: t`Uploads don't overwrite`,
+                    helperText: t`Files are automatically numbered (frontend only)` },
+                { k : CFG.split_uploads, comp: NumberField, unit: 'MB', md: 2, step: .1, min: .1,
+                    fromField: x => x * 1E6, toField: x => x ? x / 1E6 : null,
+                    placeholder: t`disabled`, label: t`Split uploads in chunks`, helperText: t`Overcome proxy limits (frontend only)` },
+                { k: CFG.delete_unfinished_uploads_after, comp: NumberField, md: 3, min : 0, unit: t`seconds`, required: true,
+                    label: t`Delete unfinished uploads after` },
+                { k: CFG.min_available_mb, comp: NumberField, md: 3, min : 0, unit: "MBytes", placeholder: t`None`,
+                    label: t`Min. available disk space`, helperText: t`Reject uploads that don't comply` },
+                { k: CFG.require_upload_approval_for_active_content, comp: BoolField, xs: 12, sm: 6, md: 4,
+                    label: t`Require approval for uploaded HTML/SVG`,
+                    helperText: t`Prevents running scripts on your website` },
+                { k: CFG.own_upload_delete_hours, comp: NumberField, xs: 12, sm: 6, md: 3, min: 0, unit: t`hours`, required: true,
+                    label: t`Uploaders can delete their files for`, helperText: t`Set to 0 to disable` },
+            ],
+            "Others": [
+                { k: CFG.show_hidden_files, comp: BoolField, sm: 3, label: t`Include hidden files` },
+                { k: CFG.descript_ion_encoding, sm: 3, label: t`Encoding of file DESCRIPT.ION`, comp: SelectField, disabled: values[CFG.comments_storage] === 'attr',
+                    options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
+                { k: CFG.comments_storage, comp: SelectField, xs: 12, sm: 6, options: {
+                        [t`in file DESCRIPT.ION`]: '',
+                        [t`in file attributes`]: 'attr',
+                        [t`in file attributes + load DESCRIPT.ION`]: 'attr+ion',
+                    } },
+
+                { k: CFG.keep_session_alive, comp: BoolField, sm: 6, md: 6, helperText: t`frontend_page_open_session_hint` },
+                { k: CFG.session_duration, comp: NumberField, sm: 3, md: 3, min: 5, unit: "seconds", required: true },
+                { k: CFG.size_1024, label: t`KB size`, comp: SelectField, sm: 3, options: { 1000: false, 1024: true } },
+
+                { k: CFG.open_browser_at_start, comp: BoolField, label: t`Open Admin-panel at start`, xs: 12, sm: 6, md: 3,
+                    helperText: t`Browser is automatically launched with HFS`
+                },
+                { k: CFG.zip_calculate_size_for_seconds, comp: NumberField, xs: 12, sm: 6, md: 3, unit: "seconds", required: true,
+                    label: t`Calculate ZIP size for`, helperText: t`download_progress_time_hint` },
+                { k: CFG.mime, comp: ArrayField, label: t`Custom MIME types`, reorder: true, prepend: true, xs: 12, sm: 12, md: 6,
+                    fields: [
+                        { k: 'v', label: t`Mime type`, placeholder: t`auto`, $width: 2, helperText: t`Leave empty to get automatic value` },
+                        { k: 'k', label: t`File mask`, helperText: h(WildcardsSupported), $width: 1, $column: {
+                                renderCell: ({ value, id }: any) => h('code', {},
+                                    value,
+                                    value === '*' && id < _.size(values[CFG.mime]) - 1
+                                    && iconTooltip(Warning, md(t`mime_order_hint`), {
+                                        color: 'warning.main', ml: 1
+                                    }))
+                            } },
+                    ],
+                    toField: x => Object.entries(x || {}).map(([k,v]) => ({ k, v })),
+                    fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v || 'auto'])),
+                    helperText: t`Most MIME types are detected automatically`,
+                },
+
+                { k: CFG.force_webdav_login, comp: WebdavAgentAuthField, sm: true, label: t`WebDAV force login`,
+                    fallbackRE: 'Microsoft-WebDAV', // ms-webdav won't send credentials even with the initial_auth – it must be forced, so we offer it as preset regex if you don't like the *always* value
+                    helperText: [t`force_login_compat_help`, wikiLink('webdav', t`Why?`) ],
+                },
+                values[CFG.force_webdav_login] !== true && { k: CFG.webdav_initial_auth, comp: WebdavAgentAuthField, sm: 6, label: t`WebDAV initial auth`,
+                    helperText: t`force_login_once_help`,
+                },
+
+                { k: CFG.server_code, comp: ArrayField, xs: 12,
+                    fields: [
+                        { k: 'name', label: t`Name`, $width: 0.4, $render: ({ value }: any) => value.trim() || h('i', {}, t`no name`) },
+                        { k: 'code', label: t`Code`, comp: TextEditorField, lang: 'js', $hideUnder: 'sm',
+                            $render: ({ value }: any) => typeof value === 'string' ? h(Html, {}, highlight(value, languages.js, 'js')) : '?',
+                            helperText: md(t('server_code_plugin_help', { docsUrl: REPO_URL + 'blob/main/dev-plugins.md' })),
+                        }
+                    ],
+                    toField: v => !v || typeof v !== 'string' ? [] : parseServerCode(v),
+                    fromField: stringifyServerCode,
+                    applyButton: {
+                        onClick: (res: any) => save({ [CFG.server_code]: stringifyServerCode(res) }),
                     },
-                    { k: 'expire', $type: 'dateTime', minDate: new Date(), sm: 6, $hideUnder: 'sm',
-                        helperText: "Leave empty for no expiration" },
-                    {
-                        k: 'disabled',
-                        $type: 'boolean',
-                        label: "Enabled",
-                        helperText: "In case you want to not block without deleting the rule",
-                        toField: (x: any) => !x,
-                        fromField: (x: any) => x ? undefined : true,
-                        sm: 6,
-                        $width: 80,
-                    },
-                    { k: 'comment', $hideUnder: 'sm' },
-                ],
-            },
-
-            h(Section, { title: "Front-end", subtitle: "Following options affect only the front-end" }),
-            { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", md: 4,
-                options: { "by clicking on file name": true, "by dedicated button": false  }
-            },
-            { k: 'title', md: 8, helperText: "You can see this in the tab of your browser" },
-
-            { k: 'auto_play_seconds', comp: NumberField, xs: 6, sm: 3, min: 1, max: 10000, required: true,
-                label: "Auto-play seconds delay", helperText: md(`Default value for the [Show interface](${REPO_URL}discussions/270)`) },
-            { k: 'tile_size', comp: NumberField, xs: 6, sm: 3, max: MAX_TILE_SIZE, required: true,
-                label: "Default tiles size", helperText: wikiLink('Tiles', "To enable tiles-mode") },
-            { k: 'theme', comp: SelectField, xs: 6, sm: 3, options: THEME_OPTIONS },
-            { k: 'sort_by', comp: SelectField, xs: 6, sm: 3, options: SORT_BY_OPTIONS },
-
-            { k: 'invert_order', comp: BoolField, xs: 6, md: 3 },
-            { k: 'folders_first', comp: BoolField, xs: 6, md: 3 },
-            { k: 'sort_numerics', comp: BoolField, xs: 6, md: 3, label: "Sort numeric names" },
-            { k: 'title_with_path', comp: BoolField, xs: 6, md: 3 },
-            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, xs: 12, sm: 6,
-                helperText: "The icon associated to your website" },
-            { k: CFG.show_uploader, label: "Show uploader to", comp: WhoField, xs: true },
-            { k: 'page_size', comp: NumberField, xs: true, min: 1, required: true, helperText: "Entries per page" },
-
-            h(Section, { title: "Uploads" }),
-            { k: 'dont_overwrite_uploading', comp: BoolField, md: 4, label: "Uploads don't overwrite",
-                helperText: "Files are automatically numbered (frontend only)" },
-            { k : CFG.split_uploads, comp: NumberField, unit: 'MB', md: 2, step: .1,
-                fromField: x => x * 1E6, toField: x => x ? x / 1E6 : null,
-                placeholder: "disabled", label: "Split uploads in chunks", helperText: "Overcome proxy limits (frontend only)" },
-            { k: 'delete_unfinished_uploads_after', comp: NumberField, md: 3, min : 0, unit: "seconds", required: true },
-            { k: 'min_available_mb', comp: NumberField, md: 3, min : 0, unit: "MBytes", placeholder: "None",
-                label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
-
-            h(Section, { title: "Others" }),
-            { k: 'show_hidden_files', comp: BoolField, sm: 3 },
-            { k: 'descript_ion_encoding', sm: 3, label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
-                options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
-            { k: CFG.comments_storage, comp: SelectField, xs: 12, sm: 6, options: {
-                    "in file DESCRIPT.ION": '',
-                    "in file attributes": 'attr',
-                    "in file attributes + load DESCRIPT.ION": 'attr+ion',
-                } },
-
-            { k: 'keep_session_alive', comp: BoolField, sm: 6, md: 6, helperText: "Keeps you logged in while the page is left open and the computer is on" },
-            { k: 'session_duration', comp: NumberField, sm: 3, md: 3, min: 5, unit: "seconds", required: true },
-            { k: CFG.size_1024, label: "KB size", comp: SelectField, sm: 3, options: { 1000: false, 1024: true } },
-
-            { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start", xs: 12, sm: 6, md: 3,
-                helperText: "Browser is automatically launched with HFS"
-            },
-            { k: 'zip_calculate_size_for_seconds', comp: NumberField, xs: 12, sm: 6, md: 3, unit: "seconds", required: true,
-                label: "Calculate ZIP size for", helperText: "If time is not enough, the browser will not show download percentage" },
-            { k: 'mime', comp: ArrayField, label: "Custom MIME types", reorder: true, prepend: true, xs: 12, sm: 12, md: 6,
-                fields: [
-                    { k: 'v', label: "Mime type", placeholder: "auto", $width: 2, helperText: "Leave empty to get automatic value" },
-                    { k: 'k', label: "File mask", helperText: h(WildcardsSupported), $width: 1, $column: {
-                            renderCell: ({ value, id }: any) => h('code', {},
-                                value,
-                                value === '*' && id < _.size(values.mime) - 1
-                                && iconTooltip(Warning, md("Mime with `*` should be the last, because first matching row applies"), {
-                                    color: 'warning.main', ml: 1
-                                }))
-                        } },
-                ],
-                toField: x => Object.entries(x || {}).map(([k,v]) => ({ k, v })),
-                fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v || 'auto'])),
-                helperText: "Most MIME types are detected automatically",
-            },
-
-            { k: CFG.force_webdav_login, comp: WebdavAgentAuthField, sm: true, label: "WebDAV force login",
-                fallbackRE: 'Microsoft-WebDAV', // ms-webdav won't send credentials even with the initial_auth – it must be forced, so we offer it as preset regex if you don't like the *always* value
-                helperText: ["Force login for clients that mishandle mixed anonymous/protected access. ", wikiLink('webdav', "Why?") ],
-            },
-            values[CFG.force_webdav_login] !== true && { k: CFG.webdav_initial_auth, comp: WebdavAgentAuthField, sm: 6, label: "WebDAV initial auth",
-                helperText: "Force login only once. Used only when previous option does not match",
-            },
-
-            { k: 'server_code', comp: TextEditorField, lang: 'js', xs: 12,
-                helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`)
-            },
-
-        ]
+                },
+            ],
+        })
     })
 
-    async function save() {
-        if (_.isEmpty(changes))
-            return toast("Nothing to save")
+    function fieldsForTabs(sections: Dict<(FieldDescriptor | false | null | undefined)[]>) {
+        const tabs = Object.entries(sections)
+        const groupedFields: FormProps<Dict>['fields'] = []
+        for (const [sectionIndex, [, fields]] of tabs.entries()) {
+            for (const field of fields) {
+                if (!field) {
+                    groupedFields.push(field)
+                    continue
+                }
+                fieldTabs[field.k] = sectionIndex
+                groupedFields.push({
+                    ...field,
+                    parentProps: { ...field.parentProps, hidden: sectionIndex !== tab },
+                })
+            }
+        }
+        return [
+            {
+                k: '',
+                xs: 12,
+                comp: h(Tabs, {
+                    value: tab,
+                    variant: 'scrollable',
+                    scrollButtons: 'auto',
+                    onChange(_ev, value) {
+                        setTab(value)
+                    },
+                }, tabs.map(([title]) => h(Tab, { key: title, label: t(title), sx: { minWidth: 0 } }))),
+                parentProps: {
+                    ref: tabsSticky,
+                    sx: {
+                        position: 'sticky',
+                        top: { xs: 56, sm: 64, lg: 0 },
+                        zIndex: 2,
+                        bgcolor: 'background.paper',
+                    },
+                },
+            },
+            ...groupedFields,
+        ] satisfies FormProps<Dict>['fields']
+    }
+
+    function stringifyServerCode(rows: any) {
+        return rows.map(({ name='', code='' }, i: number) => i || name ? `${SERVER_CODE_SPLIT}${name}\n${code}\n` : code).join('')
+    }
+
+    async function save(moreChanges: Dict = {}) {
+        // changes is a Valtio snapshot, so build the payload without mutating it
+        const toSave = { ...changes, ...moreChanges }
+        if (_.isEmpty(toSave))
+            return toast(t`Nothing to save`)
         const loc = window.location
-        const keys = ['port','https_port']
-        if (keys.every(k => changes[k] !== undefined))
-            return alertDialog("You cannot change both http and https port at once. Please, do one, save, and then do the other.", 'warning')
+        const keys = [CFG.port, CFG.https_port]
+        if (keys.every(k => toSave[k] !== undefined))
+            return alertDialog(t`change_both_ports_warning`, 'warning')
         const working = [status?.http?.listening, status?.https?.listening]
         const onHttps = location.protocol === 'https:'
         if (onHttps) {
             keys.reverse()
             working.reverse()
         }
-        const newPort = changes[keys[0]]
+        const newPort = toSave[keys[0]]
         const otherPort = values[keys[1]]
         const otherIsReliable = otherPort > 0 && working[1]
         const otherProtocol = onHttps ? 'http' : 'https'
         if (newPort < 0 && !otherIsReliable)
-            return alertDialog("You cannot switch off this port unless you have a working fixed port for " + otherProtocol, 'warning')
+            return alertDialog(t('cannot_disable_only_fixed_port', { otherProtocol }), 'warning')
         if (newPort === 0 && !otherIsReliable)
-            return alertDialog("You cannot randomize this port unless you have a working fixed port for " + otherProtocol, 'warning')
+            return alertDialog(t('cannot_randomize_only_fixed_port', { otherProtocol }), 'warning')
         const goingNewPort = newPort > 0 && newPort != loc.port // == loc.port can happen when listening on a temporary port, and the user just set the same port as new config
-        if (goingNewPort && !await confirmDialog("You are changing the port and you may be disconnected"))
+        if (goingNewPort && !await confirmDialog(t`You are changing the port and you may be disconnected`))
             return
-        const certChange = 'cert' in changes || 'private_key' in changes
-        if (onHttps && certChange && !await confirmDialog("You may disrupt https service, kicking you out"))
+        const certChange = CFG.cert in toSave || CFG.private_key in toSave
+        if (onHttps && certChange && !await confirmDialog(t`You may disrupt https service, kicking you out`))
             return
-        await apiCall('set_config', { values: changes })
-        if ('split_uploads' in changes)
-            await alertDialog("Users need to reload for the \"split uploads\" option to take effect", 'warning')
+        await apiCall('set_config', { values: toSave })
+        if (CFG.split_uploads in toSave)
+            await alertDialog(t`split_uploads_reload_notice`, 'warning')
         const ip = ipForUrl(loc.hostname)
         const path = loc.pathname + loc.hash
         const redirect = newPort <= 0 ? `${onHttps ? 'http:' : 'https:'}//${ip}:${otherPort}${path}` // jump protocol also in case of random port, because people must know their port while using GUI
             : goingNewPort ? `${loc.protocol}//${ip}:${newPort || values[keys[0]]}${path}`
                 : await with_(`https://${ip}:${loc.port}${path}`, httpsUrl => // could we be kicked out because of force_https?
-                    !onHttps && (changes.force_https ?? data.force_https) && fetch(httpsUrl).then(() => httpsUrl, () => 0)) // only happens if https is working
+                    !onHttps && (toSave[CFG.force_https] ?? data[CFG.force_https]) && fetch(httpsUrl).then(() => httpsUrl, () => 0)) // only happens if https is working
         if (redirect) {
-            await alertDialog("You are being redirected but in some cases this may fail. Hold on tight!", 'warning')
+            await alertDialog(t`redirect_warning`, 'warning')
             return window.location.href = redirect
         }
-        const portChange = 'port' in changes || 'https_port' in changes
+        const portChange = CFG.port in toSave || CFG.https_port in toSave
         setTimeout(reloadStatus, portChange || certChange ? 1000 : 0) // give some time to apply news
-        Object.assign(loaded!, changes) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
+        Object.assign(loaded!, toSave) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
         recalculateChanges()
         execDoneMessage(false, saveBtnRef.current)
     }
-}
-
-function Section({ title, subtitle }: { title: string, subtitle?: string }) {
-    return h(Divider, { role: 'heading', sx: { fontSize: 'larger', fontWeight: 'bold' } }, title,
-        h(Box, { sx: { fontSize: 'small', fontWeight: 'normal' } }, subtitle))
 }
 
 function recalculateChanges() {
@@ -336,14 +429,6 @@ function recalculateChanges() {
             if (JSON.stringify(v) !== JSON.stringify(loaded?.[k]))
                 o[k] = v
     pageState.changes = o
-}
-
-export function isCertError(error: any) {
-    return /certificate/.test(error)
-}
-
-export function isKeyError(error: any) {
-    return /private key/.test(error)
 }
 
 function PortField({ label, value, onChange, setApi, status, suggestedPort=1, error, helperText }: FieldProps<number | null>) {
@@ -365,14 +450,14 @@ function PortField({ label, value, onChange, setApi, status, suggestedPort=1, er
                 error,
                 value: selectValue,
                 options: [
-                    { label: "off", value: -1 },
-                    { label: "random", value: 0 },
-                    { label: "choose", value: lastCustom.current },
+                    { label: t`off`, value: -1 },
+                    { label: t`random`, value: 0 },
+                    { label: t`choose`, value: lastCustom.current },
                 ],
                 onChange,
             }),
             value! > 0 && h(NumberField, {
-                label: "Number",
+                label: t`Number`,
                 fullWidth: false,
                 value,
                 onChange,
@@ -386,7 +471,7 @@ function PortField({ label, value, onChange, setApi, status, suggestedPort=1, er
         ),
         status && h(FormHelperText, { error },
             status === true ? '...'
-                : errMsg ?? (status?.listening && "Correctly working on port " + status.port) )
+                : errMsg ?? (status?.listening && t("Correctly working on port {port}", { port: status.port })) )
     )
 }
 
@@ -397,13 +482,13 @@ function AllowedReferer({ label, value, onChange, error }: FieldProps<string>) {
         h(SelectField as Field<string>, {
             label,
             value: yesNo ? value : example,
-            options: { "allow all": '', "forbid all": '-', "allow some": example, },
+            options: { [t`allow all`]: '', [t`forbid all`]: '-', [t`allow some`]: example, },
             onChange,
             error,
             sx: yesNo ? undefined : { maxWidth: '11em' },
         }),
         !yesNo && h(StringField, {
-            label: "Domain to allow",
+            label: t`Domain to allow`,
             value,
             placeholder: 'example.com',
             onChange,
@@ -423,40 +508,11 @@ function WebdavAgentAuthField({ label, value, onChange, error, helperText, fallb
             h(SelectField as Field<boolean | string>, {
                 label, value, onChange, error,
                 'aria-describedby': helperId,
-                options: { "Off": false, "Always": true, "RegEx": lastRegex },
+                options: { [t`Off`]: false, [t`Always`]: true, [t`RegEx`]: lastRegex },
                 sx: isRE ? { maxWidth: '9em' } : undefined,
             }),
-            isRE && h(StringField, { label: "User-Agent regex", value, onChange, error }),
+            isRE && h(StringField, { label: t`User-Agent regex`, value, onChange, error }),
         ),
         h(FormHelperText, { id: helperId }, helperText),
     )
-}
-
-export async function suggestMakingCert() {
-    return new Promise(resolve => {
-        const { close } = newDialog({
-            icon: CardMembership,
-            title: "Get a certificate",
-            onClose: resolve,
-            Content: () => h(Box, { sx: { p: 1, lineHeight: 1.5 } },
-                h(Box, {}, "HTTPS needs a certificate to work."),
-                h(Box, {}, "We suggest you to ", h(InLink, { to: '/internet' }, "get a free but proper certificate"), '.'),
-                h(Box, {}, "If you don't have a domain ", h(LinkBtn, { onClick: makeCertAndSave }, "make a self-signed certificate"),
-                    " but that ", wikiLink('HTTPS#certificate', " won't be perfect"), '.' ),
-            )
-        })
-
-        async function makeCertAndSave() {
-            if (!window.crypto.subtle)
-                return alertDialog("Retry this procedure on localhost", 'warning')
-            const saved = await apiCall('make_self_signed_cert', { fileName: 'self' })
-            if (loaded) // when undefined we are not in this page
-                Object.assign(loaded, saved)
-            setTimeout(exposedReloadStatus!, 1000) // give some time for backend to apply
-            setTimeout(exposedReloadStatus!, 2000) // try again in case it's very slow
-            Object.assign(state.config, saved)
-            await alertDialog("Certificate saved", 'success')
-            close()
-        }
-    })
 }

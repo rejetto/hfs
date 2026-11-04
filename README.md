@@ -2,6 +2,10 @@
 
 ![logo and motto](hfs-logo-color-motto.svg)
 
+[Screenshots & video →](https://www.rejetto.com/hfs/#preview)
+
+<a href="https://www.rejetto.com/hfs/#preview"><img src="https://www.rejetto.com/hfs/images/hfs-files-desktop.png" alt="HFS file browser with upload, search and ZIP downloads — watch the video and view more screenshots" width="480"></a>
+
 ## Index
 
 - [Introduction](#introduction)
@@ -62,30 +66,33 @@ Runs on: Windows, Linux, macOS, FreeBSD, Android
 
 ## Installation
 
-For Docker, see https://github.com/rejetto/hfs/wiki/Docker . 
-
-For service installation, see https://github.com/rejetto/hfs/wiki/Service-installation.
-
-For Homebrew, just `brew install rejetto/hfs/hfs`
-
 The minimum Windows version required is 10 or Server 2019.
 
 1. Download the zip file for your operating system from https://github.com/rejetto/hfs/releases
-   - ⚠️ Antivirus problems on Windows? [READ THIS](https://github.com/rejetto/hfs/wiki/Antivirus)
-   - ⚠️ If you have Linux ARM or other unlisted/unsupported platforms, please see the [Other systems](#other-systems) section.
 2. Unzip and launch the `hfs` file.
-   - ⚠️ Mac: if you get *"cannot be opened because it is from an unidentified developer"*,
-     you can hold `control` key while clicking, then click `open`.
 3. The browser should automatically open at `localhost`, so you can configure the rest in the Admin-panel.
 
+For Docker, see https://github.com/rejetto/hfs/wiki/Docker.
+
+For service installation, see https://github.com/rejetto/hfs/wiki/Service-installation.
+
+For Homebrew, just `brew install rejetto/hfs/hfs`.
+
+If you your platform is not directly supported, please see the [Other systems](#other-systems) section.
+
 Troubleshooting
-   - If a browser cannot be opened on the computer where you are installing HFS, 
-     you should enter this command in the HFS console: `create-admin <PASSWORD>`
-   - If you cannot access the console (like when you are running as a service), 
-       you can [edit the config file to add your admin account](config.md#accounts)
-   - If you don't want to use an editor, you can create the file with this command: 
-     
-     `echo "create-admin: PASSWORD" > config.yaml` 
+  - If on your Mac you get *"cannot be opened because it is from an unidentified developer"*,
+    you can hold `control` key while clicking, then click `open`.
+  - If a browser cannot be opened on the computer where HFS runs, enter `create-admin <PASSWORD>` 
+    in the **running HFS console** (this is not an OS shell command), then log in as `admin` with that password.
+  - If you cannot access the HFS console (for example, when running as a service),
+    you can [edit the config file to add your admin account](config.md#accounts)
+  - If you don't want to use an editor, you can create the file with this command:
+    `echo "create-admin: PASSWORD" > config.yaml`
+  - For a new Docker installation, set `HFS_INITIAL_ADMIN_PASSWORD` to **only the password**, and log in as `admin`.
+    It is used only when creating `config.yaml`; afterwards, manage the password in HFS and keep the config volume persistent.
+    The older `HFS_CREATE_ADMIN` takes precedence when non-empty and, by default, reapplies its password at every container start.
+    See [Docker setup](https://github.com/rejetto/hfs/wiki/Docker).
 
 By default, HFS does not require a login when you access the *Admin-panel* from localhost.
 If you don't like this behavior, disable it in the Admin-panel or enter this console command `config localhost_admin false`.

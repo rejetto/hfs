@@ -2,14 +2,14 @@ import { CFG, prefix } from './misc'
 import { watchLoad } from './watchLoad'
 import { defineConfig } from './config'
 import Dict = NodeJS.Dict
-import { writeFile } from 'fs/promises'
 import { mapPlugins } from './plugins'
 import _ from 'lodash'
 
 const FILE = 'custom.html'
 
-export const customHtmlSections: ReadonlyArray<string> = ['style', 'script', 'beforeHeader', 'afterHeader', 'afterMenuBar', 'afterList',
-    'footer', 'top', 'bottom', 'afterEntryName', 'beforeLogin', 'unauthorized', 'htmlHead', 'userPanelAfterInfo']
+export const customHtmlSections: ReadonlyArray<string> = ['style', 'script', 'beforeHeader', 'afterHeader', 'afterMenuBar',
+    'footer', 'top', 'bottom', 'afterEntryName', 'beforeLogin', 'unauthorized', 'htmlHead', 'userPanelAfterInfo',
+    'afterList', 'beforeOptions', 'afterOptions']
 
 export const customHtml = watchLoadCustomHtml()
 export const disableCustomHtml = defineConfig(CFG.disable_custom_html, false)
@@ -47,9 +47,5 @@ export function getAllSections() {
 
 export async function saveCustomHtml(sections: Dict<string>) {
     const text = Object.entries(sections).filter(([k,v]) => v?.trim()).map(([k,v]) => `[${k}]\n${v}\n\n`).join('')
-    await writeFile(FILE, text)
-    customHtml.sections.clear()
-    for (const [k,v] of Object.entries(sections))
-        if (v)
-            customHtml.sections.set(k, v)
+    await customHtml.save(text, { reparse: true })
 }

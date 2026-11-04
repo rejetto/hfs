@@ -1,7 +1,6 @@
 {
     "author": "Soonthorn Srichomkwan",
     "version": 1.0,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "เลือก",
         "n_files": "{n} ไฟล์",
@@ -40,6 +39,7 @@
         "Password": "รหัสผ่าน",
         "login_untrusted": "การเข้าสู่ระบบถูกยกเลิก: ไม่สามารถเชื่อถือตัวตนของเซิร์ฟเวอร์ได้",
         "login_bad_credentials": "ข้อมูลรับรองความถูกต้องไม่ถูกต้อง",
+        "confirm_url_login": "ลิงก์นี้กำลังพยายามเข้าสู่ระบบให้คุณในชื่อ “{username}”",
         "login_bad_cookies": "คุกกี้ไม่ทำงาน - เข้าสู่ระบบล้มเหลว",
         "User panel": "แผงผู้ใช้",
         "Change password": "เปลี่ยนรหัสผ่าน",
@@ -102,6 +102,7 @@
         "upload_finished": "{n} เสร็จสิ้น ({size})",
         "upload_errors": "{n} ล้มเหลว",
         "upload_file_rejected": "บางไฟล์ไม่ได้รับการยอมรับ",
+        "delete_unfinished_upload": "ลบการอัปโหลดที่ยังไม่เสร็จหรือไม่?",
 
         "File menu": "เมนูไฟล์",
         "Folder menu": "เมนูโฟลเดอร์",
@@ -116,11 +117,13 @@
         "Timestamp": "แสดงเวลา",
         "Show": "แสดง",
         "Loading failed": "การโหลดล้มเหลว",
+        "Download limit reached": "ถึงขีดจำกัดการดาวน์โหลดแล้ว",
+        "Retry": "ลองอีกครั้ง",
         "Rename": "เปลี่ยนชื่อ",
         "Tiles mode:": "Tiles mode:",
         "off": "ปิด",
         "Operation successful": "การดำเนินงานประสบความสำเร็จ",
-        "Uploader": "โปรแกรมอัปโหลด",
+        "Uploader": "ผู้อัปโหลด",
         "Download counter": "ตัวนับการดาวน์โหลด",
         "Switch zoom mode": "สลับโหมดซูม",
         "Full screen": "เต็มหน้า",
@@ -191,6 +194,9 @@
         "No":  "ไม่",
         "esc_again": "กด ESC สองครั้งเพื่อปิด",
         "insufficient storage": "พื้นที่จัดเก็บไม่เพียงพอ",
-        "Account disabled": "บัญชีถูกปิดใช้งานแล้ว"
+        "Account disabled": "บัญชีถูกปิดใช้งานแล้ว",
+        "upload_name": "อัปโหลดด้วยชื่อใหม่",
+        "Uploading": "กำลังอัปโหลด",
+        "proxy_413": "ตรวจสอบขีดจำกัดนี้บนพร็อกซีเซิร์ฟเวอร์"
     }
 }

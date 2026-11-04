@@ -2,85 +2,123 @@
 
 import compress from 'koa-compress'
 import Koa from 'koa'
-import { API_URI, DEV } from './const'
-import { ALLOW_SESSION_IP_CHANGE, DAY, hasDirTraversal, isLocalHost, netMatches, splitAt, stream2string, try_, tryJson } from './misc'
-import { Readable } from 'stream'
+import { API_URI, DEV, HTTP_TEMPORARY_REDIRECT_KEEP_METHOD, HTTP_UNAUTHORIZED } from './const'
+import { ALLOW_SESSION_IP_CHANGE, CFG, DAY, escapeHTML, hasDirTraversal, isLocalHost, netMatches, normalizeHost, normalizeIp, readRequestBodyLimited, splitAt, try_, tryJson } from './misc'
 import { applyBlock } from './block'
-import { Account, accountCanLogin, accounts, getAccount, getFromAccount, normalizeUsername } from './perm'
-import { Connection, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
-import { clearTextLogin, invalidateSessionBefore, setLoggedIn } from './auth'
+import { Account, accountCanLogin, accounts, getAccount, getFromAccount } from './perm'
+import { Connection, socket2connection, updateConnectionForCtx } from './connections'
+import { clearTextLogin, setLoggedIn } from './auth'
+import { getSessionStamp } from './sessionStamp'
 import { constants } from 'zlib'
-import { getHttpsWorkingPort } from './listen'
+import { baseUrl, getHttpsWorkingPort } from './listen'
+import { roots } from './roots'
+import { isIP } from 'node:net'
 import { defineConfig } from './config'
 import session from 'koa-session'
 import { app } from './index'
 import events from './events'
+import { randomUUID } from 'node:crypto'
+import { getLangData } from './lang'
+import { i18nFromTranslations } from './i18n'
 
-const forceHttps = defineConfig('force_https', true)
-defineConfig('ignore_proxies', false)
-const allowAuthorizationHeader = defineConfig('authorization_header', true)
-export const sessionDuration = defineConfig('session_duration', Number(process.env.SESSION_DURATION) || DAY/1000,
+const forceHttps = defineConfig(CFG.force_https, true)
+defineConfig(CFG.ignore_proxies, false)
+const allowAuthorizationHeader = defineConfig(CFG.authorization_header, true)
+export const sessionDuration = defineConfig(CFG.session_duration, Number(process.env.SESSION_DURATION) || DAY/1000,
     v => v * 1000)
 
+// plugins can use ctx.compress: false disables compression, true bypasses the MIME filter, an object overrides per-response options; object overrides still use the MIME filter and replace each encoding's options, so preserve flush for SSE
 export const gzipper = compress({
     threshold: 2048,
     gzip: { flush: constants.Z_SYNC_FLUSH }, // flush is necessary for SSE, at least in Chrome145
     deflate: { flush: constants.Z_SYNC_FLUSH },
     zstd: { flush: constants.Z_SYNC_FLUSH },
     br: false, // disable brotli
-    filter(type) {
-        return /text|javascript|style/i.test(type)
-    },
+    filter: type=> /^text|javascript$|wasm$|xml$|json$|ttf$|otf$/i.test(type),
 })
-
-export const headRequests: Koa.Middleware = async (ctx, next) => {
-    const head = ctx.method === 'HEAD'
-    if (head)
-        ctx.method = 'GET' // let other middlewares work, so we can collect the size at the end
-    await next()
-    if (!head || ctx.body === undefined) return
-    const { length, status } = ctx.response
-    if (ctx.body)
-        ctx.body = Readable.from('') // empty the body for this is a HEAD request. Using Readable avoids koa from trying to set length to 0
-    ctx.status = status
-    if (length)
-        ctx.response.length = length
-}
 
 let proxyDetected: undefined | Koa.Context
 export let cloudflareDetected: undefined | Date
 export const someSecurity: Koa.Middleware = (ctx, next) => {
-    const ss = ctx.session
-    if (ss?.username && !ss?.[ALLOW_SESSION_IP_CHANGE])
-        if (!ss.ip)
-            ss.ip = ctx.ip
-        else if (ss.ip !== ctx.ip) {
-            delete ss.username
-            ss.ip = ctx.ip
-        }
+    enforceSessionIp(ctx)
 
-    if (!ctx.state.skipFilters && applyBlock(ctx.socket, ctx.ip))
-        return
     const decodedPath = try_(() => decodeURI(ctx.path))
     if (!decodedPath || hasDirTraversal(decodedPath))
         return
 
-    if (ctx.get('X-Forwarded-For')
-    // we have some dev-proxies to ignore
-    && !(DEV && [process.env.FRONTEND_PROXY, process.env.ADMIN_PROXY].includes(ctx.get('X-Forwarded-port')))) {
-        proxyDetected = ctx
-        ctx.state.whenProxyDetected = new Date()
-    }
     if (ctx.get('cf-ray'))
         cloudflareDetected = new Date()
     if (!ctx.secure && forceHttps.get() && getHttpsWorkingPort() && !isLocalHost(ctx)) {
         const { URL } = ctx
         URL.protocol = 'https'
         URL.port = getHttpsWorkingPort()
-        ctx.status = 307 // this ensures the client doesn't switch to a simpler GET request
+        ctx.status = HTTP_TEMPORARY_REDIRECT_KEEP_METHOD // this ensures the client doesn't switch to a simpler GET request
         return ctx.redirect(URL.href)
     }
+    const page = ctx.state.urlLoginPage
+    if (page) return sendUrlLoginPage(page.cleanUrl, page.username)
     return next()
+
+    function sendUrlLoginPage(cleanUrl: string, username?: string) {
+        return sendPage(ctx, username === undefined ? 'login_bad_credentials' : 'Confirm', t => {
+            if (username === undefined)
+                return `<script>history.replaceState(null,'',location.pathname)</script>
+                    <p><a href="${escapeHTML(cleanUrl)}">${escapeHTML(t('Continue'))}</a></p>`
+            const token = randomUUID()
+            ;(ctx.session ??= {} as session.Session).urlLoginConfirmation = { // account validation may have cleared the previous session before rendering this page
+                token,
+                username,
+                expires: Date.now() + 5 * 60_000,
+            }
+            return `<p>${escapeHTML(t('confirm_url_login', { username }))}</p>
+                <p><strong><a class="confirm" href="${escapeHTML(cleanUrl)}">${escapeHTML(t('Continue'))}</a></strong>
+                <a href="${escapeHTML(cleanUrl)}">${escapeHTML(t('Cancel'))}</a></p>
+                <script>
+                    const loginUrl=new URL(location.href);
+                    history.replaceState(null,'',loginUrl.pathname);
+                    document.querySelector('.confirm').onclick=ev=>{ev.preventDefault();loginUrl.searchParams.set('login_confirm','${token}');location.replace(loginUrl)}
+                </script>`
+        })
+    }
+}
+
+type Translator = ReturnType<typeof i18nFromTranslations>['t']
+
+async function sendPage(ctx: Koa.Context, titleKey: string, content: (t: Translator) => string) {
+    const { t } = i18nFromTranslations(await getLangData(ctx))
+    const title = t(titleKey)
+    ctx.status = 200
+    ctx.type = 'html'
+    ctx.set('cache-control', 'no-store')
+    ctx.set('referrer-policy', 'no-referrer')
+    ctx.set('content-security-policy', "frame-ancestors 'none'")
+    ctx.set('x-frame-options', 'DENY')
+    ctx.body = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>${escapeHTML(title)}</title><style>
+        body{margin-top:30vh;text-align:center;font-family:sans-serif}a{margin:1em}
+        </style></head><body><h1>${escapeHTML(title)}</h1>${content(t)}</body></html>`
+}
+
+export const prepareConnection: Koa.Middleware = (ctx, next) => {
+    // normalize once so auth, filters and logging agree on the same client address
+    ctx.request.ip = normalizeIp(ctx.ip)
+    ctx.state.connection = socket2connection(ctx.socket)!
+    updateConnectionForCtx(ctx)
+    return next()
+}
+
+export const blockFilter: Koa.Middleware = (ctx, next) =>
+    !ctx.state.skipFilters && applyBlock(ctx.socket, ctx.ip) || next()
+
+function enforceSessionIp(ctx: Koa.Context) {
+    const s = ctx.session
+    if (!s?.username || s[ALLOW_SESSION_IP_CHANGE]) return
+    if (!s.ip)
+        s.ip = ctx.ip
+    else if (s.ip !== ctx.ip) {
+        delete s.username
+        s.ip = ctx.ip
+    }
 }
 
 // limited to http proxies
@@ -91,42 +129,102 @@ export function getProxyDetected() {
 }
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {
-    // normalize once so auth, filters and logging agree on the same client address
-    ctx.request.ip = normalizeIp(ctx.ip)
+    ctx.state.getOrHead = ctx.method === 'GET' || ctx.method === 'HEAD'
+    // invalidate before account resolution; someSecurity calls again to bind logins made below
+    enforceSessionIp(ctx)
+    // rootsMiddleware consults proxy-aware admin access before someSecurity runs
+    if (ctx.get('X-Forwarded-For')
+    // we have some dev-proxies to ignore
+    && !(DEV && [process.env.FRONTEND_PROXY, process.env.ADMIN_PROXY].includes(ctx.get('X-Forwarded-port')))) {
+        proxyDetected = ctx
+        ctx.state.whenProxyDetected = new Date()
+    }
+    ctx.state.safeUrl = ctx.originalUrl
+    if (ctx.query.login) {
+        const query = new URLSearchParams(ctx.querystring)
+        query.set('login', '...')
+        ctx.state.safeUrl = `${ctx.path}?${query}`
+    }
     const s = ctx.session
     if (s?.username) {
-        if (s.ts < invalidateSessionBefore.get(s?.username)!)
+        const account = getAccount(s.username, false)
+        if (!account || !s.stamp || s.stamp !== getSessionStamp(s.username)) {
             delete s.username
+            delete s.stamp
+        }
         s.maxAge = sessionDuration.compiled()
     }
-    // calculate these once and for all
-    ctx.state.connection = socket2connection(ctx.socket)!
     // explicit credentials and existing sessions must take precedence, so a matching IP cannot override a chosen account
-    let a = await urlLogin() || await getHttpAccount() || !s?.username && autoLogin()
+    let via: 'url' | 'header' | 'net' | undefined
+    const urlAccount = await urlLogin()
+    let a = ctx.state.urlLoginPage ? undefined
+        : urlAccount || await getHttpAccount() || !s?.username && autoLogin()
     const loggedInNotBySession = a
     ctx.state.account = a ||= getAccount(s?.username, false) // with least precedence, we consider session
     if (a)
-        if (!accountCanLogin(a) || failAllowNet(ctx, a)) // enforce allow_net also after login
+        if (!accountCanLogin(a) || failAllowNet(ctx, a)) { // enforce allow_net also after login
             await setLoggedIn(ctx, false)
+            ctx.session = {} as session.Session // downstream handlers still need an anonymous session after the rejected identity is cleared
+        }
         else if (loggedInNotBySession) {
-            if (a.username)
-            await setLoggedIn(ctx, a.username)
+            try {
+                if (a.username)
+                    await setLoggedIn(ctx, a.username, via)
+            }
+            catch (e) {
+                events.emit('failedLogin', { ctx, username: a.username, via: ctx.query.login ? 'url' : ctx.get('authorization') ? 'header' : undefined })
+                ctx.status = HTTP_UNAUTHORIZED
+                ctx.body = e instanceof Error ? e.message : String(e)
+                return
+            }
             ctx.headers['x-username'] = a.username // give an easier way to determine if the login was successful
         }
 
     ctx.state.revProxyPath = ctx.get('x-forwarded-prefix')
-    updateConnectionForCtx(ctx)
+    updateConnectionForCtx(ctx) // publish the resolved account after the initial pre-auth connection update
     await next()
 
-    function urlLogin() {
+    async function urlLogin() {
+        via = 'url'
         const { login }  = ctx.query
         if (!login) return
         const [u, p] = splitAt(':', String(login))
-        ctx.redirect(ctx.originalUrl.slice(0, -ctx.querystring.length-1)) // redirect to hide credentials
-        return u && clearTextLogin(ctx, u, p, 'url')
+        const cleanUrl = ctx.originalUrl.slice(0, -ctx.querystring.length-1)
+        const token = String(ctx.query.login_confirm || '')
+        const pending = s?.urlLoginConfirmation
+        const confirmed = Boolean(token && pending?.token === token && pending.username === u
+            && pending.expires > Date.now())
+        if (token && s)
+            delete s.urlLoginConfirmation // confirmation tokens are single-use, including failed attempts
+        if (!confirmed && needsConfirmation(u)) {
+            ctx.state.urlLoginPage = { username: u, cleanUrl }
+            return
+        }
+        if (s)
+            delete s.urlLoginConfirmation
+        const account = u && await clearTextLogin(ctx, u, p, 'url')
+        if (!account && confirmed)
+            ctx.state.urlLoginPage = { cleanUrl }
+        else
+            ctx.redirect(cleanUrl) // redirect to hide credentials
+        return account
+
+        function needsConfirmation(username: string) {
+            if (ctx.get('sec-fetch-mode') !== 'navigate' && !/^Mozilla\//.test(ctx.get('user-agent')))
+                return false
+            const current = s?.username
+            if (current)
+                return getAccount(username)?.username !== getAccount(current)?.username
+            const fetchSite = ctx.get('sec-fetch-site')
+            if (fetchSite)
+                return fetchSite === 'same-site' || fetchSite === 'cross-site'
+            const referer = ctx.get('referer')
+            return !referer || try_(() => new URL(referer).host.toLowerCase() !== ctx.host.toLowerCase(), () => true)
+        }
     }
 
     function getHttpAccount() {
+        via = 'header'
         const b64 = allowAuthorizationHeader.get() && ctx.get('authorization')?.split(' ')[1]
         if (!b64) return
         try {
@@ -138,6 +236,15 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     }
 
     function autoLogin() {
+        const host = ctx.host.toLowerCase()
+        const hostname = normalizeHost(host)
+        // a rebinding page uses the victim's real IP, but retains the attacker's hostname
+        if (hostname !== 'localhost' && !isIP(hostname)
+            // URL normalization matches browsers' default-port removal and internationalized domain names
+            && host !== (baseUrl.get() && try_(() => new URL(baseUrl.get()).host.toLowerCase()))
+            && roots.compiled()(host) === undefined)
+            return
+        via = 'net'
         // keep the mask direct so group inheritance cannot make identity depend on account order
         return Object.values(accounts.get()).find(a =>
             accountCanLogin(a) && a.auto_login_net && netMatches(ctx.ip, a.auto_login_net, true))
@@ -145,12 +252,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
 }
 
 export function failAllowNet(ctx: Koa.Context, a: Account | undefined) {
-    // a cached mask is valid only for the identity that stored it
-    const sameAccount = ctx.session?.username === normalizeUsername(a?.username || '')
-    const cached = sameAccount ? ctx.session?.allowNet : undefined
-    const mask = cached ?? getFromAccount(a || '', a => a.allow_net)
-    if (sameAccount && !cached && mask)
-        ctx.session.allowNet = mask // must be deleted on logout by setLoggedIn
+    const mask = getFromAccount(a || '', a => a.allow_net)
     const ret = mask && !netMatches(ctx.ip, mask, true)
     if (ret)
         console.debug("Login failed: allow_net")
@@ -160,15 +262,28 @@ export function failAllowNet(ctx: Koa.Context, a: Account | undefined) {
 declare module "koa" {
     interface DefaultState {
         params: Record<string, any>
+        getOrHead: boolean
         account?: Account // user logged in
         revProxyPath: string // must not have final slash
+        safeUrl: string // url with credentials removed
         connection: Connection
         whenProxyDetected?: Date
+        urlLoginPage?: { cleanUrl: string, username?: string }
+    }
+}
+
+declare module "koa-session" {
+    interface Session {
+        urlLoginConfirmation?: { token: string, username: string, expires: number }
+        stamp?: string
     }
 }
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
-    ctx.state.params = ctx.method === 'POST' && ctx.originalUrl.startsWith(API_URI)
-        && (tryJson(await stream2string(ctx.req)) || {})
+    if (ctx.method !== 'POST' || !ctx.originalUrl.startsWith(API_URI))
+        return next()
+    const body = await readRequestBodyLimited(ctx, 10 * 1024 * 1024)
+    if (!body) return
+    ctx.state.params = tryJson(body.text) || {}
     await next()
 }
 

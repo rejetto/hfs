@@ -1,7 +1,6 @@
 {
     "author": "Eidy Estupiñan Varona, Arturo Fernández Rivas",
     "version": 1.3,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Seleccionar",
         "n_files": "{n,plural,one{# archivo} other {# archivos}}",
@@ -40,6 +39,7 @@
         "Password": "Contraseña",
         "login_untrusted": "Acceso cancelado: la identidad del servidor no es confiable",
         "login_bad_credentials": "Credenciales no válidas",
+        "confirm_url_login": "Este enlace está intentando iniciar sesión como «{username}»",
         "login_bad_cookies": "Las Cookies no funcionan - acceso fallido",
         "User panel": "Panel de usuario",
         "Change password": "Cambiar contraseña",
@@ -102,6 +102,7 @@
         "upload_finished": "{n} completado ({size})",
         "upload_errors": "{n} fallido",
         "upload_file_rejected": "Algunos archivos no fueron aceptados",
+        "delete_unfinished_upload": "¿Eliminar la subida sin terminar?",
 
         "File menu": "Archivo",
         "Folder menu": "Carpeta",
@@ -116,6 +117,8 @@
         "Timestamp": "Fecha - Hora",
         "Show": "Visualizar",
         "Loading failed": "Carga fallida",
+        "Download limit reached": "Límite de descargas alcanzado",
+        "Retry": "Reintentar",
         "Rename": "Renombrar",
         "Tiles mode:": "Cantidad elementos",
         "off": "Apagado",
@@ -140,8 +143,8 @@
         "in_queue": "{n} en cola",
         "enter_comment": "Descripción para {name}",
         "Comment": "Descripción",
-        "upload_dd_hint": "Puede cargar archivos arrastrando y soltando en la lista de archivos",
-        "Upload not available": "Carga no disponible",
+        "upload_dd_hint": "Puede subir archivos arrastrándolos y soltándolos en la lista de archivos",
+        "Upload not available": "Subida no disponible",
         "Cut": "Cortar",
         "n_items": "{n,plural, one{# elemento} other{# elementos}}",
         "move_results": "{good} movido, {bad} fallado",
@@ -195,6 +198,9 @@
         "No":  "No",
         "esc_again": "Presione ESC dos veces para cerrar",
         "insufficient storage": "almacenamiento insuficiente",
-        "Account disabled": "Cuenta deshabilitada"
+        "Account disabled": "Cuenta deshabilitada",
+        "upload_name": "Subir con nuevo nombre",
+        "Uploading": "Subiendo",
+        "proxy_413": "Verifique este límite en el servidor proxy"
     }
 }

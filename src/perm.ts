@@ -1,12 +1,13 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from 'lodash'
-import { objRenameKey, setHidden, typedEntries, wantArray } from './misc'
-import { defineConfig, saveConfigAsap } from './config'
+import { CFG, objRenameKey, setHidden, typedEntries, wantArray } from './misc'
+import { configReady, defineConfig, saveConfigAsap } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
 import { getCurrentUsername } from './auth'
 import Koa from 'koa'
+import { renewSessionStamp, sessionStampsReady, syncSessionStamps } from './sessionStamp'
 
 // for all the Account fields, falsy values must be equivalent to undefined. If this changes in the future, please adjust addAccount and setAccount
 export interface Account {
@@ -31,16 +32,7 @@ interface Accounts { [username:string]: Account }
 
 // provides the username and all other usernames it inherits based on the 'belongs' attribute. Useful to check permissions
 export function expandUsername(who: string) {
-    const ret = new Set<string>()
-    const q = [who]
-    for (const u of q) {
-        const a = getAccount(u)
-        if (!a || a.disabled) continue
-        ret.add(u)
-        if (a.belongs)
-            q.push(...a.belongs)
-    }
-    return ret
+    return new Set(Array.from(walkActiveAccounts([who]), a => a.username))
 }
 
 // check if current username or any ancestor match the provided usernames
@@ -56,19 +48,25 @@ export function getUsernames() {
 export function getAccount(username:string, normalize=true) : Account | undefined {
     if (normalize)
         username = normalizeUsername(username)
-    return username ? accounts.get()[username] : undefined
+    const all = accounts.get()
+    return username && Object.hasOwn(all, username) ? all[username] : undefined
 }
 
 export function saveSrpInfo(account:Account, salt:string | bigint, verifier: string | bigint) {
     account.srp = String(salt) + '|' + String(verifier)
 }
 
-const createAdminConfig = defineConfig('create-admin', '')
+const createAdminConfig = defineConfig(CFG['create-admin'], '')
 createAdminConfig.sub(v => {
     if (!v) return
     createAdminConfig.set('')
-    // we can't createAdmin right away, as its changes will be lost after return, when our caller (setConfig) applies undefined properties. setTimeout is good enough, as the process is sync.
-    setTimeout(() => createAdmin(v))
+    // creating admin inside this subscriber can lose the account when setConfig later applies accounts or its default
+    // configReady waits for the full async startup; a timer alone cannot guarantee that defaults have been applied
+    // the timer keeps creation deferred on reloads, when configReady is already resolved, but does not await async reloads
+    setTimeout(async () => {
+        await configReady
+        await createAdmin(v)
+    })
 })
 
 export async function createAdmin(password: string, username='admin') {
@@ -80,14 +78,20 @@ const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 
 type Changer = (account:Account)=> void | Promise<void>
 export async function updateAccount(account: Account, change: Partial<Account> | Changer) {
+    await sessionStampsReady
     const jsonWas = JSON.stringify(account)
     const { username: usernameWas } = account
     if (typeof change === 'function')
         await change?.(account)
     else {
         const u = normalizeUsername(change.username || '')
-        if (u && u !== usernameWas && getAccount(u))
-            throw "username already exists"
+        if (!u || isPrototypeKey(u))
+            delete change.username
+        else {
+            if (u !== usernameWas && getAccount(u))
+                throw "username already exists"
+            change.username = u
+        }
         Object.assign(account, _.mapValues(change, x => x || undefined))
     }
     for (const [k,v] of typedEntries(account))
@@ -102,7 +106,7 @@ export async function updateAccount(account: Account, change: Partial<Account> |
     if (account.belongs) {
         account.belongs = wantArray(account.belongs)
         _.remove(account.belongs, b => {
-            if (accounts.get().hasOwnProperty(b)) return
+            if (Object.hasOwn(accounts.get(), b)) return
             console.error(`Account ${username} belongs to non-existing ${b}`)
             return true
         })
@@ -116,13 +120,38 @@ export async function updateAccount(account: Account, change: Partial<Account> |
         saveAccountsAsap()
 }
 
-const saveAccountsAsap = saveConfigAsap
+function reconcileAccountSessions() {
+    syncSessionStamps(_.mapKeys(accounts.get(), (_account, username) => normalizeUsername(username)))
+}
 
-export const accounts = defineConfig('accounts', {} as Accounts)
+function saveAccountsAsap() {
+    // API callers need the updated stamp before preserving their own session in the response
+    reconcileAccountSessions()
+    saveConfigAsap()
+}
+
+export function invalidateAccountSessions(account: Account | string) {
+    const found = typeof account === 'string' ? getAccount(account) : account
+    if (!found) return false
+    renewSessionStamp(found.username)
+    return true
+}
+
+export const accounts = defineConfig(CFG.accounts, {} as Accounts)
+accounts.sub(async () => {
+    await sessionStampsReady
+    // do not debounce: removing and recreating a username must not be coalesced into one change
+    reconcileAccountSessions()
+})
 accounts.sub(_.debounce(obj => {
     // consider some validation here, in case of manual edit of the config
     _.each(obj, (rec,k) => {
         const norm = normalizeUsername(k)
+        if (isPrototypeKey(norm)) {
+            delete obj[k]
+            saveAccountsAsap()
+            return
+        }
         if (rec?.username !== norm) {
             if (!rec) // an empty object in yaml is parsed as null
                 rec = obj[norm] = { username: norm }
@@ -162,11 +191,15 @@ export function normalizeUsername(username: string) {
     return username.toLocaleLowerCase()
 }
 
+function isPrototypeKey(username: string) {
+    return username === '__proto__' || username === 'constructor'
+}
+
 export function renameAccount(from: string, to: string) {
     from = normalizeUsername(from)
     const as = accounts.get()
     to = normalizeUsername(to)
-    if (!to || !as[from] || as[to])
+    if (!to || isPrototypeKey(to) || !Object.hasOwn(as, from) || Object.hasOwn(as, to))
         return false
     if (to === from)
         return true
@@ -186,33 +219,47 @@ export function renameAccount(from: string, to: string) {
 
 export function addAccount(username: string, props: Partial<Account>, updateExisting=false) {
     username = normalizeUsername(username)
-    if (!username) return
+    if (!username || isPrototypeKey(username)) return
     let account = getAccount(username, false)
     if (account && !updateExisting) return
     account = setHidden(account || {}, { username })  // hidden so that stringification won't include it
-    Object.assign(account, _.pickBy(props, Boolean))
     accounts.set(was =>
         Object.assign(was, { [username]: account }))
-    return updateAccount(account, account).then(() => account!)
+    return updateAccount(account, _.pickBy(props, Boolean)).then(() => account!)
 }
 
 export function delAccount(username: string) {
     if (!getAccount(username))
         return false
-    accounts.set(was => _.omit(was, normalizeUsername(username)) )
+    username = normalizeUsername(username)
+    accounts.set(was => _.omit(was, username) )
     saveAccountsAsap()
     return true
 }
 
 // get some property from account, searching in its groups if necessary. Search is breadth-first, and this determines priority of inheritance.
 export function getFromAccount<T=any>(account: Account | string, getter:(a:Account) => T) {
-    const search = [account]
-    for (const accountOrUsername of search) {
-        const a = typeof accountOrUsername === 'string' ? getAccount(accountOrUsername) : accountOrUsername
-        if (!a) continue
-        const res = getter(a)
+    const root = typeof account === 'string' ? getAccount(account) : account
+    if (!root) return
+    let res = getter(root) // always consider direct properties; only inherited groups are filtered by active status
+    if (res !== undefined)
+        return res
+    for (const a of walkActiveAccounts(root.belongs || [])) {
+        res = getter(a)
         if (res !== undefined)
             return res
+    }
+}
+
+function* walkActiveAccounts(roots: (Account | string)[]) {
+    const search = [...roots]
+    const visited = new Set<string>()
+    for (const accountOrUsername of search) {
+        const a = typeof accountOrUsername === 'string' ? getAccount(accountOrUsername) : accountOrUsername
+        if (!a || visited.has(a.username)) continue
+        visited.add(a.username)
+        if (accountIsDisabled(a)) continue
+        yield a
         if (a.belongs)
             search.push(...a.belongs)
     }
@@ -231,10 +278,24 @@ export function accountCanLogin(account: Account) {
 }
 
 export function accountIsDisabled(account: Account): boolean {
-    return Boolean(account.disabled
-        || account.expire as any < Date.now()
-        || account.belongs?.length // don't every() on empty array, as it returns true
-        && account.belongs.map(u => getAccount(u, false)).every(a => a && accountIsDisabled(a)) )
+    return check(account, new Set())
+
+    function check(account: Account, visiting: Set<string>): boolean {
+        if (account.disabled || account.expire as any < Date.now())
+            return true
+        if (!account.belongs?.length)
+            return false
+        // consider invalid membership cycles disabled so they cannot grant privileges
+        if (visiting.has(account.username))
+            return true
+        visiting.add(account.username)
+        const ret = account.belongs.every(u => {
+            const a = getAccount(u, false)
+            return Boolean(a && check(a, visiting))
+        })
+        visiting.delete(account.username)
+        return ret
+    }
 }
 
 export function accountCanLoginAdmin(account: Account) {

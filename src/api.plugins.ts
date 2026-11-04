@@ -4,22 +4,23 @@ import {
     InactivePlugin, enablePlugins, getInactivePlugins, getPluginConfigFields, mapPlugins, Plugin, pluginsConfig,
     PATH as PLUGINS_PATH, enablePlugin, getPluginInfo, setPluginConfig, isPluginRunning, pluginsScanned,
     stopPlugin, startPlugin, CommonPluginInterface, getMissingDependencies, findPluginByRepo, suspendPlugins,
+    firstPlugin,
 } from './plugins'
 import _ from 'lodash'
-import assert from 'assert'
 import { apiAssertTypes, HTTP_CONFLICT, HTTP_PRECONDITION_FAILED, newObj, waitFor } from './misc'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { rm } from 'fs/promises'
 import {
-    downloadPlugin, getFolder2repo, readOnlineCompatiblePlugin, readOnlinePlugin, searchPlugins, downloading
+    downloadPlugin, getFolder2repo, readOnlineCompatiblePlugin, readOnlinePlugin, downloading
 } from './github'
 import { HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './const'
 import { SendListReadable } from './SendList'
+import { getPluginCatalog, searchPluginCatalog } from './pluginCatalog'
 
 const apis: ApiHandlers = {
 
-    get_plugins({}, ctx) {
-        const list = new SendListReadable({ addAtStart: [ ...mapPlugins(serialize, false), ...getInactivePlugins().map(serialize) ] })
+    get_plugins({ skipInitial }, ctx) {
+        const list = new SendListReadable({ addAtStart: skipInitial ? [] : [ ...mapPlugins(serialize, false), ...getInactivePlugins().map(serialize) ] })
         return list.events(ctx, {
             pluginInstalled: p => list.add(serialize(p)),
             'pluginStarted pluginStopped pluginUpdated': p => {
@@ -31,7 +32,7 @@ const apis: ApiHandlers = {
         })
     },
 
-    async get_plugin_updates({}, ctx) {
+    async get_plugin_updates({ skipInitial }, ctx) {
         return new SendListReadable({
             async doAtStart(list) {
                 const errs: any = {}
@@ -43,6 +44,7 @@ const apis: ApiHandlers = {
                         list.update({ id }, { updated: true })
                     }
                 })
+                if (skipInitial) return list.ready()
                 await pluginsScanned
                 await Promise.allSettled(_.map(getFolder2repo(), async (repo, folder) => {
                     try {
@@ -74,11 +76,13 @@ const apis: ApiHandlers = {
     async start_plugin({ id }) {
         assertPluginId(id)
         if (isPluginRunning(id))
-            return { msg: 'already running' }
+            return serializeRunningPlugin(id)
         if (suspendPlugins.get())
             return new ApiError(HTTP_PRECONDITION_FAILED, 'all plugins suspended')
         await stopPlugin(id)
-        return startPlugin(id).then(() => ({}), e => new ApiError(HTTP_SERVER_ERROR, e.message))
+        try { await startPlugin(id) }
+        catch(e: any) { return new ApiError(HTTP_SERVER_ERROR, e.message) }
+        return serializeRunningPlugin(id)
     },
 
     async stop_plugin({ id }) {
@@ -109,38 +113,58 @@ const apis: ApiHandlers = {
         }
     },
 
-    get_online_plugins({ text }, ctx) {
+    get_online_plugins({ text, skipInitial }, ctx) {
         if (text !== undefined && !_.isString(text))
             return new ApiError(HTTP_BAD_REQUEST, 'bad text')
         return new SendListReadable({
             async doAtStart(list) {
+                // resumed clients retain their own rows; updates for other repos are ignored by useApiList
                 const repos = [] as string[]
                 list.events(ctx, {
                     pluginInstalled: p => {
-                        if (repos.includes(p.repo))
+                        if (skipInitial || repos.includes(p.repo))
                             list.update({ id: p.repo }, { installed: true })
                     },
                     pluginUninstalled: (_folder, repo) => {
                         if (typeof repo !== 'string') return // custom repo
-                        if (repos.includes(repo))
+                        if (skipInitial || repos.includes(repo))
                             list.update({ id: repo }, { installed: false })
                     },
                     pluginDownload({ repo, status }) {
-                        if (repos.includes(repo))
+                        if (skipInitial || repos.includes(repo))
                             list.update({ id: repo }, { downloading: status ?? null })
                     }
                 })
+                if (skipInitial) return list.ready()
+                let updatedAt: number | undefined
+                let previous = new Map<string, object>()
                 try {
-                    const already = Object.values(getFolder2repo()).filter(Boolean).map(String)
-                    for await (const pl of await searchPlugins(text, { skipRepos: already })) {
+                    for await (const snapshot of getPluginCatalog()) {
+                        const already = Object.values(getFolder2repo()).filter(Boolean).map(String)
+                        const plugins = await searchPluginCatalog(snapshot, text, already)
                         if (ctx.isAborted()) return
-                        const repo = pl.repo || pl.id // .repo property can be more trustworthy in case github user renamed and left the previous link in 'repo'
-                        const missing = getMissingDependencies(pl)
-                        if (missing.length) pl.missing = missing
-                        list.add(pl)
-                        repos.push(repo)
+                        const rows = plugins.map(pl => {
+                            const missing = getMissingDependencies(pl)
+                            return { ...pl, missing: missing.length ? missing : null, downloading: downloading[pl.repo] ?? null }
+                        })
+                        // reconcile snapshots without dropping selection or retaining obsolete optional metadata
+                        for (const id of previous.keys())
+                            if (!rows.some(row => row.id === id)) list.remove({ id })
+                        for (const row of rows) {
+                            const old = previous.get(row.id)
+                            if (old)
+                                list.update({ id: row.id }, { ..._.mapValues(old, () => null), ..._.mapValues(row, value => value ?? null) })
+                            else
+                                list.add(row)
+                        }
+                        previous = new Map(rows.map(row => [row.id, row]))
+                        repos.splice(0, repos.length, ...rows.map(row => row.repo))
+                        updatedAt = snapshot.updatedAt
+                        list.props({ updatedAt, refreshing: snapshot.refreshing })
+                        list.ready()
                     }
                 } catch (err: any) {
+                    list.props({ updatedAt, refreshing: false })
                     list.error(err.code || err.message)
                 }
                 list.ready()
@@ -173,6 +197,8 @@ const apis: ApiHandlers = {
 
     async uninstall_plugin({ id, deleteConfig }) {
         assertPluginId(id)
+        if (!getPluginInfo(id))
+            return new ApiError(HTTP_NOT_FOUND)
         await stopPlugin(id)
         await rm(PLUGINS_PATH + '/' + id,  { recursive: true, force: true })
         if (deleteConfig)
@@ -180,12 +206,12 @@ const apis: ApiHandlers = {
         return {}
     },
 
-    get_plugin_log({ id }, ctx) {
+    get_plugin_log({ id, skipInitial }, ctx) {
         assertPluginId(id)
         const p = getPluginInfo(id)
         if (!p)
             return new ApiError(HTTP_NOT_FOUND)
-        const list = new SendListReadable({ addAtStart: p.log })
+        const list = new SendListReadable({ addAtStart: skipInitial ? [] : p.log })
         return list.events(ctx, {
             ['pluginLog:' + id]: x => list.add(x)
         })
@@ -208,6 +234,11 @@ function serialize(p: Readonly<Plugin> | InactivePlugin) {
     o.config &&= _.isFunction(o.config) ? String(o.config)
         : JSON.stringify(o.config, (_k, v) => _.isFunction(v) ? String(v) : v) // allow simple functions
     return _.defaults(o, { started: null, badApi: null }) // nulls should be used to be sure to overwrite previous values,
+}
+
+function serializeRunningPlugin(id: string) {
+    const plugin = firstPlugin((plugin, pluginId) => pluginId === id ? plugin : undefined)
+    return plugin ? serialize(plugin) : new ApiError(HTTP_SERVER_ERROR)
 }
 
 export async function checkDependencies(plugin: CommonPluginInterface) {

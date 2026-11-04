@@ -2,7 +2,7 @@
 
 import events from './events'
 import {
-    httpString, httpStream, unzip, AsapStream, debounceAsync, retry, popKey, onlyTruthy, waitFor, HOUR, DAY, tryJson
+    httpString, httpStream, unzip, debounceAsync, retry, popKey, onlyTruthy, waitFor, HOUR, DAY, tryJson
 } from './misc'
 import {
     DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getInactivePlugins, getPluginInfo, isPluginRunning, mapPlugins,
@@ -124,17 +124,19 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
             if (wasRunning)
                 await stopPlugin(folder) // stop old
             // move data, and consider late release of the resource, up to a few seconds
-            await retry(() => rename(join(installPath, STORAGE_FOLDER), join(tempInstallPath, STORAGE_FOLDER))
-                .then(() => 1, e => e.code === 'ENOENT'))
+            await retry(() => rename(join(installPath, STORAGE_FOLDER), join(tempInstallPath, STORAGE_FOLDER)).catch(e => {
+                if (e.code !== 'ENOENT')
+                    throw e
+            }))
             // delete old folder (if any), but it may fail in the presence of .node files, so we rename it first as a precaution (clearing require.cache doesn't help). Especially on Windows, it may be impossible to delete dll files until our process is terminated (in which case, retrying is useless).
             const deleteMe = installPath + DELETE_ME_SUFFIX
-            await retry(() => rename(installPath, deleteMe).then(() => 1, (e: any) => {
-                if (e.code === 'ENOENT') return 1 // nothing to do
-                console.warn("Error renaming old plugin folder:", String(e))
+            await retry(() => rename(installPath, deleteMe).catch(e => {
+                if (e.code !== 'ENOENT')
+                    throw e
             }))
-            await retry(() => rm(deleteMe, { recursive: true, force: true /*ignore ENOENT*/ }).then(() => 1, e => {
-                console.warn("Error deleting old plugin folder:", String(e))
-            }))
+            // a disabled leftover cannot block replacement and will be cleaned at startup
+            await retry(() => rm(deleteMe, { recursive: true, force: true /*ignore ENOENT*/ }))
+                .catch(e => console.warn("Error deleting old plugin folder:", String(e)))
             // final replace
             await rename(tempInstallPath, installPath)
                 .catch(e => { throw e.code !== 'ENOENT' ? e : new ApiError(HTTP_NOT_ACCEPTABLE, "missing main file") })
@@ -179,7 +181,7 @@ export async function readOnlinePlugin(repo: Repo, branch='') {
 
 export async function readOnlineCompatiblePlugin(repo: Repo, branch='') {
     const pl = await readOnlinePlugin(repo, branch)
-    if (!pl?.apiRequired) return // mandatory field
+    if (!pl?.apiRequired && !pl?.versionRequired) return // at least one compatibility requirement is mandatory
     if (!pl.badApi) return pl
     // we try other branches (starting with 'api')
     const res = await apiGithub('repos/' + repo + '/branches')
@@ -189,8 +191,6 @@ export async function readOnlineCompatiblePlugin(repo: Repo, branch='') {
     for (const branch of branches) {
         const pl = await readOnlinePlugin(repo, branch)
         if (!pl) continue
-        if (!pl.apiRequired)
-            pl.badApi = '-'
         if (!pl.badApi)
             return pl
     }
@@ -215,7 +215,7 @@ async function apiGithub(uri: string) {
     })
 }
 
-export async function *apiGithubPaginated<T=any>(uri: string) {
+export async function *apiGithubPaginated<T=any>(uri: string, { requireComplete=false }={}) {
     uri += uri.includes('?') ? '&' : '?'
     const PAGE_SIZE = 100
     let page = 1
@@ -223,6 +223,8 @@ export async function *apiGithubPaginated<T=any>(uri: string) {
     try {
         while (1) {
             const res = await apiGithub(uri + `page=${page++}&per_page=${PAGE_SIZE}`)
+            if (requireComplete && res.incomplete_results)
+                throw Error("Incomplete GitHub search results")
             const a = res.items || res // "search/repositories" returns an object, while "releases" returns simply an array
             for (const x of a)
                 yield x as T
@@ -232,49 +234,13 @@ export async function *apiGithubPaginated<T=any>(uri: string) {
         }
     }
     catch(e: any) {
-        if (e.message !== '422') // for some strange reason github api is returning this error if we search repos for a missing user, instead of empty set
+        if (requireComplete || e.message !== '422') // for some strange reason github api is returning this error if we search repos for a missing user, instead of empty set
             throw e
     }
 }
 
 async function isPluginBlacklisted(repo: string) {
     return getProjectInfo().then(x => x?.repo_blacklist?.[repo]?.message as string || '', () => undefined)
-}
-
-export async function searchPlugins(text='', { skipRepos=[''] }={}) {
-    const seen = new Set<string>()
-    return new AsapStream(pluginPromises())
-
-    async function *pluginPromises() {
-        // github doesn't allow complex search, so we have to do it multiple times and merge the results
-        const searches = [
-            ...text.split(' ').filter(Boolean).slice(0, 2).map(x => 'user:' + encodeURI(x)), // first 2 words can be the author of the plugin
-            encodeURI(text), // search elsewhere, and results after the author search
-        ]
-        for (const term of searches) {
-            for await (const it of apiGithubPaginated(`search/repositories?q=topic:hfs-plugin+${term}`)) {
-                const repo = it.full_name as string
-                if (!repo || seen.has(repo)) // avoid duplicates, as we search multiple times
-                    continue
-                seen.add(repo)
-                if (skipRepos.includes(repo))
-                    continue
-                yield (async () => {
-                    if (await isPluginBlacklisted(repo))
-                        return
-                    const pl = await readOnlineCompatiblePlugin(repo, it.default_branch).catch(() => undefined)
-                    if (!pl)
-                        return
-                    Object.assign(pl, {
-                        repo,
-                        downloading: downloading[repo],
-                        license: it.license?.spdx_id,
-                    }, _.pick(it, ['pushed_at', 'stargazers_count', 'default_branch']))
-                    return pl
-                })()
-            }
-        }
-    }
 }
 
 export let alerts: string[] | undefined
@@ -298,6 +264,8 @@ export const getProjectInfo = debounceAsync(async () => {
     }
     else
         obj = { ...cachedCentralInfo.get() || JSON.parse(builtInJson) } // fall back to built-in
+    // older catalogs predate DNS providers; an explicit empty list still disables the built-ins
+    obj.acmeDns ??= JSON.parse(builtInJson).acmeDns
     // merge byVersions info in the main object but collect alerts separately to preserve multiple instances
     const newAlerts: string[] = [obj.alert]
     for (const [ver, more] of Object.entries(popKey(obj, 'byVersion') || {}))

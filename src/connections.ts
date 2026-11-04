@@ -5,6 +5,7 @@ import events from './events'
 import { Context } from 'koa'
 import { ip2country } from './geo'
 import _ from 'lodash'
+import { normalizeIp } from './cross'
 
 export class Connection {
     readonly started = new Date()
@@ -38,10 +39,6 @@ export class Connection {
     get secure() {
         return (this.socket as any).server.cert > ''
     }
-}
-
-export function normalizeIp(ip: string) {
-    return ip.replace(/^::ffff:/,'') // simplify ipv6-mapped addresses
 }
 
 const all: Connection[] = []

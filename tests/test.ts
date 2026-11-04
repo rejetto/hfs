@@ -1,6 +1,18 @@
+import './id3.test'
+import './acme-dns.test'
+import './acme-dns-providers.test'
+import './filename-normalization.test'
+import './antibrute-expiry.test'
+import './path-root.test'
+import './file-attr.test'
+import './update-changelog.test'
+import './plugin-catalog.test'
+import './plugin-changelog.test'
+import './quick-zip.test'
 import test, { describe, before, after } from 'node:test';
+import assert from 'node:assert/strict'
 import { promisify } from 'util'
-import { srpClientSequence } from '../src/srp'
+import { srpClientPart, srpClientSequence } from '../src/srp'
 import * as srp from 'tssrp6a'
 import { createReadStream, existsSync, mkdirSync, readFileSync, rmSync, statfsSync, statSync } from 'fs'
 import { basename, dirname, join, resolve } from 'path'
@@ -8,13 +20,19 @@ import { exec } from 'child_process'
 import _ from 'lodash'
 import yaml from 'yaml'
 import unzipper from 'unzipper'
-import { findDefined, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, wait, waitFor } from '../src/cross'
-import { httpStream, httpWithBody, parseHttpUrl, stream2string, XRequestOptions } from '../src/util-http'
+import { findDefined, FRONTEND_OPTIONS, isIpLocalHost, pathEncode, randomId, try_, tryJson, UPLOAD_TEMP_HASH, UPLOAD_TEMP_PREFIX, wait, waitFor } from '../src/cross'
+import { httpStream, httpString, httpWithBody, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
-import { mkdir, rm, rename, writeFile, access } from 'fs/promises'
+import { makeQ } from '../src/makeQ'
+import { mkdir, readdir, rm, rename, writeFile, access, mkdtemp, symlink } from 'fs/promises'
 import { Readable } from 'stream'
+import { once } from 'events'
+import { QuickZipStream } from '../src/QuickZipStream'
 import { XMLValidator } from 'fast-xml-parser'
 import { BASIC_AUTHENTICATE_HEADER } from '../src/cross'
+import { ClientRequest, createServer, request as httpRequest } from 'http'
+import fswin from 'fswin'
+import { tmpdir } from 'os'
 /*
 import { PORT, srv } from '../src'
 
@@ -28,6 +46,9 @@ const password = 'password'
 const auth = `${username}:${password}`
 const API = '/~/api/'
 const ROOT = 'tests/'
+// clean artifacts left by interrupted test runs
+rmSync(ROOT + 'big', { force: true })
+rmSync(ROOT + 'big-limited', { force: true })
 const TEST_PORT = Number(yaml.parse(readFileSync(resolve(__dirname, 'config.yaml'), 'utf8')).port)
 const BASE_URL = `http://[::1]:${TEST_PORT}`
 const BASE_URL_127 = `http://127.0.0.1:${TEST_PORT}`
@@ -73,14 +94,221 @@ let defaultBaseUrl = BASE_URL
 const execP = (cmd: string) => promisify(exec)(cmd).then(x => x.stdout)
 const srp6aNimbusRoutines = new srp.SRPRoutines(new srp.SRPParameters())
 
+// these tests use separate child processes, temporary directories and ports; shared-server tests stay serial
+describe('isolated servers', { concurrency: 4 }, () => {
+    require('./acme-config.test')
+    require('./plugin-version-required.test')
+    require('./shutdown.test')
+    require('./upload-shutdown.test')
+    require('./multipart-upload.test')
+    require('./plugin-server-cleanup.test')
+    require('./create-admin.test')
+    require('./env-bootstrap.test')
+})
+
+describe('http utilities', () => {
+    test('httpString limits continuously streaming responses', async () => {
+        const server = createServer((_req, res) => {
+            let sent = 0
+            const timer = setInterval(() => {
+                if (++sent < 32)
+                    res.write(Buffer.alloc(64 * 1024))
+                else
+                    res.end()
+            }, 10)
+            res.on('close', () => clearInterval(timer))
+        })
+        await new Promise<void>((resolve, reject) => server.listen(0, '127.0.0.1', resolve).once('error', reject))
+        const address = server.address()
+        try {
+            if (!address || typeof address === 'string')
+                throw Error('missing test server address')
+            await httpString(`http://127.0.0.1:${address.port}`, { timeout: 500, maxBytes: 1024 * 1024 })
+                .then(() => { throw Error('oversized response accepted') }, e => {
+                    if (e.code !== 'ERR_HTTP_RESPONSE_TOO_LARGE') throw e
+                })
+        }
+        finally {
+            await new Promise<void>(resolve => server.close(() => resolve()))
+        }
+    })
+})
+
+describe('languages', () => {
+    test('uploaded admin languages support selection, replacement and isolated deletion', async () => {
+        const code = `zz-${randomId(6).toLowerCase()}`
+        const adminReq = { auth, jar: {} }
+        const original = await reqApi('get_config', { only: ['admin_lang'] }, 200, adminReq)()
+        const frontFile = `hfs-lang-${code}.json`
+        const adminFile = `hfs-admin-lang-${code}.json`
+        const frontMarker = `frontend-${randomId(8)}`
+        const adminMarker = `admin-${randomId(8)}`
+        const updatedMarker = `updated-${randomId(8)}`
+        try {
+            await reqApi('add_langs', { langs: {
+                [frontFile]: JSON.stringify({ translate: { Home: frontMarker } }),
+                [adminFile]: JSON.stringify({ translate: { Home: adminMarker } }),
+            } }, 200, adminReq)()
+            await reqApi('get_langs', {}, res =>
+                Boolean(_.find(res.list, { code, admin: true, embedded: false }))
+                && Boolean(_.find(res.list, { code, admin: false, embedded: false })), adminReq)()
+            await reqApi('set_config', { values: { admin_lang: code } }, 200, adminReq)()
+            await reqApi('get_config', { only: ['admin_lang'] }, res => res.admin_lang === code, adminReq)()
+            if (JSON.parse(readFileSync(resolve(__dirname, 'work', adminFile), 'utf8')).translate.Home !== adminMarker)
+                throw Error('admin catalog was not stored')
+            await reqApi('add_langs', { langs: {
+                [adminFile]: JSON.stringify({ translate: { Home: updatedMarker } }),
+            } }, 200, adminReq)()
+            if (JSON.parse(readFileSync(resolve(__dirname, 'work', adminFile), 'utf8')).translate.Home !== updatedMarker)
+                throw Error('admin catalog was not replaced')
+            await reqApi('del_lang', { code, admin: true }, 200, adminReq)()
+            if (existsSync(resolve(__dirname, 'work', adminFile)))
+                throw Error('admin catalog was not deleted')
+            if (JSON.parse(readFileSync(resolve(__dirname, 'work', frontFile), 'utf8')).translate.Home !== frontMarker)
+                throw Error('admin deletion changed the frontend catalog')
+            await reqApi('get_langs', {}, res => !_.find(res.list, { code, admin: true })
+                && Boolean(_.find(res.list, { code, admin: false })), adminReq)()
+            await reqApi('del_lang', { code }, 200, adminReq)()
+            await reqApi('add_langs', { langs: { 'hfs-admin-lang-../bad.json': '{"translate":{}}' } }, 400, adminReq)()
+            await reqApi('add_langs', { langs: { [adminFile]: '{}' } }, 406, adminReq)()
+            await reqApi('del_lang', { code: '../bad', admin: true }, 400, adminReq)()
+        }
+        finally {
+            await reqApi('set_config', { values: original }, 200, adminReq)()
+            for (const file of [frontFile, adminFile])
+                await rm(resolve(__dirname, 'work', file), { force: true })
+        }
+    })
+    test('unwatch cancels pending language load', async () => {
+        const marker = `watch-load-${randomId(6)}`
+        const file = resolve(__dirname, 'work/hfs-lang-zz.json')
+        const adminReq = { auth, jar: {} }
+        await writeFile(file, JSON.stringify({ translate: { marker } }))
+        try {
+            await reqApi('set_config', { values: { force_lang: 'zz' } }, 200, adminReq)()
+            await reqApi('set_config', { values: { force_lang: '' } }, 200, adminReq)()
+            await wait(600)
+            await req('/', data => !data.includes(marker), { jar: {} })()
+        }
+        finally {
+            await reqApi('set_config', { values: { force_lang: '' } }, 200, adminReq)().catch(() => {})
+            await rm(file, { force: true })
+        }
+    })
+})
+
 describe('basics', () => {
-    test('parseHttpUrl.path escapes invalid chars and keeps unresolved segments', () => {
-        const parsedPath = parseHttpUrl('https://example.com/a/../репо with space/%2e%2e/file').path
-        if (parsedPath !== '/a/../%D1%80%D0%B5%D0%BF%D0%BE%20with%20space/%2e%2e/file')
-            throw Error('unexpected path: ' + parsedPath)
+    test('log files can be downloaded through the POST API',
+        reqApi('get_log_file', { file: 'log' }, 200, { auth, jar: {} }))
+
+    test('HEAD preserves the method for plugins and serves GET headers without a body', async () => {
+        const adminReq = { auth, jar: {} }
+        const previous = await reqApi('get_config', { only: ['server_code', 'favicon'] }, 200, adminReq)()
+        const script = `exports.middleware = ctx => {
+            ctx.set('x-request-method', ctx.method)
+            ctx.set('x-get-or-head', String(ctx.state.getOrHead))
+            if (ctx.path === '/head-probe') {
+                ctx.body = "plugin response"
+                ctx.stop()
+            }
+        }`
+        try {
+            await reqApi('set_config', { values: { server_code: script, favicon: SAMPLE_FILE_PATH } }, 200, adminReq)()
+            // server_code loads asynchronously; wait for its middleware before checking HEAD
+            const ready = await waitFor(() => req('/head-probe', /plugin response/, { jar: {} })()
+                .then(() => true, () => false), { interval: 50, timeout: 3000 })
+            if (!ready) throw Error('HEAD probe plugin did not start')
+            for (const uri of ['/head-probe', '/', '/tests/page/gpl.png', '/favicon.ico']) {
+                const get = await httpWithBody(BASE_URL + uri, { headers: { 'accept-encoding': 'identity' } })
+                await req(uri, (data, res) => {
+                    if (res.statusCode !== get.statusCode || data || res.headers['x-request-method'] !== 'HEAD'
+                        || res.headers['x-get-or-head'] !== 'true')
+                        throw Error(`incorrect HEAD response for ${uri}`)
+                    for (const header of ['content-type', 'content-length', 'etag', 'last-modified']) {
+                        if (res.headers[header] !== get.headers[header])
+                            throw Error(`HEAD ${header} differs from GET for ${uri}`)
+                    }
+                }, { method: 'HEAD', jar: {} })()
+            }
+        }
+        finally {
+            await reqApi('set_config', { values: previous }, 200, adminReq)()
+        }
     })
     //before(async () => appStarted)
     test('frontend', req('/', /<body>/, { headers: { accept: '*/*' } })) // workaround: 'accept' is necessary when running server-for-test-dev, still don't know why
+    test('frontend config defaults', reqApi('get_config', { only: Object.keys(FRONTEND_OPTIONS) },
+        res => _.isEqual(res, FRONTEND_OPTIONS), { auth, jar: {} }))
+    test('status reports HFS connection address', reqApi('get_status', {},
+        res => res.connectionAddress === '::1', { auth, jar: {}, headers: {
+            'x-hfs-anti-csrf': '1',
+            host: 'proxy.example',
+        } }))
+    test('blocked IP is rejected before credential side effects', async () => {
+        const adminReq = { auth, jar: {} }
+        const user = `blocked-login-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const blockedIp = '198.51.100.19'
+        const old = await reqApi('get_config', { only: ['block', 'proxies'] }, 200, adminReq)()
+        const loginReq = {
+            auth: `${user}:${pass}`,
+            headers: { 'x-forwarded-for': blockedIp, 'x-hfs-anti-csrf': '1' },
+            jar: {},
+        }
+        try {
+            await reqApi('add_account', { username: user, password: pass, days_to_live: 1 }, 200, adminReq)()
+            await reqApi('set_config', { values: {
+                proxies: 1,
+                block: [...old.block, { ip: blockedIp }],
+            } }, 200, adminReq)()
+            await httpWithBody(`${BASE_URL}${API}refresh_session`, loginReq)
+                .then(() => { throw Error('blocked login was not disconnected') }, e => {
+                    if (e.code !== 'ECONNRESET') throw e
+                })
+            await reqApi('get_account', { username: user }, res => !res.expire, adminReq)()
+            await reqApi('set_config', { values: { block: old.block } }, 200, adminReq)()
+            await reqApi('refresh_session', {}, res => res.username === user, loginReq)()
+            await reqApi('get_account', { username: user }, res => Boolean(res.expire), adminReq)()
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
+    test('loopback address classification rejects IPv6 suffixes', () => {
+        if (!isIpLocalHost('127.0.0.1') || !isIpLocalHost('::ffff:127.0.0.1')
+        || isIpLocalHost('2001:db8::127.0.0.1'))
+            throw Error('loopback address misclassified')
+    })
+    test('non-loopback IPv6 cannot bypass admin_net', async () => {
+        const adminReq = { auth, jar: {} }
+        const user = `admin-net-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const oldConfig = await reqApi('get_config', { only: ['proxies', 'admin_net'] }, 200, adminReq)()
+        try {
+            await reqApi('add_account', { username: user, password: pass, admin: true }, 200, adminReq)()
+            await reqApi('set_config', { values: { proxies: 1, admin_net: '192.0.2.1' } }, 200, adminReq)()
+            await reqApi('get_status', {}, 200, {
+                auth: `${user}:${pass}`,
+                jar: {},
+                headers: { 'x-forwarded-for': '192.0.2.1' },
+            })()
+            await reqApi('get_status', {}, 401, {
+                auth: `${user}:${pass}`,
+                jar: {},
+                headers: { 'x-forwarded-for': '127.0.0.1' },
+            })()
+            await reqApi('get_status', {}, 401, {
+                auth: `${user}:${pass}`,
+                jar: {},
+                headers: { 'x-forwarded-for': '2001:db8::127.0.0.1' },
+            })()
+        }
+        finally {
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
     test('force slash', req('/f1', 302, { noRedirect: true }))
     test('list', reqList('/f1/', { inList:['f2/', 'page/'] }))
     test('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
@@ -146,6 +374,110 @@ describe('basics', () => {
     test('bad range.inverted', req('/f1/f2/alfa.txt', 416, { headers: { Range: 'bytes=3-2' } }))
     test('bad range.malformed', req('/f1/f2/alfa.txt', 400, { headers: { Range: 'bytes=abc-def' } }))
     test('roots', req('/f2/alfa.txt', 200, { baseUrl: BASE_URL_127 })) // host 127.0.0.1 is rooted in /f1
+    test('roots API ignores forged admin referer', async () => {
+        const options = {
+            baseUrl: BASE_URL_127,
+            jar: {},
+            headers: { referer: BASE_URL_127 + '/~/admin/' },
+        }
+        await reqList('/', data => {
+            if (isInList(data, 'tests/'))
+                throw Error('forged admin referer exposed an outside-root listing')
+            if (!isInList(data, 'f2/'))
+                throw Error('host root was not applied')
+        }, undefined, options)()
+        await reqList('/', { inList: ['tests/'], outList: ['f2/'] }, undefined,
+            { baseUrl: BASE_URL, auth, jar: {}, headers: {
+                ...options.headers,
+                host: '127.0.0.1:8081',
+            } })() // an authenticated admin still manages the complete VFS
+
+        const adminReq = { auth, jar: {} }
+        const oldConfig = await reqApi('get_config', { only: ['localhost_admin', 'proxies'] }, 200, adminReq)()
+        try {
+            await reqApi('set_config', { values: { localhost_admin: true, proxies: 1 } }, 200, adminReq)()
+            await reqList('/', data => {
+                if (isInList(data, 'tests/'))
+                    throw Error('proxied localhost escaped the host root')
+            }, undefined, { ...options, headers: {
+                ...options.headers,
+                'x-forwarded-for': '127.0.0.1',
+            } })()
+        }
+        finally {
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)().catch(() => {})
+        }
+    })
+    test('force_address still permits login from the admin page', async () => {
+        const adminReq = { auth, jar: {} }
+        const loginUser = `force-login-${randomId(6)}`
+        const loginPass = randomId(12)
+        const oldConfig = await reqApi('get_config', { only: ['force_address', 'proxies', 'admin_net'] }, 200, adminReq)()
+        const options = {
+            baseUrl: BASE_URL_127,
+            jar: {},
+            headers: {
+                host: 'unmatched.example',
+                referer: 'http://unmatched.example/~/admin/',
+                'x-forwarded-for': '203.0.113.10',
+                'x-hfs-anti-csrf': '1',
+            },
+        }
+        try {
+            await reqApi('add_account', {
+                username: loginUser, password: loginPass, admin: true, allow_net: '203.0.113.10',
+            }, 200, adminReq)()
+            await reqApi('set_config', {
+                values: { force_address: true, proxies: 1, admin_net: '203.0.113.10' },
+            }, 200, adminReq)()
+            await reqApi('login', { username: loginUser, password: loginPass }, 200, options)()
+        }
+        finally {
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)()
+            await reqApi('del_account', { username: loginUser }, 200, adminReq)().catch(() => {})
+        }
+    })
+    test('session IP change invalidates the current request', async () => {
+        const adminReq = { auth, jar: {} }
+        const user = `session-ip-${randomId(6)}`.toLowerCase()
+        const pass = `pw-${randomId(8)}`
+        const userAuth = `${user}:${pass}`
+        const old = await reqApi('get_config', { only: ['proxies'] }, 200, adminReq)()
+        const changedIpHeaders = { 'x-forwarded-for': '192.0.2.1', 'x-hfs-anti-csrf': '1' }
+        const sessionJar = {}
+        const apiJar = {}
+        const allowedJar = {}
+        await reqApi('add_account', { username: user, password: pass }, 200, adminReq)()
+        await reqApi('set_config', { values: { proxies: 1 } }, 200, adminReq)()
+        try {
+            await reqApi('refresh_session', {}, res => res?.username === user, { auth: userAuth, jar: sessionJar })()
+            await reqApi('refresh_session', {}, res => !res?.username, {
+                headers: changedIpHeaders, jar: sessionJar,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === user, {
+                auth: userAuth, headers: changedIpHeaders, jar: sessionJar,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === user, {
+                headers: changedIpHeaders, jar: sessionJar,
+            })()
+
+            await reqApi('login', { username: user, password: pass }, 200, { jar: apiJar })()
+            await reqApi('refresh_session', {}, res => !res?.username, {
+                headers: changedIpHeaders, jar: apiJar,
+            })()
+
+            await reqApi('refresh_session?allow_session_ip_change', {}, res => res?.username === user, {
+                auth: userAuth, jar: allowedJar,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === user, {
+                headers: changedIpHeaders, jar: allowedJar,
+            })()
+        }
+        finally {
+            await reqApi('set_config', { values: { proxies: old.proxies } }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
     test('website', req('/f1/page/', { re:/This is a test/, mime:'text/html' }))
     test('traversal', req('/f1/page/.%2e/.%2e/README.md', 404))
     test('traversal.double-encoded', req('/f1/page/%252e%252e/%252e%252e/README.md', 404))
@@ -168,6 +500,80 @@ describe('basics', () => {
     })
     test('traversal.overlong-utf8', req('/f1/page/%c0%ae%c0%ae/%c0%ae%c0%ae/README.md', 404))
     test('bad url encoding', req('/f1/%E0%A4%A', 404))
+    test('hidden folder descendants stay hidden', { skip: process.platform === 'win32' }, async () => {
+        const name = `.hidden-${randomId(6)}`
+        const dir = resolve(__dirname, name)
+        await mkdir(dir)
+        await writeFile(join(dir, 'proof.txt'), 'hidden-child-proof')
+        try {
+            await req(`/tests/${name}/`, 404)()
+            await req(`/tests/${name}/proof.txt`, 404)()
+        }
+        finally {
+            await rm(dir, { recursive: true, force: true })
+        }
+    })
+    test('descript.ion is private unless explicitly shared', async () => {
+        const name = `comments-${randomId(6)}`
+        const source = resolve(__dirname, 'tmp', name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['comments_storage'] }, 200, adminReq)()
+        await mkdir(source, { recursive: true })
+        await writeFile(join(source, 'visible.txt'), 'public')
+        await writeFile(join(source, 'secret.txt'), 'private')
+        await writeFile(join(source, 'descript.ion'), 'visible.txt public note\nsecret.txt confidential note\n')
+        try {
+            await reqApi('set_config', { values: { comments_storage: '' } }, 200, adminReq)()
+            await reqApi('add_vfs', { name, source, masks: { 'secret.txt': { can_see: false, can_read: false } } }, 200, adminReq)()
+            await reqList(uri, res => res?.list?.length === 1 && res.list[0].comment === 'public note')()
+            for (const file of ['descript.ion', 'DESCRIPT.ION', 'DeScRiPt.IoN', '%64escript.ion'])
+                await req(uri + file, 404, { jar: {} })()
+            await req(uri + 'descript.ion', 404, { jar: {}, method: 'HEAD' })()
+            await req(uri + 'descript.ion', 404, { ...adminReq, method: 'PROPFIND', headers: { depth: '0' } })()
+            for (const query of ['?get=zip', '?get=zip&list=descript.ion']) {
+                const path = uri + query
+                const { body } = await httpWithBody(BASE_URL + path, { path, jar: {} })
+                const files = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+                if (files.includes('descript.ion')) throw Error('comment storage included in ZIP')
+            }
+            await reqApi('set_vfs', { uri, props: { rename: { 'descript.ion': 'notes.txt' } } }, 200, adminReq)()
+            await req(uri + 'notes.txt', 404, { jar: {} })()
+            await reqApi('add_vfs', { parent: uri, name: 'published.txt', source: join(source, 'descript.ion') }, 200, adminReq)()
+            await req(uri + 'published.txt', /confidential note/, { jar: {} })()
+            await reqApi('set_config', { values: { comments_storage: 'attr+ion' } }, 200, adminReq)()
+            await req(uri + 'notes.txt', 404, { jar: {} })()
+            await reqApi('set_config', { values: { comments_storage: 'attr' } }, 200, adminReq)()
+            await req(uri + 'notes.txt', /confidential note/, { jar: {} })()
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)()
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)()
+            await rmAny(source)
+        }
+    })
+    test('a folder named descript.ion remains browsable and archivable', async () => {
+        const name = `comments-folder-${randomId(6)}`
+        const source = resolve(__dirname, 'tmp', name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        await mkdir(join(source, 'descript.ion'), { recursive: true })
+        await writeFile(join(source, 'descript.ion', 'visible.txt'), 'public content')
+        try {
+            await reqApi('add_vfs', { name, source }, 200, adminReq)()
+            await req(uri + 'descript.ion/visible.txt', /public content/, { jar: {} })()
+            await reqList(uri, { inList: ['descript.ion/'] })()
+            await reqList(uri + 'descript.ion/', { inList: ['visible.txt'] })()
+            const path = uri + '?get=zip'
+            const { body } = await httpWithBody(BASE_URL + path, { path, jar: {} })
+            const files = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+            if (!files.includes('descript.ion/visible.txt')) throw Error('folder contents missing from ZIP')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)()
+            await rmAny(source)
+        }
+    })
     test('not-found.default page', req('/missing-default-404', /found<\/h1>/))
     test('not-found.custom page overrides default', () =>
         withCustomHtml({ 404: '<strong>custom 404 $MESSAGE</strong>' }, () =>
@@ -177,7 +583,7 @@ describe('basics', () => {
     test('name encoding', req(FUNNY_NAME_ENCODED, 200))
     test('name encoding list', reqList('/', { inList: [FUNNY_NAME] }))
     test('name encoding search', reqList('/', { inList: [FUNNY_NAME] }, { search: FUNNY_NAME }))
-    test('basic listing escapes', async () => {
+    test('basic listing escapes', { skip: process.platform === 'win32' && 'Windows forbids < and > in filenames' }, async () => {
         const name = '<img src=x onerror=alert(1)>.png'
         const path = resolve(__dirname, name)
         await writeFile(path, '')
@@ -188,6 +594,30 @@ describe('basics', () => {
         }
         finally {
             await rm(path, { force: true })
+        }
+    })
+    test('basic protected folder requests browser login before listing', async () => {
+        const options = { headers: { 'user-agent': 'Mozilla/5.0', accept: '*/*' }, jar: {} }
+        await req('/for-admins/', { mime: 'text/html', re: /HFS =/, cb(_body, res) {
+            assert.equal(res.headers['www-authenticate'], undefined)
+        } }, options)()
+        await req('/for-admins/?get=basic', { status: 401, re: /^Unauthorized$/, cb(_body, res) {
+            assert.equal(res.headers['www-authenticate'], BASIC_AUTHENTICATE_HEADER)
+        } }, options)()
+        await req('/for-admins/?get=basic', { status: 200, mime: 'text/html', re: /Logout.*rejetto/ }, {
+            ...options, auth,
+        })()
+    })
+    test('basic mode overrides apply to folder and file login', async () => {
+        for (const uri of ['/for-admins/', '/for-admins/alfa.txt']) {
+            for (const userAgent of ['Mozilla/5.0', 'curl/8.0']) {
+                for (const get of ['basic', 'nobasic']) {
+                    const basic = get === 'basic'
+                    await req(uri + '?get=' + get, { status: basic ? 401 : undefined, re: basic ? undefined : /HFS =/, cb(_body, res) {
+                        assert.equal(res.headers['www-authenticate'], basic ? BASIC_AUTHENTICATE_HEADER : undefined)
+                    } }, { headers: { 'user-agent': userAgent, accept: '*/*' }, jar: {} })()
+                }
+            }
         }
     })
     test('folder list preserves encoded colon in prepend', req('/tests/C%3A/?get=list&folders=*', data => {
@@ -222,12 +652,110 @@ describe('basics', () => {
         headers: { 'x-hfs-anti-csrf': '1', 'content-type': 'application/json' },
         body: '{'
     }))
+    test('api rejects oversized declared body', req(`${API}refresh_session`, (_data, res) => {
+        if (res.statusCode !== 413 || res.headers.connection !== 'close')
+            throw Error(`expected 413 with Connection: close, got ${res.statusCode} with ${res.headers.connection}`)
+    }, {
+        method: 'POST',
+        headers: { 'content-length': String(10 * 1024 * 1024 + 1) },
+    }))
+    test('api rejects oversized chunked body', req(`${API}refresh_session`, 413, {
+        method: 'POST',
+        body: sizedStream(10 * 1024 * 1024 + 1),
+    }))
+    test('api accepts body at limit', req(`${API}refresh_session`, 200, {
+        method: 'POST',
+        headers: { 'x-hfs-anti-csrf': '1' },
+        body: '{"padding":"' + 'x'.repeat(10 * 1024 * 1024 - 14) + '"}',
+    }))
+    test('api accepts utf-8 bom', req(`${API}get_file_details`, data => Array.isArray(data?.details), {
+        method: 'POST',
+        body: Buffer.concat([Buffer.from([0xEF, 0xBB, 0xBF]), Buffer.from('{"uris":["/missing"]}')]),
+    }))
+    test('force_address rejects invalid host before reading body', async () => {
+        const old = await reqApi('get_config', { only: ['force_address', 'proxies', 'roots'] }, 200, { auth, jar: {} })()
+        const allowedHost = `roots-guard-${randomId(6)}.example.com`
+        const forwardedFor = '198.51.100.1'
+        try {
+            await reqApi('set_config', { values: {
+                force_address: true,
+                proxies: 1,
+                roots: { ...old.roots, [allowedHost]: '/' },
+            } }, 200, { auth, jar: {} })()
+            await new Promise<void>((resolve, reject) => {
+                const timeout = setTimeout(() => reject(Error('invalid host was not rejected before its body')), 1000)
+                const request = httpRequest(defaultBaseUrl + API + 'refresh_session', {
+                    method: 'POST',
+                    headers: {
+                        host: 'invalid.example.com',
+                        'content-length': 10 * 1024 * 1024,
+                        'x-forwarded-for': forwardedFor,
+                    },
+                }, response => {
+                    clearTimeout(timeout)
+                    response.resume()
+                    reject(Error(`invalid host returned HTTP ${response.statusCode}`))
+                })
+                request.on('error', error => {
+                    clearTimeout(timeout)
+                    if ((error as NodeJS.ErrnoException).code === 'ECONNRESET')
+                        resolve()
+                    else
+                        reject(error)
+                })
+                request.end()
+            })
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, { auth, jar: {} })().catch(() => {})
+        }
+    })
     test('file_details.missing', reqApi('get_file_details', { uris: ['/missing'] }, noVisibleDetails))
     test('file_details.hidden', reqApi('get_file_details', { uris: ['/tests/config.yaml'] }, noVisibleDetails))
     test('file_details.for-admins', reqApi('get_file_details', { uris: ['/for-admins/alfa.txt'] }, noVisibleDetails))
     test('file_details.traversal', reqApi('get_file_details', { uris: ['/f1/%2e%2e/for-admins/alfa.txt'] }, noVisibleDetails))
     test('file_list.traversal', reqApi('get_file_list', { uri: '/f1/%2e%2e/for-admins' }, 404))
     test('file_list.bad encoding', reqApi('get_file_list', { uri: '/f1/%E0%A4%A' }, 404))
+    test('send-list api without SSE', reqApi('get_plugins', {}, data => Array.isArray(data.list), { auth, jar: {} })) // jar because we don't want to authenticate also next tests
+    test('notification channel cannot subscribe to internal login events', async () => {
+        const channel = 'security-probe clearTextLogin'
+        const response = await httpStream(BASE_URL + API + 'get_notifications?channel=' + encodeURIComponent(channel), {
+            headers: { accept: 'text/event-stream' },
+            jar: {},
+        })
+        let received = ''
+        response.on('data', chunk => { received += String(chunk) })
+        try {
+            // a different client logs in after the anonymous event subscription is active
+            await reqApi('login', { username, password }, 200, { jar: {} })()
+            await wait(400) // SendList batches events for 200 ms
+            if (received.includes('"password"'))
+                throw Error('anonymous notification subscriber received another client login credentials')
+            if (!received.includes('data:'))
+                throw Error('notification stream was not active')
+        }
+        finally {
+            response.destroy()
+        }
+    })
+    test('aborted download stops consuming shared throttle quota', async () => {
+        const group = new ThrottleGroup(10)
+        const original = group.consume.bind(group)
+        let charged = 0
+        group.consume = n => {
+            charged += n
+            return original(n)
+        }
+        const stream = new ThrottledStream(group)
+        const transformed = new Promise<void>((resolve, reject) => {
+            stream.write(Buffer.alloc(5000), error => error ? reject(error) : resolve())
+        })
+        stream.destroy()
+        await transformed
+        // only the slice already waiting for tokens may be charged after disconnection
+        if (charged > group.suggestChunkSize())
+            throw Error(`aborted download consumed ${charged} bytes of other clients' quota`)
+    })
     test('forbidden list', req('/cantListPage/page/', 403))
     test('forbidden list.api', reqList('/cantListPage/page/', 403))
     test('forbidden list.admin flag', reqApi('get_file_list', { uri: '/for-admins/', admin: true }, 401))
@@ -267,8 +795,11 @@ describe('basics', () => {
 
     test('renameChild', reqList('/renameChild/tests', { inList:['renamed1'] }))
     test('renameChild.get', req('/renameChild/tests/renamed1', /abc/))
+    test('renameChild.original is not an alias', req('/renameChild/tests/alfa.txt', 404))
+    test('renameChild.original cannot be deleted', req('/renameChild/tests/alfa.txt', 404, { method: 'DELETE' }))
     test('renameChild.deeper', reqList('/renameChild/tests/page', { inList:['renamed2'] }))
     test('renameChild.get deeper', req('/renameChild/tests/page/renamed2', /PNG/))
+    test('renameChild.original deeper is not an alias', req('/renameChild/tests/page/gpl.png', 404))
     test('renameChild.search', reqList('/renameChild/tests', { inList:['renamed1', 'page/renamed2'] }, { search: 'ren' }))
 
     test('cantSeeThis', reqList('/', { outList:['cantSeeThis/'] }))
@@ -291,11 +822,50 @@ describe('basics', () => {
     const zipSize = 13242
     const zipOfs = 0x194E
     const zipLength = 4
+    test('zip.abort releases paused source', async () => {
+        const source = createReadStream(__filename, { highWaterMark: 1024 })
+        const zip = new QuickZipStream((async function* () {
+            yield { path: 'test.ts', size: statSync(__filename).size, getData: () => source }
+        })())
+        try {
+            const paused = once(source, 'pause', { signal: AbortSignal.timeout(1000) })
+            zip.read(1) // leave the consumer stalled so backpressure pauses the open file
+            await paused
+            const closed = once(source, 'close', { signal: AbortSignal.timeout(1000) })
+            zip.destroy()
+            await closed
+            // Node's types omit fd, so narrow the property before checking the descriptor
+            if (!('fd' in source) || source.fd !== null)
+                throw Error('aborted ZIP retained an open file descriptor')
+        }
+        finally {
+            zip.destroy()
+            source.destroy()
+        }
+    })
+    test('zip.abort while finding next file', async () => {
+        let release!: () => void
+        const pending = new Promise<void>(resolve => { release = resolve })
+        let opened = false
+        const zip = new QuickZipStream((async function* () {
+            await pending
+            yield { path: 'late.txt', size: 4, getData() {
+                opened = true
+                return Readable.from('late')
+            } }
+        })())
+        const reading = zip._read()
+        zip.destroy()
+        release()
+        await reading
+        if (opened)
+            throw Error('aborted ZIP opened another source file')
+    })
     test('zip.head', req('/f1/?get=zip', { empty:true, length:zipSize }, { method:'HEAD' }) )
     test('zip.partial', req('/f1/?get=zip', { re:/^page$/, length: zipLength }, { headers: { Range: `bytes=${zipOfs}-${zipOfs+zipLength-1}` } }) )
     test('zip.partial.resume', req('/f1/?get=zip', { re:/^page/, length:zipSize-zipOfs }, { headers: { Range: `bytes=${zipOfs}-` } }) )
     test('zip.partial.end', req('/f1/f2/?get=zip', { re:/^6/, length:10 }, { headers: { Range: 'bytes=-10' } }) )
-    test('zip.list.compacted folders', req('/f1/?get=zip&list=page%2Fgpl.png%2F%2F%00index.html', /page\/gpl.png.+page\/index.html/))
+    test('zip.list.compacted folders', req('/f1/?get=zip&list=page%2Fgpl.png%2F%2F%00index.html', /page\/gpl.png.+page\/index.html/s))
     test('zip.list.selected folder decodes prefix', req('/tests/?get=zip&list=C%253A', data =>
         String(data).includes('C:/gpl.png') && !String(data).includes('C%3A/gpl.png')))
     test('zip.list.selected nested folder preserves path', async () => {
@@ -311,6 +881,66 @@ describe('basics', () => {
         status: 200,
         cb: data => !data.includes('page/gpl.png') && data.includes('gpl-visible.png'),
     }))
+    test('zip preserves disk subfolder permissions', async () => {
+        const name = `zip-permissions-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        await mkdir(resolve(dir, 'private'), { recursive: true })
+        await writeFile(resolve(dir, 'public.txt'), 'public')
+        await writeFile(resolve(dir, 'private/secret.txt'), 'secret')
+        try {
+            await reqApi('add_vfs', {
+                source: dir,
+                name,
+                can_read: true,
+                can_list: true,
+                masks: { private: { can_archive: false } },
+            }, 200, adminReq)()
+            await req(uri + 'private/?get=zip', 403, { jar: {} })()
+            const { body } = await httpWithBody(BASE_URL + uri + '?get=zip', { path: uri + '?get=zip', jar: {} })
+            const paths = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+            if (!paths.includes('public.txt') || paths.includes('private/secret.txt'))
+                throw Error('archive bypassed subfolder permissions: ' + paths)
+            await reqApi('set_vfs', { uri, props: { masks: { '*|folders|': { can_archive: false } } } }, 200, adminReq)()
+            const foldersOnly = await httpWithBody(BASE_URL + uri + '?get=zip', { path: uri + '?get=zip', jar: {} })
+            const folderMaskPaths = (await unzipper.Open.buffer(foldersOnly.body!)).files.map(x => x.path)
+            if (!folderMaskPaths.includes('public.txt') || folderMaskPaths.includes('private/secret.txt'))
+                throw Error('folder-only mask applied to a file: ' + folderMaskPaths)
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('zip preserves negated path masks', async () => {
+        const adminReq = { auth, jar: {} }
+        for (const [suffix, mask] of [['path', '!private/allowed.txt'], ['globstar', '!**/allowed.txt']] as const) {
+            const name = `zip-negated-${suffix}-${randomId(6)}`
+            const dir = resolve(UPLOAD_DISK_ROOT, name)
+            const uri = `/${name}/`
+            await mkdir(resolve(dir, 'private'), { recursive: true })
+            await writeFile(resolve(dir, 'private/allowed.txt'), 'allowed')
+            await writeFile(resolve(dir, 'private/denied.txt'), 'denied')
+            try {
+                await reqApi('add_vfs', {
+                    source: dir,
+                    name,
+                    can_read: true,
+                    can_list: true,
+                    masks: { [mask]: { can_archive: false } },
+                }, 200, adminReq)()
+                const { body } = await httpWithBody(BASE_URL + uri + '?get=zip', { path: uri + '?get=zip', jar: {} })
+                const paths = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+                if (!paths.includes('private/allowed.txt') || paths.includes('private/denied.txt'))
+                    throw Error(`${mask} was not preserved: ` + paths)
+            }
+            finally {
+                await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+                await rmAny(dir)
+            }
+        }
+    })
     test('zip.alfa is forbidden', req('/protectFromAbove/child/?get=zip&list=alfa.txt//renamed', { empty: true, length:134 }, { method:'HEAD' }))
     test('zip.cantReadPage', req('/cantReadPage/?get=zip', { length: 4832 }, { method:'HEAD' }))
 
@@ -329,6 +959,50 @@ describe('basics', () => {
         if (stats?.size !== statSync(SAMPLE_FILE_PATH).size)
             throw "unexpected size for " + fn
     })
+    test('upload.post.csrf', async () => {
+        const sessionJar = {}
+        const adminReq = { auth, jar: {} }
+        const oldConfig = await reqApi('get_config', { only: ['allowed_upload_origin'] }, 200, adminReq)()
+        const names = ['fetch-site', 'origin', 'same-origin', 'allowed-origin', 'wrong-scheme', 'wrong-suffix']
+            .map(x => `csrf-${x}-${randomId(6)}.txt`)
+        const paths = names.map(x => resolve(UPLOAD_DISK_ROOT, x))
+        await reqApi('refresh_session', {}, res => res?.username === username, { auth, jar: sessionJar })()
+        try {
+            await upload(names[0]!, 418, { origin: 'http://attacker.example.com', 'sec-fetch-site': 'same-site' })
+            await upload(names[1]!, 418, { origin: 'http://attacker.example.com' })
+            if (paths.slice(0, 2).some(existsSync))
+                throw Error('cross-origin multipart upload created a file')
+            await upload(names[2]!, 200, { origin: BASE_URL, 'sec-fetch-site': 'same-origin' })
+            if (!existsSync(paths[2]!))
+                throw Error('same-origin multipart upload did not create a file')
+            await reqApi('set_config', { values: { allowed_upload_origin: 'https://unused.example|https://*.example' } }, 200, adminReq)()
+            await upload(names[3]!, 200, { origin: 'https://forms.example', 'sec-fetch-site': 'cross-site' })
+            await upload(names[4]!, 418, { origin: 'http://forms.example', 'sec-fetch-site': 'cross-site' })
+            await upload(names[5]!, 418, { origin: 'https://forms.example.evil', 'sec-fetch-site': 'cross-site' })
+            if (!existsSync(paths[3]!) || paths.slice(4).some(existsSync))
+                throw Error('multipart upload origin wildcard escaped its boundary')
+        }
+        finally {
+            await reqApi('set_config', { values: {
+                allowed_upload_origin: oldConfig.allowed_upload_origin,
+            } }, 200, adminReq)().catch(() => {})
+            await Promise.all(paths.map(rmAny))
+        }
+
+        async function upload(filename: string, status: number, headers: Record<string, string>) {
+            const boundary = `----hfs-${randomId(8)}`
+            const body = `--${boundary}\r\nContent-Disposition: form-data; name="upload"; filename="${filename}"\r\nContent-Type: text/plain\r\n\r\ntest\r\n--${boundary}--\r\n`
+            await req(UPLOAD_ROOT, status === 418 ? { status, cb(_data, res) {
+                if (res.headers.connection !== 'close')
+                    throw Error('rejected multipart connection was reusable')
+            } } : status, {
+                method: 'POST',
+                jar: sessionJar,
+                headers: { ...headers, 'content-type': `multipart/form-data; boundary=${boundary}` },
+                body,
+            })()
+        }
+    })
     test('upload.post.virtual folder', async () => {
         const { status } = await curlWithStatus(`curl -s -u ${auth} -F upload=@${SAMPLE_FILE_PATH} ${BASE_URL}${VIRTUAL_UPLOAD_ROOT}`)
         if (status !== 403)
@@ -337,18 +1011,23 @@ describe('basics', () => {
     test('upload.put.virtual folder', reqUpload(`${VIRTUAL_UPLOAD_ROOT}gpl.png`, 403))
     test('upload.post.empty filename', async () => {
         const boundary = '----hfs-boundary'
-        const body = `--${boundary}\\r\\nContent-Disposition: form-data; name="upload"; filename=""\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nX\\r\\n--${boundary}--\\r\\n`
-        const { status, body: responseBody } = await curlWithStatus(`printf '%b' "${body}" | curl -s -u ${auth} -H "Content-Type: multipart/form-data; boundary=${boundary}" --data-binary @- ${BASE_URL}${UPLOAD_ROOT}`)
-        if (status !== 400)
-            throw "unexpected status " + status
-        const errMsg = tryJson(responseBody)?.errors?.[0]
+        const body = `--${boundary}\r\nContent-Disposition: form-data; name="upload"; filename=""\r\nContent-Type: application/octet-stream\r\n\r\nX\r\n--${boundary}--\r\n`
+        const response = await req(UPLOAD_ROOT, 400, {
+            auth, jar: {}, body, headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+        })()
+        const errMsg = response?.errors?.[0]
         if (!['empty filename', 'no files'].includes(errMsg))
             throw 'missing error'
     })
     test('upload.post.missing-boundary', async () => {
-        const { status } = await curlWithStatus(`printf 'x' | curl -s -u ${auth} -H "Content-Type: multipart/form-data" --data-binary @- ${BASE_URL}${UPLOAD_ROOT}`)
-        if (status !== 400)
-            throw "unexpected status " + status
+        await req(UPLOAD_ROOT, 400, { auth, jar: {}, body: 'x', headers: { 'content-type': 'multipart/form-data' } })()
+    })
+    test('upload.post.truncated', async () => {
+        const boundary = '----hfs-boundary'
+        const body = `--${boundary}\r\nContent-Disposition: form-data; name="upload"\r\n`
+        await req(UPLOAD_ROOT, 400, {
+            auth, jar: {}, body, headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+        })()
     })
     test('upload.post.absolute filename', async () => {
         const absPath = resolve(__dirname, `abs-${randomId(6)}.txt`)
@@ -380,9 +1059,166 @@ describe('basics', () => {
 
     test('get_accounts', reqApi('get_accounts', {}, 401)) // admin api requires login
     test('url login', async () => {
-        const output = await execP(`curl -s -D - -o /dev/null "${BASE_URL}/for-admins/?login=${auth}"`)
-        if (!/^(location|set-cookie):/im.test(output))
+        const { headers } = await httpWithBody(`${BASE_URL}/for-admins/?login=${auth}`, { noRedirect: true })
+        if (!headers.location && !headers['set-cookie'])
             throw "failed"
+    })
+    test('basic login redirects only locally', async () => {
+        const external = await redirectLocation('https://attacker.test/return')
+        if (external !== '/')
+            throw Error(`basic login redirected externally to ${external}`)
+
+        const referer = `${BASE_URL}/for-admins/?get=basic`
+        const local = await redirectLocation(referer)
+        if (new URL(local, BASE_URL).href !== referer)
+            throw Error(`basic login did not return to ${referer}`)
+
+        const doubleSlash = await redirectLocation(`${BASE_URL}//attacker.test`)
+        if (new URL(doubleSlash, BASE_URL).origin !== new URL(BASE_URL).origin)
+            throw Error(`basic login treated a local double-slash path as an external URL`)
+
+        async function redirectLocation(referer: string) {
+            let location = ''
+            await req('/?get=login', { status: 302, cb(_body, res) {
+                location = String(res.headers.location || '')
+            } }, {
+                auth,
+                headers: { referer, 'x-forwarded-prefix': 'https://attacker.test' },
+                noRedirect: true,
+            })()
+            return location
+        }
+    })
+    test('url login confirms browser account changes', async () => {
+        const target = `url-login-${randomId(6)}`.toLowerCase()
+        const targetPassword = randomId(12)
+        const targetAuth = `${target}:${targetPassword}`
+        const currentJar = {}
+        const adminReq = { auth, jar: {} }
+        const browser = {
+            'user-agent': 'Mozilla/5.0',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'same-origin',
+        }
+        const url = `/for-admins/?login=${encodeURIComponent(targetAuth)}`
+        try {
+            await reqApi('add_account', { username: target, password: targetPassword }, 200, adminReq)()
+            const anonymousJar = {}
+            await req(url, { status: 200, re: /Confirm/ }, {
+                headers: { ...browser, 'sec-fetch-site': 'cross-site' }, jar: anonymousJar, noRedirect: true,
+            })()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: anonymousJar })()
+            const headerlessJar = {}
+            await req(url, { status: 200, re: /Confirm/ }, {
+                headers: { 'user-agent': 'Mozilla/5.0', 'sec-fetch-mode': 'navigate' },
+                jar: headerlessJar,
+                noRedirect: true,
+            })()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: headerlessJar })()
+
+            await reqApi('refresh_session', {}, res => res?.username === username, { auth, jar: currentJar })()
+            await req(url, { status: 200, re: /Confirm/ }, {
+                method: 'POST', headers: { ...browser, 'sec-fetch-site': 'cross-site' }, jar: currentJar, noRedirect: true,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === username, { jar: currentJar })()
+
+            await req(`${url}&login_confirm=forged`, { status: 200, re: /Confirm/ }, {
+                headers: browser, jar: currentJar, noRedirect: true,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === username, { jar: currentJar })()
+
+            const page = decodeHtml(String(await req(url, { status: 200, cb(_body, res) {
+                if (res.headers['x-frame-options'] !== 'DENY')
+                    throw Error('URL login confirmation can be framed')
+            } }, {
+                headers: browser, jar: currentJar, noRedirect: true,
+            })()))
+            if (!page.includes(target))
+                throw Error('URL login confirmation omitted target username')
+            if (page.includes(targetPassword) || !page.includes('history.replaceState'))
+                throw Error('URL login confirmation did not promptly hide credentials')
+            const token = page.match(/login_confirm','([\w-]+)'/)?.[1]
+            if (!token)
+                throw Error('URL login confirmation token missing')
+            await req(`${url}&login_confirm=${token}`, 302, { headers: browser, jar: currentJar, noRedirect: true })()
+            await reqApi('refresh_session', {}, res => res?.username === target, { jar: currentJar })()
+
+            await reqApi('set_account', { username: target, changes: { disabled: true } }, 200, adminReq)()
+            const recoverUrl = `/for-admins/?login=${encodeURIComponent(auth)}`
+            const recoveryPage = decodeHtml(String(await req(recoverUrl, 200, {
+                headers: browser, jar: currentJar, noRedirect: true,
+            })()))
+            const recoveryToken = recoveryPage.match(/login_confirm','([\w-]+)'/)?.[1]
+            if (!recoveryToken)
+                throw Error('URL login confirmation failed after session invalidation')
+            await req(`${recoverUrl}&login_confirm=${recoveryToken}`, 302, {
+                headers: browser, jar: currentJar, noRedirect: true,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === username, { jar: currentJar })()
+            await reqApi('set_account', { username: target, changes: { disabled: false } }, 200, adminReq)()
+
+            await reqApi('refresh_session', {}, res => res?.username === username, { auth, jar: currentJar })()
+            const badUrl = `/for-admins/?login=${encodeURIComponent(`${target}:wrong`)}`
+            const badPage = decodeHtml(String(await req(badUrl, 200, {
+                headers: browser, jar: currentJar, noRedirect: true,
+            })()))
+            const badToken = badPage.match(/login_confirm','([\w-]+)'/)?.[1]
+            if (!badToken)
+                throw Error('URL login confirmation token missing for bad credentials')
+            const errorPage = decodeHtml(String(await req(`${badUrl}&login_confirm=${badToken}`, 200, {
+                headers: browser, jar: currentJar, noRedirect: true,
+            })()))
+            if (!errorPage.includes('Invalid credentials'))
+                throw Error('URL login did not report bad credentials')
+            if (errorPage.includes(`${target}:wrong`) || !errorPage.includes('history.replaceState'))
+                throw Error('URL login error did not hide credentials')
+            await reqApi('refresh_session', {}, res => res?.username === username, { jar: currentJar })()
+
+            await req(badUrl, 302, { headers: { 'user-agent': 'curl' }, jar: currentJar, noRedirect: true })()
+            await reqApi('refresh_session', {}, res => res?.username === username, { jar: currentJar })()
+        }
+        finally {
+            await reqApi('del_account', { username: target }, 200, adminReq)().catch(() => {})
+        }
+
+        function decodeHtml(s: string) {
+            return s.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+        }
+    })
+    test('session IP change invalidates the current request', async () => {
+        const adminReq = { auth, jar: {} }
+        const user = `session-ip-${randomId(6)}`.toLowerCase()
+        const pass = `pw-${randomId(8)}`
+        const userAuth = `${user}:${pass}`
+        const old = await reqApi('get_config', { only: ['proxies'] }, 200, adminReq)()
+        const changedIpHeaders = { 'x-forwarded-for': '192.0.2.1', 'x-hfs-anti-csrf': '1' }
+        const sessionJar = {}
+        const allowedJar = {}
+        await reqApi('add_account', { username: user, password: pass }, 200, adminReq)()
+        await reqApi('set_config', { values: { proxies: 1 } }, 200, adminReq)()
+        try {
+            await reqApi('refresh_session', {}, res => res?.username === user, { auth: userAuth, jar: sessionJar })()
+            await reqApi('refresh_session', {}, res => !res?.username, {
+                headers: changedIpHeaders, jar: sessionJar,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === user, {
+                auth: userAuth, headers: changedIpHeaders, jar: sessionJar,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === user, {
+                headers: changedIpHeaders, jar: sessionJar,
+            })()
+
+            await reqApi('refresh_session?allow_session_ip_change', {}, res => res?.username === user, {
+                auth: userAuth, jar: allowedJar,
+            })()
+            await reqApi('refresh_session', {}, res => res?.username === user, {
+                headers: changedIpHeaders, jar: allowedJar,
+            })()
+        }
+        finally {
+            await reqApi('set_config', { values: { proxies: old.proxies } }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
     })
 })
 
@@ -401,6 +1237,10 @@ describe('webdav', () => {
         headers: { 'user-agent': OFFICE_WEBDAV_UA },
         jar: {},
     }))
+    test('webdav force login.scope head', req('/f1/protected', {
+        status: 401, empty: true,
+        cb: (_data, res) => res.headers?.['www-authenticate'] === BASIC_AUTHENTICATE_HEADER,
+    }, { method: 'HEAD', headers: { 'user-agent': OFFICE_WEBDAV_UA }, jar: {} }))
     test('webdav.get keeps webdav challenge after denied read', async () => {
         const user = `wd-read-${randomId(6)}`.toLowerCase()
         const pass = `pw-${randomId(8)}`
@@ -418,8 +1258,10 @@ describe('webdav', () => {
             await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
         }
     })
-    test('webdav options works after auth', req('/f1/', (_data, res) =>
-        res.statusCode === 200 && res.headers?.dav === '1,2', {
+    test('webdav options works after auth', req('/f1/', (data, res) => {
+        assert.equal(res.statusCode, 200, JSON.stringify({ status: res.statusCode, headers: res.headers, data }))
+        assert.equal(res.headers?.dav, '1,2', JSON.stringify({ headers: res.headers, data }))
+    }, {
         method: 'OPTIONS',
         auth,
         headers: { 'user-agent': OFFICE_WEBDAV_UA },
@@ -499,10 +1341,14 @@ describe('webdav', () => {
     test('webdav.put grants grace after successful encoded empty upload', async () => {
         const name = `wd-grace-${randomId(6)} %#.txt`
         const uri = `${CANT_OVERWRITE_URI}${pathEncode(name)}`
+        const equivalentUri = uri.replace('wd-grace-', '%77d-grace-')
         const dir = await ensureCantOverwriteDir()
         const destPath = resolve(dir, name)
+        const adminReq = { auth, jar: {} }
+        const oldConfig = await reqApi('get_config', { only: ['own_upload_delete_hours'] }, 200, adminReq)()
+        await reqApi('set_config', { values: { own_upload_delete_hours: 0 } }, 200, adminReq)()
         try {
-            await req(uri, (x, res) => {
+            await req(equivalentUri, (x, res) => {
                 if (res.statusCode !== 200)
                     throw `expected first PUT 200, got ${res.statusCode}`
                 if (x?.uri !== uri)
@@ -530,6 +1376,7 @@ describe('webdav', () => {
                 throw "destination not overwritten"
         }
         finally {
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)().catch(() => {})
             await rmAny(destPath)
         }
     })
@@ -596,20 +1443,35 @@ describe('webdav', () => {
     })
     test('webdav.lock allows a missing upload destination', async () => {
         const uri = `${UPLOAD_ROOT}wd-lock-missing-${randomId(6)}.txt`
+        const otherUser = `wd-lock-missing-${randomId(6)}`.toLowerCase()
+        const otherPass = randomId(10)
+        const adminReq = { auth, jar: {} }
         let token = ''
         try {
+            await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
             await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
             if (!token)
                 throw "missing lock token"
+            await req(uri, 423, {
+                method: 'PUT', auth: `${otherUser}:${otherPass}`, jar: {},
+                headers: { 'content-length': '5', 'user-agent': WEBDAV_UA }, body: 'other',
+            })()
+            await req(uri, 200, {
+                method: 'PUT', auth, jar,
+                headers: { 'content-length': '5', 'user-agent': WEBDAV_UA, If: `(<${token}>)` }, body: 'owner',
+            })()
         }
         finally {
             if (token)
                 await webdavUnlock(uri, token)().catch(() => {})
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await rmAny(uploadUriToPath(uri))
         }
     })
-    test('webdav.lock refresh keeps token', async () => {
+    test('webdav.lock applies to equivalent path and refresh keeps token', async () => {
         const name = `wd-lock-${randomId(6)}.txt`
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        const equivalentUri = `${UPLOAD_ROOT}${UPLOAD_DIR}%2F%77${name.slice(1)}`
         let destPath = ''
         let token = ''
         try {
@@ -617,13 +1479,181 @@ describe('webdav', () => {
             await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
             if (!token)
                 throw "missing lock token"
-            await webdavLock(uri, (_data, res) =>
+            await webdavUpload(equivalentUri, 423, 'replacement')()
+            if (readFileSync(destPath, 'utf8') !== 'test')
+                throw "locked file was overwritten"
+            await webdavLock(equivalentUri, (_data, res) =>
                 res.statusCode === 200 && res.headers?.[TOKEN_HEADER] === token, '', { If: `(<${token}>)` })()
         }
         finally {
             if (token)
-                await webdavUnlock(uri, token)().catch(() => {})
+                await webdavUnlock(equivalentUri, token)().catch(() => {})
             await rmAny(destPath)
+        }
+    })
+    test('webdav.lock applies to filesystem case aliases', async t => {
+        const id = randomId(6)
+        const name = `Case-Locked-${id}.txt`
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        const recasedUri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name.toLowerCase()}`
+        const otherUser = `wd-lock-case-${id}`.toLowerCase()
+        const otherPass = randomId(10)
+        const adminReq = { auth, jar: {} }
+        let destPath = ''
+        let token = ''
+        try {
+            destPath = await webdavUpload(uri, x => x?.uri === uri, 'original')()
+            const recasedPath = resolve(dirname(destPath), basename(destPath).toLowerCase())
+            if (!existsSync(recasedPath)) {
+                t.skip('case-sensitive filesystem')
+                return
+            }
+            await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
+            await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            await req(recasedUri, 423, {
+                method: 'PUT', auth: `${otherUser}:${otherPass}`, jar: {},
+                headers: { 'content-length': '11', 'user-agent': WEBDAV_UA }, body: 'replacement',
+            })()
+            if (readFileSync(destPath, 'utf8') !== 'original')
+                throw Error('locked file was overwritten through a case alias')
+        }
+        finally {
+            if (token)
+                await webdavUnlock(uri, token)().catch(() => {})
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await rmAny(destPath)
+        }
+    })
+    test('webdav.lock survives mixed-case VFS rename targets', async () => {
+        const id = randomId(6)
+        const nodeName = `wd-lock-alias-${id}`
+        const physicalName = `wd-lock-physical-${id}.txt`
+        const otherPhysicalName = `wd-lock-other-${id}.txt`
+        const displayName = `WD-Lock-Alias-${id}.TXT`
+        const dir = resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR)
+        const path = resolve(dir, physicalName)
+        const otherPath = resolve(dir, otherPhysicalName)
+        const uri = `/${nodeName}/${displayName}`
+        const adminReq = { auth, jar: {} }
+        let token = ''
+        await mkdir(dir, { recursive: true })
+        await writeFile(path, 'original')
+        await writeFile(otherPath, 'other')
+        try {
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_delete: true, can_upload: true,
+                rename: { [physicalName]: displayName, [otherPhysicalName]: physicalName },
+            }, 200, adminReq)()
+            await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            const recasedUri = process.platform === 'linux' ? uri : `/${nodeName}/${displayName.toLowerCase()}`
+            await req(recasedUri, 423, {
+                method: 'PUT', auth, jar: {}, body: 'replacement',
+                headers: { 'content-length': '11', 'user-agent': WEBDAV_UA },
+            })()
+            await req(`/${nodeName}/${physicalName}`, 423, {
+                method: 'PUT', auth, jar: {}, body: 'replacement',
+                headers: { 'content-length': '11', 'user-agent': WEBDAV_UA },
+            })()
+            if (readFileSync(path, 'utf8') !== 'original')
+                throw Error('locked VFS alias was overwritten')
+        }
+        finally {
+            if (token)
+                await webdavUnlock(uri, token)().catch(() => {})
+            await reqApi('del_vfs', { uris: [`/${nodeName}/`] }, 200, adminReq)().catch(() => {})
+            await rmAny(path)
+            await rmAny(otherPath)
+        }
+    })
+    test('webdav.lock-null covers a physical VFS folder alias', async () => {
+        const id = randomId(6)
+        const nodeName = `wd-lock-null-alias-${id}`
+        const physicalName = `private-${id}`
+        const displayName = `public-${id}`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const displayUri = `/${nodeName}/${displayName}`
+        const physicalUri = `/${nodeName}/${physicalName}`
+        const adminReq = { auth, jar: {} }
+        let token = ''
+        await mkdir(dir, { recursive: true })
+        try {
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_upload: true,
+                rename: { [physicalName]: displayName },
+            }, 200, adminReq)()
+            await webdavLock(displayUri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            await req(physicalUri, 423, { method: 'MKCOL', auth, jar, headers: { 'user-agent': WEBDAV_UA } })()
+            if (existsSync(resolve(dir, physicalName)))
+                throw Error('locked folder was created through its physical alias')
+            await webdavUnlock(displayUri, token)()
+            token = ''
+            await webdavLock(physicalUri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            await req(displayUri, 423, { method: 'MKCOL', auth, jar, headers: { 'user-agent': WEBDAV_UA } })()
+        }
+        finally {
+            if (token)
+                await webdavUnlock(displayUri, token)().catch(() => {})
+            await reqApi('del_vfs', { uris: [`/${nodeName}/`] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('webdav.existing lock survives a missing duplicate alias', async () => {
+        const id = randomId(6)
+        const nodeName = `wd-lock-duplicate-${id}`
+        const physicalName = `physical-${id}.txt`
+        const missingName = `missing-${id}.txt`
+        const displayName = `display-${id}.txt`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const physicalPath = resolve(dir, physicalName)
+        const physicalUri = `/${nodeName}/${physicalName}`
+        const missingUri = `/${nodeName}/${missingName}`
+        const adminReq = { auth, jar: {} }
+        let token = ''
+        await mkdir(dir, { recursive: true })
+        await writeFile(physicalPath, 'protected')
+        try {
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_delete: true,
+                rename: { [missingName]: displayName, [physicalName]: displayName },
+            }, 200, adminReq)()
+            await webdavLock(physicalUri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            await req(missingUri, 423, { method: 'DELETE', auth, jar: {}, headers: { 'user-agent': WEBDAV_UA } })()
+            if (readFileSync(physicalPath, 'utf8') !== 'protected')
+                throw Error('missing duplicate alias destroyed an existing lock')
+        }
+        finally {
+            if (token)
+                await webdavUnlock(physicalUri, token)().catch(() => {})
+            await reqApi('del_vfs', { uris: [`/${nodeName}/`] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('webdav.lock applies to frontend rename API', async () => {
+        const id = randomId(6).toLowerCase()
+        const name = `wd-lock-api-${id}.txt`
+        const renamedName = `wd-lock-api-${id}-renamed.txt`
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        const renamedUri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${renamedName}`
+        const otherUser = `wd-lock-api-${id}`
+        const otherPass = randomId(10)
+        const adminReq = { auth, jar: {} }
+        let destPath = ''
+        let token = ''
+        try {
+            destPath = await webdavUpload(uri, x => x?.uri === uri, 'original')()
+            await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
+            await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            await reqApi('rename', { uri, dest: renamedName }, 423,
+                { auth: `${otherUser}:${otherPass}`, jar: {} })()
+            await req(uri, 200, { auth })()
+            await req(renamedUri, 404, { auth })()
+        }
+        finally {
+            if (token)
+                await webdavUnlock(uri, token)().catch(() => {})
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await rmAny(destPath)
+            await rmAny(uploadUriToPath(renamedUri))
         }
     })
     test('webdav.lock rejects shared lock', async () => {
@@ -638,6 +1668,33 @@ describe('webdav', () => {
             await rmAny(destPath)
         }
     })
+    test('webdav.lock rejects oversized chunked body', req(`${UPLOAD_ROOT}oversized-lock.txt`, 413, {
+        method: 'LOCK',
+        auth,
+        jar,
+        headers: { 'content-type': 'text/xml', 'user-agent': WEBDAV_UA },
+        body: sizedStream(1024 * 1024 + 1),
+    }))
+    test('webdav.lock rejects oversized declared body', req(`${UPLOAD_ROOT}oversized-lock.txt`, (_data, res) => {
+        if (res.statusCode !== 413 || res.headers.connection !== 'close')
+            throw Error(`expected 413 with Connection: close, got ${res.statusCode} with ${res.headers.connection}`)
+    }, {
+        method: 'LOCK',
+        auth,
+        jar,
+        headers: {
+            'content-length': String(1024 * 1024 + 1),
+            'content-type': 'text/xml',
+            'user-agent': WEBDAV_UA,
+        },
+    }))
+    test('webdav.proppatch rejects oversized chunked body', req('/f1/f2/alfa.txt', 413, {
+        method: 'PROPPATCH',
+        auth,
+        jar,
+        headers: { 'content-type': 'text/xml', 'user-agent': WEBDAV_UA },
+        body: sizedStream(1024 * 1024 + 1),
+    }))
     test('webdav.stale lock on missing resource is pruned', async () => {
         const name = `wd-stale-lock-${randomId(6)}.txt`
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
@@ -675,8 +1732,8 @@ describe('webdav', () => {
     test('webdav.move success clears lock state', async () => {
         const name = `wd-move-clears-lock-${randomId(6)}.txt`
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
-        const renamedName = name.replace('.txt', '-renamed.txt')
-        const renamed = `${UPLOAD_ROOT}${UPLOAD_DIR}/${renamedName}`
+        const renamedName = `WD-Move-Renamed-${randomId(6)}.TXT`
+        const renamed = `${UPLOAD_ROOT}${process.platform === 'linux' ? UPLOAD_DIR : UPLOAD_DIR.toUpperCase()}/${renamedName}`
         let destPath = ''
         let renamedPath = ''
         let token = ''
@@ -697,6 +1754,8 @@ describe('webdav', () => {
                 },
             })()
             renamedPath = uploadUriToPath(renamed)
+            if (!(await readdir(dirname(renamedPath))).includes(renamedName))
+                throw Error('WebDAV MOVE changed the destination filename case')
             await req(renamed, 200, { method: 'DELETE', auth, jar, headers: { 'user-agent': WEBDAV_UA } })()
             destPath = await webdavUpload(uri, x => x?.uri === uri, 'test2')()
             await req(uri, 200, { method: 'DELETE', auth, jar, headers: { 'user-agent': WEBDAV_UA } })()
@@ -704,6 +1763,98 @@ describe('webdav', () => {
         finally {
             await rmAny(renamedPath)
             await rmAny(destPath)
+        }
+    })
+    test('webdav.move checks lock on actual cross-directory target', async () => {
+        const name = `wd-move-target-lock-${randomId(6)}.txt`
+        const sourceUri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        const targetUri = `${UPLOAD_ROOT}${name}`
+        const destination = `${BASE_URL}${UPLOAD_ROOT}ignored-${randomId(6)}.txt`
+        let sourcePath = ''
+        let targetPath = ''
+        let token = ''
+        try {
+            sourcePath = await webdavUpload(sourceUri, x => x?.uri === sourceUri, 'source')()
+            targetPath = await webdavUpload(targetUri, x => x?.uri === targetUri, 'target')()
+            await webdavLock(targetUri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            if (!token)
+                throw "missing lock token"
+            await req(sourceUri, 423, {
+                method: 'MOVE',
+                auth,
+                jar,
+                headers: {
+                    destination,
+                    overwrite: 'T',
+                    'user-agent': WEBDAV_UA,
+                },
+            })()
+            if (readFileSync(sourcePath, 'utf8') !== 'source')
+                throw "source file was moved"
+            if (readFileSync(targetPath, 'utf8') !== 'target')
+                throw "locked target was overwritten"
+        }
+        finally {
+            if (token)
+                await webdavUnlock(targetUri, token)().catch(() => {})
+            await rmAny(sourcePath)
+            await rmAny(targetPath)
+        }
+    })
+    test('webdav.move requires the displayed parent name', async () => {
+        const id = randomId(6)
+        const nodeName = `wd-move-parent-${id}`
+        const physicalDir = `private-${id}`
+        const displayDir = `public-${id}`
+        const oldName = `old-${id}.txt`
+        const newName = `new-${id}.txt`
+        const caseDirName = `Case-${id}`
+        const root = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const dir = resolve(root, physicalDir)
+        const caseDir = resolve(root, caseDirName)
+        const oldPath = resolve(dir, oldName)
+        const newPath = resolve(dir, newName)
+        const sourceUri = `/${nodeName}/${displayDir}/${oldName}`
+        const destination = `${BASE_URL}/${nodeName}/${physicalDir}/${newName}`
+        const adminReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await mkdir(caseDir, { recursive: true })
+        await writeFile(oldPath, 'source')
+        try {
+            await reqApi('add_vfs', {
+                source: root, name: nodeName, can_delete: true, can_upload: true,
+                rename: { [physicalDir]: displayDir },
+            }, 200, adminReq)()
+            await req(sourceUri, 404, {
+                method: 'MOVE', auth, jar,
+                headers: { destination, overwrite: 'F', 'user-agent': WEBDAV_UA },
+            })()
+            if (!existsSync(oldPath) || existsSync(newPath))
+                throw Error('MOVE accepted the original parent name')
+            await req(sourceUri, 201, {
+                method: 'MOVE', auth, jar,
+                headers: { destination: `${BASE_URL}/${nodeName}/${displayDir}/${newName}`, overwrite: 'F', 'user-agent': WEBDAV_UA },
+            })()
+            if (existsSync(oldPath) || readFileSync(newPath, 'utf8') !== 'source')
+                throw Error('MOVE treated aliases of one parent as different folders')
+            if (process.platform !== 'linux') {
+                const caseOld = resolve(caseDir, oldName)
+                const caseNew = resolve(caseDir, newName)
+                await writeFile(caseOld, 'source')
+                await req(`/${nodeName}/${caseDirName}/${oldName}`, 201, {
+                    method: 'MOVE', auth, jar,
+                    headers: {
+                        destination: `${BASE_URL}/${nodeName}/${caseDirName.toUpperCase()}/${newName}`,
+                        overwrite: 'F', 'user-agent': WEBDAV_UA,
+                    },
+                })()
+                if (existsSync(caseOld) || readFileSync(caseNew, 'utf8') !== 'source')
+                    throw Error('MOVE treated casing variants of one parent as different folders')
+            }
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [`/${nodeName}/`] }, 200, adminReq)().catch(() => {})
+            await rmAny(root)
         }
     })
     test('webdav.move rename decodes escaped segment chars', async () => {
@@ -763,7 +1914,7 @@ describe('webdav', () => {
         let destPath = ''
         try {
             destPath = await webdavUpload(uri, x => x?.uri === uri, 'test')()
-            await req(uri, data => data.includes(`<href>${uri}</href>`) && !data.includes(`<href>${uri}/</href>`), {
+            await req(uri, data => data.includes(`<D:href>${uri}</D:href>`) && !data.includes(`<D:href>${uri}/</D:href>`), {
                 method: 'PROPFIND',
                 auth,
                 jar,
@@ -774,9 +1925,9 @@ describe('webdav', () => {
                     throw `expected 207, got ${res.statusCode}`
                 if (XMLValidator.validate(data) !== true)
                     throw "invalid XML"
-                if (!/<Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 200 OK/.test(data))
+                if (!/<D:Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 200 OK/.test(data))
                     throw "missing no-op success for Windows property"
-                if (!/<getlastmodified\/>[\s\S]*HTTP\/1\.1 403 Forbidden/.test(data))
+                if (!/<D:getlastmodified\/>[\s\S]*HTTP\/1\.1 403 Forbidden/.test(data))
                     throw "missing forbidden status for protected live property"
             }, {
                 method: 'PROPPATCH',
@@ -796,8 +1947,42 @@ describe('webdav', () => {
             await rmAny(destPath)
         }
     })
+    test('webdav.proppatch preserves hexadecimal directory attributes', { skip: process.platform !== 'win32' }, async () => {
+        const uri = `${UPLOAD_ROOT}wd-attributes-${randomId(6)}`
+        const body = `<D:propertyupdate xmlns:D="DAV:" xmlns:Z="urn:schemas-microsoft-com:">
+            <D:set><D:prop><Z:Win32FileAttributes>00000010</Z:Win32FileAttributes></D:prop></D:set>
+        </D:propertyupdate>`
+        const headers = { 'user-agent': WEBDAV_UA }
+        try {
+            await req(uri, 201, { method: 'MKCOL', auth, jar, headers })()
+            await req(uri, (data, res) => res.statusCode === 207 && /HTTP\/1\.1 200 OK/.test(data), {
+                method: 'PROPPATCH', auth, jar,
+                headers: { ...headers, 'content-type': 'text/xml', 'content-length': Buffer.byteLength(body) },
+                body,
+            })()
+            await req(uri, 207, { method: 'PROPFIND', auth, jar, headers: { ...headers, depth: '0' } })()
+            const fileUri = `${uri}/test.txt`
+            await webdavUpload(fileUri, x => x?.uri === fileUri, 'roundtrip')()
+            await req(fileUri, data => data === 'roundtrip', { auth, jar, headers })()
+        }
+        finally {
+            await rmAny(uploadUriToPath(uri))
+        }
+    })
     test('webdav.proppatch requires upload permission for timestamp changes', req('/f1/f2/alfa.txt', data =>
-        /<Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 403 Forbidden/.test(data), {
+        /<D:Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 403 Forbidden/.test(data), {
+        method: 'PROPPATCH',
+        auth,
+        jar,
+        headers: {
+            'content-type': 'text/xml',
+            'content-length': Buffer.byteLength(WEBDAV_PROPPATCH_BODY),
+            'user-agent': WEBDAV_UA,
+        },
+        body: WEBDAV_PROPPATCH_BODY,
+    }))
+    test('webdav.proppatch rejects timestamp changes on virtual nodes', req('/renameChild/orderTest/', data =>
+        /<D:Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 403 Forbidden/.test(data), {
         method: 'PROPPATCH',
         auth,
         jar,
@@ -818,7 +2003,7 @@ describe('webdav', () => {
         let freshPath = ''
         try {
             await writeFile(stalePath, 'stale')
-            await req(staleUri, data => /<Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 403 Forbidden/.test(data), {
+            await req(staleUri, data => /<D:Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 403 Forbidden/.test(data), {
                 method: 'PROPPATCH',
                 auth,
                 jar,
@@ -829,8 +2014,9 @@ describe('webdav', () => {
                 },
                 body: WEBDAV_PROPPATCH_BODY,
             })()
-            freshPath = await webdavUpload(freshUri, x => x?.uri === freshUri, 'fresh')()
-            await req(freshUri, data => /<Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 200 OK/.test(data), {
+            const uploadUri = process.platform === 'linux' ? freshUri : `${CANT_OVERWRITE_URI}${freshName.toUpperCase()}`
+            freshPath = await webdavUpload(uploadUri, x => x?.uri === uploadUri, 'fresh')()
+            await req(freshUri, data => /<D:Win32LastModifiedTime\/>[\s\S]*HTTP\/1\.1 200 OK/.test(data), {
                 method: 'PROPPATCH',
                 auth,
                 jar,
@@ -894,13 +2080,318 @@ describe('webdav', () => {
 // do this before login, or max_dl.accounts config will override max_dl
 describe('limits', () => {
     const fn = ROOT + 'big'
-    before(() => writeFile(fn, BIG_CONTENT))
+    const fnLimited = ROOT + 'big-limited'
+    before(() => Promise.all([fn, fnLimited].map(x => writeFile(x, BIG_CONTENT))))
     test('max_dl', () => testMaxDl('/' + fn, 1, 2, { jar: {} }))
-    after(() => rm(fn))
+    test('max_dl.zip', () => testMaxDl('/tests/?get=zip&list=big', 1, 2, { jar: {} }))
+    test('declared GUI assets inherit the download-limit exemption and can override it', async () => {
+        const name = `gui-assets-${randomId(6)}`
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_vfs', {
+                name, source: resolve(ROOT), gui_asset: true,
+                children: [{ name: 'limited', source: resolve(fnLimited), gui_asset: false }],
+            }, 200, adminReq)()
+            await testMaxDl(`/${name}/big`, 3, 0, { jar: {} })
+            await testMaxDl(`/${name}/limited`, 1, 2, { jar: {} })
+        }
+        finally {
+            await reqApi('del_vfs', { uris: ['/' + name] }, 200, adminReq)()
+        }
+    })
+    test('GUI asset masks are exposed to Admin and override inheritance', async () => {
+        const name = `gui-mask-${randomId(6)}`
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_vfs', {
+                name, source: resolve(ROOT), gui_asset: true,
+                masks: { big: { gui_asset: false } },
+                children: [{ source: resolve(fn) }],
+            }, 200, adminReq)()
+            await testMaxDl(`/${name}/big`, 1, 2, { jar: {} })
+            await reqApi('get_vfs', {}, res => {
+                const parent = _.find(res?.root?.children, { name })
+                const child = _.find(parent?.children, { name: 'big' })
+                throwIf(child?.byMasks?.gui_asset === false ? '' : 'GUI asset mask not exposed')
+            }, adminReq)()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: ['/' + name] }, 200, adminReq)()
+        }
+    })
+    test('HEAD detects a full download limit while HFS assets remain accessible', async () => {
+        const id = 'list-uploader'
+        const adminReq = { auth, jar: {} }
+        await reqApi('start_plugin', { id }, 200, adminReq)()
+        const download = await httpStream(BASE_URL + '/tests/big', { jar: {} })
+        try {
+            await req('/tests/big', (_data, response) => {
+                if (response.statusCode !== 429 || response.headers['retry-after'] !== '60')
+                    throw Error('HEAD did not report the occupied download slot')
+            }, { method: 'HEAD', jar: {}, headers: { 'cache-control': 'no-cache' } })()
+            await req(`/~/plugins/${id}/main.js`, 200, { jar: {} })()
+        }
+        finally {
+            download.destroy()
+            await reqApi('stop_plugin', { id }, 200, adminReq)()
+        }
+        if (!await waitFor(() => req('/tests/big', 200, { method: 'HEAD', jar: {} })().then(() => true, () => false)))
+            throw Error('HEAD did not observe the released slot')
+    })
+    for (const key of ['max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account'])
+    test(`${key} includes shared previews regardless of request headers`, async () => {
+        const adminReq = { auth, jar: {} }
+        const values = { max_downloads: 0, max_downloads_per_ip: 0, max_downloads_per_account: 0 }
+        const old = await reqApi('get_config', { only: Object.keys(values) }, 200, adminReq)()
+        const name = `preview-limit-${randomId(6)}`
+        try {
+            await reqApi('add_vfs', { name, source: resolve(fn), mime: 'image/png' }, 200, adminReq)()
+            await reqApi('set_config', { values: { ...values, [key]: 1 } }, 200, adminReq)()
+            for (const headers of [{ referer: BASE_URL + '/' }, { referer: BASE_URL + '/', 'sec-fetch-dest': 'image' }])
+                await testMaxDl('/' + name, 1, 2, {
+                    jar: {}, headers, ...(key === 'max_downloads_per_account' ? { auth } : {}),
+                })
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)()
+            await reqApi('del_vfs', { uris: ['/' + name] }, 200, adminReq)()
+        }
+    })
+    test('max_dl includes shared default HTML pages', async () => {
+        const name = `website-limit-${randomId(6)}`
+        const source = resolve(__dirname, 'tmp', name)
+        const adminReq = { auth, jar: {} }
+        await mkdir(source, { recursive: true })
+        await writeFile(join(source, 'index.html'), BIG_CONTENT)
+        try {
+            await reqApi('add_vfs', { name, source, default: 'index.html' }, 200, adminReq)()
+            await testMaxDl('/' + name + '/', 1, 2, { jar: {} })
+        }
+        finally {
+            await reqApi('del_vfs', { uris: ['/' + name] }, 200, adminReq)()
+            await rmAny(source)
+        }
+    })
+    test('default document can override its GUI asset folder', async () => {
+        const name = `gui-website-${randomId(6)}`
+        const source = resolve(__dirname, 'tmp', name)
+        const index = join(source, 'index.html')
+        const adminReq = { auth, jar: {} }
+        await mkdir(source, { recursive: true })
+        await writeFile(index, BIG_CONTENT)
+        try {
+            await reqApi('add_vfs', {
+                name, source, default: 'index.html', gui_asset: true,
+                children: [{ source: index, gui_asset: false }],
+            }, 200, adminReq)()
+            await testMaxDl('/' + name + '/', 1, 2, { jar: {} })
+        }
+        finally {
+            await reqApi('del_vfs', { uris: ['/' + name] }, 200, adminReq)()
+            await rmAny(source)
+        }
+    })
+    test('aborted request before stat does not consume a download slot', async () => {
+        const adminReq = { auth, jar: {} }
+        const oldConfig = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
+        const script = `exports.init = () => {
+            const fs = require('fs')
+            const originalStat = fs.stat
+            let waiting = false
+            fs.stat = function(...args) {
+                if (!waiting && require('path').basename(String(args[0])) === 'big') {
+                    waiting = true
+                    return setTimeout(() => originalStat(...args), 200)
+                }
+                return originalStat(...args)
+            }
+            exports.customRest = { download_stat_state: () => ({ waiting }) }
+            return () => { fs.stat = originalStat }
+        }`
+        let first: ReturnType<typeof httpRequest> | undefined
+        try {
+            await reqApi('set_config', { values: { server_code: script } }, 200, adminReq)()
+            const ready = await waitFor(async () => {
+                try {
+                    const x = await reqApi('_download_stat_state', {}, x => typeof x?.waiting === 'boolean', adminReq)()
+                    return x.waiting === false
+                }
+                catch {}
+            }, { interval: 50, timeout: 3000 })
+            if (!ready)
+                throw Error('stat-delay probe did not start')
+            first = httpRequest(BASE_URL + '/tests/big').on('error', () => {})
+            first.end()
+            const waiting = await waitFor(async () =>
+                reqApi('_download_stat_state', {}, x => typeof x?.waiting === 'boolean', adminReq)()
+                    .then(x => x.waiting, () => false), { interval: 50, timeout: 3000 })
+            if (!waiting)
+                throw Error('download did not reach delayed stat')
+            first.destroy()
+            await wait(250)
+            await req('/tests/big', 200, { jar: {} })()
+        }
+        finally {
+            first?.destroy()
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)().catch(() => {})
+        }
+    })
+    after(() => Promise.all([fn, fnLimited].map(x => rm(x))))
 })
 
 describe('sessions', () => {
+    test('finalizingLogin veto preserves messages and session identity', async () => {
+        const adminReq = { auth, jar: {} }
+        const oldConfig = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
+        const script = `exports.init = api => {
+            const { app } = api.require('./index')
+            let errors = 0
+            function onError() { errors++ }
+            app.on('error', onError)
+            api.events.on('finalizingLogin', () => '')
+            api.events.on('finalizingLogin', async ({ username, inputs, via }, event) => {
+                if (username !== username.toLowerCase()) return 'non-canonical username'
+                if (inputs.expectedVia && via !== inputs.expectedVia) return 'wrong login origin'
+                if (inputs.veto === 'message') return 'invalid OTP'
+                if (inputs.veto === 'empty') return ''
+                if (inputs.veto === 'prevent') event.preventDefault()
+                if (inputs.veto === 'stop') return api.events.stop
+            })
+            exports.customRest = { veto_ready: () => ({ ready: true, errors }) }
+            return () => app.off('error', onError)
+        }`
+        try {
+            await reqApi('set_config', { values: { server_code: script } }, 200, adminReq)()
+            const ready = await waitFor(() => reqApi('_veto_ready', {}, x => x?.ready, adminReq)()
+                .catch(() => false), { interval: 50, timeout: 3000 })
+            if (!ready) throw Error('login veto plugin did not start')
+            for (const veto of ['message', 'prevent', 'stop']) {
+                const jar = {}
+                await reqApi('login', { username, password, veto },
+                    { status: 401, re: veto === 'message' ? /^invalid OTP$/ : /^Login denied$/ }, { jar })()
+                await reqApi('refresh_session', {}, x => x?.username === '', { jar })()
+            }
+            await reqApi('login', { username, password, expectedVia: 'body' }, 200, { jar: {} })()
+            await req(API + 'login?' + new URLSearchParams({ username, password, expectedVia: 'url' }),
+                200, { jar: {}, headers: { 'x-hfs-anti-csrf': '1' } })()
+            const emptyJar = {}
+            await reqApi('login', { username, password, veto: 'empty' }, 200, { jar: emptyJar })()
+            await reqApi('refresh_session', {}, x => x?.username === username, { jar: emptyJar })()
+            const jar = {}
+            await srpClientSequence(srp, username.toUpperCase(), password, (cmd, params) =>
+                reqApi(cmd, params, 200, { jar })())
+            await reqApi('login', { username, password, veto: 'message' }, 401, { jar })()
+            await reqApi('refresh_session', {}, x => x?.username === username, { jar })()
+            const srpJar = {}
+            const { salt, pubKey } = await reqApi('loginSrp1', { username }, 200, { jar: srpJar })()
+            const client = await srpClientPart(srp, username, password, salt, pubKey)
+            await reqApi('loginSrp2', { pubKey: String(client.A), proof: String(client.M1), veto: 'message' },
+                { status: 401, re: /^invalid OTP$/ }, { jar: srpJar })()
+            await reqApi('refresh_session', {}, x => x?.username === '', { jar: srpJar })()
+            await req('/for-admins/?veto=message', { status: 401, re: /^invalid OTP$/ }, { auth, jar: {} })()
+            await req('/for-admins/?veto=message', { status: 401, re: /^invalid OTP$/ },
+                { auth, jar: {}, method: 'PROPFIND' })()
+            await req('/for-admins/?login=' + auth + '&veto=message',
+                { status: 401, re: /^invalid OTP$/ }, { jar: {}, noRedirect: true })()
+            await reqApi('_veto_ready', {}, x => x?.errors === 0, adminReq)()
+        }
+        finally {
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)()
+        }
+    })
+    test('password changes during finalizingLogin cannot mint a new session', async () => {
+        const user = `revoked-login-${randomId(6)}`.toLowerCase()
+        let pass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        const oldConfig = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
+        const script = `exports.init = api => {
+            let release, waiting = false
+            api.events.on('finalizingLogin', ({ username }) => {
+                if (username !== ${JSON.stringify(user)}) return
+                waiting = true
+                return new Promise(resolve => { release = resolve })
+            })
+            exports.customRest = { session_gate: ({ resume }) => {
+                if (resume) { release?.(); waiting = false }
+                return { ready: true, waiting }
+            } }
+            return () => release?.()
+        }`
+        try {
+            await reqApi('add_account', { username: user, password: pass }, 200, adminReq)()
+            await reqApi('set_config', { values: { server_code: script } }, 200, adminReq)()
+            if (!await waitFor(() => reqApi('_session_gate', {}, x => x?.ready, adminReq)().catch(() => false),
+                { interval: 50, timeout: 3000 })) throw Error('session gate did not start')
+            for (const via of ['body', 'srp']) {
+                const jar = {}
+                let endpoint = 'login'
+                let body: object = { username: user, password: pass }
+                if (via === 'srp') {
+                    const { salt, pubKey } = await reqApi('loginSrp1', { username: user }, 200, { jar })()
+                    const client = await srpClientPart(srp, user, pass, salt, pubKey)
+                    endpoint = 'loginSrp2'
+                    body = { pubKey: String(client.A), proof: String(client.M1) }
+                }
+                const pending = httpWithBody(BASE_URL + API + endpoint, {
+                    body: JSON.stringify(body), headers: { 'x-hfs-anti-csrf': '1' }, jar, httpThrow: false,
+                })
+                try {
+                    if (!await waitFor(() => reqApi('_session_gate', {}, 200, adminReq)().then(x => x.waiting),
+                        { interval: 50, timeout: 3000 })) throw Error('login did not reach session gate')
+                    pass = randomId(12)
+                    await reqApi('set_account', { username: user, changes: { password: pass } }, 200, adminReq)()
+                }
+                finally {
+                    await reqApi('_session_gate', { resume: true }, 200, adminReq)()
+                }
+                if ((await pending).statusCode !== 401) throw Error('revoked login minted a fresh session')
+                await reqApi('refresh_session', {}, x => !x.username, { jar })()
+            }
+        }
+        finally {
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
     test('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw "in" }, () => {}))
+    test('rejected HTTP credentials leave a fresh anonymous session', async () => {
+        const adminReq = { auth, jar: {} }
+        for (const changes of [{ disabled: true }, { expire: new Date(0).toISOString() }, { allow_net: '192.0.2.1' }]) {
+            const user = `rejected-http-${randomId(6)}`.toLowerCase()
+            const pass = randomId(12)
+            const userAuth = `${user}:${pass}`
+            const userJar: NonNullable<XRequestOptions['jar']> = {}
+            try {
+                await reqApi('add_account', { username: user, password: pass, admin: true }, 200, adminReq)()
+                await reqApi('refresh_session', {}, res => res.username === user && res.isAdmin, { auth: userAuth, jar: userJar })()
+                const oldId = sessionId(userJar)
+                const staleJar = _.cloneDeep(userJar)
+                await reqApi('set_account', { username: user, changes }, 200, adminReq)()
+                for (const jar of [userJar, {}]) {
+                    await reqApi('refresh_session', {}, { status: 200, cb(res) {
+                        assert.equal(res.username, '')
+                        assert.ok(!res.isAdmin)
+                    } }, { auth: userAuth, jar })()
+                    assert.notEqual(sessionId(jar), oldId)
+                    await reqApi('get_config', {}, 401, { jar })()
+                    await reqApi('refresh_session', {}, res => res.username === '', { jar })()
+                }
+                await reqApi('refresh_session', {}, res => res.username === '', { jar: staleJar })()
+                await reqApi('get_config', {}, 401, { jar: staleJar })()
+            }
+            finally {
+                await reqApi('del_account', { username: user }, 200, adminReq)()
+            }
+        }
+
+        function sessionId(jar: NonNullable<XRequestOptions['jar']>) {
+            const cookie = Object.values(jar)[0]?.hfs_http
+            assert.ok(cookie)
+            const { sessionId } = JSON.parse(Buffer.from(cookie, 'base64').toString())
+            assert.ok(sessionId)
+            return sessionId
+        }
+    })
     test('allow_net.canLogin', () => login(username))
     test('allow_net.cantLogin', () => {
         defaultBaseUrl = BASE_URL_127 // 127.0.0.1 is not allowed for this account
@@ -932,7 +2423,7 @@ describe('sessions', () => {
             await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
         }
     })
-    test('allow_net cache follows account switch', async () => {
+    test('allow_net follows account switch', async () => {
         const u = `allow-net-switch-${randomId(6)}`.toLowerCase()
         const p = `pw-${randomId(8)}`
         const adminReq = { auth, jar: {} }
@@ -940,7 +2431,7 @@ describe('sessions', () => {
             await reqApi('add_account', { username: u, password: p, allow_net: '192.0.2.1' },
                 res => res?.username === u, adminReq)()
             const jar = {}
-            // cache the current account mask before presenting credentials for another account
+            // establish a session before presenting credentials for another account
             await reqApi('refresh_session', {}, res => res?.username === username, { auth, jar })()
             await reqApi('refresh_session', {}, res => res?.username === username, { jar })()
             await reqApi('refresh_session', {}, res => {
@@ -950,6 +2441,134 @@ describe('sessions', () => {
         }
         finally {
             await reqApi('del_account', { username: u }, 200, adminReq)().catch(() => {})
+        }
+    })
+    test('inactive group inheritance excludes stale privileges', async () => {
+        const suffix = randomId(6).toLowerCase()
+        const activeGroup = `active-${suffix}`
+        const disabledGroup = `disabled-${suffix}`
+        const inactiveAdmin = `inactive-admin-${suffix}`
+        const expiredGroup = `expired-${suffix}`
+        const user = `member-${suffix}`
+        const pass = `pw-${randomId(8)}`
+        const folder = `inactive-group-${suffix}`
+        const dir = resolve(UPLOAD_DISK_ROOT, folder)
+        const adminReq = { auth, jar: {} }
+        const userJar = {}
+        await mkdir(dir, { recursive: true })
+        try {
+            await reqApi('add_account', { username: activeGroup }, 200, adminReq)()
+            await reqApi('add_account', { username: disabledGroup, disabled: true }, 200, adminReq)()
+            await reqApi('add_account', { username: inactiveAdmin, admin: true, belongs: [disabledGroup] }, 200, adminReq)()
+            await reqApi('add_account', { username: expiredGroup, expire: new Date(0) }, 200, adminReq)()
+            await reqApi('add_account', {
+                username: user,
+                password: pass,
+                belongs: [activeGroup, inactiveAdmin, expiredGroup],
+            }, 200, adminReq)()
+            await reqApi('add_vfs', {
+                source: `../tmp/${folder}`,
+                name: folder,
+                can_read: [expiredGroup],
+                can_list: 'can_read',
+            }, 200, adminReq)()
+
+            let expanded: string[] = []
+            let adminStatus = 0
+            let vfsStatus = 0
+            await reqApi('refresh_session', {}, data => { expanded = data.expandedUsername }, { auth: `${user}:${pass}`, jar: userJar })()
+            await reqApi('get_accounts', {}, (_data, res) => { adminStatus = res.statusCode }, { jar: userJar })()
+            await reqList(`/${folder}/`, (_data, res) => { vfsStatus = res.statusCode }, {}, { jar: userJar })()
+            const stale = [inactiveAdmin, expiredGroup, disabledGroup].filter(x => expanded.includes(x))
+            if (adminStatus !== 401 || vfsStatus !== 401 || stale.length)
+                throw Error(`inactive groups still effective: admin=${adminStatus}, vfs=${vfsStatus}, expanded=${stale}`)
+
+            await reqApi('set_vfs', {
+                uri: `/${folder}`,
+                props: { can_read: [activeGroup], can_list: 'can_read' },
+            }, 200, adminReq)()
+            await reqList(`/${folder}/`, 200, {}, { jar: userJar })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [`/${folder}`] }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', {
+                username: [user, inactiveAdmin, expiredGroup, activeGroup, disabledGroup],
+            }, 200, adminReq)().catch(() => {})
+            await rm(dir, { recursive: true, force: true })
+        }
+    })
+    test('inactive group inheritance refreshes allow_net', async () => {
+        const suffix = randomId(6).toLowerCase()
+        const allowedGroup = `allowed-${suffix}`
+        const restrictedGroup = `restricted-${suffix}`
+        const user = `net-member-${suffix}`
+        const pass = `pw-${randomId(8)}`
+        const adminReq = { auth, jar: {} }
+        const userJar = {}
+        try {
+            await reqApi('add_account', { username: allowedGroup, allow_net: '::1' }, 200, adminReq)()
+            await reqApi('add_account', { username: restrictedGroup, allow_net: '127.0.0.1' }, 200, adminReq)()
+            await reqApi('add_account', {
+                username: user,
+                password: pass,
+                belongs: [allowedGroup, restrictedGroup],
+            }, 200, adminReq)()
+            await reqApi('refresh_session', {}, data => data.username === user, { auth: `${user}:${pass}`, jar: userJar })()
+            await reqApi('refresh_session', {}, data => data.username === user, { jar: userJar })()
+            await reqApi('set_account', { username: allowedGroup, changes: { disabled: true } }, 200, adminReq)()
+            await reqApi('refresh_session', {}, data => {
+                if (data.username)
+                    throw Error(`inactive allow_net group remained cached for ${data.username}`)
+            }, { jar: userJar })()
+        }
+        finally {
+            await reqApi('del_account', {
+                username: [user, allowedGroup, restrictedGroup],
+            }, 200, adminReq)().catch(() => {})
+        }
+    })
+    test('auto_login_net rejects rebinding hosts but preserves configured addresses and credentials', async () => {
+        const user = `auto-host-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        const previous = await reqApi('get_config', { only: ['base_url', 'roots', 'proxies'] }, 200, adminReq)()
+        try {
+            await reqApi('set_config', { values: { base_url: '', roots: {}, proxies: 0 } }, 200, adminReq)()
+            await reqApi('add_account', { username: user, password: pass, auto_login_net: '::1' }, 200, adminReq)()
+            for (const host of ['attacker.example', 'localhost.attacker.example', '127.0.0.1.attacker.example'])
+                await check(host, false)
+            for (const host of ['localhost', 'LOCALHOST:8081', '127.0.0.1:8081', '[::1]:8081'])
+                await check(host, true)
+            const loginReq = { jar: {}, headers: { host: 'attacker.example', 'x-hfs-anti-csrf': '1' } }
+            await reqApi('refresh_session', {}, res => res?.username === user,
+                { ...loginReq, auth: `${user}:${pass}` })()
+            await reqApi('refresh_session', {}, res => res?.username === user, loginReq)()
+            await reqApi('set_config', { values: { base_url: 'http://hfs.example:8081/files/' } }, 200, adminReq)()
+            await check('hfs.example:8081', true)
+            await check('hfs.example.attacker.example:8081', false)
+            for (const base_url of ['http://hfs.example:80/', 'https://hfs.example:443/', 'http://caffè.example/']) {
+                await reqApi('set_config', { values: { base_url } }, 200, adminReq)()
+                await check(new URL(base_url).host, true)
+            }
+            await reqApi('set_config', { values: { base_url: 'http://hfs.example:8081/' } }, 200, adminReq)()
+            await reqApi('set_config', { values: { roots: { 'files.example:8081': '', '*.home.example:8081': '/' } } }, 200, adminReq)()
+            await check('files.example:8081', true)
+            await check('nas.home.example:8081', true)
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: {},
+                headers: { host: 'attacker.example', 'x-forwarded-host': 'localhost', 'x-hfs-anti-csrf': '1' } })()
+            await reqApi('set_config', { values: { proxies: 1 } }, 200, adminReq)()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: {},
+                headers: { host: 'localhost', 'x-forwarded-host': 'attacker.example', 'x-hfs-anti-csrf': '1' } })()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar: {},
+                headers: { host: 'proxy.internal', 'x-forwarded-host': 'hfs.example:8081', 'x-hfs-anti-csrf': '1' } })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+            await reqApi('set_config', { values: previous }, 200, adminReq)().catch(() => {})
+        }
+        function check(host: string, allowed: boolean) {
+            return reqApi('refresh_session', {}, { status: 200, cb: res => allowed ? res?.username === user : !res?.username },
+                { jar: {}, headers: { host, 'x-hfs-anti-csrf': '1' } })()
         }
     })
     test('auto_login_net.canLogin', async () => {
@@ -991,6 +2610,86 @@ describe('sessions', () => {
             return { salt: String(res.s), verifier: String(res.v), username }
         }
     })
+    test('account credential changes preserve only the current session and recreation rejects old cookies', async () => {
+        const user = `session-lifecycle-${randomId(6)}`.toLowerCase()
+        const pass = `pw-${randomId(8)}`
+        const jar = {}
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: user, password: pass }, 200, adminReq)()
+            await srpClientSequence(srp, user, pass, (cmd: string, params: any) =>
+                reqApi(cmd, params, (_x, res) => res.statusCode < 400, { jar })())
+            const otherJar = structuredClone(jar)
+            const changed = await makeSrpChange(user)
+            await reqApi('change_srp', changed, 200, { jar })()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar })()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: otherJar })()
+
+            const adminChange = await makeSrpChange(user)
+            await reqApi('change_srp', adminChange, 200, adminReq)()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar })()
+            const oldJar = {}
+            await srpClientSequence(srp, user, adminChange.password, (cmd: string, params: any) =>
+                reqApi(cmd, params, (_x, res) => res.statusCode < 400, { jar: oldJar })())
+            await reqApi('del_account', { username: user }, 200, adminReq)()
+            await reqApi('add_account', { username: user, password: randomId(12) }, 200, adminReq)()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: oldJar })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+
+        async function makeSrpChange(username: string) {
+            const password = `next-${randomId(8)}`
+            const res = await srp.createVerifierAndSalt(srp6aNimbusRoutines, username, password)
+            return { salt: String(res.s), verifier: String(res.v), username, password }
+        }
+    })
+    test('self account updates preserve the current session without reviving cookies on rename', async () => {
+        const user = `self-update-${randomId(6)}`.toLowerCase()
+        const renamed = user + '-renamed'
+        const pass = randomId(12)
+        const jar = {}
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: user, password: pass, admin: true }, 200, adminReq)()
+            await reqApi('login', { username: user, password: pass }, 200, { jar })()
+            for (const api of ['set_account', 'add_account']) {
+                const oldJar = structuredClone(jar)
+                const password = randomId(12)
+                await reqApi(api, api === 'set_account' ? { username: user, changes: { password } }
+                    : { username: user, overwrite: true, password }, 200, { jar })()
+                await reqApi('refresh_session', {}, res => res?.username === user, { jar })()
+                await reqApi('refresh_session', {}, res => !res?.username, { jar: oldJar })()
+            }
+            const beforeRename = structuredClone(jar)
+            await reqApi('set_account', { username: user, changes: { username: renamed } }, 200, { jar })()
+            await reqApi('refresh_session', {}, res => res?.username === renamed, { jar })()
+            await reqApi('set_account', { username: renamed, changes: { username: user } }, 200, { jar })()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar })()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar: beforeRename })()
+        }
+        finally {
+            await reqApi('del_account', { username: [user, renamed] }, 200, adminReq)().catch(() => {})
+        }
+    })
+    test('password changes invalidate pending SRP logins', async () => {
+        const user = `pending-srp-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const jar = {}
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: user, password: pass }, 200, adminReq)()
+            const { salt, pubKey } = await reqApi('loginSrp1', { username: user }, 200, { jar })()
+            const client = await srpClientPart(srp, user, pass, salt, pubKey)
+            await reqApi('set_account', { username: user, changes: { password: randomId(12) } }, 200, adminReq)()
+            await reqApi('loginSrp2', { pubKey: String(client.A), proof: String(client.M1) }, 401, { jar })()
+            await reqApi('refresh_session', {}, res => !res?.username, { jar })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+        }
+    })
 })
 
 describe('accounts', () => {
@@ -1028,6 +2727,35 @@ describe('after-login', () => {
             await rmAny(baseDir)
         }
     })
+    test('rename.hidden destination requires delete ownership', { skip: process.platform === 'win32' }, async () => {
+        const id = randomId(6)
+        const dir = await ensureCantOverwriteDir()
+        const source = `source-${id}.txt`
+        const replacement = `replacement-${id}.txt`
+        const protectedName = `.protected-${id}`
+        const ownedName = `.owned-${id}`
+        const protectedContent = 'protected'
+        const upload = (name: string, body: string) => reqUpload(CANT_OVERWRITE_URI + name,
+            (_data, res) => res.statusCode === 200, body)
+        await writeFile(resolve(dir, protectedName), protectedContent)
+        try {
+            await req(CANT_OVERWRITE_URI + protectedName, 404)()
+            await upload(source, 'source')()
+            await reqApi('rename', { uri: CANT_OVERWRITE_URI + source, dest: protectedName }, 403)()
+            if (readFileSync(resolve(dir, protectedName), 'utf8') !== protectedContent)
+                throw "protected hidden file overwritten"
+
+            await upload(ownedName, 'old')()
+            await upload(replacement, 'replacement')()
+            await reqApi('rename', { uri: CANT_OVERWRITE_URI + replacement, dest: ownedName }, 200)()
+            if (readFileSync(resolve(dir, ownedName), 'utf8') !== 'replacement')
+                throw "owned hidden file not overwritten"
+        }
+        finally {
+            await Promise.all([source, replacement, protectedName, ownedName]
+                .map(name => rmAny(resolve(dir, name))))
+        }
+    })
     test('upload.never', reqUpload('/random', 403))
     test('upload.ok', reqUpload(UPLOAD_DEST, 200))
     test('move.dest is file', reqApi('move_files', { uri_from: [UPLOAD_DEST], uri_to: UPLOAD_DEST }, 405))
@@ -1057,6 +2785,74 @@ describe('after-login', () => {
         const u = res?.details?.[0]?.upload
         throwIf(!u?.ip ? 'ip' : u?.username !== username ? 'username' : '')
     }))
+    test('uploaded active content requires admin approval', async () => {
+        const name = `active-${randomId(6)}.html`
+        const folderName = `active-copy-${randomId(6)}`
+        const folderUri = `/${folderName}/`
+        const uri = folderUri + name
+        const copyFolderUri = folderUri + 'copy/'
+        const copiedUri = copyFolderUri + name
+        const adminUri = UPLOAD_ROOT + name
+        const dir = resolve(UPLOAD_DISK_ROOT, folderName)
+        const anonJar = {}
+        const body = '<h1>uploaded</h1>'
+        const partialName = `partial-${name}`
+        const partialUri = folderUri + partialName
+        const tempUri = folderUri + pathEncode(UPLOAD_TEMP_PREFIX + partialName)
+        const slowName = `slow-${name}`
+        const slowUri = folderUri + slowName
+        const slowTempUri = folderUri + pathEncode(UPLOAD_TEMP_PREFIX + slowName)
+        const orphanName = UPLOAD_TEMP_PREFIX + `orphan-${name}`
+        const orphanUri = folderUri + pathEncode(orphanName)
+        await mkdir(dir)
+        await reqApi('add_vfs', { parent: '/', source: `../tmp/${folderName}`, name: folderName, can_upload: true }, 200)()
+        try {
+            await reqUpload(adminUri, 200, body)()
+            await req(adminUri, { status: 200, re: /uploaded/ })()
+            await reqApi('get_file_details', { uris: [adminUri] }, res => res?.details?.[0]?.upload?.approved === true)()
+            await reqApi('create_folder', { uri: folderUri, name: 'copy' }, 200)()
+            await writeFile(resolve(dir, orphanName), body)
+            await req(orphanUri, 403)()
+            await reqApi('rename', { uri: orphanUri, dest: 'escaped-orphan.html' }, 409)()
+            const slowUpload = reqUpload(slowUri, (_x, res) => res.statusCode === 200,
+                makeReadableThatTakes(600), undefined, 0, { jar: anonJar })()
+            await waitFor(() => existsSync(resolve(dir, UPLOAD_TEMP_PREFIX + slowName)) || undefined)
+            await req(slowTempUri, 403)()
+            await reqApi('copy_files', { uri_from: [slowTempUri], uri_to: copyFolderUri }, res => res?.errors?.[0] === 409)()
+            await reqApi('rename', { uri: slowTempUri, dest: 'escaped.html' }, 409)()
+            await req(slowTempUri, 409, {
+                method: 'MOVE',
+                headers: { destination: BASE_URL + folderUri + 'escaped.html', 'user-agent': WEBDAV_UA },
+            })()
+            await slowUpload
+            await reqUpload(partialUri + '?partial=1', 204, body, undefined, 0, { jar: anonJar })()
+            await req(tempUri, 403)()
+            await reqUpload(uri, (x, res) => res.statusCode === 200 && x?.uri === uri, body, undefined, 0, { jar: anonJar })()
+            await req(uri, 403)()
+            await reqApi('get_file_details', { uris: [uri] }, res => res?.details?.[0]?.upload?.approved === false)()
+            await req(uri + '?dl', { status: 200, re: /uploaded/ })()
+            await reqApi('set_config', { values: { require_upload_approval_for_active_content: false } }, 200)()
+            await req(uri, { status: 200, re: /uploaded/ })()
+            await req(tempUri, 403)()
+            await reqApi('set_config', { values: { require_upload_approval_for_active_content: true } }, 200)()
+            await req(uri, 403)()
+            await reqApi('copy_files', { uri_from: [uri], uri_to: copyFolderUri }, res => !res?.errors?.[0])()
+            await req(copiedUri, 403)()
+            await reqApi('set_upload_approved', { uri, approved: true }, 401, { jar: {} })()
+            await reqApi('set_upload_approved', { uri, approved: true }, 200)()
+            await req(uri, { status: 200, re: /uploaded/ })()
+            await reqApi('set_upload_approved', { uri, approved: false }, 200)()
+            await req(uri, 403)()
+            await reqUpload(uri + '?existing=overwrite', (_x, res) => res.statusCode === 200,
+                '<h1>changed</h1>', undefined, 0, { jar: anonJar })()
+            await req(uri, 403)()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200)().catch(() => {})
+            await rmAny(uploadUriToPath(adminUri))
+            await rmAny(dir)
+        }
+    })
     test('file_details.non-admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, noVisibleDetails, { jar: {} }))
     test('percent name apis.details', async () => {
         const percentName = `x%25-${randomId(4)}`
@@ -1119,14 +2915,439 @@ describe('after-login', () => {
         const name = `cant-delete`
         await mkdir(resolve(UPLOAD_DISK_ROOT, name), { recursive: true })
         await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        await reqApi('set_config', { values: { own_upload_delete_hours: 0 } }, 200)()
         try {
             const dest = `${UPLOAD_ROOT}${name}/no-delete.txt`
             await reqUpload(dest, 200)()
             await req(dest, 403, { method: 'delete' })()
         }
         finally {
+            await reqApi('set_config', { values: { own_upload_delete_hours: 24 } }, 200)().catch(() => {})
             await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
             await rmAny(resolve(UPLOAD_DISK_ROOT, name))
+        }
+    })
+    test('delete checks descendants before removing anything', async () => {
+        const name = `delete-tree-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        await mkdir(resolve(dir, 'tree/safe'), { recursive: true })
+        await mkdir(resolve(dir, 'tree/restricted'), { recursive: true })
+        await writeFile(resolve(dir, 'tree/safe/ok.txt'), 'keep until authorized')
+        await writeFile(resolve(dir, 'tree/restricted/descript.ion'), 'protected')
+        try {
+            await reqApi('add_vfs', { source: dir, name, can_delete: true,
+                masks: { 'tree/restricted/descript.ion': { can_delete: false } } }, 200, adminReq)()
+            await req(uri + 'tree/', { status: 403, cb: res => res.uri === uri + 'tree/restricted' }, { method: 'delete', ...adminReq })()
+            if (!existsSync(resolve(dir, 'tree/safe/ok.txt')))
+                throw Error('preflight deleted an authorized sibling')
+            await reqApi('rename', { uri: uri + 'tree/', dest: 'renamed' }, 200, adminReq)()
+            await mkdir(resolve(dir, 'destination'))
+            await reqApi('move_files', { uri_from: [uri + 'renamed/'], uri_to: uri + 'destination/' },
+                res => !res?.errors?.some(Boolean), adminReq)()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('delete preflight prunes safe branches and fails closed', async () => {
+        const name = `delete-pruning-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        const previous = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
+        const script = `exports.init = api => {
+            const fs = require('fs/promises')
+            const path = require('path')
+            const original = fs.opendir
+            const opened = []
+            fs.opendir = async function(target, ...args) {
+                const relative = path.relative(${JSON.stringify(dir)}, String(target)).replaceAll('\\\\', '/')
+                if (!relative.startsWith('..')) {
+                    opened.push(relative)
+                    if (relative.endsWith('/unreadable')) throw Object.assign(Error('test EACCES'), { code: 'EACCES' })
+                }
+                return original.call(this, target, ...args)
+            }
+            let off
+            exports.customRest = {
+                delete_probe: () => opened.splice(0),
+                delete_plugin: () => {
+                    off = api.events.on('checkVfsPermission', ({ node, perm }) =>
+                        perm === 'can_delete' && node.source?.replaceAll('\\\\', '/').endsWith('plugin/protected.txt') ? 403 : undefined)
+                    return {}
+                }
+            }
+            return () => { fs.opendir = original; off?.() }
+        }`
+        try {
+            await mkdir(dir, { recursive: true })
+            await reqApi('add_vfs', { source: dir, name, can_delete: true, masks: {
+                'partial/restricted/**/keep.txt': { can_delete: false },
+                'failure/**/keep.txt': { can_delete: false },
+                'objects': { can_delete: { this: true, children: false } },
+                'indirect': { can_delete: 'can_read', masks: { 'keep.txt': { can_read: false } } },
+                'negated': { masks: { '!allowed/ok.txt': { can_delete: false } } },
+                'private': { can_list: false, masks: { 'secret.txt': { can_delete: false } } },
+                'folder-links': { masks: { '*|folders|': { can_delete: false } } },
+            } }, 200, adminReq)()
+            await reqApi('set_config', { values: { server_code: script } }, 200, adminReq)()
+            if (!await waitFor(() => reqApi('_delete_probe', {}, Array.isArray, adminReq)().then(() => true, () => false), { interval: 50, timeout: 3000 }))
+                throw Error('delete probe did not start')
+
+            await mkdir(resolve(dir, 'uniform'))
+            await Promise.all(Array.from({ length: 2 }, (_, i) => writeFile(resolve(dir, `uniform/${i}.txt`), 'x')))
+            await req(uri + 'uniform/', 200, { method: 'delete', ...adminReq })()
+            await reqApi('_delete_probe', {}, x => x.length === 0, adminReq)()
+
+            await mkdir(resolve(dir, 'partial/safe/deep'), { recursive: true })
+            await mkdir(resolve(dir, 'partial/restricted'), { recursive: true })
+            await writeFile(resolve(dir, 'partial/safe/deep/ok.txt'), 'x')
+            await writeFile(resolve(dir, 'partial/restricted/keep.txt'), 'protected')
+            await req(uri + 'partial/', { status: 403, re: /restricted\/keep.txt/ }, { method: 'delete', ...adminReq })()
+            await reqApi('_delete_probe', {}, x => x.includes('partial') && x.includes('partial/restricted')
+                && !x.some((p: string) => p.startsWith('partial/safe')), adminReq)()
+            if (!existsSync(resolve(dir, 'partial/safe/deep/ok.txt'))) throw Error('partial deletion')
+
+            for (const folder of ['objects', 'indirect', 'negated']) {
+                await mkdir(resolve(dir, folder))
+                await writeFile(resolve(dir, folder, 'keep.txt'), 'protected')
+                await req(uri + folder + '/', 403, { method: 'delete', ...adminReq })()
+                if (!existsSync(resolve(dir, folder, 'keep.txt'))) throw Error('deleted protected ' + folder)
+            }
+            await mkdir(resolve(dir, 'failure/unreadable'), { recursive: true })
+            await writeFile(resolve(dir, 'failure/unreadable/ok.txt'), 'x')
+            await req(uri + 'failure/', 500, { method: 'delete', ...adminReq })()
+            if (!existsSync(resolve(dir, 'failure/unreadable/ok.txt'))) throw Error('deleted after incomplete scan')
+
+            await mkdir(resolve(dir, 'private'))
+            await writeFile(resolve(dir, 'private/secret.txt'), 'protected')
+            await req(uri + 'private/', { status: 403, cb: data => {
+                if (data.uri !== uri + 'private') throw Error(JSON.stringify(data))
+            } },
+                { method: 'delete', ...adminReq })()
+
+            if (process.platform !== 'win32') {
+                await mkdir(resolve(dir, 'folder-links'))
+                await symlink(resolve(dir, 'private'), resolve(dir, 'folder-links/link'))
+                await req(uri + 'folder-links/link/', 403, { method: 'delete', ...adminReq })()
+                await req(uri + 'folder-links/', 403, { method: 'delete', ...adminReq })()
+                await symlink(resolve(dir, 'failure'), resolve(dir, 'link'))
+                await req(uri + 'link/', 200, { method: 'delete', ...adminReq })()
+                if (!existsSync(resolve(dir, 'failure/unreadable/ok.txt'))) throw Error('followed root symlink')
+                await mkdir(resolve(dir, 'links'))
+                await symlink(resolve(dir, 'missing'), resolve(dir, 'links/dangling'))
+                await req(uri + 'links/', 200, { method: 'delete', ...adminReq })()
+            }
+            await mkdir(resolve(dir, 'explicit/deep'), { recursive: true })
+            await writeFile(resolve(dir, 'explicit/deep/keep.txt'), 'protected')
+            await reqApi('set_vfs', { uri, props: { masks: { explicit: { children: [
+                { name: 'protected', source: resolve(dir, 'explicit/deep/keep.txt') },
+            ] } } } }, 200, adminReq)()
+            await req(uri + 'explicit/', { status: 403, re: /protected/ }, { method: 'delete', ...adminReq })()
+            await mkdir(resolve(dir, 'plugin'))
+            await writeFile(resolve(dir, 'plugin/protected.txt'), 'protected')
+            await reqApi('_delete_plugin', {}, 200, adminReq)()
+            await req(uri + 'plugin/', { status: 403, re: /protected.txt/ }, { method: 'delete', ...adminReq })()
+        }
+        finally {
+            await reqApi('set_config', { values: previous }, 200, adminReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('folder owner cannot delete files owned by another uploader', async () => {
+        const name = `delete-owner-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/`
+        const other = `delete-other-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        try {
+            await mkdir(dir, { recursive: true })
+            await reqApi('add_vfs', { source: dir, name, can_upload: ['admins'], can_delete: false,
+                masks: { 'owned/protected.txt': { can_see: false } } }, 200, adminReq)()
+            await reqApi('add_account', { username: other, password: pass, belongs: ['admins'] }, 200, adminReq)()
+            await reqApi('create_folder', { uri, name: 'owned' }, 200, adminReq)()
+            await req(uri + 'owned/protected.txt', 200, { method: 'PUT', body: 'protected',
+                auth: `${other}:${pass}`, jar: {} })()
+            await req(uri + 'owned/', { status: 403, cb: data => {
+                if (data.uri !== uri + 'owned') throw Error(JSON.stringify(data))
+            } }, { method: 'delete', ...adminReq })()
+            if (!existsSync(resolve(dir, 'owned/protected.txt'))) throw Error('owner grant deleted another user file')
+            await reqApi('create_folder', { uri, name: 'empty' }, 200, adminReq)()
+            await req(uri + 'empty/', 200, { method: 'delete', ...adminReq })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: other }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('upload owner can delete without delete permission', async () => {
+        const name = `owner-delete-${randomId(6)}`
+        const otherUser = `owner-other-${randomId(6)}`.toLowerCase()
+        const otherPass = `pw-${randomId(8)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const dest = `${UPLOAD_ROOT}${name}/owned.txt`
+        const equivalentDest = `${UPLOAD_ROOT}${name}/%6Fwned.txt`
+        const destPath = resolve(dir, 'owned.txt')
+        const adminReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        try {
+            await reqApi('add_account', { username: otherUser, overwrite: true, password: otherPass, belongs: ['admins'] }, res => res?.username === otherUser, adminReq)()
+            await reqUpload(dest, 200)()
+            await req(dest, 403, { method: 'delete', auth: `${otherUser}:${otherPass}`, jar: {} })()
+            await req(equivalentDest, 200, { method: 'delete' })()
+            await writeFile(destPath, 'external')
+            await req(dest, 403, { method: 'delete' })()
+        }
+        finally {
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('case-variant deletion clears upload ownership', async t => {
+        const id = randomId(6).toLowerCase()
+        const dir = await ensureCantOverwriteDir()
+        const lowerName = `owned-${id}.txt`
+        const upperName = lowerName.toUpperCase()
+        const lowerUri = CANT_OVERWRITE_URI + lowerName
+        const upperUri = CANT_OVERWRITE_URI + upperName
+        const controlUri = CANT_OVERWRITE_URI + `control-${id}.txt`
+        const otherUser = `owner-delete-${id}`
+        const otherPass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        const probe = resolve(dir, `probe-${id}`)
+        await writeFile(probe, '')
+        if (!existsSync(probe.toUpperCase())) {
+            t.skip('case-sensitive filesystem')
+            await rmAny(dir)
+            return
+        }
+        try {
+            await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
+            await reqApi('set_vfs', { uri: CANT_OVERWRITE_URI.slice(0, -1), props: { can_delete: [otherUser] } }, 200, adminReq)()
+            await reqUpload(lowerUri, (_data, res) => res.statusCode === 200)()
+            await reqUpload(controlUri, (_data, res) => res.statusCode === 200)()
+            await req(upperUri, 200, { method: 'delete', auth: `${otherUser}:${otherPass}`, jar: {} })()
+            await reqApi('set_vfs', { uri: CANT_OVERWRITE_URI.slice(0, -1), props: { can_delete: false } }, 200, adminReq)()
+            await writeFile(resolve(dir, lowerName), 'new owner')
+            await req(lowerUri, 403, { method: 'delete' })()
+            await req(controlUri, 200, { method: 'delete' })()
+        }
+        finally {
+            await reqApi('set_vfs', { uri: CANT_OVERWRITE_URI.slice(0, -1), props: { can_delete: false } }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('unicode-distinct files do not share upload ownership', async t => {
+        const id = randomId(6).toLowerCase()
+        const dir = await ensureCantOverwriteDir()
+        const composedName = `unicode-${id}-\u00e9.txt`
+        const decomposedName = `unicode-${id}-e\u0301.txt`
+        const composedPath = resolve(dir, composedName)
+        const decomposedPath = resolve(dir, decomposedName)
+        await writeFile(composedPath, 'victim')
+        await writeFile(decomposedPath, 'probe')
+        if (statSync(composedPath).ino === statSync(decomposedPath).ino) {
+            t.skip('normalization-insensitive filesystem')
+            await rmAny(dir)
+            return
+        }
+        await rmAny(decomposedPath)
+        try {
+            const decomposedUri = CANT_OVERWRITE_URI + encodeURIComponent(decomposedName)
+            await reqUpload(decomposedUri,
+                (_data, res) => res.statusCode === 200, 'owned')()
+            await req(CANT_OVERWRITE_URI + encodeURIComponent(composedName), 403, { method: 'delete' })()
+            if (readFileSync(composedPath, 'utf8') !== 'victim')
+                throw Error('unicode-distinct file was deleted through another upload owner')
+            await req(decomposedUri, 200, { method: 'delete' })()
+        }
+        finally {
+            await rmAny(dir)
+        }
+    })
+    test('move overwrite clears destination upload ownership', async () => {
+        const id = randomId(6).toLowerCase()
+        const name = `move-owner-${id}.txt`
+        const destDir = await ensureCantOverwriteDir()
+        const destUri = CANT_OVERWRITE_URI + name
+        const sourcePath = resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR, name)
+        const sourceUri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        const otherUser = `owner-move-${id}`
+        const otherPass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        await mkdir(dirname(sourcePath), { recursive: true })
+        try {
+            await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
+            await reqApi('set_vfs', { uri: CANT_OVERWRITE_URI.slice(0, -1), props: { can_delete: [otherUser] } }, 200, adminReq)()
+            await reqUpload(destUri, (_data, res) => res.statusCode === 200,
+                'old', undefined, 0, { auth, jar: {} })()
+            await writeFile(sourcePath, 'new')
+            await reqApi('move_files', { uri_from: [sourceUri], uri_to: CANT_OVERWRITE_URI },
+                data => !data?.errors?.[0], { auth: `${otherUser}:${otherPass}`, jar: {} })()
+            if (readFileSync(resolve(destDir, name), 'utf8') !== 'new')
+                throw Error('destination was not overwritten')
+            await reqApi('set_vfs', { uri: CANT_OVERWRITE_URI.slice(0, -1), props: { can_delete: false } }, 200, adminReq)()
+            await req(destUri, 403, { method: 'delete', auth, jar: {} })()
+            if (readFileSync(resolve(destDir, name), 'utf8') !== 'new')
+                throw Error('previous uploader deleted the replacement')
+        }
+        finally {
+            await reqApi('set_vfs', { uri: CANT_OVERWRITE_URI.slice(0, -1), props: { can_delete: false } }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await rmAny(sourcePath)
+            await rmAny(destDir)
+        }
+    })
+    test('folder creator can delete without delete permission', async () => {
+        const name = `owner-folder-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const parent = `${UPLOAD_ROOT}${name}/`
+        const folder = `${parent}owned/`
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        try {
+            await reqApi('create_folder', { uri: parent, name: 'owned' }, 200)()
+            await req(folder, 200, { method: 'delete' })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('folder upload grants ownership only to newly created directories', async () => {
+        const name = `owner-tree-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const parent = `${UPLOAD_ROOT}${name}/`
+        await mkdir(resolve(dir, 'existing'), { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: true, can_delete: false }, 200)()
+        const jar = {}
+        try {
+            const folder = `${parent}existing/new%20folder/`
+            await reqUpload(`${folder}nested/file.txt`, 200, undefined, undefined, 0, { jar })()
+            await req(`${folder}nested/file.txt`, 200, { method: 'delete', jar })()
+            await req(`${folder}nested/`, 200, { method: 'delete', jar })()
+            await req(folder, 200, { method: 'delete', jar })()
+            await req(`${parent}existing/`, 403, { method: 'delete', jar })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('upload owner follows rename and move', async () => {
+        const name = `owner-move-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const start = `${UPLOAD_ROOT}${name}/start.txt`
+        const recased = `${UPLOAD_ROOT}${name}/START.txt`
+        const renamed = `${UPLOAD_ROOT}${name}/renamed.txt`
+        const folder = `${UPLOAD_ROOT}${name}/folder/`
+        const moved = `${folder}renamed.txt`
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        try {
+            await reqUpload(start, 200)()
+            await reqApi('rename', { uri: start, dest: 'START.txt' }, 200)()
+            await reqApi('rename', { uri: recased, dest: 'renamed.txt' }, 200)()
+            await reqApi('create_folder', { uri: `${UPLOAD_ROOT}${name}/`, name: 'folder' }, 200)()
+            await reqApi('move_files', { uri_from: [renamed], uri_to: folder }, res => !res?.errors?.[0])()
+            await req(moved, 200, { method: 'delete' })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('upload owner is bound to session', async () => {
+        const name = `session-owner-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const sameJar = {}
+        const otherJar = {}
+        const first = `${UPLOAD_ROOT}${name}/same-session.txt`
+        const second = `${UPLOAD_ROOT}${name}/other-session.txt`
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: true, can_delete: false }, 200)()
+        try {
+            await reqUpload(first, 200, undefined, undefined, 0, { jar: sameJar })()
+            await req(first, 200, { method: 'delete', jar: sameJar })()
+            await reqUpload(second, 200, undefined, undefined, 0, { jar: sameJar })()
+            await req(second, 403, { method: 'delete', jar: otherJar })()
+            await req(second, 200, { method: 'delete', jar: sameJar })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('upload owner session survives login', async () => {
+        const name = `session-login-owner-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const anonJar = {}
+        const user = `anon-login-${randomId(6)}`.toLowerCase()
+        const pass = `pw-${randomId(8)}`
+        const dest = `${UPLOAD_ROOT}${name}/before-login.txt`
+        const adminReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: true, can_delete: false }, 200)()
+        try {
+            await reqApi('add_account', { username: user, overwrite: true, password: pass }, res => res?.username === user, adminReq)()
+            await reqUpload(dest, 200, undefined, undefined, 0, { jar: anonJar })()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar: anonJar, auth: `${user}:${pass}` })()
+            await req(dest, 200, { method: 'delete', jar: anonJar })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('upload owner session is cleared by logout', async () => {
+        const name = `session-logout-owner-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const anonJar = {}
+        const user = `session-logout-${randomId(6)}`.toLowerCase()
+        const pass = `pw-${randomId(8)}`
+        const dest = `${UPLOAD_ROOT}${name}/before-logout.txt`
+        const adminReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: true, can_delete: false }, 200)()
+        try {
+            await reqApi('add_account', { username: user, overwrite: true, password: pass }, res => res?.username === user, adminReq)()
+            await reqUpload(dest, 200, undefined, undefined, 0, { jar: anonJar })()
+            await reqApi('refresh_session', {}, res => res?.username === user, { jar: anonJar, auth: `${user}:${pass}` })()
+            await reqApi('logout', {}, 401, { jar: anonJar })()
+            await req(dest, 403, { method: 'delete', jar: anonJar })()
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('upload owner delete window expires', async () => {
+        const name = `owner-expire-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const dest = `${UPLOAD_ROOT}${name}/expired.txt`
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200)()
+        await reqApi('set_config', { values: { own_upload_delete_hours: 0.00001 } }, 200)()
+        try {
+            await reqUpload(dest, 200)()
+            await wait(60)
+            await req(dest, 403, { method: 'delete' })()
+        }
+        finally {
+            await reqApi('set_config', { values: { own_upload_delete_hours: 24 } }, 200)().catch(() => {})
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200)().catch(() => {})
+            await rmAny(dir)
         }
     })
     test('move.overwrite needs delete', async () => {
@@ -1146,6 +3367,538 @@ describe('after-login', () => {
         finally {
             await rmAny(resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR, destFile))
             await rmAny(destDir)
+        }
+    })
+    test('move encoded destination needs delete', async () => {
+        const destFile = `%61-${randomId(6)}.txt`
+        const destDir = await ensureCantOverwriteDir()
+        const destPath = resolve(destDir, destFile)
+        const sourceUri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${pathEncode(destFile)}`
+        await writeFile(destPath, 'protected')
+        try {
+            await reqUpload(sourceUri, 200, 'replacement')()
+            await reqApi('move_files', { uri_from: [sourceUri], uri_to: CANT_OVERWRITE_URI }, res => {
+                if (res?.errors?.[0] !== 403)
+                    throw Error('encoded destination was overwritten without delete permission')
+            })()
+            if (readFileSync(destPath, 'utf8') !== 'protected')
+                throw Error('encoded destination content was replaced')
+        }
+        finally {
+            await rmAny(resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR, destFile))
+            await rmAny(destPath)
+        }
+        await rmAny(destDir)
+    })
+    test('move keeps encoded upload ownership on the moved file', async () => {
+        const suffix = `${randomId(6)}.txt`
+        const movedName = `%61-owner-${suffix}`
+        const victimName = `a-owner-${suffix}`
+        const destDir = await ensureCantOverwriteDir()
+        const sourceUri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${pathEncode(movedName)}`
+        const movedUri = `${CANT_OVERWRITE_URI}${pathEncode(movedName)}`
+        const victimUri = `${CANT_OVERWRITE_URI}${victimName}`
+        const victimPath = resolve(destDir, victimName)
+        const ownerJar = {}
+        await writeFile(victimPath, 'protected')
+        try {
+            await reqUpload(sourceUri, 200, 'uploaded', undefined, 0, { auth, jar: ownerJar })()
+            await reqApi('move_files', { uri_from: [sourceUri], uri_to: CANT_OVERWRITE_URI },
+                res => !res?.errors?.[0], { auth, jar: ownerJar })()
+            await req(victimUri, 403, { method: 'delete', auth, jar: ownerJar })()
+            if (readFileSync(victimPath, 'utf8') !== 'protected')
+                throw Error('encoded move granted ownership of a different file')
+            await req(movedUri, 200, { method: 'delete', auth, jar: ownerJar })()
+        }
+        finally {
+            await rmAny(resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR, movedName))
+            await rmAny(resolve(destDir, movedName))
+            await rmAny(victimPath)
+            await rmAny(destDir)
+        }
+    })
+    test('move honors destination VFS aliases', async () => {
+        const adminReq = { auth, jar: {} }
+        const overwritten: string[] = []
+        for (const mode of ['rename', 'child', 'duplicate'] as const) {
+            const id = randomId(6)
+            const physicalName = `private-${id}.txt`
+            const displayName = `public-${id}.txt`
+            const movedName = process.platform === 'linux' ? physicalName : physicalName.toUpperCase()
+            const nodeName = `${mode}-destination-${id}`
+            const sourcePath = resolve(UPLOAD_DISK_ROOT, movedName)
+            const destDir = resolve(UPLOAD_DISK_ROOT, nodeName)
+            const destPath = resolve(destDir, physicalName)
+            await mkdir(destDir, { recursive: true })
+            await writeFile(sourcePath, 'replacement')
+            await writeFile(destPath, 'protected')
+            try {
+                const alias = mode === 'rename'
+                    ? { rename: { [physicalName]: displayName }, masks: { [displayName]: { can_delete: false } } }
+                    : mode === 'child'
+                        ? { children: [{ source: destPath, name: displayName, can_delete: false }] }
+                        : { rename: { missing: displayName, [physicalName]: displayName }, masks: { [displayName]: { can_delete: false } } }
+                await reqApi('add_vfs', {
+                    source: destDir,
+                    name: nodeName,
+                    can_upload: true,
+                    can_delete: true,
+                    ...alias,
+                }, 200, adminReq)()
+                await reqApi('move_files', {
+                    uri_from: [UPLOAD_ROOT + movedName],
+                    uri_to: `/${nodeName}/`,
+                }, res => {
+                    if (res?.errors?.[0] !== 403)
+                        overwritten.push(mode)
+                }, adminReq)()
+                if (readFileSync(destPath, 'utf8') !== 'protected')
+                    overwritten.push(`${mode}-content`)
+            }
+            finally {
+                await reqApi('del_vfs', { uris: [`/${nodeName}/`] }, 200, adminReq)().catch(() => {})
+                await rmAny(sourcePath)
+                await rmAny(destDir)
+            }
+        }
+        if (overwritten.length)
+            throw Error(`protected destinations overwritten: ${overwritten}`)
+    })
+    test('VFS rename hides original physical names', async () => {
+        const id = randomId(6).toLowerCase()
+        const nodeName = `masked-alias-${id}`
+        const physicalName = `private-${id}.txt`
+        const displayName = `public-${id}.txt`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const path = resolve(dir, physicalName)
+        const folderUri = `/${nodeName}/`
+        await mkdir(dir, { recursive: true })
+        await writeFile(path, 'protected')
+        try {
+            await reqApi('add_vfs', {
+                source: dir,
+                name: nodeName,
+                can_read: true,
+                can_delete: true,
+                rename: { [physicalName]: displayName },
+                masks: { [displayName]: { can_read: false, can_delete: false } },
+            }, 200)()
+            await req(folderUri + displayName, 403)()
+            await req(folderUri + physicalName, 404)()
+            if (process.platform !== 'linux')
+                await req(folderUri + physicalName.toUpperCase(), 404)()
+            await req(folderUri + physicalName, 404, { method: 'delete' })()
+            if (readFileSync(path, 'utf8') !== 'protected')
+                throw Error('physical alias bypassed its VFS rename mask')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('VFS explicit child takes precedence over a renamed physical name', async () => {
+        const nodeName = `rename-child-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const folderUri = `/${nodeName}/`
+        await mkdir(dir, { recursive: true })
+        await writeFile(resolve(dir, 'A.txt'), 'renamed disk file')
+        await writeFile(resolve(dir, 'other.txt'), 'explicit VFS child')
+        try {
+            await reqApi('add_vfs', {
+                source: dir,
+                name: nodeName,
+                can_read: true,
+                rename: { 'A.txt': 'B.txt' },
+                children: [{ name: 'A.txt', source: resolve(dir, 'other.txt') }],
+            }, 200)()
+            await reqList(folderUri, { inList: ['A.txt', 'B.txt'] })()
+            await req(folderUri + 'A.txt', /^explicit VFS child$/)()
+            await req(folderUri + 'B.txt', /^renamed disk file$/)()
+            await reqApi('set_vfs', { uri: folderUri + 'A.txt', props: { can_read: false } }, 200)()
+            await req(folderUri + 'A.txt', 403)()
+            await req(folderUri + 'B.txt', /^renamed disk file$/)()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('VFS rename masks survive alias collisions and nesting', async () => {
+        const id = randomId(6)
+        const nodeName = `rename-chain-${id}`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const folderUri = `/${nodeName}/`
+        await mkdir(resolve(dir, 'phys'), { recursive: true })
+        await writeFile(resolve(dir, 'a.txt'), 'A')
+        await writeFile(resolve(dir, 'b.txt'), 'B')
+        await writeFile(resolve(dir, 'x.txt'), 'X')
+        await writeFile(resolve(dir, 'phys/x.txt'), 'nested')
+        try {
+            await reqApi('add_vfs', {
+                source: dir,
+                name: nodeName,
+                can_read: true, can_delete: true,
+                rename: { 'a.txt': 'c.txt', 'b.txt': 'a.txt', phys: 'disp', 'phys/x.txt': 'y.txt' },
+                masks: { 'a.txt': { can_read: false }, 'c.txt': { can_delete: false }, 'disp/y.txt': { can_read: false } },
+            }, 200)()
+            await req(folderUri + 'a.txt', 403)()
+            await req(folderUri + 'disp/y.txt', 403)()
+            await req(folderUri + 'phys/y.txt', 404)()
+            if (process.platform !== 'linux')
+                await req(folderUri + 'PHYS/y.txt', 404)()
+            await reqApi('rename', { uri: folderUri + 'x.txt', dest: 'a.txt' }, 403)()
+            if (readFileSync(resolve(dir, 'a.txt'), 'utf8') !== 'A')
+                throw Error('rename collision overwrote a protected physical destination')
+            await rmAny(resolve(dir, 'a.txt'))
+            await reqApi('set_vfs', {
+                uri: folderUri.slice(0, -1),
+                props: {
+                    rename: { 'a.txt': 'same.txt', 'b.txt': 'same.txt' },
+                    masks: { 'same.txt': { can_delete: false } },
+                },
+            }, 200)()
+            await reqApi('rename', { uri: folderUri + 'x.txt', dest: 'b.txt' }, 403)()
+            if (readFileSync(resolve(dir, 'b.txt'), 'utf8') !== 'B')
+                throw Error('duplicate display alias hid a protected rename destination')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('move keeps ownership aligned with destination VFS alias', async () => {
+        const id = randomId(6).toLowerCase()
+        const physicalName = `private-owner-${id}.txt`
+        const displayName = `public-owner-${id}.txt`
+        const nodeName = `owner-alias-${id}`
+        const sourcePath = resolve(UPLOAD_DISK_ROOT, physicalName)
+        const destDir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const destPath = resolve(destDir, physicalName)
+        const sourceUri = UPLOAD_ROOT + physicalName
+        const folderUri = `/${nodeName}/`
+        const displayUri = folderUri + displayName
+        const ownerUser = `alias-owner-${id}`
+        const ownerPass = randomId(12)
+        const otherUser = `alias-mover-${id}`
+        const otherPass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        const ownerReq = { auth: `${ownerUser}:${ownerPass}`, jar: {} }
+        await mkdir(destDir, { recursive: true })
+        try {
+            await reqApi('add_account', { username: ownerUser, password: ownerPass, belongs: ['admins'] }, 200, adminReq)()
+            await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
+            await reqApi('add_vfs', {
+                source: destDir,
+                name: nodeName,
+                can_upload: true,
+                can_delete: true,
+                rename: { [physicalName]: displayName },
+                masks: { [displayName]: { can_delete: [otherUser] } },
+            }, 200, adminReq)()
+            await reqUpload(sourceUri, 200, 'owned', undefined, 0, ownerReq)()
+            await reqApi('move_files', { uri_from: [sourceUri], uri_to: folderUri },
+                data => !data?.errors?.[0], ownerReq)()
+            await reqList(folderUri, { inList: [displayName], permInList: { [displayName]: 'D' } }, undefined, ownerReq)()
+
+            await writeFile(sourcePath, 'replacement')
+            await reqApi('move_files', { uri_from: [sourceUri], uri_to: folderUri },
+                data => !data?.errors?.[0], { auth: `${otherUser}:${otherPass}`, jar: {} })()
+            await req(displayUri, 401, { method: 'delete', ...ownerReq })()
+            if (readFileSync(destPath, 'utf8') !== 'replacement')
+                throw Error('previous uploader deleted an aliased replacement')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: ownerUser }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await rmAny(sourcePath)
+            await rmAny(destDir)
+        }
+    })
+    test('VFS aliases share upload ownership identity', async () => {
+        const id = randomId(6).toLowerCase()
+        const physicalName = `private-direct-${id}.txt`
+        const displayName = `public-direct-${id}.txt`
+        const nodeName = `owner-direct-${id}`
+        const sourcePath = resolve(UPLOAD_DISK_ROOT, physicalName)
+        const destDir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const destPath = resolve(destDir, physicalName)
+        const folderUri = `/${nodeName}/`
+        const physicalUri = folderUri + physicalName
+        const displayUri = folderUri + displayName
+        const ownerUser = `direct-owner-${id}`
+        const ownerPass = randomId(12)
+        const otherUser = `direct-mover-${id}`
+        const otherPass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        const ownerReq = { auth: `${ownerUser}:${ownerPass}`, jar: {} }
+        const otherReq = { auth: `${otherUser}:${otherPass}`, jar: {} }
+        await mkdir(destDir, { recursive: true })
+        try {
+            await reqApi('add_account', { username: ownerUser, password: ownerPass, belongs: ['admins'] }, 200, adminReq)()
+            await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
+            await reqApi('add_vfs', {
+                source: destDir, name: nodeName, can_upload: true,
+                rename: { [physicalName]: displayName },
+                masks: { [displayName]: { can_delete: [otherUser] } },
+            }, 200, adminReq)()
+            await reqUpload(physicalUri, x => x?.uri === physicalUri, 'owned', undefined, 0, ownerReq)()
+            await reqUpload(physicalUri + '?existing=overwrite', x => x?.uri === physicalUri, 'updated', undefined, 0, ownerReq)()
+            await req(displayUri, 200, { method: 'delete', ...otherReq })()
+            await writeFile(sourcePath, 'replacement')
+            await reqApi('move_files', { uri_from: [UPLOAD_ROOT + physicalName], uri_to: folderUri },
+                data => !data?.errors?.[0], otherReq)()
+            await req(physicalUri, 404, { method: 'delete', ...ownerReq })()
+            if (readFileSync(destPath, 'utf8') !== 'replacement')
+                throw Error('stale alias ownership deleted another uploader\'s file')
+            await req(displayUri, 200, {
+                method: 'PUT', body: 'shadow', ...ownerReq,
+                headers: { 'content-length': '6', 'user-agent': WEBDAV_UA },
+            })()
+            await req(displayUri, 401, {
+                method: 'PUT', body: 'attack', ...ownerReq,
+                headers: { 'content-length': '6', 'user-agent': WEBDAV_UA },
+            })()
+            await req(displayUri, 401, { method: 'delete', ...ownerReq })()
+            if (readFileSync(destPath, 'utf8') !== 'replacement')
+                throw Error('shadowed upload granted access to a protected alias')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: ownerUser }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await rmAny(sourcePath)
+            await rmAny(destDir)
+        }
+    })
+    test('aliased rename overwrite clears ambiguous upload ownership', async () => {
+        const id = randomId(6)
+        const nodeName = `owner-collision-${id}`
+        const firstName = `first-${id}.txt`
+        const secondName = `second-${id}.txt`
+        const displayName = `display-${id}.txt`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const firstPath = resolve(dir, firstName)
+        const secondPath = resolve(dir, secondName)
+        const folderUri = `/${nodeName}/`
+        const firstUri = folderUri + firstName
+        const secondUri = folderUri + secondName
+        const displayUri = folderUri + displayName
+        const ownerUser = `collision-owner-${id}`.toLocaleLowerCase()
+        const ownerPass = randomId(12)
+        const moverUser = `collision-mover-${id}`.toLocaleLowerCase()
+        const moverPass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        const ownerReq = { auth: `${ownerUser}:${ownerPass}`, jar: {} }
+        const moverReq = { auth: `${moverUser}:${moverPass}`, jar: {} }
+        await mkdir(dir, { recursive: true })
+        try {
+            await reqApi('add_account', { username: ownerUser, password: ownerPass }, 200, adminReq)()
+            await reqApi('add_account', { username: moverUser, password: moverPass }, 200, adminReq)()
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_upload: true,
+                rename: { [firstName]: displayName, [secondName]: displayName },
+                masks: { [displayName]: { can_delete: [moverUser] } },
+            }, 200, adminReq)()
+            await req(firstUri, 200, {
+                method: 'PUT', body: 'owned', ...ownerReq,
+                headers: { 'content-length': '5' },
+            })()
+            await writeFile(secondPath, 'replacement')
+            await reqApi('rename', { uri: secondUri, dest: firstName }, 404, moverReq)()
+            if (readFileSync(firstPath, 'utf8') !== 'owned' || readFileSync(secondPath, 'utf8') !== 'replacement')
+                throw Error('rename through an inaccessible physical name changed files')
+            await req(displayUri, 200, { method: 'delete', ...ownerReq })()
+            await rmAny(secondPath)
+            await req(firstUri, 200, {
+                method: 'PUT', body: 'owned', ...ownerReq,
+                headers: { 'content-length': '5' },
+            })()
+            await reqApi('rename', { uri: displayUri, dest: secondName }, 200, moverReq)()
+            await writeFile(firstPath, 'new entry')
+            await req(displayUri, 401, { method: 'delete', ...ownerReq })()
+            if (readFileSync(firstPath, 'utf8') !== 'new entry')
+                throw Error('ownership survived an ambiguous rename source')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: ownerUser }, 200, adminReq)().catch(() => {})
+            await reqApi('del_account', { username: moverUser }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('VFS upload ownership does not follow symlinks', { skip: process.platform === 'win32' }, async () => {
+        const id = randomId(6)
+        const nodeName = `owner-symlink-${id}`
+        const linkName = `protected-${id}.txt`
+        const displayName = `public-${id}.txt`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const linkPath = resolve(dir, linkName)
+        const targetPath = resolve(dir, displayName)
+        const folderUri = `/${nodeName}/`
+        const displayUri = folderUri + displayName
+        const ownerReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await symlink(displayName, linkPath)
+        try {
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_upload: ['admins'], can_delete: false,
+                rename: { [linkName]: displayName },
+            }, 200, ownerReq)()
+            await req(displayUri, 200, {
+                method: 'PUT', body: 'uploaded', ...ownerReq,
+                headers: { 'content-length': '8', 'user-agent': WEBDAV_UA },
+            })()
+            await req(displayUri, (_data, res) => [401, 403].includes(res.statusCode!), {
+                method: 'delete', ...ownerReq,
+            })()
+            if (!existsSync(linkPath) || readFileSync(targetPath, 'utf8') !== 'uploaded')
+                throw Error('upload ownership removed a protected symlink alias')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, ownerReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('case variants cannot share an upload temporary file', async () => {
+        const dir = await ensureCantOverwriteDir()
+        const id = randomId(6).toLowerCase()
+        const lowerName = `case-${id}.txt`
+        const upperName = lowerName.toUpperCase()
+        const probe = resolve(dir, `probe-${id}`)
+        await writeFile(probe, '')
+        const caseInsensitive = existsSync(probe.toUpperCase())
+        const users = [`case-a-${id}`, `case-b-${id}`] as const
+        const pass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        const tempPath = resolve(dir, UPLOAD_TEMP_PREFIX + lowerName)
+        const finalPath = resolve(dir, lowerName)
+        const upperTempPath = resolve(dir, UPLOAD_TEMP_PREFIX + upperName)
+        const upperFinalPath = resolve(dir, upperName)
+        const requests: ReturnType<typeof httpRequest>[] = []
+        const oldConfig = await reqApi('get_config', {
+            only: ['delete_unfinished_uploads_after', 'min_available_mb'],
+        }, 200, adminReq)()
+        try {
+            for (const username of users)
+                await reqApi('add_account', { username, password: pass, belongs: ['admins'] }, 200, adminReq)()
+            if (!caseInsensitive) {
+                await reqApi('set_config', {
+                    values: { delete_unfinished_uploads_after: 1, min_available_mb: 0 },
+                }, 200, adminReq)()
+                const aborted = startUpload(lowerName, users[0])
+                aborted.request.write('AAAA')
+                if (!await waitFor(() => existsSync(tempPath), { timeout: 3000 })) {
+                    aborted.request.end('CCCC')
+                    throw Error(`aborted upload did not start: ${await aborted.response}`)
+                }
+                aborted.request.destroy()
+                await wait(300)
+                const replacement = startUpload(upperName, users[1])
+                replacement.request.end('ZZZZYYYY')
+                if (await replacement.response !== 200)
+                    throw Error('case-distinct replacement upload failed')
+                await wait(1500)
+                if (existsSync(tempPath))
+                    throw Error('case-distinct aborted upload lost its deletion timer')
+                if (readFileSync(upperFinalPath, 'utf8') !== 'ZZZZYYYY')
+                    throw Error('case-distinct replacement upload was corrupted')
+                return
+            }
+            const first = startUpload(lowerName, users[0])
+            first.request.write('AAAA')
+            if (!await waitFor(() => existsSync(tempPath) && readFileSync(tempPath, 'utf8') === 'AAAA', { timeout: 3000 }))
+                throw Error('first upload did not start')
+            const second = startUpload(upperName, users[1])
+            second.request.write('ZZZZ')
+            if (await waitFor(() => readFileSync(tempPath, 'utf8') === 'ZZZZ', { interval: 20, timeout: 500 })) {
+                first.request.end('CCCC')
+                const firstStatus = await first.response
+                await waitFor(() => existsSync(finalPath), { timeout: 3000 })
+                const afterFirst = readFileSync(finalPath, 'utf8')
+                second.request.end('YYYY')
+                await second.response
+                const changed = await waitFor(() => readFileSync(finalPath, 'utf8') !== afterFirst, { timeout: 3000 })
+                throw Error(`second account shared the temporary file: first=${firstStatus}, changed=${Boolean(changed)}`)
+            }
+            if (await second.response !== 409)
+                throw Error('case-variant upload was not rejected')
+            first.request.end('CCCC')
+            if (await first.response !== 200 || readFileSync(finalPath, 'utf8') !== 'AAAACCCC')
+                throw Error('first upload was corrupted')
+
+            await rmAny(finalPath)
+            await reqApi('set_config', { values: { delete_unfinished_uploads_after: 2 } }, 200, adminReq)()
+            const aborted = startUpload(lowerName, users[0])
+            aborted.request.write('AAAA')
+            if (!await waitFor(() => existsSync(tempPath) && readFileSync(tempPath, 'utf8') === 'AAAA', { timeout: 3000 }))
+                throw Error('aborted upload did not start')
+            aborted.request.destroy()
+            await wait(300)
+            const original = readFileSync(tempPath)
+            const replacement = startUpload(upperName, users[1])
+            replacement.request.end('ZZZZYYYY')
+            if (await replacement.response !== 403)
+                throw Error('case-variant replacement upload was not rejected')
+            if (!readFileSync(tempPath).equals(original))
+                throw Error('case-variant replacement changed unfinished content')
+            if (!await waitFor(() => !existsSync(tempPath), { timeout: 3000 }))
+                throw Error('rejected replacement prevented unfinished-upload cleanup')
+        }
+        finally {
+            for (const request of requests)
+                request.destroy()
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)()
+            for (const username of users)
+                await reqApi('del_account', { username }, 200, adminReq)().catch(() => {})
+            await rmAny(probe)
+            await rmAny(tempPath)
+            await rmAny(finalPath)
+            await rmAny(upperTempPath)
+            await rmAny(upperFinalPath)
+            await rmAny(dir)
+        }
+
+        function startUpload(name: string, username: string) {
+            let request: ReturnType<typeof httpRequest>
+            const response = new Promise<number | undefined>(resolve => {
+                request = httpRequest(BASE_URL + CANT_OVERWRITE_URI + name, {
+                    method: 'PUT', auth: `${username}:${pass}`,
+                    headers: { 'content-length': '8', connection: 'close' },
+                }, res => {
+                    res.resume()
+                    res.on('end', () => resolve(res.statusCode))
+                }).on('error', () => resolve(undefined))
+                requests.push(request)
+            })
+            return { request: request!, response }
+        }
+    })
+    test('long filenames sharing an upload temporary file are serialized', async () => {
+        const nodeName = `long-upload-${randomId(6)}`
+        const suffix = 'x'.repeat(196) + '.txt'
+        const firstName = 'a' + suffix
+        const secondName = 'b' + suffix
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const firstUri = `${UPLOAD_ROOT}${nodeName}/${firstName}`
+        const secondUri = `${UPLOAD_ROOT}${nodeName}/${secondName}`
+        const temp = resolve(dir, UPLOAD_TEMP_PREFIX + suffix)
+        const ownerReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', {
+            parent: UPLOAD_ROOT, source: `../tmp/${nodeName}`, name: nodeName,
+            can_upload: ['admins'], can_delete: true,
+        }, 200, ownerReq)()
+        try {
+            const first = reqUpload(firstUri, 200, makeReadableThatTakes(600), undefined, 0, ownerReq)()
+            if (!await waitFor(() => existsSync(temp), { timeout: 3000 }))
+                throw Error('first long-name upload did not start')
+            await reqUpload(secondUri, 409, 'replacement', undefined, 0, ownerReq)()
+            await first
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + nodeName] }, 200, ownerReq)().catch(() => {})
+            await rmAny(dir)
         }
     })
     test('upload.path bypass', async () => {
@@ -1176,12 +3929,12 @@ describe('after-login', () => {
         await reqUpload(UPLOAD_DEST, 409)() // should conflict
         await first
     })
-    test('upload.concurrent', { timeout: 5000 }, () => Promise.all([
+    test('upload.concurrent', { timeout: 10_000 }, () => Promise.all([ // test concurrency, not disk throughput
         reqUpload(UPLOAD_DEST, 200, new StringRepeaterStream(BIG_CONTENT, 150))(), // 300MB
         ..._.range(3).map(i =>  reqUpload(UPLOAD_DEST + i, 200, new StringRepeaterStream(BIG_CONTENT, 50))()) // 3 x 100MB
     ]).then(() => {}))
     test('upload.interrupted', async () => {
-        const fn = resolve(UPLOAD_DISK_ROOT, UPLOAD_RELATIVE.replace('/', '/hfs$upload-'))
+        const fn = resolve(UPLOAD_DISK_ROOT, UPLOAD_RELATIVE.replace('/', '/' + UPLOAD_TEMP_PREFIX))
         await rm(fn, {force: true})
         const neededTime = 600
         const makeAbortedRequest = (afterMs: number) => {
@@ -1209,6 +3962,383 @@ describe('after-login', () => {
         if (!partial)
             throw "partial file missing"
         await reqUpload(UPLOAD_DEST, 200, Readable.from(BIG_CONTENT.slice(partial)), BIG_CONTENT.length, partial)()
+    })
+    test('upload.interrupted cleanup requires owner or delete permission', async () => {
+        const name = `unfinished-cleanup-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const dest = `${UPLOAD_ROOT}${name}/unfinished.txt`
+        const tempName = UPLOAD_TEMP_PREFIX + 'unfinished.txt'
+        const temp = resolve(dir, tempName)
+        const tempUri = `${UPLOAD_ROOT}${name}/${pathEncode(tempName)}`
+        // use a dedicated session because other suites may change the shared test jar
+        const ownerReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200, ownerReq)()
+        try {
+            await makeAbortedUpload()
+            await req(tempUri, 403, { method: 'delete', jar: {} })()
+            if (!existsSync(temp))
+                throw "temp file removed without permission"
+            let deleted = false
+            await waitFor(async () => { // client abort does not wait for the server to publish ownership
+                await req(tempUri, (_body, res) => {
+                    deleted = res.statusCode === 200
+                    return deleted || res.statusCode === 403
+                }, { method: 'delete', ...ownerReq })()
+                return deleted
+            }, { interval: 50, timeout: 3000 })
+            if (!deleted)
+                throw Error('unfinished upload ownership was not published')
+            if (existsSync(temp))
+                throw "temp file not removed"
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200, ownerReq)().catch(() => {})
+            await rmAny(dir)
+        }
+
+        async function makeAbortedUpload() {
+            await rmAny(temp)
+            const r = reqUpload(dest, 0, makeReadableThatTakes(600), undefined, 0, ownerReq)()
+            setTimeout(r.abort, 300)
+            await r.catch(() => {})
+            if (!existsSync(temp))
+                throw "missing temp file"
+        }
+    })
+    test('unfinished upload reuse requires owner or delete permission', async () => {
+        const name = `unfinished-reuse-${randomId(6)}`
+        const otherUser = `unfinished-other-${randomId(6)}`.toLowerCase()
+        const otherPass = `pw-${randomId(8)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const rootUri = `/${name}`
+        const dest = `${rootUri}/unfinished.txt`
+        const temp = resolve(dir, UPLOAD_TEMP_PREFIX + 'unfinished.txt')
+        const ownerReq = { auth, jar: {} }
+        const otherReq = { auth: `${otherUser}:${otherPass}`, jar: {} }
+        const first = 'owner-'
+        const rest = 'continued'
+        const complete = first + rest
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_account', { username: otherUser, password: otherPass }, 200, ownerReq)()
+        await reqApi('add_vfs', {
+            parent: '/', source: dir, name, can_see: true, can_list: true,
+            can_upload: [username, otherUser], can_delete: false,
+        }, 200, ownerReq)()
+        try {
+            await reqUpload(`${dest}?partial=${complete.length}`, 204, first, undefined, 0, ownerReq)()
+            const original = readFileSync(temp)
+            await reqUpload(dest, 403, 'replacement', undefined, 0, otherReq)()
+            await reqUpload(dest, 403, rest, complete.length, first.length, otherReq)()
+            if (!readFileSync(temp).equals(original))
+                throw Error('foreign upload changed unfinished content')
+            await reqUpload(dest, (_data, res) => {
+                if (res.statusCode !== 200)
+                    throw Error(`expected owner resume 200, got ${res.statusCode}`)
+            }, rest, complete.length, first.length, ownerReq)()
+            if (readFileSync(resolve(dir, 'unfinished.txt'), 'utf8') !== complete)
+                throw Error('owner resume changed content')
+        }
+        finally {
+            await reqApi('del_account', { username: otherUser }, 200, ownerReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [rootUri] }, 200, ownerReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('split upload continuation is independent of own-delete hours', async () => {
+        const name = `split-owner-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/file.txt`
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['own_upload_delete_hours'] }, 200, adminReq)()
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { source: dir, name, can_upload: true, can_delete: false }, 200, adminReq)()
+        try {
+            for (const hours of [0, 0.000001]) {
+                const ownerReq = { jar: {} }
+                await reqApi('refresh_session', {}, 200, ownerReq)()
+                await reqApi('set_config', { values: { own_upload_delete_hours: hours } }, 200, adminReq)()
+                await reqUpload(`${uri}?partial=3`, 204, 'a', undefined, 0, ownerReq)()
+                await wait(30) // let the short delete grant expire before continuing the same upload
+                await reqUpload(`${uri}?partial=3`, 204, 'b', 2, 1, ownerReq)()
+                await reqUpload(uri, (_data, res) => res.statusCode === 200, 'c', 3, 2, ownerReq)()
+                if (readFileSync(resolve(dir, 'file.txt'), 'utf8') !== 'abc')
+                    throw Error('split upload content changed')
+                await wait(30)
+                await req(uri, 403, { method: 'delete', ...ownerReq })()
+                await rm(resolve(dir, 'file.txt'))
+            }
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)()
+            await reqApi('del_vfs', { uris: [`/${name}/`] }, 200, adminReq)()
+            await rmAny(dir)
+        }
+    })
+    test('upload temporary files honor file-only permission masks', async () => {
+        const name = `temp-file-mask-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/file.txt`
+        const adminReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await writeFile(resolve(dir, UPLOAD_TEMP_PREFIX + 'file.txt'), 'a')
+        await reqApi('add_vfs', {
+            source: dir, name, can_upload: true, can_delete: false,
+            masks: { '*|files|': { can_delete: true } },
+        }, 200, adminReq)()
+        try {
+            await reqUpload(uri, (_data, res) => res.statusCode === 200, 'b', 2, 1, { jar: {} })()
+            if (readFileSync(resolve(dir, 'file.txt'), 'utf8') !== 'ab')
+                throw Error('authorized file-mask resume changed content')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [`/${name}/`] }, 200, adminReq)()
+            await rmAny(dir)
+        }
+    })
+    test('partial upload expires as unfinished', async () => {
+        const name = `partial-expiry-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const folderUri = `/${name}/`
+        const dest = `${folderUri}unfinished.txt?partial=1`
+        const temp = resolve(dir, UPLOAD_TEMP_PREFIX + 'unfinished.txt')
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['delete_unfinished_uploads_after'] }, 200, adminReq)()
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { source: dir, name, can_upload: ['admins'], can_delete: false }, 200, adminReq)()
+        try {
+            await reqApi('set_config', { values: { delete_unfinished_uploads_after: 30 * 24 * 60 * 60 } }, 200, adminReq)()
+            await reqUpload(dest, 204, 'x', undefined, 0, adminReq)()
+            await wait(100)
+            if (!existsSync(temp))
+                throw Error('long partial-upload retention expired immediately')
+            await reqApi('set_config', { values: { delete_unfinished_uploads_after: 0 } }, 200, adminReq)()
+            await reqUpload(dest, 204, 'x', undefined, 0, adminReq)()
+            if (!await waitFor(() => !existsSync(temp), { timeout: 3000 }))
+                throw Error('expired partial upload was not deleted')
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('fresh upload clears stale unfinished ownership', async () => {
+        const name = `stale-unfinished-owner-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const folderUri = `/${name}/`
+        const dest = `${folderUri}unfinished.txt`
+        const temp = resolve(dir, UPLOAD_TEMP_PREFIX + 'unfinished.txt')
+        const tempUri = `${folderUri}${pathEncode(basename(temp))}`
+        const adminReq = { auth, jar: {} }
+        const ownerJar = {}
+        const otherJar = {}
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { source: dir, name, can_upload: true, can_delete: false }, 200, adminReq)()
+        try {
+            await reqApi('refresh_session', {}, 200, { jar: ownerJar })()
+            await reqApi('refresh_session', {}, 200, { jar: otherJar })()
+            await reqUpload(`${dest}?partial=1`, 204, 'old', undefined, 0, { jar: ownerJar })()
+            await rm(temp) // simulate cleanup that removed the file but left its persistent ownership record
+            const replacement = reqUpload(dest, (_data, res) => res.statusCode === 200,
+                makeReadableThatTakes(600), undefined, 0, { jar: otherJar })()
+            if (!await waitFor(() => existsSync(temp), { timeout: 3000 }))
+                throw Error('replacement upload did not start')
+            await req(tempUri, 403, { method: 'delete', jar: ownerJar })()
+            await replacement
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('unfinished upload cannot overwrite an explicit VFS child source', async () => {
+        const id = randomId(6)
+        const nodeName = `unfinished-child-${id}`
+        const filename = 'unfinished.txt'
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const temp = resolve(dir, UPLOAD_TEMP_PREFIX + filename)
+        const folderUri = `/${nodeName}/`
+        const ownerReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await writeFile(temp, 'protected')
+        try {
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_upload: ['admins'], can_delete: true,
+                children: [{ source: temp, name: 'protected-temp.txt' }],
+            }, 200, ownerReq)()
+            await req(folderUri + filename, 403, {
+                method: 'PUT', body: 'replacement', ...ownerReq,
+                headers: { 'content-length': '11' },
+            })()
+            if (readFileSync(temp, 'utf8') !== 'protected')
+                throw Error('explicit VFS child source was overwritten')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, ownerReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('unfinished upload cannot overwrite an aliased explicit VFS child source', { skip: process.platform === 'win32' }, async () => {
+        const id = randomId(6)
+        const nodeName = `unfinished-child-alias-${id}`
+        const filename = 'unfinished.txt'
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const temp = resolve(dir, UPLOAD_TEMP_PREFIX + filename)
+        const alias = resolve(dir, 'protected-temp-link.txt')
+        const folderUri = `/${nodeName}/`
+        const ownerReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await writeFile(temp, 'protected')
+        await symlink(basename(temp), alias)
+        try {
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_upload: ['admins'], can_delete: true,
+                children: [{ source: alias, name: 'protected-temp.txt' }],
+            }, 200, ownerReq)()
+            await req(folderUri + filename, 403, {
+                method: 'PUT', body: 'replacement', ...ownerReq,
+                headers: { 'content-length': '11' },
+            })()
+            if (readFileSync(temp, 'utf8') !== 'protected')
+                throw Error('aliased explicit VFS child source was overwritten')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, ownerReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('aborted upload ownership cannot attach to a shadowed VFS alias', async () => {
+        const id = randomId(6)
+        const nodeName = `unfinished-alias-${id}`
+        const dir = resolve(UPLOAD_DISK_ROOT, nodeName)
+        const filename = 'unfinished.txt'
+        const tempName = UPLOAD_TEMP_PREFIX + filename
+        const victimName = `victim-${id}.txt`
+        const victim = resolve(dir, victimName)
+        const temp = resolve(dir, tempName)
+        const folderUri = `/${nodeName}/`
+        const ownerReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await writeFile(victim, 'protected')
+        try {
+            await reqApi('add_vfs', {
+                source: dir, name: nodeName, can_upload: ['admins'], can_delete: false,
+                rename: { [victimName]: tempName },
+            }, 200, ownerReq)()
+            const upload = reqUpload(folderUri + filename, 0, makeReadableThatTakes(600), undefined, 0, ownerReq)()
+            setTimeout(upload.abort, 300)
+            await upload.catch(() => {})
+            if (!await waitFor(() => existsSync(temp), { timeout: 3000 }))
+                throw Error('missing aborted upload')
+            await req(folderUri + pathEncode(tempName), (_data, res) => [401, 403].includes(res.statusCode!), {
+                method: 'delete', ...ownerReq,
+            })()
+            if (readFileSync(victim, 'utf8') !== 'protected')
+                throw Error('aborted upload ownership deleted a shadowed VFS alias')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, ownerReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('unfinished upload reuse requires owner or delete permission', async () => {
+        const name = `unfinished-reuse-${randomId(6)}`
+        const otherUser = `unfinished-other-${randomId(6)}`.toLowerCase()
+        const otherPass = `pw-${randomId(8)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const dest = `${UPLOAD_ROOT}${name}/unfinished.txt`
+        const temp = resolve(dir, UPLOAD_TEMP_PREFIX + 'unfinished.txt')
+        const ownerReq = { auth, jar: {} }
+        const otherReq = { auth: `${otherUser}:${otherPass}`, jar: {} }
+        const first = 'owner-'
+        const rest = 'continued'
+        const complete = first + rest
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_account', { username: otherUser, password: otherPass }, 200, ownerReq)()
+        await reqApi('add_vfs', {
+            parent: UPLOAD_ROOT, source: `../tmp/${name}`, name,
+            can_upload: [username, otherUser], can_delete: false,
+        }, 200, ownerReq)()
+        try {
+            await reqUpload(`${dest}?partial=${complete.length}`, 204, first, undefined, 0, ownerReq)()
+            const original = readFileSync(temp)
+            await reqUpload(dest, 403, 'replacement', undefined, 0, otherReq)()
+            await reqUpload(dest, 403, rest, complete.length, first.length, otherReq)()
+            if (!readFileSync(temp).equals(original))
+                throw Error('foreign upload changed unfinished content')
+            await reqUpload(dest, 200, rest, complete.length, first.length, ownerReq)()
+            if (readFileSync(resolve(dir, 'unfinished.txt'), 'utf8') !== complete)
+                throw Error('owner resume changed content')
+        }
+        finally {
+            await reqApi('del_account', { username: otherUser }, 200, ownerReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [UPLOAD_ROOT + name] }, 200, ownerReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('anonymous upload can delete own unfinished upload', async () => {
+        const name = `anon-unfinished-cleanup-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const jar = {}
+        const folderUri = `/${name}/`
+        const dest = `${folderUri}unfinished.txt`
+        const tempName = UPLOAD_TEMP_PREFIX + 'unfinished.txt'
+        const temp = resolve(dir, tempName)
+        const tempUri = `${folderUri}${pathEncode(tempName)}`
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { source: dir, name, can_upload: true, can_delete: false }, 200)()
+        try {
+            await reqApi('refresh_session', {}, 200, { jar })()
+            const r = reqUpload(dest, 0, makeReadableThatTakes(600), undefined, 0, { jar })()
+            setTimeout(r.abort, 300)
+            await r.catch(() => {})
+            if (!existsSync(temp))
+                throw "missing temp file"
+            let deleted = false
+            await waitFor(async () => { // client abort does not wait for the server to publish ownership
+                await req(tempUri, (_body, res) => {
+                    deleted = res.statusCode === 200
+                    return deleted || res.statusCode === 403
+                }, { method: 'delete', jar })()
+                return deleted
+            }, { interval: 50, timeout: 3000 })
+            if (!deleted)
+                throw Error('unfinished upload ownership was not published')
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [folderUri] }, 200)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('upload.interrupted owner is cleared after resume completes', async () => {
+        const name = `unfinished-resume-cleanup-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const folderUri = `/${name}/`
+        const dest = `${folderUri}unfinished.txt`
+        const tempName = UPLOAD_TEMP_PREFIX + 'unfinished.txt'
+        const temp = resolve(dir, tempName)
+        const tempUri = `${folderUri}${pathEncode(tempName)}`
+        // use a dedicated session because other suites may change the shared test jar
+        const ownerReq = { auth, jar: {} }
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { source: dir, name, can_upload: ['admins'], can_delete: false }, 200, ownerReq)()
+        try {
+            const r = reqUpload(dest, 0, makeReadableThatTakes(600), undefined, 0, ownerReq)()
+            setTimeout(r.abort, 300)
+            await r.catch(() => {})
+            await wait(500)
+            const partial = statSync(temp).size
+            await reqUpload(dest, (_data, res) => res.statusCode === 200,
+                Readable.from(BIG_CONTENT.slice(partial)), BIG_CONTENT.length, partial, ownerReq)()
+            await writeFile(temp, 'new temp')
+            await req(tempUri, 403, { method: 'delete', ...ownerReq })()
+        }
+        finally {
+            await req(dest, 200, { method: 'delete', ...ownerReq })().catch(() => {})
+            await reqApi('del_vfs', { uris: [folderUri] }, 200, ownerReq)().catch(() => {})
+            await rmAny(dir)
+        }
     })
     test('rename.backslash', async () => {
         await reqApi('rename', { uri: UPLOAD_DEST, dest: 'sub\\file' }, process.platform === 'win32' ? 403 : 200)()
@@ -1242,6 +4372,7 @@ describe('after-login', () => {
     })
     const declaredSize = BIG_CONTENT.length / 2
     test('upload.too much', reqUpload(UPLOAD_DEST, (x,res)=> {
+        if (res instanceof ClientRequest) return // Node may close the connection when the body exceeds Content-Length
         if (res.statusCode === 400) return // status 400 is caused by nodejs itself, intercepting the mismatch, but it's probably an unreliable race condition
         if (res.statusCode !== 200) // it happened sometimes that node didn't block (can't replicate). In such case we should get a 200 with a file the size of declaredSize.
             throw `expected 200, got ${res.statusCode}`
@@ -1254,11 +4385,16 @@ describe('after-login', () => {
         const free = res.bavail * res.bsize
         const fakeSize = Math.round(free * 0.51)
         const r1 = reqUpload(`${UPLOAD_ROOT}${UPLOAD_DIR}/free1`, 400, makeReadableThatTakes(1000), fakeSize)()
-        setTimeout(r1.abort, 1500)
-        await Promise.all([
-            r1.catch(() => {}),
-            wait(100).then(() => reqUpload(`${UPLOAD_ROOT}${UPLOAD_DIR}/free2`, 507, makeReadableThatTakes(500), fakeSize)())
-        ])
+        const temp = resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR, UPLOAD_TEMP_PREFIX + 'free1')
+        try {
+            if (!await waitFor(() => existsSync(temp), { timeout: 3000 }))
+                throw Error('first upload did not start')
+            await req(`${UPLOAD_ROOT}${UPLOAD_DIR}/free2?simulate=${fakeSize}`, 507, { method: 'PUT' })()
+        }
+        finally {
+            r1.abort()
+            await r1.catch(() => {})
+        }
     })
     test('max_dl.account', async () => {
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/big`
@@ -1274,6 +4410,20 @@ describe('after-login', () => {
 })
 
 describe('admin', () => {
+    test('folder size avoids symlink cycles', { skip: process.platform === 'win32' }, async () => {
+        const root = await mkdtemp(resolve(UPLOAD_DISK_ROOT, 'walk-cycle-'))
+        try {
+            await mkdir(join(root, 'dir'))
+            await symlink('..', join(root, 'dir/loop'))
+            await reqApi('get_folder_size', {
+                uri: UPLOAD_ROOT + basename(root),
+                id: randomId(6),
+            }, res => res?.folders === 2 && res?.files === 0, { auth, jar: {}, timeout: 1000 })()
+        }
+        finally {
+            await rm(root, { recursive: true, force: true })
+        }
+    })
     test('add folder', async () => {
         const name = 'added'
         try {
@@ -1284,12 +4434,130 @@ describe('admin', () => {
             await reqApi('del_vfs', { uris: ['/'+name] }, data => data?.errors?.[0] === 0, { auth })() // remove
         }
     })
+    for (const useJunction of [false, true])
+    test('windows subfolders remain browsable' + (useJunction ? ' through junction' : ''), { skip: process.platform !== 'win32' }, async t => {
+        const root = await mkdtemp(join(tmpdir(), 'hfs-junction-'))
+        const target = join(root, 'Administrator', 'Music')
+        const folder = useJunction ? join(root, 'Music Junction') : target
+        const name = `junction-${randomId(6)}`
+        try {
+            for (const album of ['Album One', 'Album Two']) {
+                await mkdir(join(target, album), { recursive: true })
+                await writeFile(join(target, album, 'track.txt'), 'music')
+            }
+            if (useJunction)
+                await symlink(target, folder, 'junction')
+            const short = fswin.convertPathSync(folder)
+            if (!short || short === folder)
+                return t.skip('volume does not provide an 8.3 alias')
+            for (const source of [folder, short]) {
+                await reqApi('add_vfs', { source, name }, 200, { auth })()
+                await reqList(`/${name}/`, { inList: ['Album One/', 'Album Two/'] })()
+                for (const album of ['Album One', 'Album Two']) {
+                    const uri = `/${name}/${pathEncode(album)}/`
+                    await reqList(uri, { inList: ['track.txt'] })()
+                    await req(uri + 'track.txt', /music/)()
+                }
+                await reqApi('del_vfs', { uris: [`/${name}/`] }, 200, { auth })()
+            }
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [`/${name}/`] }, 200, { auth })().catch(() => {})
+            await rmAny(root)
+        }
+    })
+    for (const junction of [false, true])
+    test('windows short names preserve VFS permissions' + (junction ? ' through junction' : ''), { skip: process.platform !== 'win32' }, async t => {
+        const parentName = `short-name-${randomId(6)}`
+        const childName = `Very Secret Directory ${randomId(6)}`
+        const virtualName = `Private ${randomId(6)}`
+        const collisionName = `Collision Secret ${randomId(6)}`
+        const publicName = `Public Directory ${randomId(6)}`
+        const renamedName = `Renamed Secret ${randomId(6)}`
+        const renamedDisplay = `Private ${randomId(6)}`
+        const parentUri = `/${parentName}/`
+        const root = resolve(tmpdir(), parentName)
+        const parentPath = junction ? join(root, 'Music Junction') : root
+        if (junction) {
+            const target = join(root, 'Music Storage')
+            await mkdir(target, { recursive: true })
+            await symlink(target, parentPath, 'junction')
+        }
+        const childPath = join(parentPath, childName)
+        const collisionPath = join(parentPath, collisionName)
+        const publicPath = join(parentPath, publicName)
+        const renamedPath = join(parentPath, renamedName)
+        await Promise.all([childPath, collisionPath, publicPath, renamedPath].map(path => mkdir(path, { recursive: true })))
+        await writeFile(join(childPath, 'secret.txt'), 'secret')
+        await writeFile(join(collisionPath, 'marker.txt'), 'secret')
+        await writeFile(join(publicPath, 'marker.txt'), 'public')
+        await writeFile(join(renamedPath, 'marker.txt'), 'renamed')
+        try {
+            const shortPath = fswin.convertPathSync(childPath)
+            const shortName = shortPath && basename(shortPath)
+            const collisionShortPath = fswin.convertPathSync(collisionPath)
+            const collisionShortName = collisionShortPath && basename(collisionShortPath)
+            const renamedShortPath = fswin.convertPathSync(renamedPath)
+            const renamedShortName = renamedShortPath && basename(renamedShortPath)
+            const parentShortPath = fswin.convertPathSync(parentPath)
+            if (!shortName || shortName === childName || !collisionShortName || collisionShortName === collisionName
+            || !renamedShortName || renamedShortName === renamedName || !parentShortPath || parentShortPath === parentPath)
+                return t.skip('volume does not provide an 8.3 alias')
+            const resolvedShortPath = fswin.convertPathSync(join(parentPath, shortName), true)
+            if (!resolvedShortPath || resolve(resolvedShortPath).toLowerCase() !== resolve(childPath).toLowerCase())
+                throw Error('8.3 alias did not resolve to the protected folder')
+            await reqApi('add_vfs', {
+                source: parentShortPath,
+                name: parentName,
+                can_read: true,
+                rename: { [publicName]: collisionShortName, [renamedName]: renamedDisplay },
+                masks: { [renamedDisplay]: { can_read: false } },
+            }, 200, { auth })()
+            await reqApi('add_vfs', {
+                parent: parentUri,
+                source: shortPath,
+                name: virtualName,
+                can_read: ['admins'],
+            }, 200, { auth })()
+            await reqApi('add_vfs', {
+                parent: parentUri,
+                source: collisionPath,
+                can_read: ['admins'],
+            }, 200, { auth })()
+            await req(`${parentUri}${pathEncode(virtualName)}/secret.txt`, 401, { jar: {} })()
+            await req(`${parentUri}${pathEncode(childName)}/secret.txt`, 401, { jar: {} })()
+            await req(`${parentUri}${pathEncode(shortName)}/secret.txt`, 401, { jar: {} })()
+            await req(`${parentUri}${pathEncode(renamedDisplay)}/marker.txt`, 403, { jar: {} })()
+            await req(`${parentUri}${pathEncode(renamedShortName)}/marker.txt`, 404, { jar: {} })()
+            await reqList(parentUri, {
+                inList: [virtualName + '/', collisionName + '/', collisionShortName + '/'],
+                outList: [childName + '/'],
+            }, undefined, { auth })()
+            await req(`${parentUri}${pathEncode(collisionShortName)}/marker.txt`, { status: 200, re: /public/ }, { jar: {} })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [parentUri] }, 200, { auth })().catch(() => {})
+            await rmAny(root)
+        }
+    })
     test('add_vfs source without name', async () => {
         const res = await reqApi('add_vfs', { source: '.' }, 200, { auth })()
         const name = res?.name
         if (typeof name !== 'string' || !name)
             throw "missing name"
         await reqApi('del_vfs', { uris: ['/' + name] }, data => [0, 404].includes(data?.errors?.[0]), { auth })().catch(() => {})
+    })
+    test('see_without_probing lists VFS node without its source', async () => {
+        const name = `no-probe-${randomId(6)}`
+        const source = resolve(UPLOAD_DISK_ROOT, name)
+        try {
+            await reqApi('add_vfs', { source: source + '/', name, see_without_probing: true }, 404, { auth })()
+            await reqApi('add_vfs', { source: source + '/', name, see_without_probing: true, skip_source_check: true }, 200, { auth })()
+            await reqList('/', { inList: [name + '/'] })()
+        }
+        finally {
+            await reqApi('del_vfs', { uris: ['/' + name] }, 200, { auth })().catch(() => {})
+        }
     })
     test('account rename updates nested VFS permissions', async () => {
         const oldUsername = `vfs-old-${randomId(6)}`.toLowerCase()
@@ -1312,6 +4580,21 @@ describe('admin', () => {
         finally {
             await reqApi('del_vfs', { uris: ['/' + name] }, 200, { auth })().catch(() => {})
             await reqApi('del_account', { username: [newUsername, oldUsername] }, 200, { auth })().catch(() => {})
+        }
+    })
+    test('set_vfs root saves preserve domain roots', async () => {
+        const old = await reqApi('get_config', { only: ['vfs', 'roots'] }, 200, { auth })()
+        const roots = { 'root-save.example.com': '/f1/', 'default.example.com': '' }
+        try {
+            await reqApi('set_config', { values: { roots } }, 200, { auth })()
+            for (let i = 0; i < 2; i++) {
+                await reqApi('set_vfs', { uri: '/', props: { source: resolve(__dirname, '..'), comment: `save ${i}` } }, 200, { auth })()
+                await reqApi('get_config', { only: ['roots'] }, res =>
+                    throwIf(_.isEqual(res.roots, roots) ? '' : JSON.stringify(res.roots)), { auth })()
+            }
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, { auth })()
         }
     })
     test('set_vfs.rename and props', async () => {
@@ -1363,7 +4646,7 @@ describe('admin', () => {
         }
         finally { await rmAny(resolve(UPLOAD_DISK_ROOT, rawName)) }
     })
-    test('monitor.connections upload path decodes colon folder', async () => {
+    test('monitor.connections upload path decodes colon folder', { skip: process.platform === 'win32' && 'Windows forbids : in folder names' }, async () => {
         const body = makeReadableThatTakes(700)
         const size = body.length
         const folderName = `colon:${randomId(4)}`
@@ -1385,7 +4668,9 @@ describe('admin', () => {
     test('plugins.start_stop', async () => {
         const id = 'download-counter'
         await reqApi('stop_plugin', { id }, 200, { auth })()
-        await reqApi('start_plugin', { id }, 200, { auth })()
+        await reqApi('start_plugin', { id }, res => res?.id === id && typeof res.config === 'string'
+            && res.configDialog?.sx?.maxWidth === '20em', { auth })()
+        await reqApi('start_plugin', { id }, res => res?.id === id && typeof res.config === 'string', { auth })()
         await reqApi('stop_plugin', { id }, res => {
             if (res?.msg === 'already stopped')
                 throw "plugin didn't start"
@@ -1405,6 +4690,111 @@ describe('admin', () => {
             }, { interval: 100, timeout: 3000 })
             if (!good)
                 throw Error("condition not met on list: " + JSON.stringify(lastNames))
+        }
+    })
+    test('plugins.failed init cleans event handlers', async () => {
+        const script = `exports.init = api => {
+            api.events.on('dirEntry', ({ entry }) => entry.n === 'f2/' && api.events.stop)
+            throw Error('expected init failure')
+        }`
+        await reqApi('set_config', { values: { server_code: script } }, 200, { auth })()
+        try {
+            await reqList('/f1/', { status: 200, inList: ['f2/'] })()
+        }
+        finally {
+            await reqApi('set_config', { values: { server_code: '' } }, 200, { auth })().catch(() => {})
+        }
+    })
+    test('watchLoad.save waits for active reads', async () => {
+        const previous = await reqApi('get_config', { only: ['server_code'] }, 200, { auth })().then(x => x.server_code)
+        const marker = `watch-load-race-${randomId(6)}`
+        const script = `// ${marker}
+exports.init = api => {
+    const fs = require('fs/promises')
+    const fsSync = require('fs')
+    const { configFile } = require('./config')
+    const originalReadFile = fs.readFile
+    const originalWriteFile = fs.writeFile
+    let testing = false
+    let reading = false
+    let writeStarted = false
+    let startRead, releaseRead, releaseWrite
+    const readStarted = new Promise(resolve => startRead = resolve)
+    const readGate = new Promise(resolve => releaseRead = resolve)
+    const writeGate = new Promise(resolve => releaseWrite = resolve)
+
+    fs.readFile = async (path, ...args) => {
+        if (testing && String(path).endsWith(api.Const.CONFIG_FILE)) {
+            testing = false
+            reading = true
+            startRead()
+            await readGate
+        }
+        return originalReadFile(path, ...args)
+    }
+    fs.writeFile = async (path, data, ...args) => {
+        if (reading && String(path).endsWith(api.Const.CONFIG_FILE)) {
+            writeStarted = true
+            // emulate writeFile's truncate-to-write window deterministically
+            fsSync.truncateSync(path, 0)
+            await writeGate
+        }
+        return originalWriteFile(path, data, ...args)
+    }
+    exports.customRest = {
+        async watch_load_race({ text }) {
+            let saving
+            try {
+                testing = true
+                await originalWriteFile(api.Const.CONFIG_FILE, await originalReadFile(api.Const.CONFIG_FILE))
+                await Promise.race([
+                    readStarted,
+                    new Promise((_, reject) => setTimeout(() => reject(Error('watcher did not reload config')), 3000)),
+                ])
+                saving = configFile.save(text, { reparse: true })
+                // let save reach its first blocking point before inspecting it
+                await new Promise(resolve => setImmediate(resolve))
+                const overlapped = writeStarted
+                releaseRead()
+                await new Promise(resolve => setImmediate(resolve))
+                releaseWrite()
+                await saving
+                reading = false
+                return { overlapped, saved: await originalReadFile(api.Const.CONFIG_FILE, 'utf8') === text }
+            }
+            finally {
+                reading = false
+                releaseRead()
+                releaseWrite()
+                await saving?.catch(() => {})
+            }
+        },
+    }
+    return () => {
+        fs.readFile = originalReadFile
+        fs.writeFile = originalWriteFile
+        releaseRead()
+        releaseWrite()
+    }
+}`
+        await reqApi('set_config', { values: { server_code: script } }, 200, { auth })()
+        try {
+            const saved = await waitFor(async () =>
+                (await reqApi('get_config_text', {}, 200, { auth })()).text.includes(marker),
+            { interval: 50, timeout: 3000 })
+            if (!saved)
+                throw Error('server_code was not saved')
+            await wait(1100) // let watcher activity from installing server_code settle before arranging the race
+            const text = (await reqApi('get_config_text', {}, 200, { auth })()).text + '\n'
+            const res = await reqApi('_watch_load_race', { text }, x =>
+                typeof x?.overlapped === 'boolean' && typeof x?.saved === 'boolean', { auth })()
+            if (res.overlapped)
+                throw Error('save started while config was being read')
+            if (!res.saved)
+                throw Error('save did not reach the config file')
+        }
+        finally {
+            await reqApi('set_config', { values: { server_code: previous } }, 200, { auth })().catch(() => {})
         }
     })
     test('plugins.download-counter percent name', async () => {
@@ -1470,6 +4860,15 @@ describe('admin', () => {
             if (burst.some(x => x.delay !== 0)) throw `unexpected delay in x100 valid burst: ${burst.map(x => x.delay)}`
         })
     })
+    test('antibrute.valid basic burst waits only once after a failure', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
+            const burst = await Promise.all(_.times(3, () => reqBasicAuth('/for-admins/', auth)))
+            const delayed = burst.filter(x => x.delay > 0)
+            if (burst.some(x => x.status !== 200)) throw `unexpected statuses in valid burst: ${burst.map(x => x.status)}`
+            if (delayed.length !== 1) throw `valid burst waited ${delayed.length} times: ${burst.map(x => x.delay)}`
+        })
+    })
     test('antibrute.failed basic auth escalates delay', async () => {
         await withPluginConfig('antibrute', antibruteCfg, async () => {
             const first = await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
@@ -1502,6 +4901,76 @@ describe('admin', () => {
             if (second.delay !== 0) throw `valid srp step1 was counted as failed login: ${second.delay}`
         })
     })
+    test('antibrute.prototype-key username does not pollute Object prototype', async () => {
+        const antibrute = require('../plugins/antibrute/plugin.js')
+        const handlers: any = {}
+        const proto: any = Object.prototype
+        const hadTimer = Object.hasOwn(proto, 'timer')
+        const previousTimer = proto.timer
+        let failure = ''
+        try {
+            delete proto.timer
+            antibrute.init({
+                misc: { HOUR: 0, isLocalHost: () => true, netMatches: () => false },
+                require: () => ({ makeQ }),
+                events: { stop: Symbol('stop'), multi: (x: any) => Object.assign(handlers, x) },
+                getConfig: (k: keyof typeof antibruteCfg) => antibruteCfg[k] ?? 0,
+                getAccount: (username: string) => ({ username }),
+                log() {},
+                addBlock() {},
+            })
+            const ctx = { ip: '127.0.0.1', set() {} }
+            await handlers.attemptingLogin({ ctx, username: '__proto__' })
+            handlers.loginAttemptFinished({ ctx, success: false })
+            if (Object.hasOwn(proto, 'timer')) {
+                let yamlError = ''
+                try { yaml.stringify({ accounts: { victim: {} } }) }
+                catch (e: any) { yamlError = e.message }
+                failure = `magic username __proto__ polluted Object.prototype.timer${yamlError ? ` and broke YAML serialization: ${yamlError}` : ''}`
+            }
+        }
+        finally {
+            if (Object.hasOwn(proto, 'timer') && proto.timer !== previousTimer)
+                clearTimeout(proto.timer)
+            if (hadTimer) proto.timer = previousTimer
+            else delete proto.timer
+            delete proto.waiting
+        }
+        if (failure) throw failure
+    })
+    test('antibrute.prototype-key usernames do not corrupt state', async () => {
+        await withPluginConfig('antibrute', antibruteCfg, async () => {
+            const self = `prototype-self-${randomId(6)}`.toLowerCase() // account names are normalized, randomId can contain uppercase L
+            const selfPassword = randomId(12)
+            const victim = `prototype-victim-${randomId(6)}`
+            const selfJar = {}
+            await reqApi('add_account', { username: self, password: selfPassword, admin: true }, 200, { auth })()
+            await reqApi('add_account', { username: victim, password: randomId(12) }, 200, { auth })()
+            try {
+                await srpClientSequence(srp, self, selfPassword, (cmd: string, params: any) =>
+                    reqApi(cmd, params, (_x,res) => res.statusCode < 400, { jar: selfJar })())
+                for (const user of ['__proto__', 'constructor']) {
+                    await reqApi('add_account', { username: user }, 400, { auth })()
+                    const response = await reqLoginSrp1(user)
+                    const victimResponse = await reqLoginSrp1(victim)
+                    if (victimResponse.status !== 200)
+                        throw `magic username ${user} corrupted unrelated loginSrp1: ${victimResponse.status}`
+                    if (response.status !== 200) throw `magic username ${user} returned ${response.status}`
+                    await reqApi('set_account', { username: self, changes: { username: user } },
+                        res => res?.username === self, { jar: selfJar })()
+                    await reqApi('refresh_session', {}, res => res?.username === self, { jar: selfJar })()
+                }
+                await reqApi('set_account', { username: self, changes: { username: self.toUpperCase() } },
+                    res => res?.username === self, { jar: selfJar })()
+                await reqApi('refresh_session', {}, res => res?.username === self, { jar: selfJar })()
+                const normal = await reqBasicAuth('/for-admins/', auth)
+                if (normal.status !== 200) throw `normal login returned ${normal.status}`
+            }
+            finally {
+                await reqApi('del_account', { username: [self, victim] }, 200, { auth })()
+            }
+        })
+    })
     test('antibrute.successful login resets penalty', async () => {
         await withPluginConfig('antibrute', antibruteCfg, async () => {
             await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
@@ -1515,7 +4984,7 @@ describe('admin', () => {
             if (afterReset.delay !== 0) throw `delay not reset after successful login: ${afterReset.delay}`
         })
     })
-    test('antibrute.burst serializes wrong logins with delays', async () => {
+    test('antibrute.burst serializes wrong logins from a clean state', async () => {
         await withPluginConfig('antibrute', {
             ...antibruteCfg,
             increment: 1,
@@ -1524,16 +4993,14 @@ describe('admin', () => {
             maxQueuePerAccount: 3,
             maxQueueGlobal: 3,
         }, async () => {
-            // seed penalty so the first burst request keeps queue slots busy
-            await reqBasicAuth('/for-admins/', `${username}:wrong-password`)
             const started = Date.now()
             const burst = await Promise.all(_.times(3, () => reqBasicAuth('/for-admins/', `${username}:wrong-password`)))
             const elapsed = Date.now() - started
             const delays = burst.map(x => x.delay)
             if (burst.some(x => x.status !== 401)) throw `unexpected statuses in burst: ${burst.map(x => x.status)}`
-            if (delays.some(x => x <= 0)) throw `missing delay in burst: ${delays.join(',')}`
+            if (delays.filter(x => x > 0).length !== 2) throw `wrong delays in burst: ${delays.join(',')}`
             // the wall clock check proves requests waited in series instead of sharing one penalty window
-            if (elapsed < 2500) throw `burst was not serialized: ${elapsed}`
+            if (elapsed < 1500) throw `burst was not serialized: ${elapsed}`
         })
     })
     test('antibrute.queue limit rejects overflowing logins before credentials are checked', async () => {
@@ -1556,6 +5023,88 @@ describe('admin', () => {
 })
 
 describe('logging', () => {
+    test('plugin public files follow interface logging without trusting request headers', async () => {
+        const id = 'list-uploader'
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['dont_log_net', 'log_gui'] }, 200, adminReq)()
+        const logPath = resolve(__dirname, 'work/logs/access.log')
+        const hiddenUri = `/~/plugins/${id}/main.js?hidden=${randomId(8)}`
+        const loggedUri = `/~/plugins/${id}/main.js?logged=${randomId(8)}`
+        try {
+            await reqApi('start_plugin', { id }, 200, adminReq)()
+            await reqApi('set_config', { values: { dont_log_net: '', log_gui: false } }, 200, adminReq)()
+            await req(hiddenUri, 200, { jar: {} })()
+            await wait(300)
+            if (existsSync(logPath) && readFileSync(logPath, 'utf8').includes(hiddenUri))
+                throw Error('plugin GUI asset ignored the interface logging setting')
+            await reqApi('set_config', { values: { dont_log_net: '', log_gui: true } }, 200, adminReq)()
+            await req(loggedUri, 200, { jar: {} })()
+            if (!await waitFor(() => existsSync(logPath) && readFileSync(logPath, 'utf8').includes(loggedUri), { timeout: 2000 }))
+                throw Error('plugin GUI asset was not logged with interface logging enabled')
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)()
+            await reqApi('stop_plugin', { id }, 200, adminReq)().catch(() => {})
+        }
+    })
+    test('declared GUI assets follow interface logging', async () => {
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['dont_log_net', 'log_gui'] }, 200, adminReq)()
+        const name = `gui-log-${randomId(6)}`
+        const logPath = resolve(__dirname, 'work/logs/access.log')
+        const hiddenUri = `/${name}?hidden=${randomId(8)}`
+        const loggedUri = `/${name}?logged=${randomId(8)}`
+        try {
+            await reqApi('add_vfs', { name, source: resolve(ROOT + 'page/gpl.png'), gui_asset: true }, 200, adminReq)()
+            await reqApi('set_config', { values: { dont_log_net: '', log_gui: false } }, 200, adminReq)()
+            await req(hiddenUri, 200, { jar: {} })()
+            await wait(300)
+            if (existsSync(logPath) && readFileSync(logPath, 'utf8').includes(hiddenUri))
+                throw Error('GUI asset ignored the interface logging setting')
+            await reqApi('set_config', { values: { dont_log_net: '', log_gui: true } }, 200, adminReq)()
+            await req(loggedUri, 200, { jar: {} })()
+            if (!await waitFor(() => existsSync(logPath) && readFileSync(logPath, 'utf8').includes(loggedUri), { timeout: 2000 }))
+                throw Error('GUI asset was not logged with interface logging enabled')
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)()
+            await reqApi('del_vfs', { uris: ['/' + name] }, 200, adminReq)()
+        }
+    })
+    test('shared previews are logged even when GUI logging is disabled', async () => {
+        const adminReq = { auth, jar: {} }
+        const old = await reqApi('get_config', { only: ['dont_log_net', 'log_gui'] }, 200, adminReq)()
+        const uri = `/f1/page/gpl.png?preview-log=${randomId(8)}`
+        const logPath = resolve(__dirname, 'work/logs/access.log')
+        try {
+            await reqApi('set_config', { values: { dont_log_net: '', log_gui: false } }, 200, adminReq)()
+            await req(uri, 200, { jar: {}, headers: { referer: BASE_URL + '/', 'sec-fetch-dest': 'image' } })()
+            if (!await waitFor(() => existsSync(logPath) && readFileSync(logPath, 'utf8').includes(uri), { timeout: 2000 }))
+                throw Error('shared preview bypassed access logging')
+        }
+        finally {
+            await reqApi('set_config', { values: old }, 200, adminReq)()
+        }
+    })
+    test('url login password is not written to the access log', async () => {
+        const logPath = resolve(__dirname, 'work/logs/access.log')
+        const safeUri = `/url-login-log-${randomId(8)}`
+        const uri = `${safeUri}?keep=1&%6cogin=${encodeURIComponent(auth)}&after=2`
+        const adminJar = {}
+        await reqApi('set_config', { values: { dont_log_net: '' } }, 200, { auth, jar: adminJar })()
+        try {
+            await req(uri, 302, { baseUrl: BASE_URL_127, jar: {}, noRedirect: true })()
+            const line = await waitFor(() => existsSync(logPath)
+                && readFileSync(logPath, 'utf8').split('\n').find(line => line.includes(safeUri)))
+            if (!line)
+                throw Error('url login request was not written to the access log')
+            if (!line.includes(`${safeUri}?keep=1&login=...&after=2`) || line.includes(password))
+                throw Error(`url login was not safely logged: ${line}`)
+        }
+        finally {
+            await reqApi('set_config', { values: { dont_log_net: '127.0.0.1|::1' } }, 200, { auth, jar: adminJar })()
+        }
+    })
     test('security-filtered traversal reaches the error log', async () => {
         const logPath = resolve(__dirname, 'work/logs/access-error.log')
         const uri = `/f1/page/.%2e/.%2e/README.md?log-test=${randomId(8)}`
@@ -1576,7 +5125,7 @@ describe('logging', () => {
 
 function login(usr: string, pwd=password) {
     return srpClientSequence(srp, usr, pwd, (cmd: string, params: any) =>
-        reqApi(cmd, params, (x,res)=> res.statusCode < 400)())
+        reqApi(cmd, params, 200)())
 }
 
 function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?: number, resume=0, options?: ReqOptions) {
@@ -1611,7 +5160,7 @@ function uploadUriToPath(uri: string) {
 
 async function testMaxDl(uri: string, good: number, bad: number, reqOptions: ReqOptions={}) {
     // make good+bad requests, and check results
-    await Promise.all(_.range(good + bad).map(i => req(uri + '?' + i, (_data, res) => {
+    await Promise.all(_.range(good + bad).map(i => req(uri + (uri.includes('?') ? '&' : '?') + i, (_data, res) => {
         if (res.statusCode === 429) {
             if (!bad--)
                 throw "too many refused"
@@ -1679,7 +5228,7 @@ function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }:
             const gotStatus = res.statusCode
             const gotLength = res.headers?.['content-length']
             const err = mime && !gotMime?.startsWith(mime) && 'expected mime ' + mime + ' got ' + gotMime
-                || status && gotStatus !== status && 'expected status ' + status + ' got ' + gotStatus
+                || status && gotStatus !== status && `expected status ${status} got ${gotStatus} for ${url}\n${data || '-empty-'}`
                 || re && !re.test(data) && 'expected content '+String(re)+' got '+(data || '-empty-')
                 || inList && !inList.every(x => isInList(obj, x)) && 'expected in list '+inList
                 || outList && !outList.every(x => !isInList(obj, x)) && 'expected not in list '+outList
@@ -1739,6 +5288,16 @@ function reqApi(api: string, params: object, test:Tester, options?: ReqOptions) 
         headers: isGet ? undefined : { 'x-hfs-anti-csrf': '1'},
         ...options,
     })
+}
+
+function sizedStream(size: number) {
+    return Readable.from(function*() {
+        while (size) {
+            const chunkSize = Math.min(size, 64 * 1024)
+            size -= chunkSize
+            yield Buffer.alloc(chunkSize)
+        }
+    }())
 }
 
 function reqList(uri:string, tester:Tester, params?: object, options?: ReqOptions) {

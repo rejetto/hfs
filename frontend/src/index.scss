@@ -108,13 +108,14 @@ img.file-icon { height: 1em; }
     vertical-align: text-bottom;
 }
 
-[role=button] .icon {
+button.as-text .icon {
     margin-right: 0.5em;
 }
 .icon.mirror:before { transform: scaleX(-1); }
 a {
     text-decoration: none;
     color: var(--link);
+    &.disabled { opacity: .6; cursor: auto; }
 }
 button {
     background-color: var(--button-bg);
@@ -144,7 +145,17 @@ button.success {
     background-color: var(--success);
     @extend .highlightedText;
 }
-a[role=button].success {
+button.as-text {
+    padding: 0;
+    background: none;
+    color: var(--link);
+    font: inherit;
+    &:hover {
+        text-decoration: underline;
+        &:not(:focus-visible) { outline: none; }
+    }
+}
+button.as-text.success {
     transition:  all .3s;
     color: var(--success);
     text-shadow: 0 0 3px var(--text-high-contrast);
@@ -210,7 +221,7 @@ kbd {
 .upload-send { @extend .ani-attention }
 
 .sliding {
-    transition: flex .5s, flex-basis 0.5s ease, opacity 0.5s ease;
+    transition: flex-grow .5s ease;
     overflow: hidden !important;
 }
 .hide-sliding {
@@ -242,7 +253,7 @@ kbd {
 }
 
 .breadcrumb {
-    padding: 0.1em 0.6em 0.2em;
+    padding: 0.1em 0.6em;
     line-height: 1.8em;
     border-radius: 0.7em;
     background-color: var(--button-bg);
@@ -275,10 +286,16 @@ kbd {
     align-items: center;
     gap: .8em;
     margin: 0.2em 0 0;
-    padding: 2px 0 1px 3px;
+    padding: 2px 0 1px 5px;
     height: 1.8em; /* necessary to animate displaying */
     input[type=checkbox] { margin-top: .3em; }
     span:empty { display:none } /* avoid flex-gap */
+}
+.list-wrapper > #filter-bar {
+    @extend .hide-back;
+    position: sticky;
+    top: var(--header-height);
+    z-index: 3;
 }
 #login-options {
     font-size: smaller;
@@ -300,6 +317,7 @@ ul.dir {
         &:nth-of-type(odd) { background-color: var(--ghost-contrast); }
 
         .container-folder { font-size: smaller }
+        .entry-name { white-space: pre-wrap }
 
         input[type=checkbox] {
             margin-right: 1em;
@@ -408,8 +426,35 @@ ul.dir {
         padding: min(1vh, 0.5em) 0; // avoid wasting too much vertical space, and no need for horizontal padding as we are using flex to grow
     }
 }
+.bottom-bar-stack-positioner #menu-panel {
+    display: flex;
+    flex-direction: column-reverse;
+}
+.bottom-bar-stack-positioner {
+    @extend .hide-back;
+    padding: .1em 0;
+    position: fixed;
+    left: 0; // avoid transforms so fixed plugin content stays anchored to the viewport
+    right: 0;
+    margin-inline: auto;
+    width: min(100%, 54em);
+    box-sizing: border-box;
+    z-index: 3; // keep the bottom menu reachable above file-list controls and selection checkboxes
+    box-shadow: 0 0 .3em .3em var(--bg);
+    &:empty {
+        display: none; // avoid showing an empty fixed bar when only optional bottom content is rendered
+    }
+}
+.bottom-bar-stack {
+    #paging, #clipBar {
+        position: static; // the stack owns bottom positioning, so internal bars must not compete with each other
+        bottom: auto;
+    }
+}
 #search-clear-button { margin-right: .5em }
 #searched {
+    display: flex;
+    align-items: center;
     margin-bottom: 0.2em;
     margin-top: 0.3em;
 }
@@ -432,6 +477,9 @@ button .icon + .label {
 .dialog-backdrop.working {
     font-size: 5em;
     animation: 1s fade-in;
+}
+.dialog-backdrop.working-content {
+    font-size: inherit;
 }
 .dialog-content {
     padding: .2em; /* give space for focus outline */
@@ -457,16 +505,14 @@ button .icon + .label {
     position: sticky;
     bottom: 0;
     display: flex;
-    gap: .3em;
     background-color: var(--bg);
-    padding: 0 0.2em 0.2em;
+    padding-bottom: .2em;
     &>button { z-index: 1; }
-    button { box-shadow: 0 0 .3em .3em #0003; }
     #paging-middle {
         padding: 0 0.5em;
         margin: 0 -0.3em;
         display: flex;
-        gap: .5em;
+        gap: .2em;
         flex: 1;
         min-width: 0;
         overflow-x: auto;
@@ -518,6 +564,25 @@ button .icon + .label {
     top: -4px; padding-top: 1px; // workaround: without this, the scrolling list behind is visible above (vertically, not z-index)
     z-index: 3; // necessary to not be covered by icon-buttons
     box-shadow: 0 0 .3em .3em var(--bg);
+    display: flex;
+    gap: 0.8em;
+    flex-direction: column;
+}
+.upload-menu {
+    display: flex;
+    gap: .8em;
+    align-items: stretch;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.upload-ready {
+    display: flex;
+    gap: .8em;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--faint-contrast);
+    padding-top: 0.8em;
 }
 .upload-hashing::before,
 .upload-progress::before { content: var(--separator); }
@@ -533,6 +598,7 @@ button .icon + .label {
     width: 100%;
 }
 .upload-list {
+    width: 100%;
     margin-top: .5em;
     td:nth-child(1) { width: 0; }
     td:nth-child(2) { text-align: right; width: 0; white-space: nowrap; padding-left: 0.5em; }
@@ -638,8 +704,8 @@ form label+input { margin-top: .2em; }
     background: var(--bg);
     box-shadow: 0 0 .3em .3em var(--bg);
 
-    display: flex; align-items: center; gap: 0.5em;
-    margin: 0 1px;
+    display: flex; align-items: center; gap: 0.3em;
+    padding-bottom: 0.1em;
 }
 #clipboard-content {
     text-align: left;

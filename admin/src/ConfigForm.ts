@@ -1,23 +1,26 @@
-import { Form, FormProps } from '@hfs/mui-grid-form'
+import { Form, FormApi, FormProps } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
-import { createElement as h, useEffect, useState, Dispatch } from 'react'
+import { createElement as h, useEffect, useRef, useState, Dispatch } from 'react'
+import { t } from './i18n'
 import _ from 'lodash'
 import { IconBtn, propsForModifiedValues } from './mui'
 import { RestartAlt } from '@mui/icons-material'
-import { Callback, onlyTruthy } from './misc'
+import { Callback, isOrderedEqual, onlyTruthy } from './misc'
 
-type FormRest<T> = Omit<FormProps<T>, 'values' | 'set' | 'save'> & Partial<Pick<FormProps<T>, 'save'>>
+type FormRest<T> = Omit<FormProps<T>, 'values' | 'set' | 'save' | 'apiRef'> & Partial<Pick<FormProps<T>, 'save'>>
 export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }: Partial<FormRest<T>> & {
     keys?: (keyof T)[],
     form: FormRest<T> | ((values: T, optional: { setValues: Dispatch<T> }) => FormRest<T>),
     onSave?: Callback,
     saveOnChange?: boolean
 }) {
+    const formApi = useRef<FormApi>()
+    const [saving, setSaving] = useState(false)
     const [keys_, setKeys_] = useState(keys)
     const config = useApiEx(keys_ && 'get_config', { only: keys_ })
     const [values, setValues] = useState<any>(config.data)
     useEffect(() => setValues((v: any) => config.data || v), [config.data])
-    const modified = values && !_.isEqual(values, config.data)
+    const modified = values && !isOrderedEqual(values, config.data)
     useEffect(() => {
         if (modified && saveOnChange) save()
     }, [modified])
@@ -34,24 +37,32 @@ export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }:
             setValues((was: any) => ({ ...was, [k]: v }))
         },
         save: saveOnChange ? false : {
+            children: t`Save`,
             onClick: save,
             ...propsForModifiedValues(modified),
         },
         ...formProps,
         ...rest,
+        apiRef: formApi,
+        ...{ inert: saving ? '' : undefined }, // prevent edits until both saving and refreshing the configuration finish
         barSx: { gap: 1, ...rest.barSx },
         addToBar: [
             h(IconBtn, {
                 icon: RestartAlt,
                 disabled: !modified,
-                title: "Reset",
-                onClick(){ setValues(config.data) }
+                title: t`Reset`,
+                onClick() {
+                    setValues(config.data)
+                    formApi.current?.resetValidation()
+                }
             }),
             ...rest.addToBar||[],
         ],
     })
 
     function save() {
+        setSaving(true)
         return apiCall('set_config', { values }).then(onSave).then(config.reload)
+            .finally(() => setSaving(false))
     }
 }

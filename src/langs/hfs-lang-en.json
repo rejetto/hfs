@@ -1,7 +1,6 @@
 {
     "author": "NAME OF THE AUTHOR(S) OF THIS TRANSLATION",
     "version": 1.0,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Select",
         "n_files": "{n,plural,one{# file} other{# files}}",
@@ -42,6 +41,7 @@
         "Password": "Password",
         "login_untrusted": "Login aborted: server identity cannot be trusted",
         "login_bad_credentials": "Invalid credentials",
+        "confirm_url_login": "This link is trying to log you in as \"{username}\"",
         "login_bad_cookies": "Cookies are not working - login failed",
         "User panel": "User panel",
         "Change password": "Change password",
@@ -103,6 +103,7 @@
         "upload_finished": "{n} finished ({size})",
         "upload_errors": "{n} failed",
         "upload_file_rejected": "Some files were not accepted",
+        "delete_unfinished_upload": "Remove the unfinished upload?",
 
         "File menu": "File menu",
         "Folder menu": "Folder menu",
@@ -117,6 +118,8 @@
         "Timestamp": "Timestamp",
         "Show": "Show",
         "Loading failed": "Loading failed",
+        "Download limit reached": "Download limit reached",
+        "Retry": "Retry",
         "Rename": "Rename",
         "Tiles mode:": "Tiles mode:",
         "off": "off",
@@ -192,6 +195,9 @@
         "No":  "No",
         "esc_again": "Press ESC twice to close",
         "insufficient storage": "insufficient storage",
-        "Account disabled": "Account disabled"
+        "Account disabled": "Account disabled",
+        "upload_name": "Upload with new name",
+        "Uploading": "Uploading",
+        "proxy_413": "Check for this limit on the proxy server"
     }
 }

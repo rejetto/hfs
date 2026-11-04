@@ -12,8 +12,8 @@ Promise.race([documentComplete, document.fonts?.ready]).then(async () => {
     if (!document.fonts)
         return state.iconsReady = true
     const fontTester = '9px fontello'
-    await document.fonts.load(fontTester) // force font to be loaded even if we didn't display anything with it yet
-    state.iconsReady = document.fonts.check(fontTester)
+    const [font] = await document.fonts.load(fontTester) // force font to be loaded even if we didn't display anything with it yet
+    state.iconsReady = font?.status === 'loaded'
 })
 
 export interface IconProps { name:string, className?:string, alt?:string, [rest:string]: any }
@@ -24,9 +24,8 @@ export const Icon = memo(({ name, alt, className='', ...props }: IconProps) => {
     const [emoji, clazz=name] = SYS_ICONS[name] || []
     const { iconsReady } = useSnapState()
     className += ' icon'
-    const nameIsTheIcon = name.length === 1 ||
-        name.match(/^[\uD800-\uDFFF\u2600-\u27BF\u2B00-\u2BFF\u3030-\u303F\u3297\u3299\u00A9\u00AE\u200D\u20E3\uFE0F\u2190-\u21FF\u2300-\u23FF\u2400-\u243F\u25A0-\u25FF\u2600-\u26FF\u2700-\u27BF]*$/)
-    const nameIsUrl = !nameIsTheIcon && /[/?]/.test(name)
+    const nameIsUrl = name.length > 1 && /[/?]/.test(name)
+    const nameIsTheIcon = !nameIsUrl && (name.length === 1 || /[^\x00-\x7F]/.test(name))
     const isFontIcon = iconsReady && clazz
     className += nameIsUrl ? ' file-icon' : isFontIcon ? ` font-icon fa-${clazz}` : ' emoji-icon'
     return h('span',{

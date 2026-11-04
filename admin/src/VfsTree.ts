@@ -1,6 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { markVfsModified, prepareVfsUndo, state, useSnapState } from './state'
+import { t } from './i18n'
+
+import { id2vfsNode, state, useSnapState, VfsNodeAdmin } from './state'
 import { createElement as h, ReactElement, useCallback, useEffect, useRef, MouseEvent } from 'react'
 import { TreeItem, SimpleTreeView } from '@mui/x-tree-view'
 import {
@@ -8,13 +10,14 @@ import {
     RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff, UnfoldMore, UnfoldLess
 } from '@mui/icons-material'
 import { Box, Typography } from '@mui/material'
-import { deleteVfs, id2vfsNode, isDescendantUri, reindexVfs, VfsNodeAdmin } from './VfsPage'
-import { onlyTruthy, pathDecode, pathEncode, prefix, toMutable, wantArray, WhoVfs, with_ } from './misc'
+import { deleteVfs } from './VfsPage'
+import { onlyTruthy, pathDecode, toMutable, wantArray, WhoVfs, with_ } from './misc'
 import { Flex, iconTooltip, useToggleButton } from './mui'
 import VfsMenuBar from './VfsMenuBar'
 import { ApiObject } from './api'
-import { alertDialog, toast } from './dialog'
+import { toast } from './dialog'
 import _ from 'lodash'
+import { moveVfs } from './VfsMove'
 
 export const FolderIcon = Folder
 export const FileIcon = InsertDriveFileOutlined
@@ -23,9 +26,9 @@ let once = true
 
 const SPECIAL_TREE_ITEM = '?'
 
-export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
+export default function VfsTree({ statusApi, isSideBreakpoint }:{ statusApi: ApiObject, isSideBreakpoint: boolean }) {
     const { vfs, selectedFiles, expanded } = useSnapState()
-    const dragging = useRef<string>()
+    const dragging = useRef<string[]>()
     const Branch = useCallback(function({ node }: { node: Readonly<VfsNodeAdmin> }): ReactElement {
         let { id, name, isRoot } = node
         const isFolder = node.type === 'folder'
@@ -39,7 +42,7 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
                 ref.current = el
             },
             onKeyUp(ev) {
-                if (ev.key === 'Delete') {
+                if (ev.key === 'Delete' && !selectedFiles.some(x => x.isRoot)) {
                     deleteVfs([id])
                     ev.stopPropagation()
                 }
@@ -48,20 +51,21 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
             label: h(Box, {
                 draggable: !isRoot,
                 onDragStart() {
-                    dragging.current = id
+                    // dragging an unselected item must not move the previous selection
+                    dragging.current = selectedFiles.some(x => x.id === id) ? selectedFiles.map(x => x.id) : [id]
                 },
                 onDragOver(ev) {
                     if (!isFolder) return
                     const src = dragging.current
-                    if (src?.startsWith(id) && !src.slice(id.length + 1, -1).includes('/')) return // dragging node (src) must not be direct child of destination (id)
+                    if (!src?.length || src.every(x => x.startsWith(id) && !x.slice(id.length + 1, -1).includes('/'))) return // dragging nodes must not all be direct children of destination
                     ev.preventDefault()
                 },
                 async onDrop() {
                     const from = dragging.current
-                    if (!from) return
-                    const fromName = id2vfsNode.get(from)?.name // won't work after moving
-                        if (moveVfs(from, id))
-                            toast(`Moved "${fromName}" under "${id2vfsNode.get(id)?.name}"`, 'success')
+                    if (!from?.length) return
+                    const movingCount = from.length
+                    if (moveVfs(from, id))
+                        toast(t('items_moved', { n: movingCount, name: id2vfsNode.get(id)?.name }), 'success')
                 },
                 sx: {
                     display: 'flex',
@@ -78,21 +82,22 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
                             display: 'grid', gridAutoFlow: 'column', gridTemplateRows: 'auto auto', height: '1em',
                         }
                     },
-                        node.can_delete != null && iconTooltip(Delete, "Delete permission"),
-                        node.can_upload != null && iconTooltip(Upload, "Upload permission"),
-                        !isRoot && !node.source && !node.url && iconTooltip(Cloud, "Virtual (no source)"),
-                        isRestricted(node.can_see) && iconTooltip(RemoveRedEye, "Restrictions on who can see"),
-                        isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),
-                        node.default && iconTooltip(Web, "Show as web-page"),
-                        node.masks && iconTooltip(TheaterComedy, "Masks"),
-                        node.size === -1 && iconTooltip(HighlightOff, "Source not found"),
-                        rootFor && iconTooltip(Home, `home for ${rootFor}`)
+                        node.can_delete != null && iconTooltip(Delete, t`Delete permission`),
+                        node.can_upload != null && iconTooltip(Upload, t`Upload permission`),
+                        !isRoot && !node.source && !node.url && iconTooltip(Cloud, t`Virtual (no source)`),
+                        isRestricted(node.can_see) && iconTooltip(RemoveRedEye, t`Restrictions on who can see`),
+                        isRestricted(node.can_read) && iconTooltip(Lock, t`Restrictions on who can download`),
+                        node.default && iconTooltip(Web, t`Show as web-page`),
+                        node.masks && iconTooltip(TheaterComedy, t`Masks`),
+                        node.size === -1 && iconTooltip(HighlightOff, t`Source not found`),
+                        rootFor && iconTooltip(Home, t("home for {rootFor}", { rootFor: rootFor }))
                     ),
                 ),
-                isRoot ? "Home folder" : name
+                isRoot ? t`Home folder` : name
             ),
             itemId: id
-        }, with_(node.source && isFolder ? "files from " + node.source : !node.children?.length && isRoot && "nothing here", x =>
+        }, with_(node.source && isFolder ? t("files from {source}", { source: node.source })
+                : !node.children?.length && isRoot && t`nothing here`, x =>
                 x && h(TreeItem, { itemId: SPECIAL_TREE_ITEM + id, label: h('i', {}, x) })),
             ...node.children?.map(x => h(Branch, { key: x.id, node: x })) || []
         )
@@ -107,7 +112,7 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
             ev.preventDefault()
             ev.stopPropagation()
         }
-    }, [statusApi.data])
+    }, [selectedFiles, statusApi.data])
     const ref = useRef<HTMLUListElement>(null)
     const allExpanded = id2vfsNode.size > 0 && expanded.length === id2vfsNode.size
     const initialExpansion = ['/', ...vfs?.children?.length === 1 ? [vfs.children[0].id] : []] // in case there's only one child, expand that too
@@ -115,7 +120,7 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
         once = false
         state.expanded = initialExpansion
     }
-    const [_expandAll, toggleBtn] = useToggleButton("Collapse all", "Expand all", exp => ({
+    const [_expandAll, toggleBtn] = useToggleButton(t`Collapse all`, t`Expand all`, exp => ({
         icon: exp ? UnfoldLess : UnfoldMore,
         sx: { rotate: exp ? 0 : '180deg' },
         onClick() {
@@ -133,8 +138,8 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
     }, [first])
     return h(Flex, { flexDirection: 'column', alignItems: 'stretch', flex: 1 },
         h(Flex, { mb: 1, flexWrap: 'wrap', gap: [1, 2], mt: '2px' /*account for the save button's outline*/ },
-            h(Typography, { variant: 'h6' }, "Virtual File System"),
-            h(VfsMenuBar, { statusApi, add: toggleBtn }),
+            h(Typography, { variant: 'h6' }, t`Virtual File System`),
+            h(VfsMenuBar, { statusApi, add: toggleBtn, isSideBreakpoint }),
         ),
         vfs && h(SimpleTreeView, {
             ref,
@@ -169,59 +174,9 @@ export default function VfsTree({ statusApi }:{ statusApi: ApiObject }) {
     )
 }
 
-export function moveVfs(from: string, to: string) {
-    const fromNode = id2vfsNode.get(from)
-    if (!fromNode)
-        return !alertDialog("Item to move not found", 'error')
-    if (fromNode.isRoot)
-        return !alertDialog("Cannot move root", 'error')
-    const toNode = id2vfsNode.get(to)
-    if (!toNode || toNode.type !== 'folder')
-        return !alertDialog("Destination folder not found", 'error')
-    if (isDescendantUri(to, from))
-        return !alertDialog("Cannot move inside itself", 'error')
-    if (toNode.children?.find(x => x.name === fromNode.name))
-        return !alertDialog("Item with same name already present in destination", 'error')
-    const oldSiblings = fromNode.parent?.children
-    if (!oldSiblings)
-        return !alertDialog("Source parent not found", 'error')
-    const fromParent = fromNode.parent
-    const movedName = fromNode.name
-    const movedIsFolder = fromNode.type === 'folder'
-    const destinationAncestors = getAncestorIds(toNode)
-    prepareVfsUndo()
-    _.remove(oldSiblings, { id: fromNode.id })
-    if (!oldSiblings.length && fromParent)
-        fromParent.children = undefined
-    addToChildrenOf(toNode, [fromNode])
-    const movedId = prefix(to, pathEncode(movedName), movedIsFolder ? '/' : '')
-    reindexVfs({ select: [movedId] })
-    state.expanded = _.uniq([...state.expanded, ...destinationAncestors])
-    return true
-
-    function getAncestorIds(node: VfsNodeAdmin) {
-        const ret: string[] = []
-        let cur: typeof node | undefined = node
-        while (cur) {
-            ret.push(cur.id)
-            cur = cur.parent
-        }
-        return ret
-    }
-}
-
 export function vfsNodeIcon(node: VfsNodeAdmin) {
-    return node.isRoot ? iconTooltip(Home, "home, or root if you like")
-        : node.type === 'folder' ? iconTooltip(FolderIcon, "Folder")
-            : node.url ? iconTooltip(Link, "Web-link")
-                : iconTooltip(FileIcon, "File")
-}
-
-export function addToChildrenOf(parent: VfsNodeAdmin, moreChildren: VfsNodeAdmin[]) {
-    if (!parent.children)
-        parent.children = []
-    // keep the assignment above and push separated: on proxied nodes, combining them will push to a stale array reference.
-    parent.children.push(...moreChildren)
-
-    markVfsModified()
+    return node.isRoot ? iconTooltip(Home, t`home, or root if you like`)
+        : node.type === 'folder' ? iconTooltip(FolderIcon, t`Folder`)
+            : node.url ? iconTooltip(Link, t`Web-link`)
+                : iconTooltip(FileIcon, t`File`)
 }

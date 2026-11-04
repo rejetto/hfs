@@ -23,17 +23,24 @@ import { defaultBaseUrl } from './nat'
 import { storedMap } from './persistence'
 import { argv } from './argv'
 import { consoleHint } from './consoleLog'
-import { onProcessExit, quitting } from './first'
+import { onProcessExit } from './first'
 import { fileAttrDb } from './fileAttr'
+import { uploadOwners } from './uploadOwners'
+import { sessionStampsReady } from './sessionStamp'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
 let httpsSrv: undefined | http.Server & ServerExtra
 
 // the update relaunch can keep a bridge process alive, so we proactively close listeners here to release ports before the next binary binds; do it before (5) the storage file is closed, because sockets write there
-onProcessExit(() => Promise.all([stopServer(httpSrv), stopServer(httpsSrv)]), 5)
+onProcessExit(() => {
+    const stopped = Promise.all([stopServer(httpSrv), stopServer(httpsSrv)])
+    for (const { socket } of getConnections()) // closeAllConnections misses TCP sockets awaiting TLS and connections upgraded by plugins
+        socket.destroy()
+    return stopped
+}, 5)
 
-const openBrowserAtStart = defineConfig('open_browser_at_start', true)
+const openBrowserAtStart = defineConfig(CFG.open_browser_at_start, true)
 
 export const baseUrl = defineConfig(CFG.base_url, '',
     x => /(?<=\/\/)[^\/]+/.exec(x)?.[0]) // compiled is host only
@@ -53,7 +60,7 @@ const commonServerOptions: http.ServerOptions = {
 // these are properties that can be assigned to the server object
 const commonServerAssign = { headersTimeout: 30_000, timeout: MINUTE } // 'headersTimeout' is not recognized by type lib, and 'timeout' is not effective when passed in parameters
 
-const readyToListen = Promise.all([ storedMap.isOpening(), fileAttrDb.isOpening(), events.once('app') ])
+const readyToListen = Promise.all([ storedMap.isOpening(), sessionStampsReady, fileAttrDb.isOpening(), uploadOwners.isOpening(), events.once('app') ])
 
 const considerHttp = debounceAsync(async () => {
     await readyToListen
@@ -76,8 +83,8 @@ const considerHttp = debounceAsync(async () => {
 })
 let openOnce = true
 
-export const portCfg = defineConfig('port', 80)
-const listenInterface = defineConfig('listen_interface', '')
+export const portCfg = defineConfig(CFG.port, 80)
+const listenInterface = defineConfig(CFG.listen_interface, '')
 subMultipleConfigs(considerHttp, [portCfg, listenInterface])
 
 export function openAdmin() {
@@ -90,7 +97,7 @@ export function openAdmin() {
         const baseUrl = `${srv!.name}://${hostname}:${a.port}`
         open(baseUrl + ADMIN_URI, { wait: true}).catch(async e => {
             console.debug(String(e))
-            console.warn("Cannot launch browser on this machine >PLEASE< open your browser and reach one of these (you may need a different address)",
+            console.warn("Cannot launch browser on this machine – open your browser and reach one of these (you may need a different address)",
                 ...Object.values(await getUrls()).flat().map(x => '\n - ' + x + ADMIN_URI))
             if (! anyAccountCanLoginAdmin())
                 consoleHint(`you can enter this command: create-admin YOUR_PASSWORD`)
@@ -106,7 +113,8 @@ export function getCertObject() {
     const all = new X509Certificate(c)
     const some = _.pick(all, ['subject', 'issuer', 'validFrom', 'validTo'])
     const ret = _.mapValues(some, v => v?.includes('=') ? Object.fromEntries(v.split('\n').map(x => x.split('='))) : v)
-    return Object.assign(ret, { altNames: all.subjectAltName?.replace(/DNS:/g, '').split(/, */) })
+    return Object.assign(ret, { altNames: all.subjectAltName?.split(/, */)
+        .map(x => x.replace(/^(?:DNS:|IP Address:)/, '')) })
 }
 
 const considerHttps = debounceAsync(async () => {
@@ -177,8 +185,8 @@ const considerHttps = debounceAsync(async () => {
     defaultBaseUrl.port = getCurrentPort(httpsSrv) ?? 0
 }, { wait: 200 }) // give time to have key and cert ready
 
-export const cert = defineConfig('cert', '' as string, load)
-export const privateKey = defineConfig('private_key', '' as string, load)
+export const cert = defineConfig(CFG.cert, '' as string, load)
+export const privateKey = defineConfig(CFG.private_key, '' as string, load)
 const httpsNeeds = [cert, privateKey]
 
 function load(v: string, { object }: any) {
@@ -190,7 +198,7 @@ function load(v: string, { object }: any) {
     return ''
 }
 
-export const httpsPortCfg = defineConfig('https_port', PORT_DISABLED)
+export const httpsPortCfg = defineConfig(CFG.https_port, PORT_DISABLED)
 subMultipleConfigs(considerHttps, [httpsPortCfg, listenInterface, ...httpsNeeds])
 
 const genericInterfaceNames = {
@@ -252,14 +260,16 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                 srv.error = String(e)
                 srv.busy = undefined
                 const { code } = e as any
-                if (code)
+                // share the lookup with status readers, but classify the error from its resolved result
+                if (code === 'EADDRINUSE' || code === 'EACCES')
                     srv.busy = findProcess('port', port).then(
                         res => res?.map(x => prefix("Service", x.name === 'svchost.exe' && x.cmd.split(x.name)[1]?.trim()) || x.name).join(' + '),
                         () => '')
-                if (code === 'EACCES' && port < 1024 && !srv.busy) // on Windows, when port is used by a service, we get EACCES
+                const busy = await srv.busy
+                if (code === 'EACCES' && port < 1024 && !busy) // on Windows, when port is used by a service, we get EACCES
                     srv.error = `lacking permission on port ${port}, try with permission (${IS_WINDOWS ? 'administrator' : 'sudo'}) or port > 1024`
-                if (code === 'EADDRINUSE' || srv.busy)
-                    srv.error = `port ${port} busy: ${await srv.busy || "unknown process"}`
+                if (code === 'EADDRINUSE' || busy)
+                    srv.error = `port ${port} busy: ${busy || "unknown process"}`
                 if (!silence)
                     console.error(srv.name, srv.error)
                 resolve(0)
@@ -280,8 +290,6 @@ export function stopServer(srv?: http.Server) {
                 console.debug("Failed to stop server", String(err))
             resolve(err)
         })
-        if (quitting)
-            srv.closeAllConnections()
     })
 }
 

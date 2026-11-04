@@ -46,6 +46,11 @@ async function pressTopDialogEscape(page: Page, remainingDialogs: number) {
 
 async function expectDialogsClosed(page: Page) {
     await expect(page.locator('.MuiDialog-root')).toHaveCount(0, { timeout: 10_000 })
+    await expect(page.getByRole('heading', { name: 'Plugins' })).toBeVisible({ timeout: 10_000 })
+}
+
+async function expectHistoryStable(page: Page) {
+    // queued history navigation can overshoot after the dialogs have already disappeared
     await page.waitForTimeout(3000)
     await expect(page.getByRole('heading', { name: 'Plugins' })).toBeVisible({ timeout: 10_000 })
 }
@@ -61,6 +66,7 @@ test('nested dialog ESC does not overshoot history', async ({ page }) => {
         await pressTopDialogEscape(page, remainingDialogs)
 
     await expectDialogsClosed(page)
+    await expectHistoryStable(page)
     expect(page.url()).toContain('~/admin')
 })
 
@@ -80,6 +86,7 @@ test('nested dialog browser-back does not overshoot', async ({ page }) => {
     await page.waitForTimeout(3000)
 
     await expectDialogsClosed(page)
+    await expectHistoryStable(page)
     expect(page.url()).toContain('~/admin')
 })
 
@@ -96,4 +103,5 @@ test('repeated nested dialog open/close cycles', async ({ page }) => {
         await expectDialogsClosed(page)
         expect(page.url()).toContain('~/admin')
     }
+    await expectHistoryStable(page)
 })

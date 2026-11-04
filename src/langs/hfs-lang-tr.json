@@ -1,7 +1,6 @@
 {
     "author": "cbr00t",
     "version": 1.0,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Seç",
         "n_files": "{n,plural,one{# dosya} other{# dosya}}",
@@ -40,6 +39,7 @@
         "Password": "Şifre",
         "login_untrusted": "Oturum Açma iptal: Sunucu kimliğine güvenilmedi",
         "login_bad_credentials": "Hatalı oturum bilgileri",
+        "confirm_url_login": "Bu bağlantı \"{username}\" olarak oturum açmanızı sağlamaya çalışıyor",
         "login_bad_cookies": "Çerezler (Cookies) çalışmıyor - Oturum Açma başarısız",
         "User panel": "Kullanıcı Paneli",
         "Change password": "Şifre Değiştir",
@@ -98,10 +98,11 @@
         "Server error": "Sunucu hatası",
 
         "Upload": "Upload",
-        "upload_concluded": "Upload concluded:",
+        "upload_concluded": "Yükleme tamamlandı:",
         "upload_finished": "{n} tamamlandı ({size})",
         "upload_errors": "{n} başarısız",
         "upload_file_rejected": "Bazı dosyalar kabul edilmiyor",
+        "delete_unfinished_upload": "Tamamlanmamış yüklemeyi kaldır?",
 
         "File menu": "Dosya Menüsü",
         "Folder menu": "Klasör Menüsü",
@@ -116,6 +117,8 @@
         "Timestamp": "Zaman Damgası",
         "Show": "Göster",
         "Loading failed": "Yükleme başarısız",
+        "Download limit reached": "İndirme sınırına ulaşıldı",
+        "Retry": "Yeniden dene",
         "Rename": "Yeniden Adlandır",
         "Tiles mode:": "Döşeme (Tiles) modu:",
         "off": "kapalı",
@@ -191,6 +194,9 @@
         "No":  "Hayır",
         "esc_again": "ESC'i iki kere basarak kapat",
         "insufficient storage": "yetersiz depolama alanı",
-        "Account disabled": "Hesap devre dışı bırakıldı"
+        "Account disabled": "Hesap devre dışı bırakıldı",
+        "upload_name": "Yeni adla yükle",
+        "Uploading": "Yükleniyor",
+        "proxy_413": "Proxy sunucusunda bu sınırı kontrol edin"
     }
 }

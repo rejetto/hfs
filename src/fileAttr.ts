@@ -26,11 +26,12 @@ export async function storeFileAttr(path: string, k: string, v: any) {
     const s = await statWithTimeout(path).catch(() => null)
     // since we don't have fsx.remove, we simulate it with an empty string
     if (s && await fsx?.set(path, FILE_ATTR_PREFIX + k, v === undefined ? '' : JSON.stringify(v)).then(() => 1, () => 0)) {
-        if (IS_WINDOWS) utimes(path, s.atime, s.mtime) // restore timestamps, necessary only on Windows
+        if (IS_WINDOWS)
+            await utimes(path, s.atime, s.mtime) // wait before callers can rename or delete the file, otherwise restoring timestamps can race with them
         return true
     }
     // fallback to our kv-storage
-    return await fileAttrDb.put(fileAttrKey(path, k), v)?.catch((e: any) => {
+    return await fileAttrDb.put(fileAttrKey(path, k), v)?.then(() => true, (e: any) => {
         console.error("Couldn't store metadata on", path, String(e.message || e))
         return false
     }) ?? true // if put is undefined, the value was already there

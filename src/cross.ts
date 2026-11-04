@@ -3,7 +3,7 @@
 import _ from 'lodash'
 import { VfsNodeStored } from './vfs'
 import picomatch from 'picomatch/lib/picomatch'
-import { HFS_REPO } from './cross-const' // point directly to the browser-compatible source
+import { CFG, HFS_REPO } from './cross-const' // point directly to the browser-compatible source
 export * from './cross-const'
 
 export const WEBSITE = 'https://rejetto.com/hfs/'
@@ -14,26 +14,21 @@ export const HOUR = 60 * MINUTE
 export const DAY = 24 * HOUR
 export const MAX_TILE_SIZE = 10
 export const FRONTEND_OPTIONS = {
-    file_menu_on_link: true,
-    tile_size: 0,
-    page_size: 100,
-    sort_by: 'name',
-    invert_order: false,
-    folders_first: true,
-    sort_numerics: false,
-    title_with_path: true,
-    theme: '',
-    auto_play_seconds: 5,
-    disableTranslation: false,
+    [CFG.file_menu_on_link]: true,
+    [CFG.menu_at_top]: false,
+    [CFG.tile_size]: 0,
+    [CFG.page_size]: 100,
+    [CFG.sort_by]: 'name',
+    [CFG.invert_order]: false,
+    [CFG.folders_first]: true,
+    [CFG.sort_numerics]: false,
+    [CFG.title_with_path]: true,
+    [CFG.theme]: '',
+    [CFG.auto_play_seconds]: 5,
+    [CFG.disableTranslation]: false,
 }
 export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time', 'creation']
 export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
-// had found an interesting way to infer a type from all the calls to defineConfig (by the literals passed), but would not be usable also by admin-panel
-export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown', 'dynamic_dns_url',
-    'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua', 'log_spam', 'track_ips',
-    'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'force_address', 'split_uploads',
-    'force_lang', 'suspend_plugins', 'base_url', 'size_1024', 'disable_custom_html', 'comments_storage',
-    'force_webdav_login', 'webdav_initial_auth', 'outbound_proxy', 'mapped_port', 'upnp_enabled', 'show_uploader'])
 export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
@@ -82,7 +77,7 @@ export type VfsNodeAdminSend = {
     birthtime?: Date
     mtime?: Date
     website?: true
-    byMasks?: VfsPerms
+    byMasks?: VfsPerms & Pick<VfsNodeStored, 'gui_asset'>
     inherited?: VfsPerms
     children?: VfsNodeAdminSend[]
 } & Omit<VfsNodeStored, 'children'>
@@ -90,11 +85,7 @@ export type VfsNodeAdminSend = {
 export const PERM_KEYS = typedKeys(defaultPerms)
 
 export const VFS_STORED_KEYS: (keyof VfsNodeStored)[] = ['name', 'source', 'masks', 'default', 'accept', 'rename',
-    'mime', 'url', 'target', 'comment', 'icon', 'order', 'children', ...PERM_KEYS]
-
-function constMap<T extends string>(a: T[]): { [K in T]: K } {
-    return Object.fromEntries(a.map(x => [x, x])) as { [K in T]: K };
-}
+    'mime', 'url', 'target', 'comment', 'icon', 'order', 'gui_asset', 'see_without_probing', 'children', ...PERM_KEYS]
 
 export function isWhoObject(v: undefined | WhoVfs): v is WhoObject {
     return v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -147,7 +138,16 @@ export function objFromKeys<K extends string, VR=unknown>(src: K[], getValue: (v
     return Object.fromEntries(src.map(k => [k, getValue(k)]))
 }
 
-export function enforceFinal(sub:string, s:string, evenEmpty=false) {
+// VFS paths use forward slashes; preserve empty paths, names and percent encoding
+export function normalizeVfsPath(root: string) {
+    return enforceFinal('/', enforceStarting('/', root.replace(/\/{2,}/g, '/')))
+}
+
+export function hasFinalSlash(s: string) {
+    return /[\\/]$/.test(s)
+}
+
+export function enforceFinal(sub:string, s='', evenEmpty=false) {
     return (s ? !s.endsWith(sub) : evenEmpty) ? s + sub : s
 }
 
@@ -155,7 +155,7 @@ export function removeFinal(sub:string, s:string) {
     return s.endsWith(sub) ? s.slice(0, -sub.length) : s
 }
 
-export function enforceStarting(sub:string, s:string, evenEmpty=false) {
+export function enforceStarting(sub:string, s='', evenEmpty=false) {
     return (s ? !s.startsWith(sub) : evenEmpty) ? sub + s : s
 }
 
@@ -341,7 +341,7 @@ export function randomId(len = 10): string {
 }
 
 export function objRenameKey(o: Dict | undefined, from: string, to: string) {
-    if (!o || !o.hasOwnProperty(from) || from === to) return
+    if (!o || !Object.hasOwn(o, from) || from === to) return
     o[to] = o[from]
     delete o[from]
     return true
@@ -367,7 +367,7 @@ export function isAsyncIterable<T>(iterable: AsyncIterable<T> | Iterable<T>): it
     return Symbol.asyncIterator in iterable
 }
 
-export async function* filterMapGenerator<IN,OUT>(generator: AsyncIterableIterator<IN>, filterMap: (el: IN) => Promise<OUT>) {
+export async function* filterMapGenerator<IN,OUT>(generator: Iterable<IN> | AsyncIterable<IN>, filterMap: (el: IN) => OUT | Promise<OUT>) {
     for await (const x of generator) {
         const res:OUT = await filterMap(x)
         if (res !== undefined)
@@ -450,15 +450,28 @@ export function xlate(input: any, table: Record<string, any>) {
 
 // remove brackets and port (if any)
 export function normalizeHost(host: string) {
-    return host[0] === '[' ? host.slice(1, host.indexOf(']')) : host?.split(':')[0]
+    return host[0] === '[' ? host.slice(1, host.indexOf(']')) : host.split(':')[0]!
 }
 
 export function isIpLocalHost(ip: string) {
-    return ip === '::1' || ip.endsWith('127.0.0.1')
+    return ip === '::1' || /^(?:::ffff:)?127\.0\.0\.1$/i.test(ip)
 }
 
 export function isIpLan(ip: string) {
-    return /^(?:10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|fe80::)/.test(ip)
+    return /^(?:10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|f[cd][\da-f]{2}:|fe[89ab][\da-f]:)/i.test(normalizeIp(ip))
+}
+
+export function normalizeIp(ip: string) {
+    // proxy headers may contain invalid addresses; do not interpret URL paths or credentials as an IP
+    if (!/^[\da-f:.\[\]]+$/i.test(ip)) return ip
+    // URL canonicalizes IPv6 and alternate IPv4 spellings before matching
+    const host = try_(() => new URL(`http://${ip.includes(':') && !ip.startsWith('[') ? `[${ip}]` : ip}`).hostname) || ip
+    const bare = host.startsWith('[') ? host.slice(1, -1) : host
+    if (bare.startsWith('::ffff:')) {
+        const words = bare.slice(7).split(':').map(x => parseInt(x, 16))
+        return words.flatMap(x => [x >> 8, x & 255]).join('.')
+    }
+    return bare
 }
 
 export function ipForUrl(ip: string) {
@@ -477,6 +490,12 @@ export function escapeHTML(text: string) {
 export async function promiseBestEffort<T>(promises: Promise<T>[]) {
     const res = await Promise.allSettled(promises)
     return res.filter(x => x.status === 'fulfilled').map((x: any) => x.value as T)
+}
+
+export function normalizeFilenameForPlatform(name: string, platform: string) {
+    const cased = platform === 'win32' || platform === 'darwin' ? name.toLocaleLowerCase() : name
+    // only macOS treats canonically equivalent Unicode filenames as the same name
+    return platform === 'darwin' ? cased.normalize() : cased
 }
 
 // encode paths leaving / separator unencoded (not like encodeURIComponent), but still encode #
@@ -578,19 +597,25 @@ export function popKey(o: any, k: string) {
     return x
 }
 
-export function patchKey(o: any, k: string, replacer: (was: unknown) => unknown) {
-    o[k] = replacer(o[k])
-    return o
+export function patchKey<T, K extends keyof T>(o: T, k: K, replacer: (was: T[K]) => T[K]) {
+    return o[k] = replacer(o[k])
 }
 
-// consider the callback successful if it returns a truthy value
+// retry rejected operations because filesystem resources may be released late
 export async function retry(cb: () => Promise<any>, delay=1000) {
-    let retry = 3
-    while (true) {
-        if (await cb()) break
-        if (! retry--) break
-        await wait(delay)
-    }
+    let retries = 3
+    while (true)
+        try { return await cb() }
+        catch (e) {
+            if (!retries--)
+                throw e
+            await wait(delay)
+        }
+}
+
+// normalize callback results and synchronous throws into a promise
+export function callAsPromise<R>(callback: () => R) {
+    return Promise.resolve().then(callback)
 }
 
 export type Mutable<T> = { -readonly [K in keyof T]: T[K] }

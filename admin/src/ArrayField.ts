@@ -1,16 +1,18 @@
 import { createElement as h, Fragment, isValidElement, useMemo, useState } from 'react'
+import { t, translateText } from './i18n'
 import { callable, Dict, formatTimestamp, Functionable, isOrderedEqual, setHidden, swap } from './misc'
 import { Add, Edit, Delete, ArrowUpward, ArrowDownward, Undo, Check } from '@mui/icons-material'
 import { DialogOptions, FormDialog, formDialog } from './dialog'
 import { GridActionsCellItem, GridAlignment, GridColDef } from '@mui/x-data-grid'
 import { BoolField, FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-grid-form'
-import { Box, FormHelperText, FormLabel } from '@mui/material'
+import { Box, Button, ButtonProps, FormHelperText, FormLabel } from '@mui/material'
 import _ from 'lodash'
-import { Center, Flex, IconBtn, mergeSx, useBreakpoint } from './mui'
+import { Center, Flex, IconBtn, mergeSx, useBreakpoint, useCtrlShortcutButton } from './mui'
 import { DataTable, DataTableColumn } from './DataTable'
 import { DateTimeField } from './DateTimeField'
 
-type ArrayFieldProps<T> = FieldProps<T[] | Dict<T>> & {
+type Val<T> = T[] | Dict<T>
+type ArrayFieldProps<T> = FieldProps<Val<T>> & {
     fields: Functionable<FieldDescriptor[] & {
         $width?: number, // 8 or more is px, less is flex
         $column?: Partial<DataTableColumn>,
@@ -29,10 +31,11 @@ type ArrayFieldProps<T> = FieldProps<T[] | Dict<T>> & {
     details?: boolean
     objectK?: string
     saveOn?: 'change' | 'close'
+    applyButton?: Partial<ButtonProps> & { onClick: (values: Val<T>) => unknown }
 }
 export function ArrayField<T extends object>({
     label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, valuesForAdd, autoRowHeight,
-    dialog, form, details, objectK, saveOn, height, error, sx, ...rest
+    dialog, form, details, objectK, saveOn, applyButton, height, error, sx, ...rest
 }: ArrayFieldProps<T>) {
     const valueA = Array.isArray(value) ? value
         : !objectK || !value ? [] // avoid crash if non-array values are passed, especially developing plugins
@@ -68,7 +71,7 @@ export function ArrayField<T extends object>({
                 hideFooterSelectedRowCount: true,
                 hideFooter: true,
                 slots: {
-                    noRowsOverlay: () => h(Center, {}, noRows || "No entries"),
+                    noRowsOverlay: () => h(Center, {}, noRows || t`No entries`),
                 },
                 slotProps: {
                     pagination: {
@@ -76,13 +79,21 @@ export function ArrayField<T extends object>({
                         showLastButton: true,
                     }
                 },
+                onCellDoubleClick({ field, row }: any, ev: any) {
+                    const f = callable(fields, false).find((x: any) => !isValidElement(x) && x.k === field && x.$type === 'boolean')
+                    if (!f) return
+                    const $idx = row.$idx ?? row.id
+                    const v = row[field]
+                    const newValue = !(f.toField || _.identity)(v)
+                    updateRec($idx, { ...valueA[$idx], [field]: (f.fromField || _.identity)(newValue, { originalValue: v }) }, ev)
+                },
                 columns: [
                     ...callable(fields, false).map(f => {
                         if (isValidElement(f)) return
                         const def = byType[f.$type]?.column
                         return _.defaults({
                             field: f.k,
-                            headerName: f.headerName ?? (typeof f.label === 'string' ? f.label : labelFromKey(f.k)),
+                            headerName: f.headerName ?? (typeof f.label === 'string' ? f.label : translateText(labelFromKey(f.k))),
                             disableColumnMenu: true,
                             valueGetter: (v: any) => (f.toField || _.identity)(v),
                             ...f.$width ? { [f.$width >= 8 ? 'width' : 'flex']: f.$width } : (!def?.width && !def?.flex && { flex: 1 }),
@@ -98,14 +109,14 @@ export function ArrayField<T extends object>({
                         width: 90,
                         headerAlign: 'center' as GridAlignment,
                         renderHeader(){
-                            const title = "Add"
+                            const title = t`Add`
                             return h(Fragment, {},
                                 h(IconBtn, {
                                     icon: Add,
                                     title,
                                     size: 'small',
                                     async onClick(ev) {
-                                        const res = await formDialog<T>({
+                                        const res = await formDialog<T, T>({
                                             form: getFormProp({}),
                                             title,
                                             values: valuesForAdd,
@@ -120,7 +131,7 @@ export function ArrayField<T extends object>({
                                 }),
                                 undo !== undefined && h(IconBtn, {
                                     icon: Undo,
-                                    title: "Undo",
+                                    title: t`Undo`,
                                     size: 'small',
                                     onClick: ev => set(undo!, ev)
                                 }),
@@ -128,7 +139,7 @@ export function ArrayField<T extends object>({
                         },
                         getActions({ row }) {
                             const { $idx=row.id } = row
-                            const title = "Modify"
+                            const title = t`Modify`
                             return [
                                 h(GridActionsCellItem as any, {
                                     key: 'edit',
@@ -137,14 +148,27 @@ export function ArrayField<T extends object>({
                                     title,
                                     async onClick(ev: MouseEvent) {
                                         ev.stopPropagation()
-                                        const res = await formDialog<T>({
+                                        const res = await formDialog<T, T>({
                                             values: row as any,
-                                            form: getFormProp(saveOn === 'change' && {
+                                            form: (values, { submit }) => getFormProp(saveOn === 'change' && {
                                                 save: false,
                                                 onChange(values: T) {
                                                     updateRec($idx, values, 'change')
                                                 }
-                                            } || saveOn && { save: false }),
+                                            } || applyButton && {
+                                                addToBar: h(ApplyButton, {
+                                                    children: t`Apply`,
+                                                    sx: { ml: 2, ...applyButton.sx },
+                                                    ...applyButton,
+                                                    onClick() {
+                                                        submit(async values => {
+                                                            const rec = { ...valueA[$idx], ...values }
+                                                            const updated = updateRec($idx, rec, 'save') // keep the table state aligned with the one-shot save result
+                                                            await applyButton!.onClick(updated)
+                                                        })
+                                                    }
+                                                }),
+                                            } || saveOn && { save: false })(values),
                                             title: h(Fragment, {}, title, label && ' - ', label),
                                             dialogProps: dialog
                                         })
@@ -155,7 +179,7 @@ export function ArrayField<T extends object>({
                                 h(GridActionsCellItem as any, {
                                     key: 'delete',
                                     icon: h(Delete),
-                                    label: "Delete",
+                                    label: t`Delete`,
                                     showInMenu: reorder,
                                     onClick(ev: any) {
                                         ev.stopPropagation()
@@ -165,7 +189,7 @@ export function ArrayField<T extends object>({
                                 reorder && $idx && h(GridActionsCellItem as any, {
                                     key: 'up',
                                     icon: h(ArrowUpward),
-                                    label: "Move up",
+                                    label: t`Move up`,
                                     showInMenu: true,
                                     onClick(ev: any) {
                                         ev.stopPropagation()
@@ -175,7 +199,7 @@ export function ArrayField<T extends object>({
                                 reorder && $idx < rows.length - 1 && h(GridActionsCellItem as any, {
                                     key: 'down',
                                     icon: h(ArrowDownward),
-                                    label: "Move down",
+                                    label: t`Move down`,
                                     showInMenu: true,
                                     onClick(ev: any) {
                                         ev.stopPropagation()
@@ -191,19 +215,33 @@ export function ArrayField<T extends object>({
     )
 
     function updateRec($idx: number, rec: T, ev?: any) {
-        set(valueA.map((oldRec, i) => i === $idx ? rec : oldRec), ev)
+        return set(valueA.map((oldRec, i) => i === $idx ? rec : oldRec), ev)
     }
 
     function set(newValue: typeof valueA, event?: any) {
-        onChange(!objectK ? newValue : Object.fromEntries((newValue as any).map(({ [objectK]: k, ...v }) => [k, v])),
-            { was: value, event })
+        const ret = toFieldValue(newValue)
+        onChange(ret, { was: value, event })
         if (saveOn !== 'change')
             setUndo(valueA)
+        return ret
+    }
+
+    function toFieldValue(newValue: typeof valueA) {
+        return !objectK ? newValue : Object.fromEntries((newValue as any).map(({ [objectK]: k, ...v }) => [k, v]))
     }
 
 }
 
-const byType: Dict<{ field?: Partial<FieldDescriptor>, column?: Partial<GridColDef> }> = {
+function ApplyButton(props: Parameters<typeof Button>[0]) {
+    return h(Button, {
+        ref: useCtrlShortcutButton(['s']).ref,
+        title: t`Apply
+(ctrl+s)`,
+        ...props,
+    })
+}
+
+const byType: Dict<{ field?: Partial<FieldDescriptor>, column?: Partial<DataTableColumn> }> = {
     boolean: {
         field: { comp: BoolField },
         column: { renderCell: ({ value }) => value && h(Check) },
@@ -214,5 +252,9 @@ const byType: Dict<{ field?: Partial<FieldDescriptor>, column?: Partial<GridColD
             minWidth: 96, flex: 0.5,
             renderCell: ({ value }) => formatTimestamp(value),
         }
-    }
+    },
+    password: {
+        field: { type: 'password' },
+        column: { hideUnder: true, hiddenInDetails: true },
+    },
 }

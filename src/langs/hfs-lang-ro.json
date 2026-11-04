@@ -1,7 +1,6 @@
 {
     "author": "<0x1g3n>",
     "version": 1.0,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Selectează",
         "n_files": "{n,plural,one{# fișier} other{# fișiere}}",
@@ -40,6 +39,7 @@
         "Password": "Parolă",
         "login_untrusted": "Autentificare anulată: identitatea serverului nu poate fi de încredere",
         "login_bad_credentials": "Numele de utilizator sau parola sunt incorecte. Te rog să re-efectuezi logarea.",
+        "confirm_url_login": "Acest link încearcă să te autentifice ca „{username}”",
         "login_bad_cookies": "Cookie-uri nefuncționale - autentificare eșuată",
         "User panel": "Panoul utilizatorului",
         "Change password": "Schimbă parola",
@@ -102,6 +102,7 @@
         "upload_finished": "{n} terminat ({size})",
         "upload_errors": "{n} eșuat",
         "upload_file_rejected": "Unele fișiere nu au fost acceptate",
+        "delete_unfinished_upload": "Eliminați încărcarea neterminată?",
 
         "File menu": "Meniu fișier",
         "Folder menu": "Meniu folder",
@@ -116,6 +117,8 @@
         "Timestamp": "Data încărcării",
         "Show": "Arată",
         "Loading failed": "Încărcare eșuată",
+        "Download limit reached": "Limita de descărcări a fost atinsă",
+        "Retry": "Reîncearcă",
         "Rename": "Redenumește",
         "Tiles mode:": "Dimensiunea iconițelor:",
         "off": "0",
@@ -191,6 +194,9 @@
         "No":  "Nu",
         "esc_again": "Apasa ESC de doua ori pentru a inchide",
         "insufficient storage": "spațiu de stocare insuficient",
-        "Account disabled": "Cont dezactivat"
+        "Account disabled": "Cont dezactivat",
+        "upload_name": "Încărcați cu un nume nou",
+        "Uploading": "Încărcare",
+        "proxy_413": "Verificați această limită pe serverul proxy"
     }
 }

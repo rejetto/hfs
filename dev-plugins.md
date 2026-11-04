@@ -122,7 +122,15 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
 
 - `description: string` try to explain what this plugin is for. *[STATIC JSON]*
 - `version: number` use progressive numbers to distinguish each release
-- `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed. Mandatory.
+- `versionRequired: string | [min:string,max:string]` supported HFS version(s). *[STATIC JSON]*
+  A single string sets the minimum, for example `exports.versionRequired = "3.4.0-beta3"`.
+  An array sets inclusive min/max versions, for example `exports.versionRequired = ["3.3.0", "3.4.0-beta3"]`.
+  Set a maximum only if you know your plugin is incompatible with later releases.
+  Numbered prereleases are ordered before the corresponding stable release (`3.4.0-beta3` < `3.4.0-beta4` < `3.4.0`).
+  Declare at least one of `versionRequired` and `apiRequired`. If both are present, both requirements must be satisfied.
+  For now, plugins that must remain available to HFS 3.3 and earlier should declare both fields on the default branch.
+  Those releases ignore `versionRequired` and do not inspect `api*` fallback branches when `apiRequired` is absent.
+- `apiRequired: number | [min:number,max:number]` declare API version(s) for which the plugin is designed. *[STATIC JSON]*
   A single number represents the minimum required version; an array of two defines the min/max supported versions.
   Refer to the [API version history](#api-version-history) to find the correct number for your case.
   Set a maximum version only if you know your plugin is incompatible with later releases.
@@ -171,6 +179,7 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
   it will be merged with other "exported" properties described in this section, so you can return `{ unload }` for example.
   If you return a function, this is just a shorter way to return the `unload`.
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
+- `disableDefaultStyle: boolean` prevents the default frontend style from being applied. Default is false.
   You can also include external files, by entering a full URL. Multiple files can be specified as `['file1.css', 'file2.css']`.  
 - `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
   You can also include external files, by entering a full URL.
@@ -183,6 +192,8 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
   }
   ```
   To interrupt other middlewares on this http request, call `ctx.stop()`.
+  Exceptions thrown by plugin middleware are logged but do not automatically stop request processing.
+  To deny a request, set the response status/body and call `ctx.stop()`; do not rely on throwing an exception.
   If you want to execute something in the "upstream" of middlewares, return a function.
   Upstream you can access the response calculated by HFS and other middlewares, so you'll find both the status and body set.
   See more at https://github.com/rejetto/hfs/wiki/Middlewares .
@@ -220,6 +231,8 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
 - `customHtml: object | () => object` return custom-html sections programmatically.
   Each key is a section name, the value is the html (or js, or css). Refer to https://github.com/rejetto/hfs/wiki/Customization:-HTML-sections
 - `customRest: { [name]: (parameters: object, ctx) => any }` declare backend functions to be called by frontend with `HFS.customRestCall`
+  Names are global across plugins: if multiple plugins export the same name, the first matching plugin handles the request.
+  Prefix names with a plugin-specific identifier, for example `twoFactor_getSecret`, to avoid collisions.
   E.g. 
   ```js
   exports.customRest = {
@@ -232,7 +245,7 @@ exports.depend = [{ repo: "x", version: 1 }] // non-JSON object key
 ### FieldDescriptor
 
 A FieldDescriptor is an object and can be empty. Currently, these optional properties are supported:
-- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'vfs_path' | 'array' | 'username' | 'color' | 'date_time' | 'show_html'` . Default is `string`.
+- `type: 'string' | 'password' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'vfs_path' | 'array' | 'username' | 'color' | 'date_time' | 'show_html'` . Default is `string`.
 - `label: string` what name to display next to the field. Default is based on `key`.
 - `defaultValue: any` value to be used when nothing is set. Default is undefined.
 - `helperText: string` extra text printed next to the field.
@@ -249,7 +262,8 @@ Based on `type`, other properties are supported:
 - `string` simple text field. Spaces at the start/end are automatically removed.
     - `multiline: boolean`. Default is `false`.
     - `required: boolean`. Default is `false`.
-    - to make it a password field, use this property `inputProps: { type: 'password' }`; valid also for other standard html input types.  
+    - `inputProps: object` attributes forwarded to the HTML input.
+- `password` masked text field. Password fields inside an `array` are omitted from its table.
 - `number`
     - `min: number`
     - `max: number`
@@ -261,6 +275,8 @@ Based on `type`, other properties are supported:
       This field will be use for both the configuration of the grid's column, and the form's field.
       Other than properties of `FieldDescriptor` you get these extra properties:
         - `$column`: where you can put all the properties you want specifically to be set on the [grid's column](https://mui.com/x/api/data-grid/grid-col-def/).
+        - `$hideUnder: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | number | true`: hide the column from the table when the table is narrower
+          than the given breakpoint or pixel width, or always if you use `true`. The field remains available in the edit form.
         - `$width`: a shortcut property that can substitute `$column: { width }` or `$column: { flex }`.
           By default, a column gets flex:1 unless you specify $width. A value of 8 and higher is considered width's pixels,
           while lower are flex-values.
@@ -399,6 +415,26 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `onServer(cb: (Server) => any)` execute your callback on every instance of Server created by HFS.
   It is the standard Node.js class, and it can be http or https. It can be instantiated multiple times.
+  Since API 13.4, the callback can return a cleanup function. HFS calls registered cleanups when the plugin
+  unloads (including reloads and failed initialization), before its `unload` hook. Cleanup functions may return
+  promises; HFS waits for all of them and logs errors without skipping the other cleanups.
+  The callback may also be async. Await `api.onServer(...)` during initialization to wait for callbacks on
+  the current servers. Other return values are ignored. If a callback finishes after unloading has begun,
+  HFS immediately runs its returned cleanup instead of registering it; unloading does not wait for pending callbacks.
+
+  ```js
+  exports.apiRequired = 13.4
+  exports.init = async api => {
+      await api.onServer(server => {
+          server.on('upgrade', handleUpgrade)
+          return () => server.removeListener('upgrade', handleUpgrade)
+      })
+
+      function handleUpgrade(req, socket, head) {
+          // handle the connection
+      }
+  }
+  ```
 
 - `normalizeFilename(filename: string): string` HFS applies some normalization to files, and so should you.
   It's necessary when running on Mac and Windows, as they are case-insensitive.
@@ -636,6 +672,12 @@ This is a list of available frontend-events, with respective object parameter an
 - `menuZip`
   - parameter `{ def: ReactNode }`
   - output `Html`
+- `validatePassword`
+  - called when a user chooses a new password, before confirmation and SRP generation (not in Admin)
+  - parameter `{ username: string, password: string }`
+  - return a string error message, or true to just stop, or nothing/falsy to accept it; the first error is displayed
+  - async supported
+  - validation runs only in the browser and does not enforce a server-side policy
 - `userPanelAfterInfo`
   - no parameter
   - output `Html`
@@ -672,6 +714,8 @@ This is a list of available frontend-events, with respective object parameter an
   - `afterFolderStats` between folder-stats and filter-bar
   - `afterFilter` at the input of the filter-bar
   - `afterList` at the end of the files list
+  - `beforeOptions` at the beginning of the options dialog
+  - `afterOptions` at the end of the options dialog
   - `footer` at the bottom of the screen, even after the clipboard-bar (when visible)
   - `unauthorized` displayed behind the login dialog accessing a protected folder
   - `userPanelAfterInfo` visible to logged-in users, after the click on the button with their username, between user-info and buttons
@@ -733,22 +777,30 @@ This section is still partially documented, and you may need to have a look at t
 - `attemptingLogin` called when the login process starts
   - parameters: { ctx, username, via? }
     - via?: string
-      - `'url'` if login is attempted via `?login=...`, or `'header'` if it's "Basic" authentication
-        (which includes credentials using the @-syntax in the URL), otherwise it's standard SRP login. 
+      - `'url'` for `?login=...`, `'header'` for "Basic" authentication (including credentials using the
+        @-syntax in the URL), `'api'` for clear-text API login, or `'srp'`
   - async supported
   - preventable
 - `failedLogin`
   - parameters: { ctx, username, via? }
+- `loginAttemptFinished` called when a clear-text login attempt finishes
+  - parameters: { ctx, username, via, success }
 - `clearTextLogin` give plugins the chance to authenticate users
-  - parameters: { ctx, username, password, via: 'url' | 'header' }
+  - parameters: { ctx, username, password, via: 'url' | 'header' | 'api' }
   - async supported
   - return: `true` to consider authentication done
 - `finalizingLogin`
-  - parameters: { ctx, username, inputs }
+  - parameters: { ctx, username, inputs, via? }
+    - via: `'body'`, `'url'`, `'header'` (password in the specified part of the request), `'srp'` (SRP was used), or `'net'` (`auto_login_net`)
+      - identifies the actual login path, not just credentials present in the request
+      - may be absent for plugins calling `setLoggedIn` without specifying it
+    - username: canonical account name
     - inputs: object
       - merge of all inputs both from body and URL
       - all fields with a `name` attribute in the form, included those added by plugins, are included 
   - async supported
+  - preventable (login is denied with a generic message)
+  - return: a non-empty string to deny login with that message
 - `configReady` when the config is fully loaded (the boolean flags whether we started without an existing config file)
   - parameters: { startedWithoutConfig: boolean }
 - `config.KEY` where KEY is the key of a config that has changed
@@ -768,6 +820,16 @@ This section is still partially documented, and you may need to have a look at t
 - `httpsReady` when the HTTPS server becomes available (no parameters)
 - `spam`
   - parameters: { ctx }
+- `beforeLog` called after the response completes, before writing an access/error log entry or emitting `log`/`error_log`.
+  Requests already excluded by logging settings do not trigger this event. Console output is unaffected.
+  - parameters: { ctx }
+  - synchronous, preventable: return `api.events.stop` to omit the entry
+  - example: exclude all 307 redirects, including those generated by `force_https` before plugin middleware runs:
+    ```js
+    api.events.on('beforeLog', ({ ctx }) => {
+        if (ctx.status === 307) return api.events.stop
+    })
+    ```
 - `log`
   - parameters: { ctx, length, user, ts, uri, extra }
 - `error_log`
@@ -919,6 +981,7 @@ Where there is too little information, you'll have to consult the source code. A
     fileSource?: string // set when serving a file
     fileStats?: Stat // file attributes
     webdavDetected?: boolean // there's no clear way to detect a webdav client, but this is the result of the heuristic in HFS
+    getOrHead: boolean // method is GET or HEAD
 
 ## Other files
 
@@ -957,14 +1020,21 @@ You can decide if you want to use some building system/transpiler, but you'll ha
 While you may just put a zip on any website, that would require manual installation.
 If you want to appear in the Admin-panel, for easier finding and installation, please do as follows.
 
-Be sure that you are exporting (not returning) the essential properties, like `apiRequired`.
+Be sure that you are exporting (not returning) the essential properties, like `apiRequired` or `versionRequired`.
 Find the full list in the [Things a plugin can export](#things-a-plugin-can-export) section, tagged *[STATIC JSON]*.
 
 Suggested method for publishing is to have a dedicated repository on GitHub, with topic `hfs-plugin`.
 To set the topic go on the repo home and click on the gear icon near the "About" box.
 Be sure to also fill the "exports.description" field, especially with words that people may search for.
 
-If the name of the repository has the prefix "hfs-", it won't be displayed. Eg: "hfs-chat" will be displayed as "chat".
+The Admin plugin catalog in HFS is cached locally across restarts. Opening or searching it checks GitHub again
+when the last successful refresh is at least 5 minutes old. A cached catalog less than 24 hours old stays
+visible during the refresh; older catalogs are not displayed. Searches match the repository name/owner,
+repository description, and plugin description. Metadata is downloaded again only when the repository's
+push date or default branch changes, or HFS is upgraded. Installed-plugin update checks remain independent
+of this catalog cache.
+
+If the name of the repository has the prefix "hfs-", or a suffix "-plugin", it won't be displayed. Eg: "hfs-chat" will be displayed as "chat".
 This is good way to have a clearer repository name on github, while avoiding being redundant within the context of the HFS' UI. 
 
 The files intended to be installed must go in a folder named `dist`.
@@ -981,7 +1051,7 @@ You can refer to these published plugins for reference, like
 - https://github.com/rejetto/simple-player/
 - https://github.com/rejetto/theme-example/
 
-Published plugins to have `exports.apiRequired`.
+Published plugins must have `exports.apiRequired` or `exports.versionRequired`.
 
 ### Multiple versions
 
@@ -1040,6 +1110,33 @@ This works because all translations are stored inside `HFS.lang`.
 Using `HFS._.set` is not necessary, but in this case is convenient, because the language-code key may not exist.
 
 If you want to override a text regardless of the language, use the special language-code `all`. 
+
+## DNS certificate providers
+
+HFS owns ACME orders, validation, certificate installation and renewal. A plugin can add a DNS provider:
+
+```js
+exports.apiRequired = 13.6
+exports.init = api => {
+    api.registerAcmeDnsProvider('My DNS', {
+        // increment only when saved credentials/configuration become incompatible
+        config_version: 1,
+        fields: { token: { label: "API token", secret: true } },
+        async present({ name, zone, relative, value }, credentials) {
+            const id = await createTxt(zone, name, value, credentials.token)
+            return async function cleanup() {
+                await deleteTxt(zone, id, credentials.token)
+            }
+        }
+    })
+}
+```
+
+`createTxt` and `deleteTxt` above stand for your provider's HTTP implementation. `name` is the full validation name after any CNAME delegation, `zone` comes from SOA discovery, and `relative` is the name relative to that zone. `label` is optional and falls back to the registered ID. Every field is required when issuing a certificate; `secret` selects a password input. Optional `help_url` links to instructions for obtaining credentials. Optional `propagation_timeout` sets the DNS polling limit in seconds (default 300).
+
+`present` must preserve existing TXT values and return a cleanup function that removes only its own record/value. It may be called concurrently for the base domain and wildcard, even on the same DNS name. APIs which replace whole record sets must serialize read/modify/write operations. A provider supporting only one TXT value at a time is not compatible with this interface's concurrent challenges.
+
+Registration returns an unregister function and is also removed automatically when the plugin unloads or initialization fails. IDs must be unique. An in-flight operation retains the provider callbacks it started with; do not invalidate resources required by its cleanup on unload. Failures must not include credentials in messages. Unavailable providers fail renewal visibly; HFS never silently selects another provider.
 
 ## API version history
 
@@ -1207,4 +1304,19 @@ If you want to override a text regardless of the language, use the special langu
 - 13.1 (v3.2.0)
   - backend events: logRotated
   - listDiskFolder gets "hidden" parameter
-  - backend event uploadFinished: fullPath corresponds to the path that was actually written 
+  - backend event uploadFinished: fullPath corresponds to the path that was actually written
+- 13.4 (v3.3.1)
+  - exports.disableDefaultStyle
+  - frontend event: validatePassword
+  - `api.onServer` callbacks can return a cleanup function
+  - `finalizingLogin`: canonical username and login veto with an optional error message
+- 13.5 (v3.3.2)
+  - `finalizingLogin`: `via` identifies the login origin
+- 13.6 (v3.4.0)
+  - backend event: beforeLog
+  - `api.registerAcmeDnsProvider`
+- 13.72 (v3.4.0)
+  - backend event: loginAttemptFinished
+  - frontend events: beforeOptions, afterOptions
+  - config.type: password
+  - exports.versionRequired

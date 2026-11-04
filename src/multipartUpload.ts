@@ -1,19 +1,25 @@
 import Koa from 'koa'
 import Busboy from 'busboy'
-import { once } from 'events'
-import { hasPermission, urlToNode, VfsNode } from './vfs'
+import { hasPermission, urlToNode, VfsNodeWithPath } from './vfs'
 import { dirname } from 'path'
 import { uploadWriter } from './upload'
-import { HTTP_BAD_REQUEST } from './cross-const'
+import { HTTP_BAD_REQUEST, HTTP_FOOL } from './cross-const'
 import { onFirstEvent } from './first'
-import { try_ } from './cross'
+import { makeMatcher, try_ } from './cross'
+import { defineConfig } from './config'
+import { finished, pipeline } from 'node:stream/promises'
 
-export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNode) {
+export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithPath) {
     if (ctx.request.type !== 'multipart/form-data')
         return ctx.status = HTTP_BAD_REQUEST
+    if (isCrossOriginBrowserRequest()) {
+        ctx.set('Connection', 'close') // the rejected multipart body is intentionally left unread
+        ctx.body = "Cross-origin multipart upload blocked"
+        return ctx.status = HTTP_FOOL
+    }
     ctx.state.uploads = []
     const locks: Promise<string>[] = []
-    const fileJobs: Promise<any>[] = []
+    const fileJobs: Promise<void>[] = []
     const errors: string[] = []
     const bb = try_(() => Busboy({ headers: ctx.req.headers, preservePath: true }), e => {
         ctx.body = String(e) // busboy validates multipart headers at construction time, so malformed requests must stop here as 400
@@ -25,6 +31,7 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNode) {
             errors.push('empty filename')
     })
     bb.on('file', (_field, file, info) => {
+        file.on('error', () => {}) // parsing can fail before the asynchronous permission check has attached the pipeline
         const fn = info.filename || ''
         if (!fn) {
             errors.push('empty filename')
@@ -40,8 +47,9 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNode) {
         console.warn("Couldn't parse POST requests:", String(err))
         ctx.status = HTTP_BAD_REQUEST
     })
+    ctx.req.once('error', error => bb.destroy(error)) // pipe does not forward a cancelled request's error to the parser
     ctx.req.pipe(bb)
-    await once(bb, 'finish')
+    await new Promise(res => onFirstEvent(bb, ['finish','error'], res)) // parser errors are handled above as 400 and must complete the request without rejecting
     await Promise.all(fileJobs)
     if (!ctx.state.uploads?.length) {
         if (!errors.length)
@@ -58,8 +66,7 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNode) {
             if (!ret)
                 return drainStream(file)
             locks.push(ret.lockMiddleware)
-            file.pipe(ret)
-            file.resume()
+            await pipeline(file, ret)
         }
         catch (e) {
             console.warn("Couldn't handle uploaded file:", String(e))
@@ -69,14 +76,32 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNode) {
 
     function drainStream(stream: NodeJS.ReadableStream) {
         stream.resume()
-        return new Promise(res => onFirstEvent(stream, ['end','close','error'], res))
+        return finished(stream, { cleanup: true }).catch(() => {})
+    }
+
+    function isCrossOriginBrowserRequest() {
+        if (ctx.get('x-hfs-anti-csrf'))
+            return false
+        const origin = ctx.get('origin')
+        if (origin && origin !== 'null' && allowedUploadOrigin.compiled()(origin))
+            return false
+        const fetchSite = ctx.get('sec-fetch-site')
+        if (fetchSite)
+            return fetchSite !== 'same-origin' && fetchSite !== 'none'
+        if (!origin)
+            return false // missing browser metadata preserves non-browser and legacy upload clients
+        // compare hosts because TLS termination can make the public and internal protocols differ
+        return try_(() => new URL(origin).host.toLowerCase() !== ctx.host.toLowerCase(),
+            () => true)
     }
 
     async function subfolderBlocksUpload(fn: string) {
         const prefix = dirname(fn.replaceAll('\\', '/'))
         if (prefix === '.') // no subdir
             return false
-        const subfolderNode = await urlToNode(prefix + '/', ctx, node, true) // final slash = explicitly a folder even if it doesn't exist on disk
+        const subfolderNode = await urlToNode(prefix + '/', ctx, node, { allowMissing: true }) // final slash = explicitly a folder even if it doesn't exist on disk
         return subfolderNode && !hasPermission(subfolderNode, 'can_upload', ctx)
     }
 }
+
+const allowedUploadOrigin = defineConfig('allowed_upload_origin', '', mask => makeMatcher(mask, false, false))

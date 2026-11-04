@@ -3,33 +3,37 @@
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import {
     Account, accountCanLoginAdmin, accountHasLoginMethod, accountHasPassword, accounts, addAccount, delAccount, getAccount,
-    updateAccount, accountCanLogin, accountCanChangePassword, normalizeUsername
+    updateAccount, accountCanLogin, accountCanChangePassword, normalizeUsername, invalidateAccountSessions
 } from './perm'
 import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
-import { getCurrentUsername, invalidateSessionBefore } from './auth'
+import { getCurrentUsername } from './auth'
+import { getSessionStamp } from './sessionStamp'
 import { apiAssertTypes, objFromKeys, onlyTruthy, with_ } from './misc'
 import { pickProps } from './api.vfs'
 
-function prepareAccount(ac: Account | undefined) {
-    return ac && {
+function serializeAccount(ac: Account | undefined) {
+    if (!ac) return
+    const hasLogin = accountHasLoginMethod(ac)
+    return {
         ..._.omit(ac, ['password','hashed_password','srp']),
         username: ac.username, // omit won't copy it because it's a hidden prop
         hasPassword: accountHasPassword(ac),
-        isGroup: !accountHasLoginMethod(ac),
+        isGroup: !hasLogin,
         adminActualAccess: accountCanLoginAdmin(ac),
-        canLogin: accountHasLoginMethod(ac) ? accountCanLogin(ac) : undefined,
+        canLogin: hasLogin ? accountCanLogin(ac) : undefined,
         canChangePassword: accountCanChangePassword(ac),
-        invalidated: invalidateSessionBefore.get(ac.username),
+        invalidated: Number(getSessionStamp(ac.username)?.split('.')[0]) || undefined,
         directMembers: Object.values(accounts.get()).filter(a => a.belongs?.includes(ac.username)).map(x => x.username),
         members: with_(Object.values(accounts.get()), accounts => {
             const ret: string[] = []
+            // breadth-first traversal follows indirect memberships and excludes already collected accounts
             let news = [ac.username]
             while (news.length) {
                 news = accounts.filter(a => !ret.includes(a.username) && a.belongs?.some(x => news.includes(x))).map(x => x.username)
                 ret.push(...news)
             }
-            return _.uniq(ret).sort()
+            return ret.sort()
         })
     }
 }
@@ -45,12 +49,12 @@ export default  {
 
     get_account({ username }, ctx) {
         apiAssertTypes({ string_undefined: { username } })
-        return prepareAccount(getAccount(username || getCurrentUsername(ctx)))
+        return serializeAccount(getAccount(username || getCurrentUsername(ctx)))
             || new ApiError(HTTP_NOT_FOUND)
     },
 
     get_accounts() {
-        return { list: onlyTruthy(Object.values(accounts.get()).map(prepareAccount)) }
+        return { list: onlyTruthy(Object.values(accounts.get()).map(serializeAccount)) }
     },
 
     get_admins() {
@@ -63,18 +67,22 @@ export default  {
         if (!acc)
             return new ApiError(HTTP_BAD_REQUEST)
         await updateAccount(acc, pickProps(changes, ALLOWED_KEYS))
-        if (changes.username && ctx.session?.username === normalizeUsername(username)) // update session if necessary
-            ctx.session!.username = normalizeUsername(changes.username)
+        if (ctx.session?.username === normalizeUsername(username)) { // preserve only the session making its own account change
+            ctx.session!.username = acc.username
+            ctx.session!.stamp = getSessionStamp(acc.username)
+        }
         return _.pick(acc, 'username')
     },
 
-    async add_account({ overwrite, username, ...rest }) {
+    async add_account({ overwrite, username, ...rest }, ctx) {
         apiAssertTypes({ string: { username } })
         const existing = getAccount(username)
         rest = pickProps(rest, ALLOWED_KEYS)
         if (existing) {
             if (!overwrite) return new ApiError(HTTP_CONFLICT)
             await updateAccount(existing, rest)
+            if (ctx.session?.username === existing.username)
+                ctx.session.stamp = getSessionStamp(existing.username)
             return _.pick(existing, 'username')
         }
         const acc = await addAccount(username, rest)
@@ -92,7 +100,7 @@ export default  {
 
     invalidate_sessions({ username }) {
         apiAssertTypes({ string: { username } })
-        invalidateSessionBefore.set(normalizeUsername(username), Date.now())
+        invalidateAccountSessions(username)
         return {}
     },
 

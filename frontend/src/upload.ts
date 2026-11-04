@@ -1,18 +1,18 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, DragEvent, Fragment, useMemo, useState, useEffect, CSSProperties } from 'react'
-import { Btn, Flex, FlexV, iconBtn, Select } from './components'
+import { createElement as h, DragEvent, Fragment, useMemo, useState, useEffect, useRef, CSSProperties } from 'react'
+import { Btn, Flex, FlexV, iconBtn, Select, Spinner } from './components'
 import {
-    basename, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, selectFiles, working, copyTextToClipboard,
-    HTTP_CONFLICT, formatSpeed, getHFS, onlyTruthy, cpuSpeedIndex, closeDialog, prefix, operationSuccessful, pathEncode,
-    getPrefixUrl,
+    basename, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, selectFiles, working, workingWith, copyTextToClipboard,
+    HTTP_CONFLICT, formatSpeed, getHFS, onlyTruthy, closeDialog, prefix, operationSuccessful, pathEncode,
+    getPrefixUrl, HTTP_NOT_FOUND, dirname, UPLOAD_TEMP_PREFIX,
 } from './misc'
 import _ from 'lodash'
-import { INTERNAL_Snapshot, ref, useSnapshot } from 'valtio'
-import { alertDialog, promptDialog } from './dialog'
+import { INTERNAL_Snapshot, proxy, ref, useSnapshot } from 'valtio'
+import { alertDialog, confirmDialog, promptDialog } from './dialog'
 import { reloadList } from './useFetchList'
 import { apiCall } from '@hfs/shared/api'
-import { state, useSnapState } from './state'
+import { getUploadOnExisting, state, useSnapState } from './state'
 import { Link } from 'wouter'
 import { LinkClosingDialog } from './fileMenu'
 import {
@@ -23,6 +23,8 @@ import i18n from './i18n'
 const { t } = i18n
 
 const renameEnabled = getHFS().dontOverwriteUploading
+const canPickFolder = 'webkitdirectory' in document.createElement('input')
+const dropScan = proxy<{ count?: number }>({})
 
 export function showUpload() {
     if (!uploadState.qs.length)
@@ -46,27 +48,34 @@ export function showUpload() {
 
     function Content(){
         const { qs, paused, eta, speed, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
-        const { props, uploadOnExisting } = useSnapState()
+        const scanning = useSnapshot(dropScan).count !== undefined
+        const { props, uploadOnExisting: selectedUploadOnExisting } = useSnapState()
+        const uploadOnExisting = getUploadOnExisting(selectedUploadOnExisting, props?.can_overwrite)
         const etaStr = useMemo(() => !eta || eta === Infinity ? '' : formatTime(eta*1000, 0, 2), [eta])
         const inQ = _.sumBy(qs, q => q.entries.length) - (uploadState.uploading ? 1 : 0)
-        const queueStr = inQ && t('in_queue', { n: inQ }, "{n} in queue")
+        const queueStr = inQ && t('in_queue', { n: inQ })
         const size = formatBytes(adding.reduce((a, x) => a + x.file.size, 0))
         const isMobile = useIsMobile()
 
         return h(FlexV, { gap: '.5em' },
-            h(FlexV, { className: 'upload-toolbar' },
-                props && !props.can_upload ? t('no_upload_here', "No upload permission for the current folder")
+            h('div', { className: 'upload-toolbar' },
+                props && !props.can_upload ? t`no_upload_here`
                     : h(FlexV, {},
-                        h(Flex, { center: true, flexWrap: 'wrap', alignItems: 'stretch' },
+                        h('div', { className: 'upload-menu' },
                             h('button', {
                                 className: 'upload-files',
                                 onClick: () => pickFiles({ accept: normalizeAccept(props?.accept) })
                             }, t`Pick files`),
-                            !isMobile && h('button', {
+                            canPickFolder && h('button', {
                                 className: 'upload-folder',
                                 onClick: () => pickFiles({ folder: true })
                             }, t`Pick folder`),
                             h('button', { className: 'create-folder', onClick: createFolder }, t`Create folder`),
+                        ),
+                        !isMobile && h(Flex, { gap: 4 }, hIcon('info'), t`upload_dd_hint`),
+                        h(UploadStatus, { margin: '.5em 0' }),
+                        adding.length > 0 && h('div', { className: 'upload-ready' },
+                            t('ready_to_upload', { n: adding.length, size }),
                             h(Select<typeof uploadOnExisting>, {
                                 style: { width: 'unset' },
                                 'aria-label': t`Overwrite policy`,
@@ -78,25 +87,22 @@ export function showUpload() {
                                     props?.can_overwrite && { value: 'overwrite', label: t`Overwrite existing files` },
                                 ])
                             }),
-                        ),
-                        !isMobile && h(Flex, { gap: 4 }, hIcon('info'), t('upload_dd_hint', "You can upload files by dragging and dropping them onto the file list")),
-                        h(UploadStatus, { margin: '.5em 0' }),
-                        adding.length > 0 && h(Flex, { center: true, flexWrap: 'wrap' },
-                            t('ready_to_upload', { n: adding.length, size }, "{n,plural,one{# file} other{# files}}, {size}, ready to upload"),
                             h(Flex, {}, // avoid just one button to wrap
                                 h('button', {
                                     className: 'upload-send',
+                                    disabled: scanning,
                                     onClick() {
                                         void enqueueUpload(uploadState.adding)
                                         clear()
                                     }
                                 }, t`Send`),
-                                h('button', { onClick: clear }, t`Clear`),
+                                h('button', { disabled: scanning, onClick: clear }, t`Clear`),
                             ),
                         )
                     ),
             ),
             h(FileList, {
+                name: 'adding',
                 entries: uploadState.adding,
                 actions: {
                     cancel: rec => _.remove(uploadState.adding, rec),
@@ -108,7 +114,7 @@ export function showUpload() {
                     },
                     async edit(rec) {
                         const was = rec.path
-                        const s = await promptDialog(t('upload_name', "Upload with new name"), {
+                        const s = await promptDialog(t`upload_name`, {
                             value: was,
                             onField: el => {
                                 const ofs = was.lastIndexOf('/') + 1 // browsers picking a folder use / as separator even on Windows
@@ -124,33 +130,43 @@ export function showUpload() {
             qs.length > 0 && h('div', {},
                 h(Flex, { center: true, borderTop: '1px dashed', padding: '.5em' },
                     [etaStr, formatSpeed(speed), queueStr].filter(Boolean).join(', '),
-                    inQ > 0 && iconBtn('delete', ()=>  {
+                    inQ > 0 && iconBtn('delete', async () => {
+                        const current = uploadState.uploading
+                        const to = uploadState.qs[0]?.to
                         uploadState.qs = []
-                        abortCurrentUpload(true)
+                        await abortCurrentUpload(true)
+                        if (current && to && uploadState.partial > 0)
+                            await askToRemoveUnfinishedUpload(current, to)
                     }, { title: t`Clear` }),
                     iconBtn(paused ? 'play' : 'pause', () => {
                         uploadState.paused = !uploadState.paused
                         if (uploadState.paused)
                             abortCurrentUpload()
                         else if (uploadState.uploading)
-                            startUpload(uploadState.uploading, uploadState.qs[0].to)
+                            startUpload(uploadState.uploading, uploadState.qs[0].to, 0, uploadState.qs[0].existing)
                     }),
                 ),
                 qs.map((q,idx) =>
-                    h('div', { key: q.to },
+                    h('div', { key: `${q.to}:${q.existing}` },
                         h(Link, { href: q.to, onClick: close }, t`Destination`, ' ', decodeURI(q.to)),
                         h(FileList, {
+                            name: 'queue',
                             entries: uploadState.qs[idx].entries,
                             actions: {
-                                cancel: f => {
+                                cancel: async f => {
+                                    const q = uploadState.qs[idx]
                                     if (f === uploadState.uploading) {
-                                        if (!uploadState.paused)
-                                            return abortCurrentUpload(true)
+                                        const shouldOfferCleanup = uploadState.partial > 0
+                                        if (!uploadState.paused) {
+                                            await abortCurrentUpload(true) // wait for the server to register the temp file as unfinished before offering cleanup
+                                            return shouldOfferCleanup && askToRemoveUnfinishedUpload(f, q.to)
+                                        }
                                         f.error = t`Interrupted`
                                         uploadState.interrupted.push(f)
                                         uploadState.uploading = undefined
+                                        if (shouldOfferCleanup)
+                                            await askToRemoveUnfinishedUpload(f, q.to)
                                     }
-                                    const q = uploadState.qs[idx]
                                     _.pull(q.entries, f)
                                     if (!q.entries.length)
                                         uploadState.qs.splice(idx,1)
@@ -161,9 +177,22 @@ export function showUpload() {
             )
         )
 
+        async function askToRemoveUnfinishedUpload(f: ToUpload, to: string) {
+            if (!await confirmDialog(t`delete_unfinished_upload`))
+                return
+            const dir = dirname(f.path)
+            await apiCall('delete', {}, {
+                restUri: to + pathEncode(prefix('', dir, '/') + UPLOAD_TEMP_PREFIX + basename(f.path).slice(-200))
+            }).then(reloadList, e => {
+                if (e?.code === HTTP_NOT_FOUND)
+                    return
+                alertDialog(e, 'error')
+            })
+        }
+
         function pickFiles(options: Parameters<typeof selectFiles>[1]) {
             selectFiles(list => {
-                uploadState.adding.push( ...Array.from(list || []).filter(simulateBrowserAccept)
+                uploadState.adding.push( ...Array.from(list || []).filter(x => simulateBrowserAccept(x))
                     .map(f => ({ file: ref(f), path: getFilePath(f) })) )
             }, options)
         }
@@ -171,17 +200,24 @@ export function showUpload() {
 
 }
 
-function FileList({ entries, actions }: { entries: ToUpload[], actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
+function FileList({ entries, actions, name }: { name: string, entries: ToUpload[], actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
     const { uploading, progress, partial, hashing }  = useSnapshot(uploadState)
     const snapEntries = useSnapshot(entries)
+    const firstBatch = useRef(0)
     const [all, setAll] = useState(false)
-    useEffect(() => setAll(false), [entries.length])
-    const MAX = all ? Infinity : _.round(_.clamp(100 * cpuSpeedIndex, 10, 100))
-    const rest = Math.max(0, snapEntries.length - MAX)
+    // freeze the first render budget so later scan batches only update the lightweight "more" row
+    firstBatch.current ||= Math.min(snapEntries.length, 100)
+    useEffect(() => {
+        setAll(false)
+        if (!entries.length)
+            firstBatch.current = 0
+    }, [entries.length])
+    const max = all ? Infinity : firstBatch.current
+    const rest = Math.max(0, snapEntries.length - max)
     const title = formatPerc(progress)
-    return !snapEntries.length ? null : h('table', { className: 'upload-list', width: '100%' },
+    return !snapEntries.length ? null : h('table', { className: `upload-list upload-${name}` },
         h('tbody', {},
-            snapEntries.slice(0, MAX).map((e, i) => {
+            snapEntries.slice(0, max).map((e, i) => {
                 const working = e.file === uploading?.file // e is a proxy, so we check 'file' as it's a ref
                 return h(Fragment, { key: i },
                     h('tr', {},
@@ -201,7 +237,7 @@ function FileList({ entries, actions }: { entries: ToUpload[], actions: { [icon:
                     e.comment && h('tr', {}, h('td', { colSpan: 3 }, h('div', { className: 'entry-comment' }, e.comment)) )
                 )
             }),
-            rest > 0 && h('tr', {}, h('td', { colSpan: 99 }, h('a', { href: '#', onClick: () => setAll(true) }, t('more_items', { n: rest }, "{n} more item(s)"))))
+            rest > 0 && h('tr', {}, h('td', { colSpan: 99 }, h(Btn, { asText: true, label: t('more_items', { n: rest }), onClick: () => setAll(true) })))
         )
     )
 }
@@ -257,16 +293,16 @@ function formatTime(time: number, decimals=0, length=Infinity) {
 export function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snapshot<typeof uploadState> } & CSSProperties) {
     const current = useSnapshot(uploadState)
     const { done, doneByte, errors, interrupted } = snapshot || current
-    const msgDone = done.length > 0 && t('upload_finished', { n: done.length, size: formatBytes(doneByte) }, "{n} finished ({size})")
-    const msgInterrupted = interrupted.length > 0 && t('upload_interrupted', { n: interrupted.length }, "{n} interrupted")
-    const msgErrors = errors.length > 0 && t('upload_errors', { n: errors.length }, "{n} failed")
+    const msgDone = done.length > 0 && t('upload_finished', { n: done.length, size: formatBytes(doneByte) })
+    const msgInterrupted = interrupted.length > 0 && t('upload_interrupted', { n: interrupted.length })
+    const msgErrors = errors.length > 0 && t('upload_errors', { n: errors.length })
     const msg = [msgDone, msgInterrupted, msgErrors].filter(Boolean).join(' – ')
     if (!msg) return null
     const sep = h('span', { className: 'horiz-sep' }, ' – ')
-    return h('div', { style: { ...props } },
+    return h('div', { className: 'upload-status', style: { ...props } },
         msg, sep, h(Btn, { label: t`Show details`, asText: true, onClick: showDetails }),
         sep, h(Btn, {
-            label: t('copy_links', "Copy links"),
+            label: t`copy_links`,
             asText: true,
             successFeedback: true,
             async onClick() {
@@ -294,30 +330,71 @@ export function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snaps
     }
 }
 
-export function acceptDropFiles(cb: false | undefined | ((files:File[], to: string) => void)) {
+export function acceptDropFiles(makeConsumer: false | undefined | (() => (files: ToUpload[]) => void)) {
     return {
         onDragOver(ev: DragEvent) {
             ev.preventDefault()
-            ev.dataTransfer!.dropEffect = cb && ev.dataTransfer.types.includes('Files') ? 'copy' : 'none'
+            ev.dataTransfer!.dropEffect = makeConsumer && dropScan.count === undefined
+                && ev.dataTransfer.types.includes('Files') ? 'copy' : 'none'
         },
         onDrop(ev: DragEvent) {
             ev.preventDefault()
-            if (!cb) return
+            if (!makeConsumer || dropScan.count !== undefined) return
+            const staging = uploadState.uploadDialogIsOpen
+            const stopWorking = staging ? startDropScan() : undefined
+            const acceptFiles = makeConsumer() // preserve staging, destination and filters while the asynchronous scan runs
+            const files: ToUpload[] = []
+            // per-file Valtio updates freeze large drops; report progress at most once per second and flush on completion
+            const flush = _.throttle(() => {
+                const batch = files.splice(0)
+                if (staging)
+                    dropScan.count = (dropScan.count || 0) + batch.length
+                acceptFiles(batch)
+            }, 1_000, { leading: false })
+            const pending: Promise<void>[] = []
             for (const it of ev.dataTransfer.items) {
                 const entry = it.webkitGetAsEntry()
                 if (entry)
-                    (function recur(entry: FileSystemEntry, to = '') {
-                        if (entry.isFile)
-                            (entry as FileSystemFileEntry).file(x => cb([x], x.webkitRelativePath ? '' : to)) // ff130 fills webkitRelativePath when dropping a folder, while chrome128 doesn't and we pass 'to' to preserve the structure
-                        else (entry as FileSystemDirectoryEntry).createReader?.().readEntries(entries => {
-                            const newTo = to + entry.name + '/'
-                            for (const e of entries)
-                                recur(e, newTo)
-                        })
-                    })(entry)
+                    pending.push(readEntry(entry))
+            }
+            void Promise.allSettled(pending).then(() => {
+                flush.flush()
+                if (staging) {
+                    dropScan.count = undefined
+                    stopWorking?.()
+                }
+            })
+
+            async function readEntry(entry: FileSystemEntry, to = ''): Promise<void> {
+                if (entry.isFile)
+                    return new Promise((resolve, reject) => (entry as FileSystemFileEntry).file(file => {
+                        files.push({ file, path: (file.webkitRelativePath ? '' : to) + getFilePath(file) }) // Firefox supplies the path itself; Chromium needs `to`
+                        flush()
+                        resolve()
+                    }, reject))
+
+                const reader = (entry as FileSystemDirectoryEntry).createReader?.()
+                const entries: FileSystemEntry[] = []
+                while (reader) {
+                    const batch = await new Promise<FileSystemEntry[]>((resolve, reject) => reader.readEntries(resolve, reject))
+                    if (!batch.length) break // directory readers signal completion with an empty batch
+                    entries.push(...batch)
+                }
+                await Promise.allSettled(entries.map(x => readEntry(x, to + entry.name + '/')))
             }
         },
     }
+}
+
+function startDropScan() {
+    dropScan.count = 0
+    return workingWith(function DropScanProgress() {
+        const count = useSnapshot(dropScan).count || 0
+        return h(FlexV, { center: true, props: { role: 'status', tabIndex: 0 } },
+            h(Spinner),
+            t('scanning_files', { n: count }, "Scanning files: {n}"),
+        )
+    })
 }
 
 export async function createFolder() {
@@ -330,14 +407,14 @@ export async function createFolder() {
         await alertDialog(h(() =>
             h(FlexV, {},
                 h('div', {}, t`Successfully created`),
-                h(LinkClosingDialog, { to: uri + pathEncode(name) + '/' }, t('enter_folder', "Enter the folder")),
+                h(LinkClosingDialog, { to: uri + pathEncode(name) + '/' }, t`enter_folder`),
             )))
     }
     catch(e: any) {
-        await alertDialog(e.code === HTTP_CONFLICT ? t('folder_exists', "Folder with same name already exists") : e)
+        await alertDialog(e.code === HTTP_CONFLICT ? t`folder_exists` : e)
     }
 }
 
 export function inputComment(filename: string, value?: string) {
-    return promptDialog(t('enter_comment', { name: filename }, "Comment for {name}"), { value, type: 'textarea' })
+    return promptDialog(t('enter_comment', { name: filename }), { value, type: 'textarea' })
 }

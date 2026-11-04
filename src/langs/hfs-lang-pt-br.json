@@ -1,7 +1,6 @@
 {
     "author": "OgamiWK",
     "version": 1.2,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Selecionar",
         "n_files": "{n,plural,one{# Arquivo} other{# Arquivos}}",
@@ -40,6 +39,7 @@
         "Password": "Senha",
         "login_untrusted": "Login abortado: a identidade do servidor não é confiável",
         "login_bad_credentials": "Credenciais Inválidas",
+        "confirm_url_login": "Este link está tentando fazer login como \"{username}\"",
         "login_bad_cookies": "Cookies não funcionam - falha no login",
         "User panel": "Painel do Usuário",
         "Change password": "Mudar senha",
@@ -101,6 +101,7 @@
         "upload_finished": "{n} finalizado ({size})",
         "upload_errors": "{n} faliu",
         "upload_file_rejected": "Alguns arquivos não foram aceitos",
+        "delete_unfinished_upload": "Remover o envio inacabado?",
 
         "File menu": "Menu de arquivo",
         "Folder menu": "Menu de Pasta",
@@ -115,11 +116,13 @@
         "Timestamp": "Tempo",
         "Show": "Mostrar",
         "Loading failed": "Falha ao carregar",
+        "Download limit reached": "Limite de downloads atingido",
+        "Retry": "Tentar novamente",
         "Rename": "Renomear",
         "Tiles mode:": "Modo ladrilho:",
         "off": "desligado",
         "Operation successful": "Operação bem sucedida",
-        "Uploader": "Carregador",
+        "Uploader": "Enviado por",
         "Download counter": "Contador de download",
         "Switch zoom mode": "Trocar para modo zoom",
         "Full screen": "Tela cheia",
@@ -136,7 +139,7 @@
         "enter_comment": "Comente neste arquivo",
         "Comment": "Comente",
         "upload_dd_hint": "Você pode fazer upload de arquivos arrastando e soltando na lista de arquivos",
-        "Upload not available": "Enviar não disponível",
+        "Upload not available": "Upload não disponível",
         "Cut": "Recortar",
         "n_items": "{n,plural, one{# item} other{# itens}}",
         "move_results": "{good} movidos, {bad} falharam",
@@ -190,6 +193,9 @@
         "No":  "Nao",
         "esc_again": "Pressione ESC duas vezes para fechar",
         "insufficient storage": "armazenamento insuficiente",
-        "Account disabled": "Conta foi desativada"
+        "Account disabled": "Conta foi desativada",
+        "upload_name": "Carregar com novo nome",
+        "Uploading": "Enviando",
+        "proxy_413": "Verifique este limite no servidor proxy"
     }
 }

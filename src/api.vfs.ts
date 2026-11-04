@@ -1,16 +1,16 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    getNodeName, isSameFilenameAs, nodeIsFolder, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
+    getFreeVfsName, getNodeName, isSameFilenameAs, nodeIsFolder, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
     permsFromParent, isRoot, nodeStats
 } from './vfs'
 import _ from 'lodash'
 import { mkdir } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
-import { dirname, extname, join, resolve } from 'path'
+import { dirname, join, resolve } from 'path'
 import {
-    enforceFinal, enforceStarting, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, pathDecode, pathEncode, PERM_KEYS,
-    VFS_STORED_KEYS, statWithTimeout, VfsNodeAdminSend
+    enforceFinal, enforceStarting, hasFinalSlash, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, pathDecode, pathEncode, PERM_KEYS,
+    VFS_STORED_KEYS, statWithTimeout, VfsNodeAdminSend, normalizeVfsPath
 } from './misc'
 import {
     IS_WINDOWS, HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE,
@@ -35,7 +35,7 @@ export default {
     async get_vfs() {
         return { root: await recur() }
 
-        async function recur(node=vfs): Promise<VfsNodeAdminSend> {
+        async function recur(node=vfs.compiled()): Promise<VfsNodeAdminSend> {
             const { source } = node
             const stats = await nodeStats(node)
             const isFolder = nodeIsFolder(node)
@@ -46,8 +46,9 @@ export default {
             const inherited = node.parent && permsFromParent(node.parent, {})
             const byMasks = node.original && _.pickBy(node, (v,k) =>
                 v !== (node.original as any)[k] // something is changing me...
-                && !(inherited && k in inherited) // ...and it's not inheritance...
-                && PERM_KEYS.includes(k as any)) // ...must be masks. Please limit this to perms
+                && (k === 'gui_asset'
+                    ? v !== node.parent?.gui_asset // gui_asset inherits outside the permission helpers
+                    : !(inherited && k in inherited) && PERM_KEYS.includes(k as any))) // ...must be masks
             return {
                 ...copyStats,
                 ...node.original || node,
@@ -73,15 +74,16 @@ export default {
                 return new ApiError(HTTP_BAD_REQUEST, 'bad name')
             // check for siblings with the same name
             const parent = await urlToNodeOriginal(dirname(uri))
-            if (parent?.children?.find(x => getNodeName(x) === props.name))
+            if (parent?.children?.find(x => x !== n && isSameFilenameAs(props.name)(x)))
                 return new ApiError(HTTP_CONFLICT, 'name already present')
         }
         Object.assign(n, sanitizeVfsProps(props))
         simplifyName(n)
         n.isFolder = undefined // reset field, it will be set by saveVfs
-        await saveVfs()
+        // compute the remap before saveVfs replaces the tree and invalidates node identity
         if (!isRoot(n)) // not actually used by admin-panel but still
             uriRemaps[uri] = uriForNode(uri, n) // just in case the current node was modified
+        await saveVfs()
         await updateRootsForVfsUriRemaps(uriRemaps)
         return n
 
@@ -121,28 +123,24 @@ export default {
     },
 
     // legacy – not currently used by the UI
-    async add_vfs({ parent, source, name, ...rest }) {
+    async add_vfs({ parent, source, name, skip_source_check, ...rest }) {
         if (!source && !name)
             return new ApiError(HTTP_BAD_REQUEST, 'name or source required')
         if (name && !isValidFileName(name))
             return new ApiError(HTTP_BAD_REQUEST, 'bad name')
-        const parentNode = parent ? await urlToNodeOriginal(parent) : vfs
+        const parentNode = parent ? await urlToNodeOriginal(parent) : vfs.compiled()
         if (!parentNode)
             return new ApiError(HTTP_NOT_FOUND, 'parent not found')
         if (!nodeIsFolder(parentNode))
             return new ApiError(HTTP_NOT_ACCEPTABLE, 'parent not a folder')
         if (isWindowsDrive(source))
             source += '\\' // slash must be included, otherwise it will refer to the cwd of that drive
-        const isFolder = source && await isDirectory(source)
-        if (source && isFolder === undefined)
+        const isFolder = source && (skip_source_check ? hasFinalSlash(source) : await isDirectory(source))
+        if (source && !skip_source_check && isFolder === undefined)
             return new ApiError(HTTP_NOT_FOUND, 'source not found')
         const child = { source, name, ...sanitizeVfsProps(rest) }
         name = getNodeName(child) // could be not given as input
-        const ext = extname(name)
-        const noExt = ext ? name.slice(0, -ext.length) : name
-        let idx = 2
-        while (parentNode.children?.find(isSameFilenameAs(name)))
-            name = `${noExt} ${idx++}${ext}`
+        name = getFreeVfsName(parentNode.children, name)
         child.name = name
         simplifyName(child)
         ;(parentNode.children ||= []).unshift(child)
@@ -189,8 +187,11 @@ export default {
     async resolve_path({ path, closestFolder }) {
         path = resolve(path)
         if (closestFolder)
-            while (path && !await isDirectory(path))
-                path = dirname(path)
+            while (path && !await isDirectory(path)) {
+                const parent = dirname(path)
+                if (parent === path) break // an unavailable root has no other parent to try
+                path = parent
+            }
         return { path, isFolder: await isDirectory(path) }
     },
 
@@ -209,11 +210,12 @@ export default {
                         for (const n of await getDrives())
                             list.add({ n, k: 'd' })
                     } catch (error) {
+                        list.error(String(error))
                         console.debug(error)
                     }
-                    return
+                    return list.close()
                 }
-                const sendPropsAsap = getDiskSpace(path).then(x => x && list.props(x))
+                const sendPropsAsap = getDiskSpace(path).then(x => x && list.props(x)).catch(() => {}) // listing can fail before we await the disk-space query
                 try {
                     const matching = makeMatcher(fileMask)
                     path = isWindowsDrive(path) ? path + '\\' : resolve(path || '/')
@@ -236,7 +238,7 @@ export default {
                             })
                         } catch {} // just ignore entries we can't stat
                     })
-                    await sendPropsAsap.catch(() => {})
+                    await sendPropsAsap
                     list.close()
                 } catch (e: any) {
                     list.error(e.code || e.message || String(e), true)
@@ -313,7 +315,7 @@ function updateRootsForVfsUriRemaps(uriRemaps={}) {
     let changed = false
     const updatedRoots = _.mapValues(roots.get(), root => {
         if (typeof root !== 'string' || !root) return root
-        const normalizedRoot = normalize(root)
+        const normalizedRoot = normalizeVfsPath(root)
         for (const [from, to] of remaps) {
             // roots are stored outside the VFS tree, so rename/move edits need an explicit path remap
             const remappedRoot = replaceUriPrefix(normalizedRoot, from, to)
@@ -327,12 +329,8 @@ function updateRootsForVfsUriRemaps(uriRemaps={}) {
     if (changed)
         roots.set(updatedRoots)
 
-    function normalize(uri: unknown) {
-        return String(uri).replace(/^\/+|^(?!\/)|\/{2,}|\/+$|(?<!\/)$/g, '/')
-    }
-
     function normalizeVfsId(uri: unknown) {
-        return normalize(pathDecode(String(uri))) // admin remaps come from tree ids, while roots are stored as readable VFS paths
+        return normalizeVfsPath(pathDecode(String(uri)) || '/') // admin remaps come from tree ids, while roots are stored as readable VFS paths
     }
 
     function replaceUriPrefix(uri: string, oldPrefix: string, newPrefix: string) {

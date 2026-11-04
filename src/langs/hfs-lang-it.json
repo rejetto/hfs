@@ -1,7 +1,6 @@
 {
     "author": "Massimo Melina",
     "version": 2.53,
-    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Seleziona",
         "n_files": "{n} file",
@@ -35,9 +34,10 @@
 
         "Login": "Entra",
         "Username": "Nome utente",
-        "Continue": "Avanti",
+        "Continue": "Continua",
         "login_untrusted": "Login interrotto: server non affidabile",
         "login_bad_credentials": "Nome utente o password non validi",
+        "confirm_url_login": "Questo link sta tentando di farti accedere come \"{username}\"",
         "login_bad_cookies": "Login interrotto: non funzionano i cookies",
         "User panel": "Pannello utente",
         "Change password": "Cambia password",
@@ -53,14 +53,15 @@
 
         "download_starting": "Ora dovrebbe iniziare il download",
         "wrong_account": "L'account {u} non ha accesso a questa cartella, prova con un altro",
-        "no_upload_here": "Non hai il permesso di uplodare in questa cartella",
+        "no_upload_here": "Non hai il permesso di fare upload in questa cartella",
         "Create folder": "Crea cartella",
         "Pick files": "Scegli file",
         "Pick folder": "Scegli una cartella",
-        "ready_to_upload": "{n} file, {size}, pronto per il caricamento",
+        "ready_to_upload": "{n} file, {size}, pronto per l'upload",
         "Send": "Invia",
         "Clear": "Azzera",
         "failed_upload": "Upload fallito per {name}",
+        "Upload": "Upload",
         "file too large": "file troppo grande",
         "Enter folder name": "Inserisci nome cartella",
         "Successfully created": "Creazione riuscita",
@@ -95,6 +96,7 @@
         "upload_finished": "{n,plural, one{# riuscito} other{# riusciti}} ({size})",
         "upload_errors": "{n,plural, one{# fallito} other{# falliti}}",
         "upload_file_rejected": "Alcuni file non sono stati accettati",
+        "delete_unfinished_upload": "Rimuovere l'upload incompleto?",
 
         "File menu": "Menu file",
         "Folder menu": "Menu cartella",
@@ -109,6 +111,8 @@
         "Timestamp": "Data/ora",
         "Show": "Show",
         "Loading failed": "Caricamento fallito",
+        "Download limit reached": "Limite di download raggiunto",
+        "Retry": "Riprova",
         "Rename": "Rinomina",
         "Tiles mode:": "Griglia:",
         "off": "no",
@@ -182,6 +186,9 @@
         "No":  "No",
         "esc_again": "Premi ESC due volte per chiudere",
         "insufficient storage": "spazio insufficiente",
-        "Account disabled": "Account disattivato"
+        "Account disabled": "Account disattivato",
+        "upload_name": "Upload con il nuovo nome",
+        "Uploading": "Upload in corso",
+        "proxy_413": "Verificare la presenza di questo limite sul server proxy"
     }
 }
