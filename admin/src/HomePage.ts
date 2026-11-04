@@ -164,7 +164,7 @@ export default function HomePage() {
                         ev.stopPropagation()
                         ev.preventDefault()
                         showUsageStatsInfo()
-                    } }, t`how it helps`)
+                    } }, t`Why?`)
                 ),
                 control: h(Box, { sx: { position: 'relative', display: 'inline-flex' } },
                     h(Checkbox, {
@@ -214,11 +214,11 @@ export default function HomePage() {
                 h('p', {}, t`What is sent:`),
                 h(Box, { sx: { overflow: 'auto', p: 1, bgcolor: 'action.hover', whiteSpace: 'pre' } },
 `{
-  "uuid": "random installation UUID",
+  "uuid": "random ID used for counting",
   "hfsVersion": "${status?.version}",
   "plugins": [
     {
-      "repo": "GitHub address",
+      "repo": "plugin ID",
       "version": 1,
       "enabled": true
     }
@@ -227,7 +227,7 @@ export default function HomePage() {
                 h('p', {}, t`usage_stats_disable_warning`),
                 h(Link, { href: PLUGIN_USAGE_URL, target: 'plugin-stats' }, t`See public statistics`),
         ),
-        ), { title: t`Anonymous statistics` })
+        ), { title: t`Why?` })
     }
 
 }
