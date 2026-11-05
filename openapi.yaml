@@ -561,7 +561,11 @@ paths:
     post:
       summary: Upload
       deprecated: false
-      description: Equivalent to curl -F upload=@FILE FOLDER/
+      description: >-
+        Upload one or more files as multipart/form-data, equivalent to
+        `curl -F upload=@FILE FOLDER/`. Content-Disposition belongs to each
+        multipart file part; raw application/octet-stream requests must use
+        PUT instead.
       tags:
         - Front-end
       parameters:
@@ -698,7 +702,10 @@ paths:
     put:
       summary: Upload
       deprecated: false
-      description: Equivalent to curl -T FILE URL/
+      description: >-
+        Upload a raw file body to a URL that includes its filename, equivalent
+        to `curl -T FILE URL/`. This endpoint uses PUT; POST uploads must use
+        multipart/form-data instead.
       tags:
         - Front-end
       parameters:
