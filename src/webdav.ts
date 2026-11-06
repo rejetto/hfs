@@ -25,7 +25,7 @@ import { expiringCache } from './expiringCache'
 import { XMLParser } from 'fast-xml-parser'
 import _ from 'lodash'
 import { deleteStoredFileAttrs } from './fileAttr'
-import { deleteUploadOwner, getNodeMatchingSource } from './uploadOwners'
+import { deleteUploadOwner, getNodeMatchingSource, getSessionId } from './uploadOwners'
 
 const forceWebdavLogin = defineConfig<boolean|string, null|RegExp>(CFG.force_webdav_login, true, compileWebdavAgentRegex)
 const webdavInitialAuth = defineConfig<boolean|string, null|RegExp>(CFG.webdav_initial_auth, 'WebDAVFS', compileWebdavAgentRegex)
@@ -75,6 +75,11 @@ function webdavPathKey(path: string) {
 function webdavStateKey(path: string) {
     const key = normalizeFilename(safeDecodeURIComponent(path, ''))
     return hasDirTraversal(key) ? '' : key
+}
+
+function webdavOverwriteKey(path: string, ctx: Koa.Context, ensureSession=false) {
+    const identity = getCurrentUsername(ctx) || ctx.session?.sessionId || ensureSession && getSessionId(ctx)
+    return identity ? webdavStateKey(path) + '|' + identity : undefined
 }
 
 function getWebdavLock(path: string) {
@@ -209,10 +214,10 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         const resource = await resolveWebdavResource(pathKey, ctx)
         const resourceKey = resource.key
         if (await isLocked(resourceKey, ctx, resource)) return
-        const overwriteGraceKey = webdavStateKey(resourceKey) + prefix('|', getCurrentUsername(ctx)) // bind temporary overwrite grace to the authenticated user so accounts cannot reuse each other's grace window
+        const overwriteGraceKey = webdavOverwriteKey(resourceKey, ctx)
         // Finder first creates an empty file (a test?) then wants to overwrite it, which requires deletion permission, but the user may not have it, causing a renamed upload. To solve, so we give it special permission for a few seconds.
         const x = ctx.get('x-expected-entity-length') // field used by Finder's webdav on actual upload, after
-        if (isKnownWebdavAgent && canOverwrite.has(overwriteGraceKey)) {
+        if (isKnownWebdavAgent && overwriteGraceKey && canOverwrite.has(overwriteGraceKey)) {
             canOverwrite.delete(overwriteGraceKey)
             const node = await urlToNode(resourceKey, ctx)
             if (node?.source)
@@ -230,8 +235,11 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         // the upload response URI may differ from the file it actually created when VFS aliases collide
         if (isKnownWebdavAgent && ctx.body?.uri && ctx.state.uploadDestinationPath) {
             const node = await getNodeMatchingSource(ctx.body.uri, ctx, ctx.state.uploadDestinationPath)
-            if (node)
-                allowWebdavOverwrite(webdavStateKey(node.vfsPath) + prefix('|', getCurrentUsername(ctx)))
+            if (node) {
+                const key = webdavOverwriteKey(node.vfsPath, ctx, true)
+                if (key)
+                    allowWebdavOverwrite(key)
+            }
         }
     }
 
@@ -336,7 +344,8 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         const permissionNode = node || await urlToNode(dirname(pathKey), ctx)
         if (!permissionNode)
             return ctx.status = HTTP_CONFLICT
-        const missingWritePerm = node && canOverwrite.has(webdavStateKey(lockKey) + prefix('|', getCurrentUsername(ctx))) ? 0
+        const overwriteGraceKey = webdavOverwriteKey(lockKey, ctx)
+        const missingWritePerm = node && overwriteGraceKey && canOverwrite.has(overwriteGraceKey) ? 0
             : statusCodeForMissingPerm(permissionNode, node ? 'can_delete' : 'can_upload', ctx)
         if (missingWritePerm) {
             if (ctx.status === HTTP_UNAUTHORIZED)
@@ -563,8 +572,9 @@ async function applyProppatchProp(prop: ProppatchProp, node: VfsNode, path: stri
     const { source } = node
     if (!source)
         return HTTP_FORBIDDEN
-    // WebDAV clients patch metadata right after upload; outside that short same-username grace, metadata writes are file modifications
-    const missingWritePerm = canOverwrite.has(webdavStateKey(path) + prefix('|', getCurrentUsername(ctx))) ? 0
+    // WebDAV clients patch metadata right after upload; outside that short same-uploader grace, metadata writes are file modifications
+    const overwriteGraceKey = webdavOverwriteKey(path, ctx)
+    const missingWritePerm = overwriteGraceKey && canOverwrite.has(overwriteGraceKey) ? 0
         : statusCodeForMissingPerm(node, 'can_delete', ctx, false)
     if (missingWritePerm)
         return missingWritePerm

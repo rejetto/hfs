@@ -1418,6 +1418,40 @@ describe('webdav', () => {
             await rmAny(destPath)
         }
     })
+    test('webdav.put anonymous grace is bound to session', async () => {
+        const name = `wd-anon-grace-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/file.txt`
+        const destPath = resolve(dir, 'file.txt')
+        const ownerJar = {}
+        const otherJar = {}
+        const adminReq = { auth, jar: {} }
+        const oldConfig = await reqApi('get_config', { only: ['own_upload_delete_hours'] }, 200, adminReq)()
+        await mkdir(dir, { recursive: true })
+        await reqApi('add_vfs', { source: dir, name, can_upload: true, can_delete: false }, 200, adminReq)()
+        await reqApi('set_config', { values: { own_upload_delete_hours: 0 } }, 200, adminReq)()
+        try {
+            await req(uri, 200, {
+                method: 'PUT', jar: ownerJar,
+                headers: { 'content-length': '0', 'user-agent': WEBDAV_UA }, body: '',
+            })()
+            await req(uri, 403, {
+                method: 'PUT', jar: otherJar,
+                headers: { 'content-length': '5', 'user-agent': WEBDAV_UA }, body: 'other',
+            })()
+            assert.equal(readFileSync(destPath, 'utf8'), '')
+            await req(uri, 200, {
+                method: 'PUT', jar: ownerJar,
+                headers: { 'content-length': '5', 'user-agent': WEBDAV_UA }, body: 'owner',
+            })()
+            assert.equal(readFileSync(destPath, 'utf8'), 'owner')
+        }
+        finally {
+            await reqApi('set_config', { values: oldConfig }, 200, adminReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [`/${name}/`] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
     test('webdav.lock requires write permission', async () => {
         const user = `wd-lock-readonly-${randomId(6)}`.toLowerCase()
         const password = randomId(10)
