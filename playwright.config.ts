@@ -155,7 +155,7 @@ export default defineConfig({
        command: `rm -rf tests/work2 && node dist/src --cwd tests/work2 --debug --port ${secondaryPort} --open_browser_at_start false`,
        reuseExistingServer: !process.env.CI,
    }, {
-       command: `npm run start --workspace=admin -- --host 127.0.0.1 --port ${adminPort} --strictPort`,
+       command: `cross-env VITE_IGNORE_PROXY_DISCONNECTS=1 npm run start --workspace=admin -- --host 127.0.0.1 --port ${adminPort} --strictPort`,
        url: adminViteUrl,
        reuseExistingServer: !process.env.CI,
    }]

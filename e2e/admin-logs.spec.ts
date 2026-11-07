@@ -5,6 +5,10 @@ import yaml from 'yaml'
 const port = yaml.parse(readFileSync('tests/config.yaml', 'utf8')).port
 const url = process.env.ADMIN_LOGS_URL || `http://localhost:${port}/~/admin/#/logs`
 
+test.beforeEach(async ({ page }) => {
+    await page.route('**/~/api/is_ip_blocked', route => route.fulfill({ json: { blocked: [false] } }))
+})
+
 function logLine(uri: string, extra = '') {
     return `127.0.0.1 - josé [10/Sep/2026:12:00:00 +0200] "GET /${uri} HTTP/1.1" 200 1 ${extra}\n`
 }

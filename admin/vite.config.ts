@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { createLogger, defineConfig } from 'vite'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, extname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,6 +10,7 @@ const ICON_IMPORT_RE = /import\s*{\s*([^}]+?)\s*}\s*from\s*['"]@mui\/icons-mater
 
 // https://vitejs.dev/config/
 export default defineConfig({
+    customLogger: getLogger(),
     build: {
         outDir: '../dist/admin',
         emptyOutDir: true,
@@ -53,6 +54,19 @@ export default defineConfig({
         }
     }
 })
+
+function getLogger() {
+    if (!process.env.VITE_IGNORE_PROXY_DISCONNECTS) return
+    const logger = createLogger()
+    const logError = logger.error
+    logger.error = (message, options) => {
+        // browsers can close proxied sockets while Playwright tears their pages down
+        const code = (options?.error as NodeJS.ErrnoException)?.code || ''
+        if (message.includes('proxy') && ['ECONNRESET', 'EPIPE'].includes(code)) return
+        logError(message, options)
+    }
+    return logger
+}
 
 function muiIconsDeepImportPlugin() {
     return {
