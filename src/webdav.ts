@@ -316,6 +316,8 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         const { node } = resource
         if (await isLocked(path, ctx, resource)) return
         await next()
+        if (ctx.status === HTTP_UNAUTHORIZED) // downstream permission checks (await next) may set 401, so add the authentication challenge after they run
+            setWebdavHeaders(true)
         if (ctx.status === HTTP_OK)
             releaseWebdavLock(node?.vfsPath || path) // webdav clients may forget UNLOCK; successful delete must clear any lock
     }

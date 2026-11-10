@@ -1745,6 +1745,23 @@ describe('webdav', () => {
             await rmAny(destPath)
         }
     })
+    test('webdav.delete challenges unauthenticated clients', async () => {
+        const name = `wd-delete-auth-${randomId(6)}.txt`
+        const path = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `${UPLOAD_ROOT}${name}`
+        await writeFile(path, 'test')
+        try {
+            await req(uri, { status: 401, cb: (_data, res) =>
+                res.headers?.['www-authenticate'] === BASIC_AUTHENTICATE_HEADER,
+            }, { method: 'DELETE', headers: { 'user-agent': WEBDAV_UA }, jar: {} })()
+            assert.ok(existsSync(path))
+            await req(uri, 200, { method: 'DELETE', headers: { 'user-agent': WEBDAV_UA }, auth, jar: {} })()
+            assert.ok(!existsSync(path))
+        }
+        finally {
+            await rmAny(path)
+        }
+    })
     test('webdav.delete success clears lock for same path', async () => {
         const name = `wd-delete-clears-lock-${randomId(6)}.txt`
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
