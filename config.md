@@ -228,7 +228,7 @@ Valid keys in a node are:
   The value must be an absolute or relative path in the VFS, not a path on the disk. It works also with other types of files.
   Using this will make `mime` default to "auto".
 - `gui_asset`: mark this entry and its descendants as interface assets. They are excluded from concurrent download limits, and access logging follows `log_gui`. A child can set this to `false` to override inheritance. Default is `false`.
-- `can_read`: specify who can download this entry. Value is a `Who` descriptor, or a VFS-specific extension. Default is `true`.
+- `can_read`: specify who can download this entry directly. Value is a `Who` descriptor, or a VFS-specific extension. Default is `true`.
 
   VFS permissions also accept these extra forms:
   - `can_SOMETHING`: copy the permission from another permission. This is convenient to have the same value for different permissions. E.g. `can_see`
@@ -242,7 +242,9 @@ Valid keys in a node are:
   Value uses the same permission descriptor described above. Default is `can_read`.
 - `can_upload`: specify who can upload. Applies to folders with a source. Default is `"admin"`.
 - `can_list`: specify who can see the content of a folder. Default is `can_read`.
-- `can_archive`: specify who can include this entry in a ZIP download. Default is `can_read`.
+- `can_archive`: specify who can include this entry in a ZIP download. It follows `can_read` by default.
+  An explicit or inherited `can_archive` grant can allow ZIP inclusion even when `can_read` denies direct download.
+  To block both forms of download, deny both permissions.
 - `can_delete`: specify who can delete. Applies to folders with a source. Default is `"admin"`.
   Deleting a folder requires permission to delete its contents too. HFS checks before deleting anything;
   a denied descendant aborts the request and is identified in the error when visible to the user.
