@@ -24,24 +24,34 @@ const FILE_ATTR_KEY_SEPARATOR = '|'
 /* @param v must be JSON-able or undefined */
 export async function storeFileAttr(path: string, k: string, v: any) {
     const s = await statWithTimeout(path).catch(() => null)
-    // since we don't have fsx.remove, we simulate it with an empty string
-    if (s && await fsx?.set(path, FILE_ATTR_PREFIX + k, v === undefined ? '' : JSON.stringify(v)).then(() => 1, () => 0)) {
+    const key = fileAttrKey(path, k)
+    // an empty native value may read back as missing, so store an explicit tombstone
+    if (s && await fsx?.set(path, FILE_ATTR_PREFIX + k, JSON.stringify(v ?? null)).then(() => 1, () => 0)) {
         if (IS_WINDOWS)
             await utimes(path, s.atime, s.mtime) // wait before callers can rename or delete the file, otherwise restoring timestamps can race with them
+        // a successful native write supersedes any value from a previous fallback
+        if (fileAttrDb.isOpen() && fileAttrDb.has(key))
+            await fileAttrDb.del(key)?.catch(console.error)
         return true
     }
     // fallback to our kv-storage
-    return await fileAttrDb.put(fileAttrKey(path, k), v)?.then(() => true, (e: any) => {
+    return await fileAttrDb.put(key, v)?.then(() => true, (e: any) => {
         console.error("Couldn't store metadata on", path, String(e.message || e))
         return false
     }) ?? true // if put is undefined, the value was already there
 }
 
 export async function loadFileAttr(path: string, k: string) {
-    return await fsx?.get(path, FILE_ATTR_PREFIX + k)
-            .then((x: any) => x === '' ? undefined : tryJson(String(x)),
-                () => fileAttrDb.isOpen() ? fileAttrDb.get(fileAttrKey(path, k)).catch(console.error) : null)
+    return await (fsx
+        // Windows reports a missing stream as null; POSIX uses null for legacy empty tombstones
+        ? fsx.get(path, FILE_ATTR_PREFIX + k).then((x: any) => x === null && IS_WINDOWS ? loadFromDb()
+            : x === '' ? undefined : tryJson(String(x)), loadFromDb)
+        : loadFromDb())
         ?? undefined // normalize, as we get null instead of undefined on windows
+
+    function loadFromDb() {
+        return fileAttrDb.isOpen() ? fileAttrDb.get(fileAttrKey(path, k)).catch(console.error) : undefined
+    }
 }
 
 // remove file-attr for files that don't exist anymore
