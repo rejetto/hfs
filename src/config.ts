@@ -221,9 +221,11 @@ export const configFile = watchLoad(filePath, text => {
     catch(e: any) { console.error("Error in", filePath, ':', e.message || String(e)) }
 }, {
     immediateFirst: true,
-    failedOnFirstAttempt(){
+    failedOnFirstAttempt(error){
         startedWithoutConfig = true
-        console.log("No config file, using defaults")
+        console.log((error as NodeJS.ErrnoException)?.code === 'ENOENT'
+            ? "No config file, using defaults"
+            : "Cannot watch config file, using defaults until it becomes accessible")
         setTimeout(() => // this is called synchronously, but we need to call setConfig after first tick, when all configs are defined
             setConfig({}, false))
     }

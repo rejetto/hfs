@@ -8,7 +8,7 @@ import { BetterEventEmitter } from './events'
 
 type WatchLoadCanceller = () => void
 
-interface Options { failedOnFirstAttempt?: ()=>void, immediateFirst?: boolean }
+interface Options { failedOnFirstAttempt?: (error: unknown) => void, immediateFirst?: boolean }
 
 type WriteFile = (data: string, options?: { reparse: boolean }) => Promise<void>
 interface WatchLoadReturn { unwatch:WatchLoadCanceller, save: WriteFile, emitter: BetterEventEmitter, getText: () => string | undefined, getPath: () => string }
@@ -18,6 +18,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
     let watcher: FSWatcher | undefined
     const debounced = debounceAsync<true>(load, { wait: 500, maxWait: 1000, reuseRunning: true, cancelable: true })
     let retry: NodeJS.Timeout
+    let lastWatchError: string | undefined
     let last: string | undefined
     const emitter = new BetterEventEmitter()
     const save = debounceAsync(async (data: string, { reparse=false }={}) => {
@@ -39,14 +40,20 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
                 if (!save.isWorking())
                     void debounced()
             })
+            lastWatchError = undefined
             debounced().catch(x=>x)
             if (immediateFirst && first)
                 void debounced.flush()
         }
-        catch(e) {
+        catch(error) {
+            const message = (error as NodeJS.ErrnoException)?.code === 'ENOENT' ? undefined : String(error)
+            // retries should report changes in the failure without repeating the same error indefinitely
+            if (message && message !== lastWatchError)
+                console.error("Error watching", path, ": ", message)
+            lastWatchError = message
             retry = setTimeout(install, 3_000) // manual watching until watch is successful
             if (first)
-                failedOnFirstAttempt?.()
+                failedOnFirstAttempt?.(error)
         }
     }
 
