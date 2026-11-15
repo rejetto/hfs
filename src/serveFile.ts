@@ -9,7 +9,7 @@ import mimetypes from 'mime-types'
 import { defineConfig } from './config'
 import { CFG, Dict, makeMatcher, matches, try_ } from './misc'
 import _ from 'lodash'
-import { basename } from 'path'
+import { basename, extname } from 'path'
 import { promisify } from 'util'
 import { getConnection, updateConnection } from './connections'
 import { getCurrentUsername } from './auth'
@@ -42,11 +42,9 @@ export function disposition(ctx: Koa.Context, name: string, forceDownload=false)
 }
 
 export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
-    const { source, mime } = node
+    const { source } = node
     const name = getNodeName(node)
-    const mimeString = typeof mime === 'string' ? mime
-        : _.find(mime, (_val,mask) => matches(name, mask))
-    const effectiveMime = resolveFileMime(source || '', mimeString)
+    const effectiveMime = getNodeMime(node, ctx, String(ctx.response.get('Content-Type') || ''))
     if (allowedReferer.get()) {
         const ref = try_(() => new URL(ctx.get('referer')||'').host)
         if (ref && ref !== ctx.host // automatically accept if the referer is basically the hosting domain
@@ -84,15 +82,30 @@ export function resolveFileMime(filePath: string, mime?: string) {
     return mime === undefined || mime === MIME_AUTO ? mimetypes.lookup(filePath) || '' : mime
 }
 
-export function getNodeMime(node: VfsNode) {
+export function getNodeMime(node: VfsNode, ctx: Koa.Context, fallbackType='') {
     const name = getNodeName(node)
     const mime = typeof node.mime === 'string' ? node.mime
         : _.find(node.mime, (_val, mask) => matches(name, mask))
-    return resolveFileMime(node.source || '', mime)
+    const previousType = ctx.response.get('Content-Type')
+    try {
+        // use Koa's MIME database so classification and serving resolve aliases identically
+        ctx.type = resolveFileMime(node.source || '', mime)
+        // attachment falls back to the published name when the response has no MIME type yet
+        if (!ctx.response.get('Content-Type'))
+            ctx.type = fallbackType || extname(name)
+        return ctx.response.get('Content-Type') || ''
+    }
+    finally {
+        // details APIs also call this, so MIME resolution must not change their response headers
+        if (previousType !== undefined) ctx.set('Content-Type', previousType)
+        else ctx.remove('Content-Type')
+    }
 }
 
 export function isActiveContentMime(mime: string) {
-    return /^(?:text\/html|application\/xhtml\+xml|image\/svg\+xml)(?:;|$)/i.test(mime)
+    // xml documents can embed executable HTML or SVG namespaces
+    const type = mime.split(';', 1)[0]?.trim() || ''
+    return /^(?:text\/html|(?:application|text)\/xml|[^/\s]+\/[^/\s]*\+xml)$/i.test(type)
 }
 
 // after this number of seconds, the browser should check the server to see if there's a newer version of the file

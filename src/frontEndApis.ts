@@ -62,7 +62,7 @@ export const frontEndApis: ApiHandlers = {
                     if (!upload) return
                     if (!isAdmin)
                         upload = _.omit(upload, 'ip')
-                    return { upload, activeContent: isAdmin && isActiveContentMime(getNodeMime(node)) }
+                    return { upload, activeContent: isAdmin && isActiveContentMime(getNodeMime(node, ctx)) }
                 }))
         }
     },
@@ -74,7 +74,7 @@ export const frontEndApis: ApiHandlers = {
         const node = await urlToNode(uri, ctx)
         if (!node?.source)
             return new ApiError(HTTP_NOT_FOUND)
-        if (!isActiveContentMime(getNodeMime(node)))
+        if (!isActiveContentMime(getNodeMime(node, ctx)))
             return new ApiError(HTTP_BAD_REQUEST)
         return await setUploadApproved(node.source, approved) ? {} : new ApiError(HTTP_FAILED_DEPENDENCY)
     },
