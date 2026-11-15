@@ -913,27 +913,121 @@ describe('basics', () => {
             await rmAny(dir)
         }
     })
-    test('zip preserves negated path masks', async () => {
+    test('VFS preserves negated path masks for direct access and ZIP selections', async () => {
         const adminReq = { auth, jar: {} }
         for (const [suffix, mask] of [['path', '!private/allowed.txt'], ['globstar', '!**/allowed.txt']] as const) {
             const name = `zip-negated-${suffix}-${randomId(6)}`
             const dir = resolve(UPLOAD_DISK_ROOT, name)
             const uri = `/${name}/`
             await mkdir(resolve(dir, 'private'), { recursive: true })
+            await mkdir(resolve(dir, 'public'), { recursive: true })
             await writeFile(resolve(dir, 'private/allowed.txt'), 'allowed')
             await writeFile(resolve(dir, 'private/denied.txt'), 'denied')
+            await writeFile(resolve(dir, 'public/allowed.txt'), 'allowed')
+            await writeFile(resolve(dir, 'public/denied.txt'), 'denied')
             try {
                 await reqApi('add_vfs', {
                     source: dir,
                     name,
                     can_read: true,
+                    can_see: true,
                     can_list: true,
-                    masks: { [mask]: { can_archive: false } },
+                    masks: { [mask]: { can_read: false, can_archive: false } },
                 }, 200, adminReq)()
-                const { body } = await httpWithBody(BASE_URL + uri + '?get=zip', { path: uri + '?get=zip', jar: {} })
-                const paths = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
-                if (!paths.includes('private/allowed.txt') || paths.includes('private/denied.txt'))
-                    throw Error(`${mask} was not preserved: ` + paths)
+                for (const method of ['GET', 'HEAD']) {
+                    await req(uri + 'private/denied.txt', 403, { method, jar: {} })()
+                    await req(uri + 'private/allowed.txt', 200, { method, jar: {} })()
+                    await req(uri + 'public/denied.txt', 403, { method, jar: {} })()
+                    await req(uri + 'public/allowed.txt', suffix === 'globstar' ? 200 : 403, { method, jar: {} })()
+                }
+                for (const selection of ['', '&list=private/allowed.txt//private/denied.txt']) {
+                    const url = uri + '?get=zip' + selection
+                    const { body } = await httpWithBody(BASE_URL + url, { path: url, jar: {} })
+                    const paths = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+                    if (!paths.includes('private/allowed.txt') || paths.includes('private/denied.txt') || paths.includes('public/denied.txt'))
+                        throw Error(`${mask} was not preserved for ${selection}: ` + paths)
+                }
+            }
+            finally {
+                await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+                await rmAny(dir)
+            }
+        }
+    })
+    test('VFS negated path masks preserve rule priority, folder flags and child inheritance', async () => {
+        const name = `mask-controls-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `/${name}/`
+        const adminReq = { auth, jar: {} }
+        const denied = { can_read: false, can_archive: false }
+        const allowed = { can_read: true, can_archive: true }
+        await mkdir(resolve(dir, 'private/deep'), { recursive: true })
+        for (const file of ['private/allowed.txt', 'private/denied.txt', 'private/deep/allowed.txt', 'private/deep/denied.txt'])
+            await writeFile(resolve(dir, file), file)
+        try {
+            await reqApi('add_vfs', { source: dir, name, can_read: true, can_archive: true, can_see: true, can_list: true }, 200, adminReq)()
+            const cases = [
+                { masks: { 'private/denied.txt': denied }, expected: [200, 403] },
+                { masks: { '!private/allowed.txt': denied, '**/*.txt': allowed }, expected: [200, 403] },
+                { masks: { '**/*.txt': allowed, '!private/allowed.txt': denied }, expected: [200, 200] },
+                { masks: { '!private/allowed.txt': denied, private: { masks: { 'denied.txt': allowed } } }, expected: [200, 200] },
+                { masks: { '!private/allowed.txt': denied }, children: [{ name: 'private', source: resolve(dir, 'private'), children: [
+                    { name: 'denied.txt', source: resolve(dir, 'private/denied.txt'), ...allowed },
+                ] }], expected: [200, 200] },
+                { masks: { '!private/allowed.txt|files|': denied }, expected: [200, 403] },
+                { masks: { '!private/allowed.txt|folders|': { can_read: { this: false }, can_archive: { this: false } } }, expected: [200, 200] },
+                { masks: { '!private/allowed.txt': denied }, can_read: { this: false, children: true }, expected: [200, 403] },
+                { masks: { private: { masks: { '!deep/allowed.txt': denied } } }, prefix: 'private/deep/', expected: [200, 403] },
+                { masks: { '!private/allowed.txt': denied, private: { masks: { '*.txt': denied } } }, children: [
+                    { name: 'private', source: resolve(dir, 'private'), masks: { 'denied.txt': allowed } },
+                ], expected: [403, 200] },
+            ]
+            for (const [index, fixture] of cases.entries()) {
+                const { expected, prefix = 'private/', ...props } = fixture
+                await reqApi('set_vfs', { uri, props: { can_read: true, children: [], ...props } }, 200, adminReq)()
+                const fullUrl = uri + '?get=zip'
+                const full = await httpWithBody(BASE_URL + fullUrl, { path: fullUrl, jar: {} })
+                const fullPaths = (await unzipper.Open.buffer(full.body!)).files.map(x => x.path)
+                for (const [i, file] of ['allowed.txt', 'denied.txt'].entries()) {
+                    const path = prefix + file
+                    await req(uri + path, expected[i]!, { jar: {} })()
+                    const url = uri + '?get=zip&list=' + path
+                    const { body } = await httpWithBody(BASE_URL + url, { path: url, jar: {} })
+                    const paths = (await unzipper.Open.buffer(body!)).files.map(x => x.path)
+                    if (paths.includes(path) !== (expected[i] === 200) || fullPaths.includes(path) !== (expected[i] === 200))
+                        throw Error(`mask control ${index} changed ZIP permission: ${paths}`)
+                }
+            }
+        }
+        finally {
+            await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('delete preflight preserves negated path masks and rule priority', async () => {
+        const adminReq = { auth, jar: {} }
+        const denied = { can_delete: false }
+        for (const masks of [
+            { '!safe/allowed.txt|files|': denied },
+            { '!**/allowed.txt|files|': denied },
+            { safe: { masks: { 'allowed.txt': { can_delete: true }, '!**/other.txt|files|': denied } } },
+        ]) {
+            const name = `delete-negated-${randomId(6)}`
+            const dir = resolve(UPLOAD_DISK_ROOT, name)
+            const uri = `/${name}/`
+            await mkdir(resolve(dir, 'safe'), { recursive: true })
+            await writeFile(resolve(dir, 'safe/allowed.txt'), 'allowed')
+            await writeFile(resolve(dir, 'safe/denied.txt'), 'denied')
+            try {
+                await reqApi('add_vfs', { source: dir, name, can_read: true, can_delete: true, masks }, 200, adminReq)()
+                await req(uri + 'safe/denied.txt', 403, { method: 'DELETE', jar: {} })()
+                await req(uri + 'safe/', 403, { method: 'DELETE', jar: {} })()
+                if (!existsSync(resolve(dir, 'safe/allowed.txt')) || !existsSync(resolve(dir, 'safe/denied.txt')))
+                    throw Error('preflight removed a file before checking its negated mask')
+                await rmAny(resolve(dir, 'safe/denied.txt'))
+                await req(uri + 'safe/', 200, { method: 'DELETE', jar: {} })()
+                if (existsSync(resolve(dir, 'safe')))
+                    throw Error('allowed-only folder was not deleted')
             }
             finally {
                 await reqApi('del_vfs', { uris: [uri] }, 200, adminReq)().catch(() => {})
@@ -3040,6 +3134,7 @@ describe('after-login', () => {
                 'failure/**/keep.txt': { can_delete: false },
                 'objects': { can_delete: { this: true, children: false } },
                 'indirect': { can_delete: 'can_read', masks: { 'keep.txt': { can_read: false } } },
+                'uniform': { masks: { '!sub/metadata.txt': { mime: 'text/plain' } } },
                 'negated': { masks: { '!allowed/ok.txt': { can_delete: false } } },
                 'private': { can_list: false, masks: { 'secret.txt': { can_delete: false } } },
                 'folder-links': { masks: { '*|folders|': { can_delete: false } } },

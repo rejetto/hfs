@@ -25,6 +25,7 @@ const showHiddenFiles = defineConfig(CFG.show_hidden_files, false)
 const sourceNames = new Map<string, string[]>()
 
 type Masks = Record<string, VfsNode>
+const maskScopes = new WeakMap<VfsNode, Masks>()
 
 export interface VfsNodeStored extends VfsPerms {
     name?: string
@@ -166,8 +167,7 @@ export function applyParentToChild(child: VfsNode | undefined, parent: VfsNodeWi
         isTemp: true,
         parent,
     }, name, parent)
-    inheritMasks(ret, parent, name)
-    parentMaskApplier(parent)(ret, name)
+    applyParentMasks(ret, parent, name)
     inheritFromParent(ret)
     return ret
 }
@@ -556,7 +556,8 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                     return
                 if (requiredPerm && ctx // no permission, no reason to continue (at least for dynamic elements)
                     && !hasPermission(parent, requiredPerm, ctx)
-                    && !masksCouldGivePermission(parent.masks, requiredPerm))
+                    && !masksCouldGivePermission(parent.masks, requiredPerm)
+                    && !hasNegatedPathMasks(parent, true)) // an excluded descendant can regain permission from an ancestor's negated rule
                     return
 
                 const diskFolders = new Map<string, { node: VfsNodeWithPath, virtualPath: string }>()
@@ -635,10 +636,10 @@ export async function* walkNode(parent: VfsNodeWithPath, {
 
             // item will be changed, so be sure to pass a temp node
             async function cantSee(item: VfsNodeWithPath, itemParent: VfsNodeWithPath, virtualName: string, pathPermissions?: VfsPerms) {
-                inheritMasks(item, itemParent, virtualName)
-                await parentMaskApplier(itemParent)(item, virtualName)
+                const scoped = applyParentMasks(item, itemParent, virtualName, parent)
                 inheritFromParent(item)
-                Object.assign(item, pathPermissions)
+                if (!scoped)
+                    Object.assign(item, pathPermissions)
                 if (ctx && !hasPermission(item, 'can_see', ctx)) return true
                 item.isTemp = true
             }
@@ -657,7 +658,42 @@ export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof V
         props[perm] || masksCouldGivePermission(props.masks, perm))
 }
 
-export function parentMaskApplier(parent: VfsNode, pathBased=false, trackExceptions=false) {
+function applyParentMasks(item: VfsNode, parent: VfsNodeWithPath, name: string, walkRoot?: VfsNode) {
+    // retain rule origins so transformed inherited masks cannot gain nearer-rule priority
+    maskScopes.set(item, item.masks || {})
+    inheritMasks(item, parent, name)
+    const scoped = hasNegatedPathMasks(parent)
+    if (scoped) {
+        // negation applies to the complete path; splitting its prefix would invert the exception
+        let path = name
+        for (let node: VfsNodeWithPath | undefined = parent; node; node = node.parent) {
+            const masks = maskScopes.get(node) || node.masks
+            const exceptions = parentMaskApplier({ masks }, false, true, { relative: path, includeBasenames: node === walkRoot })(item, name)
+            const inherited = permsFromParent(node, {})
+            for (const key of exceptions)
+                if (!(key in item))
+                    item[key] = inherited?.[key] ?? defaultPerms[key]
+            path = safeDecodeURIComponent(node.vfsPath.slice(node.vfsPath.lastIndexOf('/') + 1), '') + '/' + path
+        }
+    }
+    else
+        parentMaskApplier(parent)(item, name)
+    return scoped
+}
+
+export function hasNegatedPathMasks(node: VfsNode, skipMetadataOnly=false) {
+    for (let scope: VfsNode | undefined = node; scope; scope = scope.parent) {
+        const masks = maskScopes.get(scope) || scope.masks || {}
+        // only skip fields that cannot change permissions or the shape of the tree
+        if (Object.keys(masks).some(mask => mask.startsWith('!') && mask.includes('/')
+            && (!skipMetadataOnly || Object.keys(masks[mask] || {}).some(key => !['mime', 'comment', 'icon', 'order'].includes(key)))))
+            return true
+    }
+    return false
+}
+
+export function parentMaskApplier(parent: VfsNode, pathBased=false, trackExceptions=false,
+    path?: { relative: string, includeBasenames?: boolean }) {
     // rules are met in the parent.masks object from nearest to farthest, but since we finally apply with _.defaults, the nearest has precedence in the final result
     const matchers = onlyTruthy(_.map(parent.masks, (mods, mask) => {
         if (!mods) return
@@ -669,7 +705,11 @@ export function parentMaskApplier(parent: VfsNode, pathBased=false, trackExcepti
             mask = mask.slice(0, i) // remove
             return type === 'folders'
         })()
-        if (pathBased) {
+        const isPath = mask.includes('/')
+        if (path) {
+            if (!isPath && path.relative.includes('/') && !path.includeBasenames) return
+        }
+        else if (pathBased) {
             if (!mask.includes('/')) return
         }
         else {
@@ -682,25 +722,28 @@ export function parentMaskApplier(parent: VfsNode, pathBased=false, trackExcepti
             exceptionMatcher: trackExceptions && mask.startsWith('!') ? makeMatcher(mask.slice(1)) : undefined,
             mods,
             mustBeFolder,
+            path: isPath && path ? path.relative : undefined,
         }
     }))
     return (item: VfsNode, virtualName=(pathBased ? _.identity : basename)(getNodeName(item))!) => {
         // depth traversal passes full relative paths, while node traversal still matches only basenames
         const exceptions = new Set<keyof VfsPerms>()
         let isFolder: boolean | undefined = undefined
-        for (const { matcher, exceptionMatcher, mods, mustBeFolder } of matchers) {
+        for (const { matcher, exceptionMatcher, mods, mustBeFolder, path } of matchers) {
             if (mustBeFolder !== undefined) {
                 isFolder ??= nodeIsFolder(item)
                 if (mustBeFolder !== isFolder) continue
             }
-            if (!matcher(virtualName)) {
-                if (exceptionMatcher?.(virtualName))
+            if (!matcher(path ?? virtualName)) {
+                if (exceptionMatcher?.(path ?? virtualName))
                     for (const key of PERM_KEYS)
                         if (mods[key] !== undefined && !(key in item))
                             exceptions.add(key)
                 continue
             }
             item.masks &&= _.merge(_.cloneDeep(mods.masks), item.masks) // item.masks must take precedence
+            if (mods.masks && maskScopes.has(item))
+                maskScopes.set(item, _.defaultsDeep(_.cloneDeep(maskScopes.get(item)), mods.masks))
             _.defaults(item, mods)
         }
         return exceptions
@@ -713,6 +756,7 @@ function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename=getNodeNam
     if (!masks) return
     const o: Masks = {}
     for (const [k,v] of Object.entries(masks)) {
+        if (k.startsWith('!') && k.includes('/')) continue
         if (/^!?\*\*/.test(k)) {
             o[k] = v
             continue

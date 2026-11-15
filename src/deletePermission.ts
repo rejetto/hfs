@@ -6,7 +6,7 @@ import { HTTP_FORBIDDEN } from './const'
 import events from './events'
 import { grantUploadOwnerDelete } from './uploadOwners'
 import {
-    applyParentToChild, getChildBySource, getVirtualName, hasPermission, parentMaskApplier, permsFromParent,
+    applyParentToChild, getChildBySource, getVirtualName, hasNegatedPathMasks, hasPermission, parentMaskApplier, permsFromParent,
     renameUnderPath, statusCodeForMissingPerm, urlToNode, VfsNode, VfsNodeWithPath,
 } from './vfs'
 
@@ -40,6 +40,7 @@ export async function checkDeletePermission(node: VfsNodeWithPath, ctx: Koa.Cont
         }
         // skip scanning descendants only when inherited permissions guarantee deletion and no deeper rule or plugin can override them
         if (!scopes.some(scope => hasRules(scope.node, keys)) && !hasRules(parent, keys)
+            && !hasNegatedPathMasks(parent, true)
             && !PERM_KEYS.some(key => isWhoObject(inherited[key]))
             && !events.hasOtherListeners('checkVfsPermission', grantUploadOwnerDelete)
             && !statusCodeForMissingPerm(inherited, 'can_delete', ctx, false, false))
@@ -52,6 +53,7 @@ export async function checkDeletePermission(node: VfsNodeWithPath, ctx: Koa.Cont
         if (Object.keys(persistentMasks).length)
             scopes = [...scopes, { node: { masks: persistentMasks }, path: '' }]
 
+        const scoped = hasNegatedPathMasks(parent)
         for await (const entry of await fs.opendir(parent.source!)) {
             if (ctx.isAborted()) throw Error("Deletion cancelled")
             const source = join(parent.source!, entry.name)
@@ -68,10 +70,12 @@ export async function checkDeletePermission(node: VfsNodeWithPath, ctx: Koa.Cont
                 rename: explicit?.rename || renameUnderPath(parent.rename, entry.name),
             }
             const nextScopes = scopes.map(scope => ({ node: scope.node, path: scope.path + name }))
-            for (const scope of [...nextScopes].reverse()) {
-                parentMaskApplier(scope.node, true)(child, scope.path)
-                parentMaskApplier(scope.node)(child, name)
-            }
+            // scoped evaluation applies path and basename rules together in priority order
+            if (!scoped)
+                for (const scope of [...nextScopes].reverse()) {
+                    parentMaskApplier(scope.node, true)(child, scope.path)
+                    parentMaskApplier(scope.node)(child, name)
+                }
             const evaluated = applyParentToChild(child, parent, name)
             if (statusCodeForMissingPerm(evaluated, 'can_delete', ctx)) {
                 await reportBlocked(evaluated)
