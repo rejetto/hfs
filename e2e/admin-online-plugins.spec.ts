@@ -6,6 +6,111 @@ import { LIST } from '../src/cross'
 const port = yaml.parse(readFileSync('tests/config.yaml', 'utf8')).port
 const url = process.env.ADMIN_ONLINE_PLUGINS_URL || `http://localhost:${port}/~/admin/#/plugins/get`
 
+for (const failFirst of [false, true]) {
+    test(`update all skips completed and downloading plugins${failFirst ? ' and continues after an error' : ''}`, async ({ page }) => {
+        const requested: string[] = []
+        let finishUpdate: () => void = () => {}
+        let sendUpdate: (id: string) => void = () => {}
+        const pending = new Promise<void>(resolve => finishUpdate = resolve)
+        await page.route('**/~/api/**', async route => {
+            const cmd = new URL(route.request().url()).pathname.split('/').pop()
+            if (cmd !== 'update_plugin')
+                return route.fulfill({ json: { username: 'admin', isAdmin: true } })
+            const { id } = route.request().postDataJSON()
+            requested.push(id)
+            if (id === 'first' && failFirst)
+                return route.fulfill({ status: 500, json: { error: 'Update failed' } })
+            await pending
+            sendUpdate(id)
+            return route.fulfill({ json: {} })
+        })
+        await page.routeWebSocket('**/~/api/**', socket => {
+            const cmd = new URL(socket.url()).pathname.split('/').pop()
+            if (cmd !== 'get_plugin_updates') {
+                socket.send(JSON.stringify([['ready']]))
+                return
+            }
+            sendUpdate = id => socket.send(JSON.stringify([[LIST.update, { id }, { updated: true }]]))
+            socket.send(JSON.stringify([
+                ...[
+                    { id: 'first' }, { id: 'second' }, { id: 'completed', updated: true },
+                    { id: 'downloading', downloading: .5 },
+                ].map(row => ['+', { version: 2, installedVersion: 1, ...row }]),
+                ['ready'],
+            ]))
+        })
+        await page.goto(url.replace(/#.*$/, '#/plugins/updates'))
+        const updateAll = page.getByRole('columnheader').getByRole('button', { name: 'Update all', exact: true, includeHidden: true })
+        await expect(updateAll).toBeEnabled()
+        await updateAll.click()
+        await expect.poll(() => requested.slice().sort()).toEqual(failFirst ? ['first', 'second'] : ['first'])
+        await expect(updateAll).toBeDisabled()
+        await expect(page.getByRole('dialog')).toHaveCount(0)
+        finishUpdate()
+        if (failFirst) {
+            await expect(page.getByRole('dialog')).toBeVisible()
+            await page.getByRole('button', { name: 'Close', exact: true }).click()
+            await expect(updateAll).toBeEnabled()
+        }
+        else {
+            await expect(page.locator('button[aria-label="Already updated"]')).toHaveCount(3)
+            await expect(updateAll).toBeDisabled()
+        }
+        expect(requested.slice().sort()).toEqual(['first', 'second'])
+    })
+}
+
+for (const cyclic of [false, true]) {
+    test(`update all ${cyclic ? 'reports cyclic version requirements without hanging' : 'updates a dependency chain before its dependents'}`, async ({ page }) => {
+        const requested: string[] = []
+        const versions: Record<string, number> = { first: 1, second: 1, third: 1 }
+        const rows = [
+            { id: 'first', depend: [{ repo: 'test/second', version: 2 }] },
+            { id: 'second', depend: [{ repo: 'test/third', version: 2 }] },
+            { id: 'third', depend: cyclic ? [{ repo: 'test/first', version: 2 }] : [] },
+        ].map(row => ({ repo: `test/${row.id}`, version: 2, installedVersion: 1, ...row }))
+        let sendUpdate: (id: string) => void = () => {}
+        await page.route('**/~/api/**', async route => {
+            const cmd = new URL(route.request().url()).pathname.split('/').pop()
+            if (cmd !== 'update_plugin')
+                return route.fulfill({ json: { username: 'admin', isAdmin: true } })
+            const { id } = route.request().postDataJSON()
+            requested.push(id)
+            const missing = rows.find(row => row.id === id)!.depend
+                .filter(dep => versions[dep.repo.split('/')[1]] < dep.version)
+            if (missing.length)
+                return route.fulfill({ status: 424, json: missing.map(dep => ({ ...dep, error: 'version' })) })
+            versions[id] = 2
+            sendUpdate(id)
+            return route.fulfill({ json: {} })
+        })
+        await page.routeWebSocket('**/~/api/**', socket => {
+            const cmd = new URL(socket.url()).pathname.split('/').pop()
+            if (cmd === 'get_plugin_updates') {
+                sendUpdate = id => socket.send(JSON.stringify([[LIST.update, { id }, { updated: true }]]))
+                socket.send(JSON.stringify([...rows.map(row => [LIST.add, row]), [LIST.ready]]))
+            }
+            else socket.send(JSON.stringify([[LIST.ready]]))
+        })
+        await page.goto(url.replace(/#.*$/, '#/plugins/updates'))
+        const updateAll = page.getByRole('columnheader').getByRole('button', { name: 'Update all', exact: true, includeHidden: true })
+        await updateAll.click()
+        if (cyclic) {
+            await expect(page.getByRole('dialog')).toBeVisible()
+            await page.getByRole('button', { name: 'Close', exact: true }).click()
+            await expect(updateAll).toBeEnabled()
+            expect(requested.slice().sort()).toEqual(['first', 'second', 'third'])
+        }
+        else {
+            await expect(page.locator('button[aria-label="Already updated"]')).toHaveCount(3)
+            await expect(updateAll).toBeDisabled()
+            expect(requested).toEqual(['third', 'second', 'first'])
+            expect(versions).toEqual({ first: 2, second: 2, third: 2 })
+            await expect(page.getByRole('dialog')).toHaveCount(0)
+        }
+    })
+}
+
 test('plugin catalog explains certificate failures', async ({ page }) => {
     const code = 'UNABLE_TO_VERIFY_LEAF_SIGNATURE'
     await page.route('**/~/api/**', route => route.fulfill({ json: { username: 'admin', isAdmin: true } }))

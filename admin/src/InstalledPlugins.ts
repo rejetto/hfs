@@ -16,7 +16,7 @@ import _ from 'lodash'
 import { useEventListener } from 'usehooks-ts'
 import { clearInstalledPluginToReveal, getInstalledPluginToReveal, INSTALLED_PLUGIN_REVEAL_EVENT,
     PLUGIN_ERRORS, pluginName, renderPluginName, startPlugin } from './plugin'
-import { Btn, IconBtn, iconTooltip, usePauseButton } from './mui'
+import { Btn, IconBtn, iconTooltip, useBreakpoint, usePauseButton } from './mui'
 import { parsePluginConfig, showPluginOptions } from './pluginOptions'
 
 // updates=true will show the "check updates" version of the page
@@ -38,6 +38,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             clearInstalledPluginToReveal(reveal.id)
     }, [list, reveal])
     useEventListener(INSTALLED_PLUGIN_REVEAL_EVENT, ev => setReveal(ev.detail)) // keep an already-mounted Installed tab in sync with installs finishing elsewhere
+    const sm = useBreakpoint('sm')
     const size = 'small'
     const { pause, pauseButton } = usePauseButton("plugins", () => getSingleConfig(CFG.suspend_plugins).then(x => !x), {
         async onClick() {
@@ -57,7 +58,29 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
         initializing,
         disableColumnSelector: true,
         quickFilter: !updates,
-        actionsHeader: !updates && pauseButton,
+        actionsHeader: updates ? h(Btn, {
+            size,
+            variant: sm ? 'contained' : 'text',
+            sx: sm ? undefined : { minWidth: 0, p: .625, borderRadius: '50%', color: 'action.active' },
+            'aria-label': t`Update all`,
+            disabled: initializing || !list.some(row => !row.updated && !row.downloading),
+            async onClick() {
+                const pending = list.filter(row => !row.updated && !row.downloading)
+                let error: unknown
+                while (pending.length) {
+                    // update dependencies first when their installed version is insufficient
+                    let index = pending.findIndex(row => !row.depend?.some((dep: { repo: string, version: number }) =>
+                        pending.some(other => other.repo === dep.repo && (other.installedVersion || 0) < dep.version)))
+                    // let the server report unsatisfied dependencies, including cycles
+                    if (index < 0) index = 0
+                    const [row] = pending.splice(index, 1)
+                    try { await updatePlugin(row.id) }
+                    catch (e) { error ??= e }
+                }
+                if (error) throw error
+            },
+        }, sm ? t`Update all` : h(Upgrade)) : pauseButton,
+        actionsProps: updates && sm ? { width: 120 } : undefined,
         getRowHeight: updates && (({ model }) => model.changelog ? 'auto' as const : 50),
         noRows: updates && t`plugin_updates_scope_notice`,
         columns: [
@@ -116,14 +139,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 disabled: row.updated,
                 progress: row.downloading,
                 size,
-                async onClick() {
-                    await apiCall('update_plugin', { id }, { timeout: false }).catch(e => {
-                        throw e.code !== HTTP_FAILED_DEPENDENCY ? e
-                            : Error(t('failed_plugin_dependencies', { dependencies: e.cause?.map((x: any) =>
-                                t('plugin_dependency_error', { pluginId: x.id || x.repo, error: x.error })).join('; ') }))
-                    })
-                    toast(t`Plugin updated`)
-                }
+                onClick: () => updatePlugin(id),
             })
         ] : [
             h(IconBtn, row.started ? {
@@ -168,6 +184,15 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             }),
         ]
     })
+
+    async function updatePlugin(id: string | number) {
+        await apiCall('update_plugin', { id }, { timeout: false }).catch(e => {
+            throw e.code !== HTTP_FAILED_DEPENDENCY ? e
+                : Error(t('failed_plugin_dependencies', { dependencies: e.cause?.map((x: any) =>
+                    t('plugin_dependency_error', { pluginId: x.id || x.repo, error: x.error })).join('; ') }))
+        })
+        toast(t`Plugin updated`)
+    }
 }
 
 function getSingleConfig(k: string) {

@@ -4,7 +4,7 @@ import {
     InactivePlugin, enablePlugins, getInactivePlugins, getPluginConfigFields, mapPlugins, Plugin, pluginsConfig,
     PATH as PLUGINS_PATH, enablePlugin, getPluginInfo, setPluginConfig, isPluginRunning, pluginsScanned,
     stopPlugin, startPlugin, CommonPluginInterface, getMissingDependencies, findPluginByRepo, suspendPlugins,
-    firstPlugin,
+    firstPlugin, waitPluginRunning,
 } from './plugins'
 import _ from 'lodash'
 import { apiAssertTypes, HTTP_CONFLICT, HTTP_PRECONDITION_FAILED, LIST, newObj, waitFor } from './misc'
@@ -211,7 +211,11 @@ const apis: ApiHandlers = {
         if (!online)
             return new ApiError(HTTP_CONFLICT)
         await checkDependencies(online)
+        const wasRunning = isPluginRunning(id)
         await downloadPlugin(found.repo, { branch: online.branch, overwrite: true })
+        // dependent updates need the restarted plugin; startup errors are already logged by downloadPlugin
+        if (wasRunning)
+            await waitPluginRunning(id).catch(() => {})
         return {}
     },
 

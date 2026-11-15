@@ -94,17 +94,17 @@ export function enablePlugin(id: string, state=true) {
 
 export async function stopPlugin(id: string) {
     enablePlugin(id, false)
-    await waitRunning(id, false)
+    await waitPluginRunning(id, false)
 }
 
 export async function startPlugin(id: string) {
     if (getPluginInfo(id)?.isTheme)
         await Promise.all(mapPlugins((pl, id) => pl.isTheme && stopPlugin(id)))
     enablePlugin(id)
-    await waitRunning(id)
+    await waitPluginRunning(id)
 }
 
-async function waitRunning(id: string, state=true) {
+export async function waitPluginRunning(id: string, state=true) {
     // unload clears started before closing resources; the map entry is removed only after cleanup finishes
     while (state ? !isPluginRunning(id) : plugins.has(id)) {
         await wait(50)
