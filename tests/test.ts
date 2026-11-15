@@ -4952,6 +4952,70 @@ exports.init = api => {
             if (second.delay !== 0) throw `valid srp step1 was counted as failed login: ${second.delay}`
         })
     })
+    test('antibrute.SRP proof bursts observe preceding failures', async () => {
+        await withPluginConfig('antibrute', { ...antibruteCfg, max: 1 }, async () => {
+            const attempts = await Promise.all(_.times(3, () => prepareSrpAttempt('wrong-password')))
+            const started = Date.now()
+            const burst = await Promise.all(attempts.map(requestSrpAttempt))
+            assert.deepEqual(burst.map(x => x.statusCode), [401, 401, 401])
+            assert.equal(burst.filter(x => Number(x.headers['x-anti-brute-force']) > 0).length, 2)
+            // each proof must observe the preceding failure rather than sharing its penalty window
+            assert.ok(Date.now() - started >= 1500, 'SRP proofs did not wait in series')
+        })
+    })
+    test('antibrute.SRP proof queue rejects overflow and releases admissions', async () => {
+        await withPluginConfig('antibrute', {
+            ...antibruteCfg, max: 1, maxQueuePerIp: 1, maxQueuePerAccount: 1, maxQueueGlobal: 1,
+        }, async () => {
+            const attempts = []
+            for (let i = 0; i < 4; i++)
+                attempts.push(await prepareSrpAttempt('wrong-password'))
+            assert.equal((await requestSrpAttempt(attempts[0]!)).statusCode, 401)
+            const burst = await Promise.all(attempts.slice(1).map(requestSrpAttempt))
+            assert.deepEqual(_.countBy(burst, 'statusCode'), { 401: 1, 429: 2 })
+            const jar = {}
+            await srpClientSequence(srp, username, password, (cmd, params) => reqApi(cmd, params, 200, { jar })())
+            await reqApi('refresh_session', {}, x => x.username === username, { jar })()
+        })
+    })
+    test('antibrute.SRP prevention and finalization veto release admissions', async () => {
+        const adminReq = { auth, jar: {} }
+        const previous = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
+        const script = `exports.init = api => {
+            let finished = 0
+            api.events.on('attemptingLogin', ({ ctx, via }) => {
+                if (via === 'srp2' && ctx.state.params.prevent) {
+                    ctx.status = 403
+                    return api.events.stop
+                }
+            })
+            api.events.on('loginAttemptFinished', ({ via }) => {
+                if (via === 'srp') finished++
+            })
+            api.events.on('finalizingLogin', ({ inputs }) => inputs.veto ? 'denied' : undefined)
+            exports.customRest = { srp_veto_ready: () => ({ ready: true, finished }) }
+        }`
+        try {
+            await reqApi('set_config', { values: { server_code: script } }, 200, adminReq)()
+            assert.ok(await waitFor(() => reqApi('_srp_veto_ready', {}, x => x?.ready, adminReq)()
+                .catch(() => false), { interval: 50, timeout: 3000 }))
+            await withPluginConfig('antibrute', {
+                ...antibruteCfg, max: 1, maxQueuePerIp: 1, maxQueuePerAccount: 1, maxQueueGlobal: 1,
+            }, async () => {
+                for (const [extra, status] of [[{ prevent: true }, 403], [{ veto: true }, 401]] as const) {
+                    const { jar, body } = await prepareSrpAttempt(password)
+                    await reqApi('loginSrp2', { ...body, ...extra }, status, { jar })()
+                    await reqApi('refresh_session', {}, x => !x.username, { jar })()
+                    await srpClientSequence(srp, username, password, (cmd, params) => reqApi(cmd, params, 200, { jar })())
+                    await reqApi('refresh_session', {}, x => x.username === username, { jar })()
+                }
+                await reqApi('_srp_veto_ready', {}, x => x.finished === 4, adminReq)()
+            })
+        }
+        finally {
+            await reqApi('set_config', { values: previous }, 200, adminReq)()
+        }
+    })
     test('antibrute.prototype-key username does not pollute Object prototype', async () => {
         const antibrute = require('../plugins/antibrute/plugin.js')
         const handlers: any = {}
@@ -5071,6 +5135,19 @@ exports.init = api => {
                 throw `unexpected queue limit statuses: ${burst.map(x => x.status)}`
         })
     })
+
+    async function prepareSrpAttempt(password: string) {
+        const jar = {}
+        const { salt, pubKey } = await reqApi('loginSrp1', { username }, 200, { jar })()
+        const client = await srpClientPart(srp, username, password, salt, pubKey)
+        return { jar, body: { pubKey: String(client.A), proof: String(client.M1) } }
+    }
+
+    function requestSrpAttempt({ jar, body }: Awaited<ReturnType<typeof prepareSrpAttempt>>) {
+        return httpWithBody(BASE_URL + API + 'loginSrp2', {
+            body, jar, httpThrow: false, headers: { 'x-hfs-anti-csrf': '1' },
+        })
+    }
 })
 
 describe('logging', () => {

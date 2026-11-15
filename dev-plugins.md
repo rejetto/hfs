@@ -774,17 +774,19 @@ This section is still partially documented, and you may need to have a look at t
   - parameters: { ctx }
 - `logout` called just before the logout is done
   - parameters: { ctx }
-- `attemptingLogin` called when the login process starts
+- `attemptingLogin` called when the login process starts and before SRP proof verification
   - parameters: { ctx, username, via? }
     - via?: string
       - `'url'` for `?login=...`, `'header'` for "Basic" authentication (including credentials using the
-        @-syntax in the URL), `'api'` for clear-text API login, or `'srp'`
+        @-syntax in the URL), `'api'` for clear-text API login, `'srp'` for the initial SRP request,
+        or `'srp2'` for SRP proof verification
   - async supported
   - preventable
 - `failedLogin`
   - parameters: { ctx, username, via? }
-- `loginAttemptFinished` called when a clear-text login attempt finishes
+- `loginAttemptFinished` called when a clear-text login attempt or SRP proof verification finishes, including prevented attempts. It doesn't include plugins calling setLoggedIn and auto_login_net.
   - parameters: { ctx, username, via, success }
+    - via: `'srp'` for SRP; otherwise the same value as `attemptingLogin`
 - `clearTextLogin` give plugins the chance to authenticate users
   - parameters: { ctx, username, password, via: 'url' | 'header' | 'api' }
   - async supported
@@ -1320,3 +1322,5 @@ Registration returns an unregister function and is also removed automatically wh
   - frontend events: beforeOptions, afterOptions
   - config.type: password
   - exports.versionRequired
+- 13.73 (v3.4.2)
+  - attemptingLogin: `via` now can be `srp2`

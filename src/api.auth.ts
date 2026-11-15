@@ -126,7 +126,12 @@ export const authApis = {
         const step1 = ongoingLogins[sid]
         if (!step1)
             return new ApiError(HTTP_NOT_FOUND)
+        // consume the challenge before the plugin can suspend proof verification
+        delete ongoingLogins[sid]
+        let success = false
         try {
+            // let antibrute queue proof verification and account for preceding failures
+            if ((await events.emitAsync('attemptingLogin', { ctx, username, via: 'srp2' }))?.isDefaultPrevented()) return null
             const M2 = await step1.step2(BigInt(pubKey), BigInt(proof))
                 .catch(() => { throw '' }) // falsy value for later
             // an old-password handshake must not mint a session after credentials have been revoked
@@ -134,6 +139,7 @@ export const authApis = {
             if (!account || !stamp || stamp !== getSessionStamp(account.username))
                 throw ''
             await setLoggedIn(ctx, username, 'srp')
+            success = true
             return {
                 proof: String(M2),
                 redirect: ctx.state.account?.redirect,
@@ -147,7 +153,7 @@ export const authApis = {
             return new ApiError(HTTP_UNAUTHORIZED, e)
         }
         finally {
-            delete ongoingLogins[sid]
+            events.emit('loginAttemptFinished', { ctx, username, via: 'srp', success })
         }
     },
 
