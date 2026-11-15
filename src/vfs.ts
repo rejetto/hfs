@@ -20,6 +20,7 @@ import { DESCRIPT_ION, DESCRIPT_ION_ALT, usingDescriptIon } from './comments'
 import { walkDir } from './walkDir'
 import { Readable } from 'node:stream'
 import { ctxAdminAccess } from './adminApis'
+import { canAccessUnfinishedUpload } from './uploadOwners'
 
 const showHiddenFiles = defineConfig(CFG.show_hidden_files, false)
 const sourceNames = new Map<string, string[]>()
@@ -184,7 +185,7 @@ export async function urlToNode(
     let nextSlash = url.indexOf('/', initialSlashes)
     const slice = url.slice(initialSlashes, nextSlash < 0 ? undefined : nextSlash)
     if (!slice)
-        return parent
+        return !ctx || await canAccessUnfinishedUpload(parent, ctx) ? parent : undefined
     const name = safeDecodeURIComponent(slice, '')
     if (!name) // failed decoding
         return
@@ -193,6 +194,8 @@ export async function urlToNode(
     const assumeFolder = options.allowMissing && (rest > '' || hasTrailingSlash)
     const ret = await getNodeByName(name, parent, assumeFolder)
     if (!ret)
+        return
+    if (ctx && !await canAccessUnfinishedUpload(ret, ctx))
         return
     if (!ret.original && ret.source && !options.includeHidden && !showHiddenFiles.get() && await isHiddenFile(ret.source))
         return
@@ -640,6 +643,7 @@ export async function* walkNode(parent: VfsNodeWithPath, {
                 inheritFromParent(item)
                 if (!scoped)
                     Object.assign(item, pathPermissions)
+                if (ctx && !await canAccessUnfinishedUpload(item, ctx)) return true
                 if (ctx && !hasPermission(item, 'can_see', ctx)) return true
                 item.isTemp = true
             }

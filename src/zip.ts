@@ -4,10 +4,9 @@ import { getNodeName, hasPermission, nodeIsFolder, nodeIsLink, urlToNode, VfsNod
 import Koa from 'koa'
 import { CFG, filterMapGenerator, isWindowsDrive, pathDecodeSegments, safeDecodeURIComponent, statWithTimeout, wantArray } from './misc'
 import { QuickZipStream } from './QuickZipStream'
-import { createReadStream } from 'fs'
 import { defineConfig } from './config'
 import { basename, dirname } from 'path'
-import { applyRange, enforceDownloadLimits, forceDownload, monitorAsDownload } from './serveFile'
+import { applyRange, createAuthorizedReadStream, enforceDownloadLimits, forceDownload, monitorAsDownload } from './serveFile'
 import { HTTP_OK, IS_WINDOWS } from './const'
 import { paramsToFilter } from './api.get_file_list'
 import { getCommentFor } from './comments'
@@ -60,8 +59,12 @@ export async function zipStreamFromFolder(node: VfsNodeWithPath, ctx: Koa.Contex
             if (nodeIsFolder(el))
                 return { path: name + '/' }
             if (!source) return
-            const st = await (el.stats || statWithTimeout(source))
+            let st = await (el.stats || statWithTimeout(source))
             if (!st || !st.isFile())
+                return
+            if (st.dev === undefined || st.ino === undefined)
+                st = await statWithTimeout(source)
+            if (!st)
                 return
             return {
                 path: name,
@@ -69,7 +72,7 @@ export async function zipStreamFromFolder(node: VfsNodeWithPath, ctx: Koa.Contex
                 ts: st.mtime,
                 mode: st.mode,
                 sourcePath: source,
-                getData: () => createReadStream(source, { start: 0 , end: Math.max(0, st.size-1) })
+                getData: () => createAuthorizedReadStream(source, st, ctx, { start: 0, end: Math.max(0, st.size - 1) })
             }
         }
         catch {}

@@ -101,6 +101,7 @@ describe('isolated servers', { concurrency: 4 }, () => {
     require('./shutdown.test')
     require('./upload-shutdown.test')
     require('./multipart-upload.test')
+    require('./unfinished-upload-visibility.test')
     require('./xml-upload-approval.test')
     require('./plugin-server-cleanup.test')
     require('./create-admin.test')
@@ -4365,7 +4366,7 @@ describe('after-login', () => {
         await reqApi('add_vfs', { parent: UPLOAD_ROOT, source: `../tmp/${name}`, name, can_upload: ['admins'], can_delete: false }, 200, ownerReq)()
         try {
             await makeAbortedUpload()
-            await req(tempUri, 403, { method: 'delete', jar: {} })()
+            await req(tempUri, 404, { method: 'delete', jar: {} })()
             if (!existsSync(temp))
                 throw "temp file removed without permission"
             let deleted = false
@@ -4417,8 +4418,8 @@ describe('after-login', () => {
         try {
             await reqUpload(`${dest}?partial=${complete.length}`, 204, first, undefined, 0, ownerReq)()
             const original = readFileSync(temp)
-            await reqUpload(dest, 403, 'replacement', undefined, 0, otherReq)()
-            await reqUpload(dest, 403, rest, complete.length, first.length, otherReq)()
+            await reqUpload(dest, 404, 'replacement', undefined, 0, otherReq)()
+            await reqUpload(dest, 404, rest, complete.length, first.length, otherReq)()
             if (!readFileSync(temp).equals(original))
                 throw Error('foreign upload changed unfinished content')
             await reqUpload(dest, (_data, res) => {
@@ -4476,7 +4477,8 @@ describe('after-login', () => {
             masks: { '*|files|': { can_delete: true } },
         }, 200, adminReq)()
         try {
-            await reqUpload(uri, (_data, res) => res.statusCode === 200, 'b', 2, 1, { jar: {} })()
+            await reqUpload(uri, 404, 'b', 2, 1, { jar: {} })()
+            await reqUpload(uri, (_data, res) => res.statusCode === 200, 'b', 2, 1, adminReq)()
             if (readFileSync(resolve(dir, 'file.txt'), 'utf8') !== 'ab')
                 throw Error('authorized file-mask resume changed content')
         }
@@ -4533,7 +4535,7 @@ describe('after-login', () => {
                 makeReadableThatTakes(600), undefined, 0, { jar: otherJar })()
             if (!await waitFor(() => existsSync(temp), { timeout: 3000 }))
                 throw Error('replacement upload did not start')
-            await req(tempUri, 403, { method: 'delete', jar: ownerJar })()
+            await req(tempUri, 404, { method: 'delete', jar: ownerJar })()
             await replacement
         }
         finally {
@@ -4652,8 +4654,8 @@ describe('after-login', () => {
         try {
             await reqUpload(`${dest}?partial=${complete.length}`, 204, first, undefined, 0, ownerReq)()
             const original = readFileSync(temp)
-            await reqUpload(dest, 403, 'replacement', undefined, 0, otherReq)()
-            await reqUpload(dest, 403, rest, complete.length, first.length, otherReq)()
+            await reqUpload(dest, 404, 'replacement', undefined, 0, otherReq)()
+            await reqUpload(dest, 404, rest, complete.length, first.length, otherReq)()
             if (!readFileSync(temp).equals(original))
                 throw Error('foreign upload changed unfinished content')
             await reqUpload(dest, 200, rest, complete.length, first.length, ownerReq)()

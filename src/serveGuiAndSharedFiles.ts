@@ -1,7 +1,7 @@
 import Koa from 'koa'
 import { checkDeletePermission } from './deletePermission'
 import { basename, dirname, join } from 'path'
-import { getDefaultFile, getNodeName, nodeIsFolder, statusCodeForMissingPerm, urlToNode, vfs, VfsNodeWithPath, walkNode } from './vfs'
+import { getDefaultFile, getNodeName, getVirtualName, nodeIsFolder, statusCodeForMissingPerm, urlToNode, vfs, VfsNodeWithPath, walkNode } from './vfs'
 import { sendErrorPage } from './errorPages'
 import events from './events'
 import {
@@ -22,7 +22,7 @@ import mount from 'koa-mount'
 import { baseUrl } from './listen'
 import {
     asyncGeneratorToReadable, deleteStoredFileAttrs, filterMapGenerator, isValidFileName, loadFileCached, pathEncode,
-    pathDecodeSegments, safeDecodeURIComponent, try_,
+    pathDecodeSegments, safeDecodeURIComponent, try_, enforceFinal,
 } from './misc'
 import { roots } from './roots'
 import XXH from 'xxhashjs'
@@ -32,7 +32,7 @@ import { setCommentFor } from './comments'
 import { basicWeb, shouldBeBasic } from './basicWeb'
 import { customizedIcons, ICONS_FOLDER } from './icons'
 import { getPluginInfo } from './plugins'
-import { deleteUploadOwner } from './uploadOwners'
+import { deleteUploadOwner, getNodeMatchingSource } from './uploadOwners'
 
 const serveFrontendFiles = serveGuiFiles(process.env.FRONTEND_PROXY, FRONTEND_URI)
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontendFiles)
@@ -78,11 +78,18 @@ export const serveSharedFiles: Koa.Middleware = async (ctx, next) => {
         if (!folder)
             return sendErrorPage(ctx, HTTP_NOT_FOUND)
         ctx.state.uploadPath = decPath
-        if (getUploadTempHash)
-            return !folder.source || !isValidFileName(fn) ? sendErrorPage(ctx, HTTP_NOT_FOUND)
-                : statusCodeForMissingPerm(folder, 'can_upload', ctx) ? null
-                : loadFileCached(getUploadTempFor(join(folder.source, fn)), calcHash) // negligible memory leak
-                    .then(x => ctx.body = x.content, e => ctx.status = e?.code === 'ENOENT' ? HTTP_NOT_FOUND : HTTP_SERVER_ERROR)
+        if (getUploadTempHash) {
+            if (!folder.source || !isValidFileName(fn))
+                return sendErrorPage(ctx, HTTP_NOT_FOUND)
+            if (statusCodeForMissingPerm(folder, 'can_upload', ctx))
+                return
+            const source = getUploadTempFor(join(folder.source, fn))
+            const uri = enforceFinal('/', folder.vfsPath) + pathEncode(getVirtualName(basename(source), folder, source))
+            if (!await getNodeMatchingSource(uri, ctx, source))
+                return sendErrorPage(ctx, HTTP_NOT_FOUND)
+            return loadFileCached(source, calcHash) // negligible memory leak
+                .then(x => ctx.body = x.content, e => ctx.status = e?.code === 'ENOENT' ? HTTP_NOT_FOUND : HTTP_SERVER_ERROR)
+        }
         const dest = await uploadWriter(folder, folderUri, fn, ctx)
         if (dest) {
             ctx.req.pipe(dest).on('error', err => {

@@ -2,7 +2,7 @@ import { applyParentToChild, getChildBySource, getNodeByName, getVirtualName, no
 import Koa from 'koa'
 import {
     HTTP_CONFLICT, HTTP_FOOL, HTTP_INSUFFICIENT_STORAGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_NO_CONTENT, HTTP_SERVER_ERROR,
-    HTTP_PRECONDITION_FAILED, HTTP_LENGTH_REQUIRED, MTIME_CHECK, UPLOAD_TEMP_PREFIX,
+    HTTP_PRECONDITION_FAILED, HTTP_LENGTH_REQUIRED, HTTP_NOT_FOUND, MTIME_CHECK, UPLOAD_TEMP_PREFIX,
 } from './const'
 import { basename, dirname, extname, join, posix, resolve, toNamespacedPath } from 'path'
 import fs from 'fs'
@@ -21,7 +21,7 @@ import events from './events'
 import { rm, rename, utimes } from 'fs/promises'
 import { expiringCache } from './expiringCache'
 import { onProcessExit, quitting } from './first'
-import { deleteUploadOwner, isUnfinishedUploadOwner, setUploadOwner } from './uploadOwners'
+import { deleteUploadOwner, getSessionId, isUnfinishedUploadOwner, registerActiveUpload, setUploadOwner } from './uploadOwners'
 import { getWebdavLockTarget, isWebdavLocked } from './webdav'
 import { ctxAdminAccess } from './adminApis'
 
@@ -62,6 +62,7 @@ export interface UploadMeta {
     username?: string
     ip?: string
     approved?: boolean
+    completed?: boolean
 }
 
 export function getUploadMeta(path: string): Promise<UploadMeta | undefined> {
@@ -77,11 +78,12 @@ export async function setUploadApproved(path: string, approved: boolean) {
     return Boolean(meta && await saveUploadMeta(path, { ...meta, approved }))
 }
 
-function fillUploadMeta(path: string, ctx: Koa.Context) {
+function fillUploadMeta(path: string, ctx: Koa.Context, completed=false) {
     return saveUploadMeta(path, {
         username: getCurrentUsername(ctx) || undefined,
         ip: ctx.ip,
         approved: Boolean(ctxAdminAccess(ctx)),
+        completed,
     })
 }
 
@@ -126,9 +128,16 @@ export async function uploadWriter(base: VfsNodeWithPath, baseUri: string, filen
     // keep the reservation and stream setup synchronous once the target has been resolved
     const uploadKey = normalizeFilename(tempName)
     const already = uploadingFiles.get(uploadKey) // this can be checked so early because this function is sync
-    if (already) // if it's the same client, we tell to retry later
-        return fail(HTTP_CONFLICT, ctx.query.id && ctx.query.id === already.ctx.query.id ? 'retry' : 'already uploading')
+    if (already) { // if it's the same client, we tell to retry later
+        const username = getCurrentUsername(ctx)
+        const own = username && username === getCurrentUsername(already.ctx)
+            || ctx.session?.sessionId && ctx.session.sessionId === already.ctx.session?.sessionId
+        return !ctxAdminAccess(ctx) && !own ? fail(HTTP_NOT_FOUND)
+            : fail(HTTP_CONFLICT, ctx.query.id && ctx.query.id === already.ctx.query.id ? 'retry' : 'already uploading')
+    }
     const dir = dirname(fullPath)
+    if (!getCurrentUsername(ctx))
+        getSessionId(ctx)
     // enforce minAvailableMb
     const min = minAvailableMb.get() * (1 << 20)
     const {simulate} = ctx.query // `simulate` is used to get the same error but with an empty body, so that the request is processed quickly
@@ -193,7 +202,10 @@ export async function uploadWriter(base: VfsNodeWithPath, baseUri: string, filen
             const tempNode = applyParentToChild(
                 tempOriginal || { source: tempName, original: undefined, isFolder: fs.statSync(tempName).isDirectory() }, // file-only masks need the type before permission evaluation
                 base, tempVirtualName)
-            if (isUnfinishedUploadOwner(tempNode, ctx))
+            const own = isUnfinishedUploadOwner(tempNode, ctx)
+            if (!ctxAdminAccess(ctx) && !own)
+                return fail(HTTP_NOT_FOUND)
+            if (own)
                 tempNode.can_delete = true // allow continuation through the normal permission check, including plugin vetoes
             if (statusCodeForMissingPerm(tempNode, 'can_delete', ctx))
                 return fail()
@@ -237,6 +249,8 @@ export async function uploadWriter(base: VfsNodeWithPath, baseUri: string, filen
 
         cancelDeletion(tempName)
         const fileStream = fs.createWriteStream(tempName, resume ? { flags: 'r+', start: resume } : undefined)
+        let releaseActiveOwner: (() => void) | undefined
+        fileStream.once('open', fd => { releaseActiveOwner = registerActiveUpload(fs.fstatSync(fd), ctx) })
 
         let errored = false
         writeStream.on('error', e => {
@@ -313,7 +327,7 @@ export async function uploadWriter(base: VfsNodeWithPath, baseUri: string, filen
                     if (mtime) // so we use it to touch the file
                         await utimes(dest, Date.now() / 1000, mtime / 1000)
                     obj.fullPath = ctx.state.uploadDestinationPath = dest
-                    if (!await fillUploadMeta(dest, ctx)) {
+                    if (!await fillUploadMeta(dest, ctx, true)) {
                         await rename(dest, tempName)
                         await moveStoredFileAttrs(dest, tempName)
                         throw Error("couldn't store upload metadata")
@@ -330,12 +344,13 @@ export async function uploadWriter(base: VfsNodeWithPath, baseUri: string, filen
                             cb(obj)
                 }
                 catch (err: any) {
-                    void fillUploadMeta(tempName, ctx)
+                    await fillUploadMeta(tempName, ctx)
                     console.error("Couldn't rename temp to", dest, String(err))
                     fail(HTTP_SERVER_ERROR)
                 }
             }
             finally {
+                releaseActiveOwner?.()
                 releaseFile()
                 lockMiddleware.resolve(obj.uri)
             }

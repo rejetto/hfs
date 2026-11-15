@@ -167,7 +167,7 @@ async function checkResourceLock(target: WebdavLockTarget, node: VfsNodeWithPath
     // if the resource is gone, keeping the lock only creates fake 423 responses
     // alias callers share the key, but only the path that created the lock proves it became stale
     for (const lock of matchingWebdavLocks(target, descendants)) {
-        if (!lock.lockNull && (!node || descendants) && !await urlToNode(lock.path, ctx))
+        if (!lock.lockNull && (!node || descendants) && !await urlToNode(lock.path))
             releaseLock(lock)
     }
     return isWebdavLocked(target, ctx, descendants)

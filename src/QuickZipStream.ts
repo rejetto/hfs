@@ -177,6 +177,7 @@ export class QuickZipStream extends Readable {
                 if ((err as any)?.code !== 'EACCES')
                     console.error('Zipping:', String(err))
                 data.destroy(err)
+                this.destroy(err)
                 resolve()
             })
             data.on('end', ()=>{
@@ -198,6 +199,7 @@ export class QuickZipStream extends Readable {
             })
         })
         this.workingFile = undefined
+        if (this.destroyed) return
         const sizeForSize = size > ZIP64_SIZE_LIMIT ? 8 : 4
         if (this.controlledPush([
             4, 0x08074b50,

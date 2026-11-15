@@ -1,7 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import Koa from 'koa'
-import { createReadStream, stat, Stats } from 'fs'
+import { canAccessUnfinishedUpload } from './uploadOwners'
+import { close, createReadStream, fstat, open, stat, Stats } from 'fs'
 import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND, HTTP_NOT_MODIFIED,
     HTTP_OK, HTTP_PARTIAL_CONTENT, HTTP_RANGE_NOT_SATISFIABLE, HTTP_TOO_MANY_REQUESTS, MIME_AUTO } from './const'
 import { getNodeName, VfsNode } from './vfs'
@@ -144,7 +145,8 @@ export async function serveFile(ctx: Koa.Context, filePath:string, mime?:string,
         const { size } = stats
         const range = applyRange(ctx, size)
         if (ctx.status >= 400) return // applyRange may have set an error
-        ctx.body = createReadStream(filePath, range || undefined)
+        ctx.body = ctx.state.vfsNode ? createAuthorizedReadStream(filePath, await ctx.state.vfsNode.stats || stats, ctx, range || undefined)
+            : createReadStream(filePath, range || undefined)
         if (ctx.state.vfsNode)
             monitorAsDownload(ctx, size, range?.start)
     }
@@ -159,6 +161,27 @@ export async function serveFile(ctx: Koa.Context, filePath:string, mime?:string,
             throw e
         ctx.status = status
     }
+}
+
+export function createAuthorizedReadStream(source: string, expected: Stats, ctx: Koa.Context, range?: { start: number, end: number }) {
+    return Readable.from((async function* () {
+        const fd = await promisify(open)(source, 'r')
+        let stream: ReturnType<typeof createReadStream>
+        try {
+            const stats = await promisify(fstat)(fd)
+            // authorization belongs to the opened inode, not a pathname replaced after listing or stat
+            if (stats.dev !== expected.dev || stats.ino !== expected.ino
+                || !await canAccessUnfinishedUpload({ source, stats }, ctx))
+                throw Object.assign(Error("File changed before reading"), { code: 'EACCES', status: HTTP_NOT_FOUND })
+            stream = createReadStream(source, { ...range, fd })
+        }
+        catch (error) {
+            await promisify(close)(fd)
+            throw error
+        }
+        // the stream owns the descriptor, including when a download is aborted
+        yield* stream
+    })())
 }
 
 export function monitorAsDownload(ctx: Koa.Context, size?: number, offset?: number) {
