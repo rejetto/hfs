@@ -38,13 +38,24 @@ bootstrap_config() {
   [ -f "$config" ] && return
 
   mkdir -p "$cwd"
+  admin_pw="${HFS_CREATE_ADMIN:-${HFS_INITIAL_ADMIN_PASSWORD:-}}"
+  generated_pw=
+  if [ -z "$admin_pw" ]; then
+    # an empty legacy env must not override the generated password when HFS loads the config
+    unset HFS_CREATE_ADMIN
+    admin_pw="$(od -An -N12 -tx1 /dev/urandom)"
+    admin_pw="$(printf '%s' "$admin_pw" | tr -d ' \n')"
+    generated_pw=1
+  fi
   {
-    admin_pw="${HFS_CREATE_ADMIN:-${HFS_INITIAL_ADMIN_PASSWORD:-please-change}}"
     # escape line breaks before shell substitution can strip them from the password
     esc="$(printf '%s' "$admin_pw" | sed -z 's/\\/\\\\/g; s/"/\\"/g; s/\r/\\r/g; s/\n/\\n/g; s/\t/\\t/g')"
     printf 'create-admin: "%s"\n' "$esc"
     printf "vfs:\\n  source: /shares\\n"
   } > "$config"
+  if [ -n "$generated_pw" ]; then
+    printf '\nHFS initial admin password: %s\nLog in as admin.\n\n' "$admin_pw"
+  fi
 }
 
 if [ -n "${HFS_CWD:-}" ]; then

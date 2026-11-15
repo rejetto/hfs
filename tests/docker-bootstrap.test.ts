@@ -21,16 +21,26 @@ test('Docker initial admin password, persistence, and legacy compatibility', {
         await docker('rm', '-f', name).catch(() => {})
         await rm(cwd, { recursive: true, force: true })
     })
-    for (const scenario of ['multiline', 'empty-legacy', 'initial', 'legacy', 'default']) {
+    const generatedPasswords = new Set<string>()
+    for (const scenario of ['multiline', 'empty-legacy', 'initial', 'legacy', 'default', 'empty-default']) {
         const data = join(cwd, scenario)
         await mkdir(data)
         const supplied = scenario === 'multiline' ? "quote'\" slash\\ tab\t CR\r\nend\n" : "initial'password"
-        const initial = scenario === 'legacy' ? 'legacy-password' : scenario === 'default' ? 'please-change' : supplied
-        const env = scenario === 'default' ? [] : ['-e', 'HFS_INITIAL_ADMIN_PASSWORD=' + supplied]
+        const generated = scenario === 'default' || scenario === 'empty-default'
+        const env = generated ? [] : ['-e', 'HFS_INITIAL_ADMIN_PASSWORD=' + supplied]
         if (scenario === 'legacy') env.push('-e', 'HFS_CREATE_ADMIN=legacy-password')
         if (scenario === 'empty-legacy') env.push('-e', 'HFS_CREATE_ADMIN=')
+        if (scenario === 'empty-default') env.push('-e', 'HFS_CREATE_ADMIN=', '-e', 'HFS_INITIAL_ADMIN_PASSWORD=')
         let url = await start(data, env, 8123)
-        await ready(initial)
+        const initial = await ready(generated ? undefined : scenario === 'legacy' ? 'legacy-password' : supplied)
+        const initialLogs = await docker('logs', name)
+        assert.equal(initialLogs.includes('HFS initial admin password:'), generated)
+        if (generated) {
+            assert.match(initial, /^[a-f0-9]{24}$/)
+            assert(!generatedPasswords.has(initial), 'fresh configurations must have different passwords')
+            generatedPasswords.add(initial)
+            assert.equal((await api('get_accounts', {}, 'please-change')).status, 401)
+        }
         const before = await persistedVerifier(data)
         assert.equal((await api('set_account', {
             username: 'admin', changes: { password: 'changed-password' },
@@ -41,19 +51,22 @@ test('Docker initial admin password, persistence, and legacy compatibility', {
         url = 'http://' + (await docker('port', name, '8123')).trim()
         const expected = scenario === 'legacy' ? initial : 'changed-password'
         await ready(expected)
+        assert.equal((await docker('logs', name)).match(/HFS initial admin password:/g)?.length || 0, generated ? 1 : 0)
         assert.equal((await api('get_accounts', {}, scenario === 'legacy' ? 'changed-password' : initial)).status, 401)
         await docker('rm', '-f', name)
-        if (scenario === 'initial' || scenario === 'empty-legacy') {
+        if (scenario === 'initial' || scenario === 'empty-legacy' || generated) {
             // a recreated container must keep credentials but still apply a new HFS_PORT
             url = await start(data, [...env, '-e', 'HFS_INITIAL_ADMIN_PASSWORD=different-password'], 8124)
             await ready('changed-password')
             assert.equal((await api('get_accounts', {}, 'different-password')).status, 401)
+            assert(!(await docker('logs', name)).includes('HFS initial admin password:'))
             await docker('rm', '-f', name)
         }
 
-        async function ready(password: string) {
+        async function ready(password?: string): Promise<string> {
             for (let i = 0; i < 100; i++) {
-                if (await api('get_accounts', {}, password).then(r => r.status === 200, () => false)) return
+                password ??= (await docker('logs', name)).match(/HFS initial admin password: ([a-f0-9]{24})/)?.[1]
+                if (password && await api('get_accounts', {}, password).then(r => r.status === 200, () => false)) return password
                 await delay(200)
             }
             assert.fail(`${scenario}: admin login failed; ${await docker('logs', name)}`)
