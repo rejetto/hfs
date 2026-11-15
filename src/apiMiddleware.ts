@@ -7,13 +7,10 @@ import { asyncGeneratorToReadable, CFG, Promisable } from './misc'
 import { HTTP_BAD_REQUEST, HTTP_FOOL, PLUGIN_CUSTOM_REST_PREFIX } from './const'
 import { defineConfig } from './config'
 import { firstPlugin } from './plugins'
+import { ApiError } from './ApiError'
 import { SendListReadable } from './SendList'
 
-export class ApiError extends Error {
-    constructor(public status:number, message?: unknown) {
-        super(typeof message === 'string' ? message : message && message instanceof Error ? message.message : JSON.stringify(message))
-    }
-}
+export { ApiError } from './ApiError'
 type ApiHandlerResult = Record<string,any> | ApiError | Readable | AsyncGenerator<any> | null
 // allow defining extra parameters that can be used when an api to invoke another (like copy_files)
 export type ApiHandler = (params:any, ctx:Koa.Context, ...ignore: unknown[]) => Promisable<ApiHandlerResult>

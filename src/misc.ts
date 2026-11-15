@@ -1,6 +1,5 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { basename } from 'path'
 import Koa from 'koa'
 import { Connection } from './connections'
 export * from './util-http'
@@ -9,20 +8,14 @@ export * from './fileAttr'
 export * from './cross'
 export * from './debounceAsync'
 export * from './AsapStream'
+export { pattern2filter } from './searchPattern'
 import { Readable, Transform } from 'stream'
 import { SocketAddress, BlockList } from 'node:net'
-import { ApiError } from './apiMiddleware'
+import { ApiError } from './ApiError'
 import { HTTP_BAD_REQUEST } from './const'
 import { Callback, isIpLocalHost, makeMatcher, try_ } from './cross'
 import { isIPv6 } from 'net'
 import _ from 'lodash'
-
-export function pattern2filter(pattern: string){
-    const matcher = makeMatcher(pattern.includes('*') ? pattern  // if you specify *, we'll respect its position
-        : pattern.split('|').map(x => `*${x}*`).join('|'), false, false)
-    return (s: string) =>
-        !pattern || matcher(basename(s||''))
-}
 
 export function isLocalHost(c: Connection | Koa.Context | string) {
     const ip = typeof c === 'string' ? c : c.ip

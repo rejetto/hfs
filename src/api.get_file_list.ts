@@ -6,7 +6,8 @@ import {
 } from './vfs'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { mapPlugins } from './plugins'
-import { apiAssertTypes, asyncGeneratorToArray, callAsPromise, pattern2filter, WHO_NO_ONE } from './misc'
+import { apiAssertTypes, asyncGeneratorToArray, callAsPromise, WHO_NO_ONE } from './misc'
+import { pattern2filter } from './searchPattern'
 import { HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
 import { getCommentFor, areCommentsEnabled } from './comments'
@@ -34,11 +35,12 @@ export interface DirEntry { // common properties are single letter to reduce the
 export function paramsToFilter({ search, wild, searchComment, fileMask }: any) {
     search = String(search || '').toLocaleLowerCase()
     searchComment = String(searchComment || '').toLocaleLowerCase()
+    const budget = { remaining: 100 }
     return {
         depth: search || searchComment ? Infinity : 0,
-        filterName: search > '' && (wild === 'no' ? (s: string) => s.includes(search) : pattern2filter(search)),
-        fileMask: fileMask > '' && pattern2filter(fileMask),
-        filterComment: searchComment > '' && (wild === 'no' ? (s: string) => s.includes(searchComment) : pattern2filter(searchComment))
+        filterName: search > '' && (wild === 'no' ? (s: string) => s.includes(search) : pattern2filter(search, budget)),
+        fileMask: fileMask > '' && pattern2filter(fileMask, budget),
+        filterComment: searchComment > '' && (wild === 'no' ? (s: string) => s.includes(searchComment) : pattern2filter(searchComment, budget))
     }
 }
 

@@ -107,6 +107,7 @@ describe('isolated servers', { concurrency: 4 }, () => {
     require('./plugin-server-cleanup.test')
     require('./create-admin.test')
     require('./env-bootstrap.test')
+    require('./search-pattern.test')
 })
 
 describe('http utilities', () => {
