@@ -1,7 +1,7 @@
 import Koa from 'koa'
 import { readRequestBodyLimited } from './util-http'
 import {
-    getNodeName, getVirtualName, nodeIsFolder, nodeIsLink, nodeStats, normalizeFilename, statusCodeForMissingPerm, urlToNode, VfsNode, VfsNodeWithPath, walkNode
+    convertWindowsPath, getNodeName, getVirtualName, nodeIsFolder, nodeIsLink, nodeStats, normalizeFilename, statusCodeForMissingPerm, urlToNode, VfsNode, VfsNodeWithPath, walkNode
 } from './vfs'
 import {
     HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_CREATED, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_OK,
@@ -11,9 +11,11 @@ import {
 } from './cross'
 import { PassThrough } from 'stream'
 import { mkdir, rm, utimes } from 'fs/promises'
+import { realpath } from 'fs'
+import { promisify } from 'node:util'
 import { STATUS_CODES } from 'http'
 import { hasDirTraversal, isValidFileName } from './misc'
-import { basename, dirname, join } from 'path'
+import { basename, dirname, join, resolve, sep, toNamespacedPath } from 'path'
 import { moveFiles, requestedRename } from './frontEndApis'
 import { randomUUID } from 'node:crypto'
 import { IS_MAC, IS_WINDOWS } from './const'
@@ -56,16 +58,20 @@ const WINDOWS_FILE_ATTRIBUTE_FLAGS = {
 
 const canOverwrite = new Set<string>()
 interface WebdavLock {
+    key: string
     token: string
     timeout: NodeJS.Timeout
     seconds: number
     username: string
     lockNull: boolean
     path: string
+    source: string | undefined
+    target: string | undefined
 }
 
 // WebDAV and frontend mutations share files, so both must observe the same exclusive locks
-const locks = new Map<string, WebdavLock>()
+const locks = new Set<WebdavLock>()
+const realpathAsync = promisify(realpath.native)
 
 function webdavPathKey(path: string) {
     const key = pathEncode(safeDecodeURIComponent(path, ''))
@@ -82,62 +88,89 @@ function webdavOverwriteKey(path: string, ctx: Koa.Context, ensureSession=false)
     return identity ? webdavStateKey(path) + '|' + identity : undefined
 }
 
-function getWebdavLock(path: string) {
-    return locks.get(webdavStateKey(path))
+interface WebdavLockTarget { key: string, sourceKey: string | undefined }
+
+export async function getWebdavLockTarget(path: string, source?: string, followFinal=false): Promise<WebdavLockTarget> {
+    return {
+        key: removeFinal('/', webdavStateKey(path)),
+        sourceKey: source ? await webdavSourceKey(source, followFinal) : undefined,
+    }
 }
 
-function setWebdavLock(path: string, lock: WebdavLock) {
-    locks.set(webdavStateKey(path), lock)
+export function releaseWebdavLock(target: WebdavLockTarget, descendants=false) {
+    for (const lock of matchingWebdavLocks(target, descendants))
+        releaseLock(lock)
 }
 
-export function releaseWebdavLock(path: string) {
-    const key = webdavStateKey(path)
-    const lock = locks.get(key)
-    if (!lock) return false
+function releaseLock(lock: WebdavLock) {
     clearTimeout(lock.timeout)
-    locks.delete(key)
-    return true
+    locks.delete(lock)
 }
 
-export function isWebdavLocked(path: string, ctx: Koa.Context) {
-    const lock = getWebdavLock(path)
-    if (!lock) return false
-    const validToken = lock.username === (getCurrentUsername(ctx) || '')
-        && [ctx.get('If'), ctx.get(TOKEN_HEADER)].some(header =>
-            header.includes(`<${lock.token}>`) || header.split(/[,;\s]+/).includes(lock.token))
-    if (validToken)
-        return false
-    ctx.status = HTTP_LOCKED
-    return true
+export function isWebdavLocked(target: WebdavLockTarget, ctx: Koa.Context, descendants=false) {
+    for (const lock of matchingWebdavLocks(target, descendants)) {
+        const validToken = isSameLockUsername(lock, ctx)
+            && [ctx.get('If'), ctx.get(TOKEN_HEADER)].some(header =>
+                header.includes(`<${lock.token}>`) || header.split(/[,;\s]+/).includes(lock.token))
+        if (!validToken) {
+            ctx.status = HTTP_LOCKED
+            return true
+        }
+    }
+    return false
 }
 
-interface WebdavResource { key: string, node?: VfsNodeWithPath }
+function* matchingWebdavLocks({ key, sourceKey }: WebdavLockTarget, descendants=false): Generator<WebdavLock, void> {
+    for (const lock of locks) {
+        if (lock.key === key || descendants && lock.key.startsWith(key + '/')
+        || sourceKey && [lock.source, lock.target].some(source => source
+            && (source === sourceKey || descendants && source.startsWith(enforceFinal(sep, sourceKey)))))
+            yield lock
+    }
+}
+
+async function webdavSourceKey(source: string, followFinal=false) {
+    // metadata follows a final symlink, whereas DELETE and MOVE only unlink that entry
+    let path = resolve(followFinal ? await realpathAsync(source).catch(() => source) : source)
+    if (IS_WINDOWS)
+        path = await convertWindowsPath(path, true) || path
+    // resolve parent aliases without following a final symlink that DELETE or MOVE only unlinks
+    const parentPath = dirname(path)
+    const parent = await realpathAsync(parentPath).catch(() => parentPath)
+    return normalizeFilename(toNamespacedPath(join(parent, basename(path))))
+}
+
+interface WebdavResource { key: string, node?: VfsNodeWithPath, source?: string }
 
 async function resolveWebdavResource(path: string, ctx: Koa.Context): Promise<WebdavResource> {
     const pathKey = webdavPathKey(path)
     const node = await urlToNode(pathKey, ctx)
     if (node)
-        return { key: node.vfsPath, node }
+        return { key: node.vfsPath, node, source: node.source }
     const parent = await urlToNode(dirname(pathKey), ctx)
     const name = safeDecodeURIComponent(basename(pathKey), '')
-    const source = parent?.source && join(parent.source, name)
+    const missing = parent && await urlToNode(pathEncode(name), ctx, parent, { allowMissing: true })
+    const source = missing?.source
     return {
         key: parent && name ? crossJoin(parent.vfsPath, pathEncode(getVirtualName(name, parent, source))) : pathKey,
+        source,
     }
 }
 
-async function isLocked(path: string, ctx: Koa.Context, resource?: WebdavResource) {
+async function isLocked(path: string, ctx: Koa.Context, resource?: WebdavResource, descendants=false, followFinal=false) {
     resource ??= await resolveWebdavResource(path, ctx)
-    const { key: resourceKey, node } = resource
-    const lock = getWebdavLock(resourceKey)
-    if (!lock) return false
+    const target = await getWebdavLockTarget(resource.key, resource.source, followFinal)
+    return checkResourceLock(target, resource.node, ctx, descendants)
+}
+
+async function checkResourceLock(target: WebdavLockTarget, node: VfsNodeWithPath | undefined, ctx: Koa.Context, descendants: boolean) {
     // if the resource is gone, keeping the lock only creates fake 423 responses
     // alias callers share the key, but only the path that created the lock proves it became stale
-    if (!lock.lockNull && !node && !await urlToNode(lock.path, ctx)) {
-        releaseWebdavLock(resourceKey)
-        return false
+    for (const lock of matchingWebdavLocks(target, descendants)) {
+        if (!lock.lockNull && (!node || descendants) && !await urlToNode(lock.path, ctx))
+            releaseLock(lock)
     }
-    return isWebdavLocked(resourceKey, ctx)
+    return isWebdavLocked(target, ctx, descendants)
 }
 
 function getWebdavUsername(ctx: Koa.Context) {
@@ -276,7 +309,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         setWebdavHeaders()
         const resource = await resolveWebdavResource(pathKey, ctx)
         const { node } = resource
-        if (await isLocked(path, ctx, resource)) return
+        if (await isLocked(path, ctx, { ...resource, source: node?.name ? undefined : resource.source }, true)) return
         if (!node) return next()
         let dest = ctx.get('destination')
         const i = dest.indexOf('//')
@@ -285,14 +318,15 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         dest = webdavPathKey(crossJoin(ctx.state.root || '', dest)) // on Windows, we must use / as the delimiter to compare URL paths
         if (!dest)
             return ctx.status = HTTP_BAD_REQUEST
-        if (await isLocked(dest, ctx)) return
         const destParent = await urlToNode(dirname(dest), ctx)
-        if (node.parent && destParent
-        && webdavStateKey(destParent.vfsPath) === webdavStateKey(node.parent.vfsPath))
+        const sameParent = node.parent && destParent
+            && webdavStateKey(destParent.vfsPath) === webdavStateKey(node.parent.vfsPath)
+        const destResource = await resolveWebdavResource(dest, ctx)
+        if (await isLocked(dest, ctx, { ...destResource, source: sameParent && node.name ? undefined : destResource.source }, true)) return
+        if (sameParent)
             try {
                 // decode the single path segment so reserved chars like %2C become their real name on rename
                 await requestedRename(node, safeDecodeURIComponent(basename(dest), ''), ctx)
-                releaseWebdavLock(node.vfsPath) // RFC 4918 says MOVE must not carry locks to destination, so clear source lock on success
                 return ctx.status = HTTP_CREATED
             }
             catch(e:any) {
@@ -300,39 +334,37 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
             }
         const actualDest = crossJoin(dirname(dest), basename(pathKey))
         // moveFiles keeps the source basename for cross-directory moves, so check the lock it will actually touch
-        if (actualDest !== dest && await isLocked(actualDest, ctx)) return
+        if (actualDest !== dest && await isLocked(actualDest, ctx, undefined, true)) return
         const moveRes = await moveFiles([pathKey], dirname(dest), ctx)
         if (moveRes instanceof Error)
             return ctx.status = (moveRes as any).status || HTTP_SERVER_ERROR
         const err = moveRes?.errors?.[0]
-        if (!err)
-            releaseWebdavLock(node.vfsPath) // successful MOVE leaves the old path invalid, therefore its lock must be dropped
         return ctx.status = !err ? HTTP_CREATED : typeof err === 'number' ? err : HTTP_SERVER_ERROR
     }
 
     async function handleDelete() {
         setWebdavHeaders()
         const resource = await resolveWebdavResource(pathKey, ctx)
-        const { node } = resource
-        if (await isLocked(path, ctx, resource)) return
+        const target = await getWebdavLockTarget(resource.key, resource.source)
+        if (await checkResourceLock(target, resource.node, ctx, true)) return
         await next()
         if (ctx.status === HTTP_UNAUTHORIZED) // downstream permission checks (await next) may set 401, so add the authentication challenge after they run
             setWebdavHeaders(true)
         if (ctx.status === HTTP_OK)
-            releaseWebdavLock(node?.vfsPath || path) // webdav clients may forget UNLOCK; successful delete must clear any lock
+            releaseWebdavLock(target, true) // deleting a tree invalidates its descendants' lock roots too
     }
 
     async function handleUnlock() {
         setWebdavHeaders()
         const x = ctx.get(TOKEN_HEADER).slice(1,-1)
-        const lockKey = (await resolveWebdavResource(pathKey, ctx)).key
-        const lock = getWebdavLock(lockKey)
+        const { key: lockKey, source } = await resolveWebdavResource(pathKey, ctx)
+        const lock = matchingWebdavLocks(await getWebdavLockTarget(lockKey, source, true)).next().value
         if (x !== lock?.token)
             return ctx.status = HTTP_BAD_REQUEST
         // with force_webdav_login disabled a client may silently fall back to anonymous; keep lock ownership on the original username
         if (!isSameLockUsername(lock, ctx))
             return ctx.status = HTTP_PRECONDITION_FAILED
-        releaseWebdavLock(lockKey)
+        releaseLock(lock)
         ctx.set(TOKEN_HEADER, x)
         if (IS_MAC)
             urlToNode(path, ctx).then(x => x?.source && dotClean(dirname(x.source)))
@@ -342,7 +374,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
     async function handleLock() {
         setWebdavHeaders()
         // a lock reserves a future write, so authorize it against the existing resource or its parent
-        const { key: lockKey, node } = await resolveWebdavResource(pathKey, ctx)
+        const { key: lockKey, node, source } = await resolveWebdavResource(pathKey, ctx)
         const permissionNode = node || await urlToNode(dirname(pathKey), ctx)
         if (!permissionNode)
             return ctx.status = HTTP_CONFLICT
@@ -365,17 +397,16 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
             // Finder and similar clients refresh an existing lock by sending LOCK without a body
             if (!token)
                 return ctx.status = HTTP_BAD_REQUEST
-            const lock = getWebdavLock(lockKey)
+            const lock = matchingWebdavLocks(await getWebdavLockTarget(lockKey, source, true)).next().value
             if (token !== lock?.token)
                 return ctx.status = HTTP_PRECONDITION_FAILED
             // same-token refresh from another username would make abandoned locks effectively persistent
             if (!isSameLockUsername(lock, ctx))
                 return ctx.status = HTTP_PRECONDITION_FAILED
-            // refresh lock - keep the same token on refresh so clients can continue using the lock they already hold
+            // an alias refresh must renew the original lock and its timer
             clearTimeout(lock.timeout)
-            lock.timeout = setTimeout(() => releaseWebdavLock(lockKey), seconds * 1000)
+            lock.timeout = setTimeout(() => releaseLock(lock), seconds * 1000)
             lock.seconds = seconds
-            setWebdavLock(lockKey, lock)
 
             ctx.set(TOKEN_HEADER, lock.token)
             ctx.body = renderLockResponse(lock.token, lock.seconds)
@@ -390,13 +421,23 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
             return ctx.status = HTTP_CONFLICT
         if (scope !== 'exclusive' || type !== 'write')
             return ctx.status = HTTP_CONFLICT
-        if (getWebdavLock(lockKey))
+        const [sourceKey, targetKey] = source
+            ? await Promise.all([webdavSourceKey(source), webdavSourceKey(source, true)])
+            : []
+        const key = removeFinal('/', webdavStateKey(lockKey))
+        // check and insert without yielding once physical aliases have been resolved
+        if (!ctx.writable) return
+        if (!matchingWebdavLocks({ key, sourceKey: targetKey }).next().done)
             return ctx.status = HTTP_LOCKED
         const newToken = 'urn:uuid:' + randomUUID()
-        const timeout = setTimeout(() => releaseWebdavLock(lockKey), seconds * 1000)
-        setWebdavLock(lockKey, {
-            token: newToken, timeout, seconds, username: getWebdavUsername(ctx), lockNull: !node, path: pathKey,
-        })
+        const lock: WebdavLock = {
+            key, token: newToken, seconds,
+            timeout: setTimeout(() => releaseLock(lock), seconds * 1000),
+            username: getWebdavUsername(ctx), lockNull: !node, path: pathKey,
+            source: sourceKey,
+            target: targetKey,
+        }
+        locks.add(lock)
         ctx.set(TOKEN_HEADER, newToken)
         ctx.body = renderLockResponse(newToken, seconds)
     }
@@ -450,7 +491,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
 
     async function handleProppatch() {
         setWebdavHeaders()
-        if (await isLocked(path, ctx)) return
+        if (await isLocked(path, ctx, undefined, false, true)) return
         const node = await urlToNode(pathKey, ctx)
         if (!node) return next()
         if (statusCodeForMissingPerm(node, 'can_see', ctx)) {

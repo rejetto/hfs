@@ -1619,6 +1619,26 @@ describe('webdav', () => {
             await rmAny(destPath)
         }
     })
+    test('webdav.refreshed lock expires for literal percent escapes', async () => {
+        const name = `wd-lock-percent-${randomId(6)}%20file.txt`
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${pathEncode(name)}`
+        let destPath = ''
+        let token = ''
+        try {
+            destPath = await webdavUpload(uri, 200, 'original')()
+            await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            assert.ok(token)
+            await webdavLock(uri, 200, '', { If: `(<${token}>)`, timeout: 'Second-1' })()
+            await wait(1200)
+            await webdavUpload(uri, 200, 'replacement')()
+            assert.equal(readFileSync(destPath, 'utf8'), 'replacement')
+        }
+        finally {
+            if (token)
+                await webdavUnlock(uri, token)().catch(() => {})
+            await rmAny(destPath)
+        }
+    })
     test('webdav.lock applies to filesystem case aliases', async t => {
         const id = randomId(6)
         const name = `Case-Locked-${id}.txt`
@@ -1784,6 +1804,165 @@ describe('webdav', () => {
             await rmAny(uploadUriToPath(renamedUri))
         }
     })
+    test('webdav.child lock protects parent mutations and clears after authorized removal', async () => {
+        const name = `wd-locked-tree-${randomId(6)}`
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const uri = `${UPLOAD_ROOT}${name}`
+        const childUri = `${uri}/child.txt`
+        let token = ''
+        await mkdir(dir)
+        await writeFile(resolve(dir, 'child.txt'), 'protected')
+        await writeFile(resolve(dir, 'sibling.txt'), 'sibling')
+        try {
+            await webdavLock(childUri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            assert.ok(token)
+            await req(uri, 423, { method: 'DELETE', auth, jar: {}, headers: { 'user-agent': WEBDAV_UA } })()
+            await req(uri, 423, { method: 'MOVE', auth, jar: {}, headers: {
+                destination: BASE_URL + uri + '-renamed', 'user-agent': WEBDAV_UA,
+            } })()
+            await reqApi('rename', { uri, dest: name + '-renamed' }, 423, { auth, jar: {} })()
+            await reqApi('move_files', { uri_from: [uri], uri_to: UPLOAD_ROOT },
+                data => data.errors?.[0] === 423, { auth, jar: {} })()
+            assert.equal(readFileSync(resolve(dir, 'child.txt'), 'utf8'), 'protected')
+            await req(`${uri}/sibling.txt`, 200, { method: 'DELETE', auth, jar: {} })()
+            await mkdir(dir + '-sibling')
+            await req(uri + '-sibling', 200, { method: 'DELETE', auth, jar: {} })()
+            await reqApi('rename', { uri, dest: name + '-renamed' }, 200,
+                { auth, jar: {}, headers: { If: `(<${token}>)`, 'x-hfs-anti-csrf': '1' } })()
+            await req(`${uri}-renamed/child.txt`, 200, { method: 'DELETE', auth, jar: {} })()
+            await mkdir(dir)
+            await writeFile(resolve(dir, 'child.txt'), 'replacement')
+            await webdavLock(childUri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            await req(uri, 200, { method: 'DELETE', auth, jar: {}, headers: { If: `(<${token}>)` } })()
+            await mkdir(dir)
+            await writeFile(resolve(dir, 'child.txt'), 'replacement')
+            await req(childUri, 200, { method: 'DELETE', auth, jar: {} })()
+        }
+        finally {
+            if (token)
+                await webdavUnlock(childUri, token)().catch(() => {})
+            await rmAny(dir)
+            await rmAny(dir + '-renamed')
+            await rmAny(dir + '-sibling')
+        }
+    })
+    test('webdav.lock follows shared sources across distinct VFS shares', async () => {
+        const name = `wd-shared-lock-${randomId(6)}`
+        const alias = name + '-alias'
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const source = resolve(dir, 'folder', 'child.txt')
+        const uri = `/${name}/folder/child.txt`
+        const aliasUri = `/${alias}/folder/child.txt`
+        const otherUser = name.toLowerCase()
+        const otherPass = randomId(10)
+        const adminReq = { auth, jar: {} }
+        let token = ''
+        await mkdir(dirname(source), { recursive: true })
+        await writeFile(source, 'protected')
+        try {
+            for (const share of [name, alias])
+                await reqApi('add_vfs', { source: dir, name: share, can_upload: true, can_delete: true }, 200, adminReq)()
+            await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            assert.ok(token)
+            await webdavUpload(aliasUri, 423, 'replacement')()
+            await reqApi('rename', { uri: aliasUri, dest: 'renamed.txt' }, 423, adminReq)()
+            await reqApi('comment', { uri: aliasUri, comment: 'changed' }, 423, adminReq)()
+            await webdavLock(aliasUri, 423)()
+            await req(`/${alias}/folder`, 423, { method: 'DELETE', auth, jar: {} })()
+            assert.equal(readFileSync(source, 'utf8'), 'protected')
+            await reqApi('add_account', { username: otherUser, password: otherPass, belongs: ['admins'] }, 200, adminReq)()
+            await req(aliasUri, 423, { method: 'DELETE', auth: `${otherUser}:${otherPass}`, jar: {},
+                headers: { If: `(<${token}>)` },
+            })()
+            await webdavLock(aliasUri, (_data, res) => res.headers?.[TOKEN_HEADER] === token,
+                '', { If: `(<${token}>)` })()
+            await req(aliasUri, 200, { method: 'PUT', auth, jar: {}, body: 'owner', headers: {
+                'content-length': '5', 'user-agent': WEBDAV_UA, If: `(<${token}>)`,
+            } })()
+            assert.equal(readFileSync(source, 'utf8'), 'owner')
+            await webdavUnlock(aliasUri, token)()
+            token = ''
+            await webdavUpload(uri, 200, 'unlocked')()
+            await webdavLock(uri + '-missing', (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            await webdavUpload(aliasUri + '-missing', 423, 'blocked')()
+            await reqApi('create_folder', { uri: `/${alias}/folder`, name: 'child.txt-missing' }, 423, adminReq)()
+            await webdavUnlock(aliasUri + '-missing', token)()
+            token = ''
+        }
+        finally {
+            if (token)
+                for (const lockedUri of [uri, uri + '-missing'])
+                    await webdavUnlock(lockedUri, token)().catch(() => {})
+            await reqApi('del_account', { username: otherUser }, 200, adminReq)().catch(() => {})
+            await reqApi('del_vfs', { uris: [`/${name}/`, `/${alias}/`] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
+    test('webdav.metadata locks follow final symlink targets without blocking unlink', async t => {
+        const name = `wd-lock-link-${randomId(6)}`
+        const alias = name + '-alias'
+        const dir = resolve(UPLOAD_DISK_ROOT, name)
+        const source = resolve(dir, 'target.txt')
+        const link = resolve(dir, 'link.txt')
+        const uri = `${UPLOAD_ROOT}${name}/target.txt`
+        const linkUri = `/${alias}/link.txt`
+        const linkEntryUri = `${UPLOAD_ROOT}${name}/link.txt`
+        const adminReq = { auth, jar: {} }
+        const patchReq = { method: 'PROPPATCH', auth, jar: {}, body: WEBDAV_PROPPATCH_BODY,
+            headers: { 'content-length': Buffer.byteLength(WEBDAV_PROPPATCH_BODY), 'user-agent': WEBDAV_UA } }
+        const oldComments = await reqApi('get_config', { only: ['comments_storage'] }, 200, adminReq)()
+        let token = ''
+        await mkdir(dir)
+        await writeFile(source, 'protected')
+        try {
+            try { await symlink(source, link) }
+            catch (error) {
+                if (!['EPERM', 'ENOTSUP'].includes((error as NodeJS.ErrnoException).code || '')) throw error
+                t.skip('filesystem does not allow symlinks')
+                return
+            }
+            await reqApi('add_vfs', { source: dir, name: alias, can_upload: true, can_delete: true }, 200, adminReq)()
+            await webdavLock(uri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            assert.ok(token)
+            const mtime = statSync(source).mtimeMs
+            await req(linkUri, (_data, res) => {
+                assert.equal(statSync(source).mtimeMs, mtime)
+                return res.statusCode === 423
+            }, patchReq)()
+            await reqApi('set_config', { values: { comments_storage: '' } }, 200, adminReq)()
+            await reqApi('comment', { uri: linkUri, comment: 'entry comment' }, 200, adminReq)()
+            await reqApi('set_config', { values: { comments_storage: 'attr' } }, 200, adminReq)()
+            await reqApi('comment', { uri: linkUri, comment: 'target comment' }, 423, adminReq)()
+            await reqApi('set_config', { values: oldComments }, 200, adminReq)()
+            await reqApi('rename', { uri: linkUri, dest: 'renamed-link.txt' }, 200, adminReq)()
+            await req(`/${alias}/renamed-link.txt`, 200, { method: 'DELETE', auth, jar: {} })()
+            assert.equal(readFileSync(source, 'utf8'), 'protected')
+            await req(uri, 423, patchReq)()
+            await symlink(source, link)
+            await webdavLock(linkUri, 423)()
+            await webdavUnlock(uri, token)()
+            token = ''
+            await webdavLock(linkUri, (_data, res) => token = res.headers?.[TOKEN_HEADER] || '')()
+            assert.ok(token)
+            await req(uri, 423, patchReq)()
+            await req(linkEntryUri, 423, { method: 'DELETE', auth, jar: {} })()
+            await webdavUpload(uri, 423, 'replacement')()
+            await webdavLock(uri, 423)()
+            await webdavLock(uri, 200, '', { If: `(<${token}>)` })()
+            await req(linkUri, 207, { ...patchReq, headers: { ...patchReq.headers, If: `(<${token}>)` } })()
+            assert.equal(statSync(source).mtime.toUTCString(), 'Mon, 04 May 2026 10:00:00 GMT')
+            await webdavUnlock(uri, token)()
+            token = ''
+        }
+        finally {
+            await reqApi('set_config', { values: oldComments }, 200, adminReq)().catch(() => {})
+            if (token)
+                for (const lockedUri of [uri, linkUri])
+                    await webdavUnlock(lockedUri, token)().catch(() => {})
+            await reqApi('del_vfs', { uris: [`/${alias}/`] }, 200, adminReq)().catch(() => {})
+            await rmAny(dir)
+        }
+    })
     test('webdav.lock rejects shared lock', async () => {
         const name = `wd-lock-shared-${randomId(6)}.txt`
         const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
@@ -1824,8 +2003,8 @@ describe('webdav', () => {
         body: sizedStream(1024 * 1024 + 1),
     }))
     test('webdav.stale lock on missing resource is pruned', async () => {
-        const name = `wd-stale-lock-${randomId(6)}.txt`
-        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        const name = `wd-stale-lock-${randomId(6)}%20file.txt`
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${pathEncode(name)}`
         let destPath = ''
         try {
             destPath = await webdavUpload(uri, x => x?.uri === uri, 'test')()

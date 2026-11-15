@@ -22,7 +22,7 @@ import { rm, rename, utimes } from 'fs/promises'
 import { expiringCache } from './expiringCache'
 import { onProcessExit, quitting } from './first'
 import { deleteUploadOwner, isUnfinishedUploadOwner, setUploadOwner } from './uploadOwners'
-import { isWebdavLocked } from './webdav'
+import { getWebdavLockTarget, isWebdavLocked } from './webdav'
 import { ctxAdminAccess } from './adminApis'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>(CFG.delete_unfinished_uploads_after, 86_400)
@@ -110,8 +110,7 @@ export async function whileUploadMetaPending<T>(path: string, cb: () => Promise<
 
 export const supportsUploadCommitCheck = true
 
-// initially sync for formidable; still sync to avoid async races and PUT piping gaps
-export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: string, ctx: Koa.Context,
+export async function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: string, ctx: Koa.Context,
     beforeCommit?: (tempName: string, destination: string) => Promise<void>) {
     if (!filename || !isValidFileName(filename) || !filename)
         return fail(HTTP_FOOL)
@@ -120,8 +119,11 @@ export function uploadWriter(base: VfsNodeWithPath, baseUri: string, filename: s
     const fullPath = join(base.source!, filename)
     const tempName = getUploadTempFor(fullPath)
     const vfsUri = enforceFinal('/', base.vfsPath || baseUri) + pathEncode(getVirtualName(filename, base, fullPath))
-    if (isWebdavLocked(vfsUri, ctx))
+    const target = await getWebdavLockTarget(vfsUri, fullPath)
+    if (ctx.isAborted()) return
+    if (isWebdavLocked(target, ctx))
         return fail()
+    // keep the reservation and stream setup synchronous once the target has been resolved
     const uploadKey = normalizeFilename(tempName)
     const already = uploadingFiles.get(uploadKey) // this can be checked so early because this function is sync
     if (already) // if it's the same client, we tell to retry later

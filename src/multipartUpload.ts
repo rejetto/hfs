@@ -62,7 +62,7 @@ export async function handleMultipartUpload(ctx: Koa.Context, node: VfsNodeWithP
 
     async function handleFile(file: NodeJS.ReadableStream, fn: string) {
         try { // it is still possible to allow upload in a folder and block in a subfolder, so check for it
-            const ret = !await subfolderBlocksUpload(fn) && uploadWriter(node, ctx.path, fn, ctx)
+            const ret = !await subfolderBlocksUpload(fn) && await uploadWriter(node, ctx.path, fn, ctx)
             if (!ret)
                 return drainStream(file)
             locks.push(ret.lockMiddleware)

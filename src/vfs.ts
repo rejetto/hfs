@@ -358,7 +358,7 @@ async function setSourceNames(node: VfsNode, parent: VfsNode) {
     sourceNames.set(key, _.uniq(names))
 }
 
-function convertWindowsPath(path: string, isLong=false) {
+export function convertWindowsPath(path: string, isLong=false) {
     return new Promise<string | undefined>(resolvePromise => {
         if (!fswin.convertPath(path, converted => resolvePromise(converted || undefined), isLong))
             resolvePromise(undefined)

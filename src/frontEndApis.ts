@@ -21,12 +21,12 @@ import { getUploadMeta, isUploading, saveUploadMeta, setUploadApproved, whileUpl
 import { getNodeMime, isActiveContentMime } from './serveFile'
 import { apiAssertTypes, CFG, join as joinVfs, moveStoredFileAttrs, pathDecode, pathEncode, popKey, Who, WHO_ADMIN } from './misc'
 import { deleteUploadOwner, moveUploadOwner, setUploadOwner } from './uploadOwners'
-import { defineConfig } from './config'
+import { defineConfig, getConfig } from './config'
 import { getCommentFor, setCommentFor } from './comments'
 import { SendListReadable } from './SendList'
 import { ctxAdminAccess } from './adminApis'
 import _ from 'lodash'
-import { isWebdavLocked } from './webdav'
+import { getWebdavLockTarget, isWebdavLocked, releaseWebdavLock } from './webdav'
 
 const partialFolderSize: any = {}
 const showUploader = defineConfig<Who>(CFG.show_uploader, WHO_ADMIN)
@@ -95,7 +95,7 @@ export const frontEndApis: ApiHandlers = {
             return new ApiError(HTTP_BAD_REQUEST)
         const dest = join(parentNode.source, name)
         const destUri = joinVfs(parentNode.vfsPath, pathEncode(getVirtualName(name, parentNode, dest)))
-        if (isWebdavLocked(destUri, ctx))
+        if (isWebdavLocked(await getWebdavLockTarget(destUri, dest), ctx))
             return new ApiError(ctx.status)
         try {
             await mkdir(dest)
@@ -154,7 +154,9 @@ export const frontEndApis: ApiHandlers = {
             return new ApiError(HTTP_UNAUTHORIZED)
         if (!node.source)
             return new ApiError(HTTP_FAILED_DEPENDENCY)
-        if (isWebdavLocked(node.vfsPath, ctx))
+        // attributes follow symlink targets, whereas descript.ion comments belong to the named entry
+        const lockTarget = await getWebdavLockTarget(node.vfsPath, node.source, Boolean(getConfig(CFG.comments_storage)))
+        if (isWebdavLocked(lockTarget, ctx))
             return new ApiError(ctx.status)
         if (!await setCommentFor(node.source, comment))
             return new ApiError(HTTP_SERVER_ERROR)
@@ -216,7 +218,6 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
             const src = srcNode?.source
             if (!src) return HTTP_NOT_FOUND
             if (isUploading(src)) return HTTP_CONFLICT
-            if (!override && isWebdavLocked(srcNode.vfsPath, ctx)) return ctx.status
             const destName = basename(src)
             const dest = join(destNode!.source!, destName)
             const visibleName = getVirtualName(destName, destNode!, dest)
@@ -226,7 +227,11 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
             if (destChild && statusCodeForMissingPerm(destChild, 'can_delete', ctx))
                 return ctx.status
             const destUri = destChild?.vfsPath || joinVfs(destNode!.vfsPath, pathEncode(visibleName))
-            if (isWebdavLocked(destUri, ctx))
+            const [destLock, srcLock] = await Promise.all([
+                getWebdavLockTarget(destUri, dest),
+                !override ? getWebdavLockTarget(srcNode.vfsPath, src) : undefined,
+            ])
+            if (isWebdavLocked(destLock, ctx, true) || srcLock && isWebdavLocked(srcLock, ctx, true))
                 return ctx.status
             if (_.isFunction(override))
                 return override?.(srcNode, dest)
@@ -244,6 +249,7 @@ export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, ov
                     })
                 }).then(() => moveStoredFileAttrs(src, dest))
                     .then(() => moveUploadOwner(srcNode.vfsPath, destUri, dest))
+                    .then(() => { if (srcLock) releaseWebdavLock(srcLock, true) })
                     .catch(e => e.code || String(e))
         }))
     }
@@ -263,11 +269,16 @@ export async function requestedRename(node: VfsNodeWithPath | undefined, newName
     const destSource = !node.name && node.source ? join(dirname(node.source), newName) : undefined
     const virtualDestName = node.name || !node.parent ? newName : getVirtualName(newName, node.parent, destSource)
     const destUri = joinVfs(dirname(uri), pathEncode(virtualDestName))
-    if (isWebdavLocked(uri, ctx)
-    || isWebdavLocked(destUri, ctx))
+    const [srcLock, destLock] = await Promise.all([
+        getWebdavLockTarget(uri, node.name ? undefined : node.source),
+        getWebdavLockTarget(destUri, destSource),
+    ])
+    if (isWebdavLocked(srcLock, ctx, true) || isWebdavLocked(destLock, ctx, true))
         throw new ApiError(ctx.status)
-    if (node.name) // virtual name = virtual rename
+    if (node.name) { // virtual name = virtual rename
         node.name = newName
+        releaseWebdavLock(srcLock, true)
+    }
     else {
         if (!node.source)
             throw new ApiError(HTTP_FAILED_DEPENDENCY)
@@ -287,12 +298,14 @@ export async function requestedRename(node: VfsNodeWithPath | undefined, newName
                 await deleteUploadOwner(destUri)
             else
                 await moveUploadOwner(uri, destUri, destSource!)
-                getCommentFor(node.source).then(c => {
-                    if (!c) return
-                    void setCommentFor(node.source!, '')
-                    void setCommentFor(destSource!, c)
-                })
-                return {}
+            // moving a tree removes every source lock root; destination locks remain in place
+            releaseWebdavLock(srcLock, true)
+            getCommentFor(node.source).then(c => {
+                if (!c) return
+                void setCommentFor(node.source!, '')
+                void setCommentFor(destSource!, c)
+            })
+            return {}
 
         }
         catch (e: any) {
