@@ -104,14 +104,15 @@ export const authApis = {
 
         function fakeSrpAccount(username: string): Account {
             username = normalizeUsername(username)
+            // process-secret expansion matches default 128-byte SRP salts and stays stable per normalized username
+            const salt = [0, 1, 2, 3].map(i => derive('salt' + i)).join('')
             return {
                 username,
-                // process-secret derivation keeps fake credentials stable per username without storing attacker-controlled names
-                srp: `${derive('salt')}|${derive('verifier')}`,
+                srp: `${BigInt('0x' + salt)}|${BigInt('0x' + derive('verifier'))}`,
             }
 
             function derive(field: string) {
-                return BigInt('0x' + createHmac('sha256', fakeSrpSecret).update(field).update(username).digest('hex')).toString()
+                return createHmac('sha256', fakeSrpSecret).update(field).update(username).digest('hex')
             }
         }
     },

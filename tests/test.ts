@@ -2385,6 +2385,43 @@ describe('limits', () => {
 })
 
 describe('sessions', () => {
+    test('SRP decoy salts match default dimensions without changing stored salts', async () => {
+        const user = `salt-known-${randomId(6)}`.toLowerCase()
+        const missing = `salt-missing-${randomId(6)}`.toLowerCase()
+        const pass = randomId(12)
+        const adminReq = { auth, jar: {} }
+        try {
+            await reqApi('add_account', { username: user, password: pass }, 200, adminReq)()
+            const realSalt = await getSalt(user)
+            const fakeSalt = await getSalt(missing)
+            for (const salt of [realSalt, fakeSalt]) {
+                // bigint serialization drops leading zeroes, so allow the normal range of a 128-byte random salt
+                assert.ok(BigInt(salt) > 2n ** 256n && BigInt(salt) < 2n ** 1024n)
+            }
+            assert.equal(await getSalt(missing), fakeSalt)
+            assert.equal(await getSalt(missing.toUpperCase()), fakeSalt)
+            assert.notEqual(await getSalt(missing + '-other'), fakeSalt)
+            assert.equal((await logIn()).username, user)
+
+            const imported = await srp.createVerifierAndSalt(srp6aNimbusRoutines, user, pass, 32)
+            await reqApi('change_srp', { username: user, salt: String(imported.s), verifier: String(imported.v) },
+                200, adminReq)()
+            assert.equal(await getSalt(user), String(imported.s))
+            assert.equal((await logIn()).username, user)
+        }
+        finally {
+            await reqApi('del_account', { username: user }, 200, adminReq)()
+        }
+
+        async function getSalt(username: string): Promise<string> {
+            return (await reqApi('loginSrp1', { username }, 200, { jar: {} })()).salt
+        }
+
+        function logIn() {
+            const jar = {}
+            return srpClientSequence(srp, user, pass, (cmd, params) => reqApi(cmd, params, 200, { jar })())
+        }
+    })
     test('finalizingLogin veto preserves messages and session identity', async () => {
         const adminReq = { auth, jar: {} }
         const oldConfig = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
