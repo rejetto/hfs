@@ -9,7 +9,7 @@ import {
     DAY, CFG, enforceFinal, removeFinal, pathEncode, prefix, getOrSet, Dict, Timeout, join as crossJoin, try_,
     safeDecodeURIComponent, wantArray, BASIC_AUTHENTICATE_HEADER,
 } from './cross'
-import { PassThrough } from 'stream'
+import { Readable } from 'stream'
 import { mkdir, rm, utimes } from 'fs/promises'
 import { realpath } from 'fs'
 import { promisify } from 'node:util'
@@ -457,23 +457,26 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
         ctx.type = 'xml'
         ctx.status = 207
         const outPath = webdavHrefPath(path, node, ctx)
-        const res = ctx.body = new PassThrough({ encoding: 'utf8' })
-        res.write(`<?xml version="1.0" encoding="utf-8" ?><D:multistatus xmlns:D="DAV:">`)
-        await sendEntry(node)
-        if (isList) {
-            depth = Math.max(0, depth - 1)
-            for await (const n of walkNode(node, { ctx, depth }))
-                await sendEntry(n, true)
-        }
-        res.write(`</D:multistatus>`)
-        res.end()
+        // produce only after Koa attaches the response, and let client backpressure pause traversal
+        const body = ctx.body = Readable.from((async function* () {
+            yield `<?xml version="1.0" encoding="utf-8" ?><D:multistatus xmlns:D="DAV:">`
+            yield await renderEntry(node)
+            if (isList) {
+                depth = Math.max(0, depth - 1)
+                for await (const n of walkNode(node, { ctx, depth, parallelizeRecursion: false }))
+                    yield await renderEntry(n, true)
+            }
+            yield `</D:multistatus>`
+        })())
+        // koa-compress pipes the body without forwarding source errors to the response
+        body.once('error', error => ctx.res.destroy(error))
 
-        async function sendEntry(node: VfsNode, append=false) {
-            if (nodeIsLink(node)) return
+        async function renderEntry(node: VfsNode, append=false) {
+            if (nodeIsLink(node)) return ''
             const name = getNodeName(node)
             const isDir = await nodeIsFolder(node)
             const st = append && node.see_without_probing ? undefined : await nodeStats(node)
-            res.write(`<D:response>
+            return `<D:response>
               <D:href>${_.escape(outPath + (append ? pathEncode(name, true) + (isDir ? '/' : '') : ''))}</D:href>
               <D:propstat>
                 <D:prop>
@@ -485,7 +488,7 @@ export const webdav: Koa.Middleware = async (ctx, next) => {
                 <D:status>HTTP/1.1 200 OK</D:status>
               </D:propstat>
               </D:response>
-            `)
+            `
         }
     }
 

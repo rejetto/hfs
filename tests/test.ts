@@ -103,6 +103,7 @@ describe('isolated servers', { concurrency: 4 }, () => {
     require('./multipart-upload.test')
     require('./unfinished-upload-visibility.test')
     require('./xml-upload-approval.test')
+    require('./webdav-streaming.test')
     require('./plugin-server-cleanup.test')
     require('./create-admin.test')
     require('./env-bootstrap.test')
