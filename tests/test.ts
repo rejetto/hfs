@@ -6196,20 +6196,32 @@ describe('logging', () => {
             await reqApi('set_config', { values: { dont_log_net: '127.0.0.1|::1' } }, 200, { auth, jar: adminJar })()
         }
     })
-    test('security-filtered traversal reaches the error log', async () => {
+    test('security-filtered traversal is logged only when spam logging is enabled', async () => {
         const logPath = resolve(__dirname, 'work/logs/access-error.log')
-        const uri = `/f1/page/.%2e/.%2e/README.md?log-test=${randomId(8)}`
         const adminJar = {}
-        await reqApi('set_config', { values: { dont_log_net: '' } }, 200, { auth, jar: adminJar })()
+        const adminReq = { auth, jar: adminJar }
+        const old = await reqApi('get_config', { only: ['dont_log_net', 'log_spam'] }, 200, adminReq)()
         try {
+            await reqApi('set_config', { values: { dont_log_net: '', log_spam: false } }, 200, adminReq)()
+            for (const path of ['/f1/../missing', '/f1/.%2e/missing', '/f1/%2E%2e/missing', '/f1%5c..%5Cmissing']) {
+                const uri = `${path}?log-test=${randomId(8)}`
+                await new Promise<void>((resolve, reject) => {
+                    const request = httpRequest({ host: '127.0.0.1', port: TEST_PORT, path: uri }, response => {
+                        response.resume()
+                        response.on('end', () => response.statusCode === 404 ? resolve() : reject(Error(`unexpected status: ${response.statusCode}`)))
+                    })
+                    request.on('error', reject).end()
+                })
+                await wait(300)
+                assert.ok(!existsSync(logPath) || !readFileSync(logPath, 'utf8').includes(uri), `traversal was logged: ${uri}`)
+            }
+            await reqApi('set_config', { values: { log_spam: true } }, 200, adminReq)()
+            const uri = `/f1/.%2e/missing?log-test=${randomId(8)}`
             await req(uri, 404, { jar: {} })()
-            const found = await waitFor(() =>
-                existsSync(logPath) && readFileSync(logPath, 'utf8').includes(uri))
-            if (!found)
-                throw Error('traversal request was not written to the error log')
+            assert.ok(await waitFor(() => existsSync(logPath) && readFileSync(logPath, 'utf8').includes(uri)), 'traversal was not logged with spam enabled')
         }
         finally {
-            await reqApi('set_config', { values: { dont_log_net: '127.0.0.1|::1' } }, 200, { auth, jar: adminJar })()
+            await reqApi('set_config', { values: old }, 200, adminReq)()
         }
     })
 })

@@ -117,7 +117,7 @@ const logRotation = defineConfig(CFG.log_rotation, 'weekly')
 const dontLogNet = defineConfig(CFG.dont_log_net, '127.0.0.1|::1', v => makeNetMatcher(v))
 const logUA = defineConfig(CFG.log_ua, false)
 const logSpam = defineConfig(CFG.log_spam, false)
-const logSpamRegex = defineConfig(CFG.log_spam_regex, /wlwmanifest.xml$|\.(php|asp)$|cgi|robots.txt$/.source, v => v ? new RegExp(v) : null)
+const logSpamRegex = defineConfig(CFG.log_spam_regex, /wlwmanifest.xml$|\.(php|asp)$|cgi|robots.txt$|(?:^|[/\\]|%5[cC])(?:\.|%2[eE]){2}(?:$|[/\\]|%5[cC])/.source, v => v ? new RegExp(v) : null)
 const logHost = defineConfig(CFG.log_host, false)
 
 const debounce = _.debounce(cb => cb(), 1000) // with this technique, i'll be able to debounce some code respecting the references in its closure
