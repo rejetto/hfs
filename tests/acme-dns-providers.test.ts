@@ -37,6 +37,7 @@ test('additional DNS catalog providers preserve records and authenticate HTTP re
                     assert.equal(req.headers['x-ovh-signature'], '$1$' + createHash('sha1').update(signed).digest('hex'))
                 }
                 else if (provider === 'IONOS') assert.equal(req.headers['x-api-key'], 'token')
+                else if (provider === 'Dynu') assert.equal(req.headers['api-key'], 'key')
                 else if (provider === 'Name.com') assert.equal(req.headers.authorization, 'Basic ' + Buffer.from('user:token').toString('base64'))
                 else assert.equal(req.headers.authorization, 'Bearer token')
                 if (mode === 'redirect') { res.writeHead(302, { location: 'https://other.example' }); return res.end() }
@@ -50,34 +51,42 @@ test('additional DNS catalog providers preserve records and authenticate HTTP re
                     return reply(null)
                 }
                 if (req.method === 'GET') {
+                    if (provider === 'Dynu') {
+                        assert.equal(path, '/dns/getroot/_acme-challenge.user.ddns.test')
+                        return reply({statusCode:200,id:23,domainName:'user.ddns.test',node:'_acme-challenge'})
+                    }
                     if (provider === 'Linode') { assert.equal(path, '/domains'); assert.deepEqual(JSON.parse(String(req.headers['x-filter'])), {domain:'example.test'}); return reply({results:1,data:[{id:23}]}) }
                     if (provider === 'DNSimple') { assert.equal(path, '/whoami'); return reply({data:{account:{id:42}}}) }
                     assert.equal(provider, 'IONOS'); assert.equal(path, '/zones')
                     return reply([{name:'other.test',id:'wrong'}, ...mode === 'missing' ? [] : [{name:'example.test',id:'zone-id'}], ...mode === 'duplicate' ? [{name:'example.test',id:'ambiguous'}] : []])
                 }
-                const prefix = ovh ? '/domain/zone/example.test/record' : provider === 'Porkbun' ? '/dns/create/example.test' : provider === 'Linode' ? '/domains/23/records'
+                const prefix = ovh ? '/domain/zone/example.test/record' : provider === 'Porkbun' ? '/dns/create/example.test' : provider === 'Linode' ? '/domains/23/records' : provider === 'Dynu' ? '/dns/23/record'
                     : provider === 'DNSimple' ? '/42/zones/example.test/records' : provider === 'IONOS' ? '/zones/zone-id/records' : '/domains/example.test/records'
                 if (req.method === 'POST' && path === prefix) {
                     const record = provider === 'IONOS' ? body[0] : body
-                    assert.equal(record.type ?? record.fieldType, 'TXT')
-                    assert.equal(record.name ?? record.host ?? record.subDomain, provider === 'IONOS' ? '_acme-challenge.example.test' : '_acme-challenge')
-                    const value = record.content ?? record.data ?? record.target ?? record.answer
+                    assert.equal(record.type ?? record.fieldType ?? record.recordType, 'TXT')
+                    assert.equal(record.name ?? record.host ?? record.subDomain ?? record.nodeName, provider === 'IONOS' ? '_acme-challenge.example.test' : '_acme-challenge')
+                    const value = record.content ?? record.data ?? record.target ?? record.answer ?? record.textData
                     assert.equal(record.ttl ?? record.ttl_sec, provider === 'Porkbun' ? '300' : ovh ? 60 : 300)
                     const id = String(++serial); records.set(id, value)
-                    return reply(provider === 'Porkbun' ? {status:'SUCCESS',id} : provider === 'Vultr' ? {record:{id}}
+                    return reply(provider === 'Dynu' ? {statusCode:200,id:Number(id)} : provider === 'Porkbun' ? {status:'SUCCESS',id} : provider === 'Vultr' ? {record:{id}}
                         : provider === 'DNSimple' ? {data:{id:Number(id)}} : provider === 'IONOS' ? [{id}] : {id:Number(id)}, 201)
                 }
                 const id = path.split('/').pop()!
                 assert.equal(path, provider === 'Porkbun' ? '/dns/delete/example.test/'+id : prefix+'/'+id)
                 assert.equal(req.method, provider === 'Porkbun' ? 'POST' : 'DELETE')
-                assert(records.delete(id)); reply(provider === 'Porkbun' ? {status:'SUCCESS'} : undefined, provider === 'Porkbun' ? 200 : 204)
+                assert(records.delete(id)); reply(provider === 'Dynu' ? {statusCode:200} : provider === 'Porkbun' ? {status:'SUCCESS'} : undefined, ['Porkbun', 'Dynu'].includes(provider) ? 200 : 204)
             }
             catch (e) { failures.push(e); res.writeHead(500); res.end('{}') }
         })
         server.listen(0,'127.0.0.1'); await once(server,'listening')
         try {
             const endpoint = 'http://127.0.0.1:'+(server.address() as {port:number}).port + basePath
-            const create = (value: string) => presentHttpDns(recipe,endpoint,{name:'_acme-challenge.example.test',zone:'example.test',relative:'_acme-challenge',value},{token:'token',key:'key',secret:'secret',username:'user',applicationKey:'app-key',applicationSecret:'app-secret',consumerKey:'consumer-key'})
+            // dynu must use the account's domain and node even when the public SOA belongs to a shared DDNS zone
+            const record = provider === 'Dynu'
+                ? {name:'_acme-challenge.user.ddns.test',zone:'ddns.test',relative:'_acme-challenge.user'}
+                : {name:'_acme-challenge.example.test',zone:'example.test',relative:'_acme-challenge'}
+            const create = (value: string) => presentHttpDns(recipe,endpoint,{...record,value},{token:'token',key:'key',secret:'secret',username:'user',applicationKey:'app-key',applicationSecret:'app-secret',consumerKey:'consumer-key'})
             const cleanups = await Promise.all([create('apex'),create('wildcard')])
             assert.deepEqual(new Set(records.values()),new Set(['preexisting',...provider==='Vultr'?['"apex"','"wildcard"']:['apex','wildcard']]))
             await Promise.all(cleanups.map(fn=>fn()))

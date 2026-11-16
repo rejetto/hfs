@@ -154,6 +154,17 @@
             "auth": "ovh",
             "create": [{"method": "POST", "path": "/domain/zone/{zone}/record", "body": {"fieldType": "TXT", "subDomain": "{relative}", "target": "{value}", "ttl": 60}, "capture": {"recordId": "id"}}, {"method": "POST", "path": "/domain/zone/{zone}/refresh"}],
             "remove": [{"method": "DELETE", "path": "/domain/zone/{zone}/record/{recordId}"}, {"method": "POST", "path": "/domain/zone/{zone}/refresh"}]
+        },
+        {
+            "driver": "http-json1",
+            "help_url": "https://www.dynu.com/en-US/ControlPanel/APICredentials",
+            "config_version": 1,
+            "providers": {"Dynu": {"endpoint": "https://api.dynu.com/v2"}},
+            "fields": {"key": {"label": "API key", "secret": true}},
+            "headers": {"API-Key": "{credentials.key}"},
+            "prepare": [{"method": "GET", "path": "/dns/getroot/{name}", "expect": ["statusCode", 200], "capture": {"zoneId": "id", "node": "node"}}],
+            "create": [{"method": "POST", "path": "/dns/{zoneId}/record", "body": {"nodeName": "{node}", "recordType": "TXT", "textData": "{value}", "state": true, "ttl": 300}, "expect": ["statusCode", 200], "capture": {"recordId": "id"}}],
+            "remove": [{"method": "DELETE", "path": "/dns/{zoneId}/record/{recordId}", "expect": ["statusCode", 200]}]
         }
     ]
 }
