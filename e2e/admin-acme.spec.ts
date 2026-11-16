@@ -53,7 +53,9 @@ test('DNS provider selection, wildcard helper, secret autosave and streamed prog
     await domain.fill('*.example.com')
     await domain.press('Tab')
     await page.getByRole('combobox', { name: 'Validation' }).click()
-    await expect(page.getByRole('option', { name: /\S/ })).toHaveText(['HTTP', 'Select a DNS provider', 'DNS · Cloudflare', 'DNS · DigitalOcean', 'DNS · DNSimple', 'DNS · IONOS', 'DNS · Linode', 'DNS · Name.com', 'DNS · OVHcloud', 'DNS · OVHcloud Canada', 'DNS · Porkbun', 'DNS · Vultr'])
+    await expect(page.getByRole('option', { name: /\S/ })).toHaveText([
+        'HTTP', 'Select a DNS provider', ...settings.providers.map(provider => `DNS · ${provider.label}`),
+    ])
     await page.getByRole('option', { name: 'HTTP', exact: true }).click()
     await expect(page.getByRole('dialog')).toContainText('HTTP validation cannot issue wildcard certificates. Select a DNS provider.')
     await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click()
