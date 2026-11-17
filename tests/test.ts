@@ -582,7 +582,43 @@ describe('basics', () => {
     test('not-found.custom page overrides default', () =>
         withCustomHtml({ 404: '<strong>custom 404 $MESSAGE</strong>' }, () =>
             req('/missing-custom-404', /^<strong>custom 404 Not found<\/strong>$/)()) )
-    test('not-found.default page reverse proxy root', req('/missing-proxy-404', /href="\/prefix/, { headers: { 'x-forwarded-prefix': '/prefix' } }))
+    test('reverse proxy prefix is ignored with proxies disabled', req('/missing-proxy-404',
+        { status: 404, re: /href="\/">/ }, { headers: { 'x-forwarded-prefix': '/prefix' } }))
+    describe('configured reverse proxy', () => {
+        const adminReq = { auth, jar: {} }
+        let previous: number
+        before(async () => {
+            previous = (await reqApi('get_config', { only: ['proxies'] }, 200, adminReq)()).proxies
+            await reqApi('set_config', { values: { proxies: 1 } }, 200, adminReq)()
+        })
+        after(() => reqApi('set_config', { values: { proxies: previous } }, 200, adminReq)())
+        test('reverse proxy prefix is inserted literally in HTML and redirects', async () => {
+            const prefix = '/prefix/team%20files$$1/R&D'
+            const htmlPrefix = '/prefix/team%20files$$1/R&amp;D'
+            const options = { headers: { 'x-forwarded-prefix': prefix }, noRedirect: true }
+            await req('/missing-proxy-404', { status: 404, cb: body => assert.ok(body.includes('href="' + htmlPrefix + '"')) }, options)()
+            await req('/?get=nobasic', { status: 200, cb: body => assert.ok(body.includes('src="' + htmlPrefix + '/~/frontend/')) }, options)()
+            await req('/~/admin', { status: 302, cb: (_, res) => assert.equal(res.headers.location, prefix + '/~/admin/') }, options)()
+        })
+        test('invalid reverse proxy prefixes are ignored', async () => {
+            for (const prefix of ['//example.invalid', '/prefix"suffix', '/prefix\\suffix', '/prefix/%2e%2e']) {
+                const options = { headers: { 'x-forwarded-prefix': prefix }, noRedirect: true }
+                await req('/missing-proxy-404', { status: 404, re: /href="\/">/ }, options)()
+                await req('/~/admin', { status: 302, cb: (_, res) => assert.equal(res.headers.location, '/~/admin/') }, options)()
+            }
+        })
+        test('reverse proxy VFS paths stay quoted in plugin CSS', async () => {
+            const server_code = "exports.config = { folder: { type: 'vfs_path', frontend: true, defaultValue: '/rgb(1,2,3)' } }"
+            await reqApi('set_config', { values: { server_code } }, 200, adminReq)()
+            try {
+                await req('/?get=nobasic', { status: 200, re: /-folder: "\/prefix\/rgb\(1,2,3\)";/ },
+                    { headers: { 'x-forwarded-prefix': '/prefix' } })()
+            }
+            finally {
+                await reqApi('set_config', { values: { server_code: '' } }, 200, adminReq)()
+            }
+        })
+    })
     test('custom mime from above', req('/tests/page/index.html', { status: 200, mime:'text/plain' }))
     test('name encoding', req(FUNNY_NAME_ENCODED, 200))
     test('name encoding list', reqList('/', { inList: [FUNNY_NAME] }))

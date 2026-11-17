@@ -23,9 +23,11 @@ export async function sendErrorPage(ctx: Koa.Context, code=ctx.status) {
     msg = trans?.[msg] ?? msg
     const page = getSection(ctx.status === HTTP_UNAUTHORIZED ? 'unauthorized' : String(ctx.status))
         || SIMPLE_PAGE || ''
-    if (page.includes('<'))
+    const html = page.includes('<')
+    if (html)
         ctx.type = 'html'
-    ctx.body = replace(page, { MESSAGE: msg, HOME: trans?.home ?? 'home', URL: ctx.state.revProxyPath || '/' }, '$')
+    const url = ctx.state.revProxyPath || '/'
+    ctx.body = replace(page, { MESSAGE: msg, HOME: trans?.home ?? 'home', URL: () => html ? url.replaceAll('&', '&amp;') : url }, '$')
 }
 
 const SIMPLE_PAGE = `<!DOCTYPE html>

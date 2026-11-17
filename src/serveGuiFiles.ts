@@ -95,8 +95,8 @@ function adjustBundlerLinks(ctx: Koa.Context, uri: string, data: string | Buffer
     const ext = extname(ctx.path)
     const filesUri = ctx.state.revProxyPath + uri
     return ext && !ext.match(/\.(css|html|js|ts|scss)/) ? data
-        : String(data).replace(/((?:import[ (]| from )['"])\//g, `$1${filesUri}`)
-            .replace(/(=function\(([\w$]+)\)\{return)[`'"]\/[`'"]\+\2\}/g, `$1${JSON.stringify(filesUri)}+$2}`) // vite's preload helper uses the configured absolute base for dynamic dependency hints
+        : String(data).replace(/((?:import[ (]| from )['"])\//g, (_, opening) => opening + filesUri)
+            .replace(/(=function\(([\w$]+)\)\{return)[`'"]\/[`'"]\+\2\}/g, (_, opening, param) => opening + JSON.stringify(filesUri) + '+' + param + '}') // vite's preload helper uses the configured absolute base for dynamic dependency hints
 }
 
 const getFaviconTimestamp = debounceAsync(async () => {
@@ -113,6 +113,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     const isFrontend = filesUri === FRONTEND_URI ? ' ' : '' // as a string will allow neater code later
 
     const pub = ctx.state.revProxyPath + PLUGINS_PUB_URI
+    const htmlPrefix = ctx.state.revProxyPath.replaceAll('&', '&amp;')
 
     // expose plugins' configs that are declared with 'frontend' attribute
     const plugins = Object.fromEntries(onlyTruthy(mapPlugins((pl,name) => {
@@ -138,7 +139,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
         return ret
     }))
     return body
-        .replace(/((?:src|href) *= *['"])\/?(?!([a-z]+:\/)?\/)(?!\?)/g, '$1' + ctx.state.revProxyPath + filesUri)
+        .replace(/((?:src|href) *= *['"])\/?(?!([a-z]+:\/)?\/)(?!\?)/g, (_, opening) => opening + htmlPrefix + filesUri)
         .replace(/<(\/)?(head|body)>/g, (all, isClose, name) => { // must make these changes in one .replace call, otherwise we may encounter head/body tags due to customHtml. This simple trick makes html parsing unnecessary.
             const isHead = name === 'head'
             const isBody = !isHead
@@ -173,7 +174,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                     </script>
                     ${isFrontend && `
                         <title>${title.get()}</title>
-                        <link rel="shortcut icon" href="${ctx.state.revProxyPath}/favicon.ico?${timestamp}" />
+                        <link rel="shortcut icon" href="${htmlPrefix}/favicon.ico?${timestamp}" />
                     ${getSection('htmlHead')}`}
                 `
             function iconsToObj(icons: CustomizedIcons, pre='') {
@@ -195,7 +196,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                     </style>
                     ${isFrontend && mapPlugins((plug,id) =>
                         plug.frontend_css?.map(f =>
-                            `<link rel='stylesheet' type='text/css' href='${f.includes('//') ? f : pub + id + '/' + f}' plugin=${JSON.stringify(id)}/>`))
+                            `<link rel='stylesheet' type='text/css' href='${f.includes('//') ? f : htmlPrefix + PLUGINS_PUB_URI + id + '/' + f}' plugin=${JSON.stringify(id)}/>`))
                         .flat().filter(Boolean).join('\n')}
                 `
             if (isBody && isClose)
@@ -225,7 +226,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
 }
 
 function serializeCss(v: any) {
-    return typeof v === 'string' && /^#[0-9a-fA-F]{3,8}|rgba?\(.+\)$/.test(v) ? v // colors
+    return typeof v === 'string' && /^(?:#[0-9a-fA-F]{3,8}|rgba?\(.+\))$/.test(v) ? v // colors
         : isPrimitive(v) ? JSON.stringify(v)?.replace(/</g, '&lt;') : undefined
 }
 

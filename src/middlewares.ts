@@ -180,7 +180,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
             ctx.headers['x-username'] = a.username // give an easier way to determine if the login was successful
         }
 
-    ctx.state.revProxyPath = ctx.get('x-forwarded-prefix')
+    ctx.state.revProxyPath = getValidatedProxyPrefix(ctx.app.proxy ? ctx.get('x-forwarded-prefix') : '')
     updateConnectionForCtx(ctx) // publish the resolved account after the initial pre-auth connection update
     await next()
 
@@ -285,6 +285,17 @@ export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
     if (!body) return
     ctx.state.params = tryJson(body.text) || {}
     await next()
+}
+
+let lastProxyPrefix = ''
+function getValidatedProxyPrefix(path: string) {
+    if (path === lastProxyPrefix)
+        return path
+    return lastProxyPrefix = path.startsWith('/') && path.slice(1).split('/').every(segment => {
+        // browsers normalize dot segments even when the dots are percent-encoded
+        const name = segment.replace(/%2e/gi, '.')
+        return name !== '.' && name !== '..' && /^(?:[\w.!$&()*+,;=:@~-]|%[\da-f]{2})+$/i.test(segment)
+    }) ? path : ''
 }
 
 // once https cookie is created, http cannot do the same. The solution is to use 2 different cookies.
