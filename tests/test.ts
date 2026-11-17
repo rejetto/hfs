@@ -5094,7 +5094,10 @@ describe('admin', () => {
     })
     test('del_vfs.bad uris', reqApi('del_vfs', { uris: ['', '/', '//'] }, (res: any) =>
         throwIf(res?.errors.some((x: any) => x === 406) ? '' : res?.errors || 'missing'), { auth }))
-    test('plugins.missing', reqApi('set_plugin', { id: 'missing-plugin', enabled: true }, { status: 400, re: /miss/ }, { auth }))
+    test('plugins.missing', async () => {
+        for (const id of ['missing-plugin', 'toString'])
+            await reqApi('set_plugin', { id, enabled: true }, { status: 400, re: /^miss$/ }, { auth })()
+    })
     test('plugins.update.missing', reqApi('update_plugin', { id: 'missing-plugin' }, 404, { auth }))
     test('monitor.connections safe path decode', async () => {
         const body = makeReadableThatTakes(1000)

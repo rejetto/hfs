@@ -6,8 +6,9 @@ import { watchLoad } from './watchLoad'
 import _ from 'lodash'
 import {
     API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, MIME_AUTO, PLUGINS_PUB_URI, EMBEDDED_LANGUAGE, 
-    HTTP_NOT_FOUND, PLUGIN_MAIN_FILE,
+    HTTP_BAD_REQUEST, HTTP_NOT_FOUND,PLUGIN_MAIN_FILE,
 } from './const'
+import { ApiError } from './apiMiddleware'
 import * as Const from './const'
 import Koa from 'koa'
 import {
@@ -62,7 +63,7 @@ export function isPluginEnabled(id: string, considerSuspension=false) {
 
 export function enablePlugin(id: string, state=true) {
     if (state && !getPluginInfo(id))
-        throw Error('miss')
+        throw new ApiError(HTTP_BAD_REQUEST, 'miss')
     enablePlugins.set(arr => {
         if (arr.includes(id) === state)
             return arr
@@ -472,7 +473,7 @@ export type InactivePlugin = CommonPluginInterface & {
     error?: string
 }
 
-let inactivePlugins: Record<string, InactivePlugin> = {}
+const inactivePlugins: Record<string, InactivePlugin> = Object.create(null)
 
 export function getInactivePlugins() {
     return Object.values(inactivePlugins)
