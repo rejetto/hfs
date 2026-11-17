@@ -1279,6 +1279,48 @@ describe('basics', () => {
 
     test('folder size', reqApi('get_folder_size', { uri: 'f1/page' }, res => res.bytes === 6328 ))
     test('folder size.cant', reqApi('get_folder_size', { uri: 'for-admins' }, 401))
+    test('folder size progress treats ids as literal strings', async () => {
+        const id = 'toString'
+        await reqApi('get_folder_size_partial', { id }, 404)()
+        await reqApi('get_folder_size', { uri: 'f1/page', id },
+            res => _.isEqual(res, { bytes: 6328, files: 2, folders: 0 }))()
+        await reqApi('get_folder_size_partial', { id }, 404)()
+        await reqApi('get_folder_size', { uri: 'f1/page', id: [id] }, { status: 400, re: /bad id/ })()
+    })
+
+    test('folder size progress uses the calculation ID until completion', async () => {
+        const adminReq = { auth, jar: {} }
+        const previous = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
+        const script = `exports.init = api => {
+            let release
+            const gate = new Promise(resolve => { release = resolve })
+            api.events.on('listDiskFolder', ({ path }) => {
+                if (api.require('path').basename(path) === 'page') return gate
+            })
+            exports.customRest = { folder_progress_gate: ({ done }) => {
+                if (done) release()
+                return { ready: true }
+            } }
+        }`
+        const id = randomId()
+        let calculation: Promise<unknown> | undefined
+        try {
+            await reqApi('set_config', { values: { server_code: script } }, 200, adminReq)()
+            assert.ok(await waitFor(() => reqApi('_folder_progress_gate', {}, 200, adminReq)()
+                .then(() => true, () => false), { interval: 50, timeout: 3000 }))
+            calculation = reqApi('get_folder_size', { uri: '/f1/page/', id }, 200, { jar: {} })()
+            void calculation.catch(() => {})
+            assert.ok(await waitFor(() => reqApi('get_folder_size_partial', { id }, 200, { jar: {} })()
+                .then(() => true, () => false), { interval: 50, timeout: 2000 }))
+            await reqApi('get_folder_size', { uri: '/f1/page/', id }, 409, { jar: {} })()
+        }
+        finally {
+            await reqApi('_folder_progress_gate', { done: true }, 200, adminReq)().catch(() => {})
+            try { await calculation }
+            finally { await reqApi('set_config', { values: previous }, 200, adminReq)() }
+        }
+        await reqApi('get_folder_size_partial', { id }, 404, { jar: {} })()
+    })
 
     test('get_accounts', reqApi('get_accounts', {}, 401)) // admin api requires login
     test('url login', async () => {

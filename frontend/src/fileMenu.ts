@@ -1,6 +1,6 @@
 import {
     dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
-    pathEncode, closeDialog, anyDialogOpen, Falsy, operationSuccessful, randomId, err2msg, HIDE_IN_TESTS
+    pathEncode, closeDialog, anyDialogOpen, Falsy, operationSuccessful, err2msg, HIDE_IN_TESTS
 } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode, useState } from 'react'
 import { Btn, Bytes, Spinner } from './components'
@@ -167,16 +167,26 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
     })
 
     function FolderSize() {
-        const [go, setGo] = useState(false)
-        const [id] = useState(() => randomId())
-        const { data, error, loading } = useApi(go && 'get_folder_size', { uri: entry.uri, id }, { timeout: false })
+        const [id, setId] = useState('')
+        const { data, error, loading } = useApi(id && 'get_folder_size', { uri: entry.uri, id }, { timeout: false })
         const partial = useApi(loading && 'get_folder_size_partial', { id })
         useInterval(partial.reload, 1000)
         return showRes(data || error)
-            || (!loading ? h(Btn, { asText: true, label: t`Calculate`, onClick() { setGo(true) } })
-                : h('span', {}, showRes(partial.data), ' ',
-                    h(Btn, { asText: true, label: t`Cancel`, icon: h(Spinner), onClick() { setGo(false) } }) )
-            )
+            || (!loading ? h(Btn, {
+                asText: true,
+                label: t`Calculate`,
+                onClick() { // anyone with this ID can read progress while the calculation is running
+                    setId(crypto.getRandomValues(new Uint32Array(4)).join('-'))
+                }
+            }) : h('span', {},
+                showRes(partial.data), ' ',
+                h(Btn, {
+                    asText: true,
+                    label: t`Cancel`,
+                    icon: h(Spinner),
+                    onClick: () => setId(''),
+                })
+            ))
 
         function showRes(data: any) {
             return data && (

@@ -19,7 +19,7 @@ import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
 import { getUploadMeta, isUploading, saveUploadMeta, setUploadApproved, whileUploadMetaPending } from './upload'
 import { getNodeMime, isActiveContentMime } from './serveFile'
-import { apiAssertTypes, CFG, join as joinVfs, moveStoredFileAttrs, pathDecode, pathEncode, popKey, Who, WHO_ADMIN } from './misc'
+import { apiAssertTypes, CFG, join as joinVfs, moveStoredFileAttrs, pathDecode, pathEncode, Who, WHO_ADMIN } from './misc'
 import { deleteUploadOwner, moveUploadOwner, setUploadOwner } from './uploadOwners'
 import { defineConfig, getConfig } from './config'
 import { getCommentFor, setCommentFor } from './comments'
@@ -28,7 +28,7 @@ import { ctxAdminAccess } from './adminApis'
 import _ from 'lodash'
 import { getWebdavLockTarget, isWebdavLocked, releaseWebdavLock } from './webdav'
 
-const partialFolderSize: any = {}
+const partialFolderSize = new Map<string, { bytes: number, files: number, folders: number }>()
 const showUploader = defineConfig<Who>(CFG.show_uploader, WHO_ADMIN)
 
 export const frontEndApis: ApiHandlers = {
@@ -165,11 +165,11 @@ export const frontEndApis: ApiHandlers = {
 
     async get_folder_size_partial({ id }) {
         apiAssertTypes({ string: { id } })
-        return partialFolderSize[id] || new ApiError(HTTP_NOT_FOUND)
+        return partialFolderSize.get(id) || new ApiError(HTTP_NOT_FOUND)
     },
 
     async get_folder_size({ uri, id }, ctx) {
-        apiAssertTypes({ string: { uri } })
+        apiAssertTypes({ string: { uri }, string_undefined: { id } })
         const folder = await urlToNode(uri, ctx)
         if (!folder)
             return new ApiError(HTTP_NOT_FOUND)
@@ -177,19 +177,26 @@ export const frontEndApis: ApiHandlers = {
             return new ApiError(HTTP_METHOD_NOT_ALLOWED)
         if (statusCodeForMissingPerm(folder, 'can_list', ctx))
             return new ApiError(ctx.status)
-        let bytes = 0
-        let files = 0
-        let folders = 0
-        for await (const n of walkNode(folder, { ctx, depth: Infinity })) {
-            if (n.isFolder)
-                folders++
-            else {
-                bytes += await nodeStats(n).then(x => x?.size || 0, () => 0)
-                files++
-            }
-            partialFolderSize[id] = { bytes, files, folders }
+        const size = { bytes: 0, files: 0, folders: 0 }
+        if (id !== undefined) {
+            // overlapping calculations must not overwrite or delete each other's progress
+            if (partialFolderSize.has(id)) return new ApiError(HTTP_CONFLICT)
+            partialFolderSize.set(id, size)
         }
-        return popKey(partialFolderSize, id) || { bytes, files, folders }
+        try {
+            for await (const n of walkNode(folder, { ctx, depth: Infinity })) {
+                if (n.isFolder)
+                    size.folders++
+                else {
+                    size.bytes += await nodeStats(n).then(x => x?.size || 0, () => 0)
+                    size.files++
+                }
+            }
+            return size
+        }
+        finally {
+            if (id !== undefined) partialFolderSize.delete(id)
+        }
     },
 }
 

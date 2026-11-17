@@ -523,7 +523,8 @@ paths:
             type: string
         - name: id
           in: query
-          required: true
+          description: Supply a fresh, unpredictable ID to enable progress polling. Reusing an active ID returns 409.
+          required: false
           schema:
             type: string
       responses:
@@ -538,7 +539,7 @@ paths:
     get:
       summary: Folder size progress
       deprecated: false
-      description: returns partial progress for an in-flight folder size computation
+      description: Returns progress for an active calculation by ID. Anyone with the ID can read the counters until the calculation ends.
       tags:
         - Front-end
       parameters:
