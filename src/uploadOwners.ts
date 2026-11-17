@@ -1,6 +1,7 @@
 import { KvStorage } from '@rejetto/kvstorage'
 import Koa from 'koa'
-import { pathDecodeSegments, pathEncode, CFG, randomId, HOUR, MINUTE } from './misc'
+import { randomUUID } from 'node:crypto'
+import { pathDecodeSegments, pathEncode, CFG, HOUR, MINUTE } from './misc'
 import { onProcessExit } from './first'
 import { defineConfig } from './config'
 import { getCurrentUsername } from './auth'
@@ -206,7 +207,7 @@ function isRecordExpired(owner: UploadOwner) {
 }
 
 export function getSessionId(ctx: Koa.Context) {
-    return ctx.session!.sessionId ||= randomId(30)
+    return ctx.session!.sessionId ||= randomUUID()
 }
 
 function cleanVfsPath(path: string) {
