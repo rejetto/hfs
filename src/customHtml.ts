@@ -9,7 +9,7 @@ const FILE = 'custom.html'
 
 export const customHtmlSections: ReadonlyArray<string> = ['style', 'script', 'beforeHeader', 'afterHeader', 'afterMenuBar',
     'footer', 'top', 'bottom', 'afterEntryName', 'beforeLogin', 'unauthorized', 'htmlHead', 'userPanelAfterInfo',
-    'afterList', 'beforeOptions', 'afterOptions']
+    'afterList', 'beforeOptions', 'afterOptions', 'basicHeader', 'basicFooter']
 
 export const customHtml = watchLoadCustomHtml()
 export const disableCustomHtml = defineConfig(CFG.disable_custom_html, false)

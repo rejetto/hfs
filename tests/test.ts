@@ -689,6 +689,8 @@ describe('basics', () => {
     test('name encoding', req(FUNNY_NAME_ENCODED, 200))
     test('name encoding list', reqList('/', { inList: [FUNNY_NAME] }))
     test('name encoding search', reqList('/', { inList: [FUNNY_NAME] }, { search: FUNNY_NAME }))
+    test('basic header and footer are available in the custom HTML editor', reqApi('get_custom_html', {},
+        ({ sections }) => 'basicHeader' in sections && 'basicFooter' in sections, { auth, jar: {} }))
     test('basic listing escapes', { skip: process.platform === 'win32' && 'Windows forbids < and > in filenames' }, async () => {
         const name = '<img src=x onerror=alert(1)>.png'
         const path = resolve(__dirname, name)
