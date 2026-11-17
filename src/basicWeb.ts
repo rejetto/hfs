@@ -10,15 +10,11 @@ import { getSection } from './customHtml'
 
 const autoBasic = defineConfig<boolean|string, null|RegExp>(CFG.auto_basic, true, v => _.isString(v) ? new RegExp(v, 'i') : null)
 
-export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
+export async function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
     const { get } = ctx.query
     if (get === 'login') {
-        if (getCurrentUsername(ctx)) {
-            const referer = ctx.get('referer')
-            const url = referer && try_(() => new URL(referer, ctx.URL))
-            // keep the origin in Location because a same-origin path starting with // would redirect externally
-            ctx.redirect(url && url.origin === ctx.URL.origin ? url.origin + url.pathname + url.search + url.hash : '/')
-        }
+        if (getCurrentUsername(ctx))
+            ctx.redirect(localReferer())
         else {
             ctx.set('WWW-Authenticate', BASIC_AUTHENTICATE_HEADER)
             ctx.status = HTTP_UNAUTHORIZED
@@ -26,9 +22,13 @@ export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
         return true
     }
     if (get === 'logout') {
-        ctx.body = `<script>location = ${JSON.stringify(ctx.get('referer'))}</script>`
-        setLoggedIn(ctx, false)
-        ctx.status = HTTP_UNAUTHORIZED // not effective on firefox52, but the redirection is
+        await setLoggedIn(ctx, false)
+        // browsers can retain cached Basic credentials after a 401
+        ctx.session = { basicLoggedOut: true } as Koa.Context['session']
+        // refresh lets legacy browsers return to the folder while retaining the 401 for HTTP Basic logout
+        ctx.set('Refresh', '0;url=' + localReferer())
+        ctx.body = "Logged out"
+        ctx.status = HTTP_UNAUTHORIZED
         return true
     }
     if (!shouldBeBasic(ctx)) return
@@ -54,6 +54,15 @@ export function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
     stream.on('ending', () =>
         stream.push('</ul>\n' + getSection('basicFooter')) )
     return true
+
+    function localReferer() {
+        const base = ctx.URL
+        const referer = ctx.get('referer')
+        const url = referer && try_(() => new URL(referer, base))
+        // an absolute URL keeps double-slash paths local and drops the logout link's temporary Basic credentials
+        return url && (url.protocol === 'http:' || url.protocol === 'https:') && url.origin === base.origin
+            ? url.origin + url.pathname + url.search + url.hash : '/'
+    }
 
     function a(href: string, label: string) {
         return `<a href='${href}'>${escapeHTML(label)}</a>`

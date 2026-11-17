@@ -1310,6 +1310,24 @@ describe('basics', () => {
             return location
         }
     })
+    test('basic logout clears the session and returns only to a local folder', async () => {
+        const jar = {}
+        await reqApi('refresh_session', {}, res => res.username === username, { auth, jar })()
+        const folder = BASE_URL + '/f1/?get=basic&sort=name'
+        const doubleSlash = BASE_URL + '//double-slash/'
+        for (const [referer, expected] of [
+            [folder, folder], [doubleSlash, doubleSlash],
+            ['https://other.example/folder/', '/'], ['blob:' + folder, '/'], ['', '/'],
+        ] as const) {
+            await req('/?get=logout', { status: 401, mime: 'text/plain', cb(body, res) {
+                assert.equal(body, 'Logged out')
+                assert.equal(res.headers.refresh, '0;url=' + expected)
+            } }, { jar, headers: { referer } })()
+        }
+        await reqApi('refresh_session', {}, res => res.username === '', { auth, jar })()
+        await req('/?get=login', 302, { auth, jar, noRedirect: true })()
+        await reqApi('refresh_session', {}, res => res.username === username, { jar })()
+    })
     test('url login confirms browser account changes', async () => {
         const target = `url-login-${randomId(6)}`.toLowerCase()
         const targetPassword = randomId(12)

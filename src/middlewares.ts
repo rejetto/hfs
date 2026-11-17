@@ -157,8 +157,9 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     // explicit credentials and existing sessions must take precedence, so a matching IP cannot override a chosen account
     let via: 'url' | 'header' | 'net' | undefined
     const urlAccount = await urlLogin()
+    const implicitLogin = !s?.basicLoggedOut || ctx.query.get === 'login' && ctx.state.getOrHead
     let a = ctx.state.urlLoginPage ? undefined
-        : urlAccount || await getHttpAccount() || !s?.username && autoLogin()
+        : urlAccount || (implicitLogin ? await getHttpAccount() || !s?.username && autoLogin() : undefined)
     const loggedInNotBySession = a
     ctx.state.account = a ||= getAccount(s?.username, false) // with least precedence, we consider session
     if (a)
@@ -274,6 +275,7 @@ declare module "koa" {
 
 declare module "koa-session" {
     interface Session {
+        basicLoggedOut?: boolean
         urlLoginConfirmation?: { token: string, username: string, expires: number }
         stamp?: string
     }

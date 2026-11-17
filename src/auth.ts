@@ -88,6 +88,7 @@ export async function setLoggedIn(ctx: Context, username: string | false, via?: 
         ctx.throw(HTTP_UNAUTHORIZED, error)
     }
     const normalized = normalizeUsername(username)
+    delete s.basicLoggedOut
     s.username = normalized
     s.ip = ctx.ip
     s.stamp = sessionStamp
