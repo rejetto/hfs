@@ -315,6 +315,71 @@ describe('basics', () => {
     })
     test('force slash', req('/f1', 302, { noRedirect: true }))
     test('list', reqList('/f1/', { inList:['f2/', 'page/'] }))
+    test('disconnecting an SSE client closes the API source stream', async () => {
+        const adminReq = { auth, jar: {} }
+        const previous = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
+        const script = `let closed = false
+            exports.customRest = {
+                live_fixture() {
+                    const source = new (require('node:stream').Readable)({ objectMode: true, read() {} })
+                    source.once('close', () => { closed = true })
+                    source.push('ready')
+                    return source
+                },
+                live_fixture_state: () => ({ closed }),
+            }`
+        const state = reqApi('_live_fixture_state', {}, 200, adminReq)
+        try {
+            await reqApi('set_config', { values: { server_code: script } }, 200, adminReq)()
+            assert.ok(await waitFor(() => state().then(s => s.closed === false, () => false), { timeout: 3000 }))
+            const event = await readEventStreamOnce(API + '_live_fixture', { headers: { 'x-hfs-anti-csrf': '1' } })
+            assert.equal(event.status, 200)
+            assert.match(event.data, /data: "ready"/)
+            assert.ok(await waitFor(async () => (await state()).closed, { timeout: 3000 }), 'source did not close')
+        }
+        finally {
+            await reqApi('set_config', { values: previous }, 200, adminReq)()
+        }
+    })
+    test('unexpected API errors stay private in JSON and streamed listings', async () => {
+        const adminReq = { auth, jar: {} }
+        const anonymous = { jar: {} }
+        const previous = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
+        const script = `const failure = () => Error('fixture diagnostic')
+            exports.customRest = {
+                returned_error_fixture: failure,
+                async *stream_error_fixture() {
+                    yield { started: true }
+                    await new Promise(resolve => setTimeout(resolve, 100))
+                    throw failure()
+                },
+            }
+            exports.unload = require('./events').default.on('dirEntry', ({ listUri }) => {
+                if (listUri === '/f1/') throw failure()
+            })`
+        try {
+            await reqApi('set_config', { values: { server_code: script } }, 200, adminReq)()
+            const genericError = { status: 500, re: /^Server error$/ }
+            // server_code becomes available asynchronously
+            assert.ok(await waitFor(() => reqApi('_returned_error_fixture', {}, genericError, anonymous)()
+                .then(() => true, () => false), { interval: 50, timeout: 3000 }))
+            await reqList('/f1/', genericError, {}, anonymous)()
+            const stream = await reqList('/f1/', 200, {}, { ...anonymous, headers: { accept: 'text/event-stream' } })()
+            assert.match(stream, /\["e","Server error"/)
+            assert.doesNotMatch(stream, /fixture diagnostic/)
+            const response = await fetch(BASE_URL + '/~/api/_stream_error_fixture', {
+                headers: { 'x-hfs-anti-csrf': '1' }, signal: AbortSignal.timeout(3000),
+            })
+            assert.equal(response.status, 200)
+            const reader = response.body!.getReader()
+            const first = await reader.read()
+            assert.match(Buffer.from(first.value!).toString(), /"started":true/)
+            await assert.rejects(reader.read(), TypeError)
+        }
+        finally {
+            await reqApi('set_config', { values: previous }, 200, adminReq)()
+        }
+    })
     test('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
     test('search root', reqList('/', { inList:['cantListPage/'], outList:['cantListPage/page/'] }, { search:'page' }))
     test('search.fifo order', async () => {

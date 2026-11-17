@@ -83,7 +83,8 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
         }
         catch (error) {
             // streamed searches must report a rejected pattern and release their directory walker
-            list.error(error instanceof ApiError ? error.message || error.status : String(error), true)
+            const { message, status } = ApiError.from(error)
+            list.error(message || status, true)
         }
     })
     return list

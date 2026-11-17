@@ -1,8 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import Koa from 'koa'
+import { isNativeError } from 'node:util/types'
 import createSSE from './sse'
-import { Readable } from 'stream'
+import { pipeline, Readable } from 'stream'
 import { asyncGeneratorToReadable, CFG, Promisable } from './misc'
 import { HTTP_BAD_REQUEST, HTTP_FOOL, PLUGIN_CUSTOM_REST_PREFIX } from './const'
 import { defineConfig } from './config'
@@ -40,31 +41,25 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         let res
         try {
             res = await apiFun(params, ctx)
+            if (isNativeError(res)) throw res
             if (res === null) return
+            // return the initial list as regular JSON when the caller did not request live updates
+            if (res instanceof SendListReadable && ctx.get('accept') !== 'text/event-stream')
+                res = await res.collectInitial()
         }
-        catch(e) {
-            if (typeof e === 'string') // message meant to be transmitted
-                return send(HTTP_BAD_REQUEST, e)
-            if (typeof e === 'number')
-                e = new ApiError(e)
-            res = e
+        catch (error) {
+            const { status, message } = ApiError.from(error)
+            return send(status, message)
         }
         if (isAsyncGenerator(res))
             res = asyncGeneratorToReadable(res)
-        // return the initial list as regular JSON when the caller did not request live updates
-        if (res instanceof SendListReadable && ctx.get('accept') !== 'text/event-stream')
-            res = await res.collectInitial()
         if (res instanceof Readable) { // Readable, we'll go SSE-mode
-            res.pipe(createSSE(ctx))
-            const resAsReadable = res // satisfy ts
-            ctx.req.on('close', () => // by closing the generated stream, creator of the stream will know the request is over without having to access anything else
-                resAsReadable.destroy())
+            // forward late failures and close the generator if the HTTP response is abandoned
+            pipeline(res, createSSE(ctx), error => {
+                if (error && !ctx.res.destroyed) ctx.res.destroy(error)
+            })
             return
         }
-        if (res instanceof ApiError)
-            return send(res.status, res.message)
-        if (res instanceof Error)  // generic error/exception. expose unexpected errors to help diagnose bugs reported by users
-            return send(HTTP_BAD_REQUEST, res.stack || res.message || String(res))
         ctx.body = res
 
         function send(status: number, body?: string) {
