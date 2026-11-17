@@ -19,21 +19,29 @@ enabled.sub(() => {
 })
 setInterval(checkFiles, DAY) // keep updated at run-time
 
-// benchmark: memoize can make this 44x faster
-export const ip2country = _.memoize((ip: string) => ip2location.getCountryShortAsync(ip).then(v => v === '-' ? '' : v, () => ''))
+const cache = new Map<string, Promise<string>>()
+// memoizing the promise lets simultaneous requests for one IP share a database read
+export const ip2country = _.memoize((ip: string) => {
+    if (cache.size > 1000)
+        cache.delete(cache.keys().next().value!)
+    return ip2location.getCountryShortAsync(ip).then(res => /^[A-Z]{2}$/.test(res) ? res : '', () => '') // result may be an error, but 2 letters is for countries
+})
+ip2country.cache = cache
 
 export const geoFilter: Middleware = async (ctx, next) => {
-    if (enabled.get() && !isLocalHost(ctx) && !isIpLan(ctx.ip) && !ignoreNet.compiled()(ctx.ip)) {
-        if (!isOpen()) // keep startup independent of the geo db download, but don't classify external requests before the db had a chance to load
-            await filesCheck
-        const { connection }  = ctx.state
-        const country = connection.country ??= await ip2country(ctx.ip)
-        if (country)
-            updateConnection(connection, { country })
-        if (!ctx.state.skipFilters && allow.get() !== null)
-            if (country ? list.get().includes(country) !== allow.get() : !allowUnknown.get())
-                return disconnect(ctx, 'geo-filter')
-    }
+    const shouldClassify = enabled.get() && !isLocalHost(ctx) && !isIpLan(ctx.ip) && !ignoreNet.compiled()(ctx.ip)
+    if (shouldClassify && !isOpen())
+        await filesCheck // allow database startup before applying the unknown-country policy
+    // a reverse proxy can use one upstream socket for different client IPs
+    const country = shouldClassify && isOpen() ? await ip2country(ctx.ip) : ''
+    const { connection } = ctx.state
+    if (country)
+        ctx.state.geoCountry = country // don't store this info in the connection, as it may be shared between different clients if there's a proxy
+    if ((connection.country || '') !== country)
+        updateConnection(connection, { country })
+    if (shouldClassify && !ctx.state.skipFilters && allow.get() !== null)
+        if (country ? list.get().includes(country) !== allow.get() : !allowUnknown.get())
+            return disconnect(ctx, 'geo-filter')
     await next()
 }
 
@@ -61,7 +69,6 @@ async function checkFiles() {
             if (isOpen())
                 ip2location.close()
             await rename(TEMP, LOCAL_FILE)
-            ip2country.cache.clear?.()
             console.log(`${name} download completed`)
         }
         catch (e: any) {
@@ -70,4 +77,11 @@ async function checkFiles() {
     else if (isOpen()) return
     console.debug(`Loading ${name}`)
     ip2location.open(LOCAL_FILE) // using openAsync causes a DEP0137 error within 10 seconds
+    ip2country.cache.clear?.() // invalidate earlier misses even when the existing file was opened without a download
+}
+
+declare module 'koa' {
+    interface DefaultState {
+        geoCountry?: string
+    }
 }

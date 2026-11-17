@@ -24,7 +24,7 @@ onProcessExit(() => ips.close())
 export const trackIpsMw: Middleware = async (ctx, next) => {
     const tracking = ips.isOpen() && !isLocalHost(ctx)
     const ts = new Date
-    const country = ctx.state.connection.country
+    const country = ctx.state.geoCountry
     let failed = false
     // defer storage update until downstream middlewares have assigned status or thrown
     try {

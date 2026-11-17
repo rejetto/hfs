@@ -16,7 +16,6 @@ import yazl from 'yazl'
 import { pipeline } from 'stream/promises'
 import { rm, unlink, utimes } from 'fs/promises'
 import events from './events'
-import { getConnection } from './connections'
 import { app } from './index'
 import { logGui } from './serveGuiFiles'
 import glob from 'fast-glob'
@@ -102,7 +101,6 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
     }
     if (ctx.isAborted())
         ctx.logExtra({ aborted: true })
-    const conn = getConnection(ctx) // collect reference before close
     // don't await, as we don't want to hold the middlewares chain
     ctx.state.completed.then(() => {
         if (ctx.state.dontLog || ctx.state.considerAsGui && !logGui.get()) return
@@ -150,8 +148,8 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
             size: ctx.state.uploadSize,
             speed: Math.round(ctx.state.uploadSize / duration),
         })
-        if (conn?.country)
-            ctx.logExtra({ country: conn.country })
+        if (ctx.state.geoCountry)
+            ctx.logExtra({ country: ctx.state.geoCountry })
         if (logUA.get())
             ctx.logExtra({ ua: ctx.get('user-agent') || undefined })
         if (logHost.get())
