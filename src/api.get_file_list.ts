@@ -73,10 +73,16 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     if (!list)
         return { ...props, list: await asyncGeneratorToArray(produceEntries()) }
     setTimeout(async () => { // defer production until the stream has been returned and attached to the response
-        list.props(props)
-        for await (const entry of produceEntries())
-            list.add(entry)
-        list.close()
+        try {
+            list.props(props)
+            for await (const entry of produceEntries())
+                list.add(entry)
+            list.close()
+        }
+        catch (error) {
+            // streamed searches must report a rejected pattern and release their directory walker
+            list.error(error instanceof ApiError ? error.message || error.status : String(error), true)
+        }
     })
     return list
 

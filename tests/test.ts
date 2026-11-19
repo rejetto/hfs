@@ -877,6 +877,27 @@ describe('basics', () => {
         if (!paths.includes('f1/page/') || paths.includes('page/'))
             throw Error('unexpected archive paths: ' + paths)
     })
+    test('zip visits each disk branch before collecting its siblings', async () => {
+        const root = await mkdtemp(join(UPLOAD_DISK_ROOT, 'zip-branches-'))
+        const name = basename(root)
+        const branches = Array.from({ length: 32 }, (_, i) => String(i))
+        try {
+            for (const branch of branches)
+                await mkdir(join(root, branch, 'leaf'), { recursive: true })
+            for (const selected of [false, true]) {
+                const url = UPLOAD_ROOT + (selected ? '?get=zip&list=' + name : name + '/?get=zip')
+                const { body } = await httpWithBody(BASE_URL + url, { auth })
+                const paths = (await unzipper.Open.buffer(body!)).files.map(file => file.path)
+                for (const branch of branches) {
+                    const path = (selected ? name + '/' : '') + branch + '/'
+                    const index = paths.indexOf(path)
+                    assert.notEqual(index, -1)
+                    assert.equal(paths[index + 1], path + 'leaf/')
+                }
+            }
+        }
+        finally { await rmAny(root) }
+    })
     test('zip.list.bad encoding', req('/f1/?get=zip&list=%E0%A4%A//%00', { status: 200, length: 22 })) // basically empty
     test('zip.list.null filename', req('/f1/?get=zip&list=%00', 400)) // tries to name the output with null-byte
     test('zip.masked deep', req('/cantSearchForMasksDeep/?get=zip', {

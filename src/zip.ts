@@ -25,7 +25,9 @@ export async function zipStreamFromFolder(node: VfsNodeWithPath, ctx: Koa.Contex
     }
     catch { return ctx.status = 400 }
     const { filterName, filterComment } = paramsToFilter(ctx.query)
-    const walker = !list ? walkNode(node, { ctx, requiredPerm: 'can_archive' })
+    // visit disk folders serially so a slow download cannot queue an entire level of the tree
+    const walkOptions = { ctx, requiredPerm: 'can_archive', parallelizeRecursion: false } as const
+    const walker = !list ? walkNode(node, walkOptions)
         : (async function*(): AsyncIterableIterator<VfsNode> {
             for await (const uri of list) {
                 if (ctx.isAborted()) return
@@ -36,7 +38,7 @@ export async function zipStreamFromFolder(node: VfsNodeWithPath, ctx: Koa.Contex
                     if (hasPermission(subNode, 'can_list', ctx) && hasPermission(subNode, 'can_archive', ctx)) {
                         const archivePath = pathDecodeSegments(uri)
                         yield { ...subNode, name: archivePath } // keep empty selected folders at the same path used for their contents
-                        yield* walkNode(subNode, { ctx, prefixPath: archivePath + '/', requiredPerm: 'can_archive' })
+                        yield* walkNode(subNode, { ...walkOptions, prefixPath: archivePath + '/' })
                     }
                     continue
                 }

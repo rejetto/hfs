@@ -5,7 +5,7 @@ import { basename, dirname, extname, join, resolve, sep } from 'path'
 import {
     CFG, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, WhoVfs, debounceAsync, pathEncode,
     isWhoObject, WHO_ANY_ACCOUNT, WHO_ADMIN, defaultPerms, PERM_KEYS, HTTP_SERVER_ERROR, try_, matches, Promisable,
-    statWithTimeout, safeDecodeURIComponent, getUncHost, Who, enforceFinal, hasFinalSlash, normalizeFilenameForPlatform,
+    statWithTimeout, safeDecodeURIComponent, getUncHost, Who, enforceFinal, hasFinalSlash, normalizeFilenameForPlatform, pendingPromise, PendingPromise,
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -17,7 +17,7 @@ import { getCurrentUsername } from './auth'
 import { Stats } from 'node:fs'
 import fswin from 'fswin'
 import { DESCRIPT_ION, DESCRIPT_ION_ALT, usingDescriptIon } from './comments'
-import { walkDir } from './walkDir'
+import { isFatalDirectoryWalkError, walkDir } from './walkDir'
 import { Readable } from 'node:stream'
 import { ctxAdminAccess } from './adminApis'
 import { canAccessUnfinishedUpload } from './uploadOwners'
@@ -526,134 +526,172 @@ export async function* walkNode(parent: VfsNodeWithPath, {
     parallelizeRecursion = true,
 }: WalkNodeOptions = {}) {
     let started = false
+    let readable: PendingPromise<void> | undefined
     const stream = new Readable({
         objectMode: true,
-        async read() {
-            if (started) return // for simplicity, we care about starting, and never suspend
+        read() {
+            readable?.resolve()
+            readable = undefined
+            if (started) return
             started = true
-            const { source } = parent
-            const taken = new Set()
-            const takenSources = new Set()
-            const visitLater: [VfsNodeWithPath, string][] = []
-            const childrenWorking = parent.children?.length && Promise.all(parent.children.map(async child => {
-                if (ctx?.isAborted()) return
-                const nodeName = getNodeName(child)
-                const name = prefixPath + nodeName
-                taken.add(normalizeFilename(name))
-                for (const sourceName of getSourceNames(child, parent))
-                    takenSources.add(normalizeFilename(prefixPath + sourceName))
-                const item = setVfsPath({ ...child, original: child, name, parent }, name, parent)
-                if (await cantSee(item, parent, nodeName)) return
-                if (item.source && !item.children?.length && !item.see_without_probing) // real items must be accessible, unless probing was explicitly disabled
-                    try { await fs.access(item.source) }
-                    catch { return }
-                const isFolder = nodeIsFolder(child)
-                if (canEmit(item, isFolder))
-                    stream.push(item)
-                if (!depth || !isFolder || cantRecur(item)) return
-                visitLater.push([item, name]) // prioritize siblings
-            }))
-
-            try {
-                if (!source)
-                    return
-                if (requiredPerm && ctx // no permission, no reason to continue (at least for dynamic elements)
-                    && !hasPermission(parent, requiredPerm, ctx)
-                    && !masksCouldGivePermission(parent.masks, requiredPerm)
-                    && !hasNegatedPathMasks(parent, true)) // an excluded descendant can regain permission from an ancestor's negated rule
-                    return
-
-                const diskFolders = new Map<string, { node: VfsNodeWithPath, virtualPath: string }>()
-                diskFolders.set('', { node: parent, virtualPath: '' })
-                const applyPathMask = parentMaskApplier(parent, true, true)
-                const applyRootNameMask = parentMaskApplier(parent, false, true)
-                try {
-                    await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion }, async entry => {
-                        if (ctx?.isAborted())
-                            return null
-                        const {path} = entry // this path is not the original deprecated property: we are overwriting/reusing it
-                        const isFolder = entry.isDirectory()
-                        if (!isFolder && isCommentsFileName(entry.name))
-                            return
-                        const parentPath = dirname(path) === '.' ? '' : dirname(path)
-                        const evaluatedParent = diskFolders.get(parentPath)
-                        if (!evaluatedParent) return false
-                        const physicalName = basename(path)
-                        const virtualName = evaluatedParent.node.rename?.[physicalName] || physicalName
-                        const virtualPath = evaluatedParent.virtualPath
-                            ? evaluatedParent.virtualPath + '/' + virtualName
-                            : virtualName
-                        const name = prefixPath + virtualPath
-                        if (taken.has(normalizeFilename(name))
-                        || takenSources.has(normalizeFilename(prefixPath + path))) // taken by vfs node above
-                            return false // false just in case it's a folder
-                        const item = setVfsPath({
-                            name: virtualName,
-                            isFolder,
-                            source: join(source, path),
-                            parent: evaluatedParent.node,
-                            rename: renameUnderPath(evaluatedParent.node.rename, physicalName),
-                            stats: entry.stats,
-                        }, virtualName, evaluatedParent.node)
-                        const rootMaskProperties: VfsNode = { isFolder }
-                        const exceptions = applyPathMask(rootMaskProperties, virtualPath)
-                        for (const key of applyRootNameMask(rootMaskProperties, virtualName))
-                            exceptions.add(key)
-                        for (const key of exceptions)
-                            if (!(key in rootMaskProperties))
-                                rootMaskProperties[key] = parent[key]
-                        if (await cantSee(item, evaluatedParent.node, virtualName, rootMaskProperties)) // can't see: don't produce and don't recur
-                            return false
-                        if (isFolder)
-                            diskFolders.set(path, { node: item, virtualPath })
-                        item.name = name
-                        if (canEmit(item, isFolder))
-                            stream.push(item)
-                        if (cantRecur(item))
-                            return false
-                    })
-                }
-                catch(e) {
-                    console.debug('walkNode', source, String(e)) // ENOTDIR, or lacking permissions
-                }
-            }
-            finally {
-                await childrenWorking
-                for (const [item, name] of visitLater)
-                    for await (const x of walkNode(item, { depth: depth - 1, prefixPath: name + '/', ctx, requiredPerm, onlyFolders, onlyFiles, parallelizeRecursion })) {
-                        if (ctx?.isAborted())
-                            return stream.push(null)
-                        stream.push(x)
-                    }
-                stream.push(null)
-            }
-
-            function cantRecur(item: VfsNodeWithPath) {
-                return ctx && !hasPermission(item, 'can_list', ctx)
-            }
-
-            function canEmit(item: VfsNodeWithPath, isFolder: boolean | undefined) {
-                return !(requiredPerm && ctx && !hasPermission(item, requiredPerm, ctx))
-                    && (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
-            }
-
-            // item will be changed, so be sure to pass a temp node
-            async function cantSee(item: VfsNodeWithPath, itemParent: VfsNodeWithPath, virtualName: string, pathPermissions?: VfsPerms) {
-                const scoped = applyParentMasks(item, itemParent, virtualName, parent)
-                inheritFromParent(item)
-                if (!scoped)
-                    Object.assign(item, pathPermissions)
-                if (ctx && !await canAccessUnfinishedUpload(item, ctx)) return true
-                if (ctx && !hasPermission(item, 'can_see', ctx)) return true
-                item.isTemp = true
-            }
-        }
+            void produce().catch(error => stream.destroy(error))
+        },
+        destroy(error, callback) {
+            // cancellation must wake a producer waiting for a consumer that has gone away
+            readable?.resolve()
+            callback(error)
+        },
     })
 
+    async function emit(item: VfsNodeWithPath) {
+        if (stream.destroyed) return false
+        if (!stream.push(item)) {
+            readable ??= pendingPromise<void>()
+            await readable
+        }
+        return !stream.destroyed
+    }
+
+    async function produce() {
+        const { source } = parent
+        const taken = new Set()
+        const takenSources = new Set()
+        const visitLater: [VfsNodeWithPath, string][] = []
+        const children = parent.children || []
+        for (const child of children) {
+            const nodeName = getNodeName(child)
+            const name = prefixPath + nodeName
+            taken.add(normalizeFilename(name))
+            for (const sourceName of getSourceNames(child, parent))
+                takenSources.add(normalizeFilename(prefixPath + sourceName))
+        }
+        // share the iterator so a slow mount leaves other probes free, while serial walks preserve entry order
+        const pendingChildren = children.values()
+        const probes = Math.min(children.length, parallelizeRecursion ? 3 : 1)
+        await Promise.all([produceDisk(), ...Array.from({ length: probes }, produceChildren)])
+        for (const [item, name] of visitLater) {
+            if (stream.destroyed || ctx?.isAborted()) break
+            for await (const x of walkNode(item, { depth: depth - 1, prefixPath: name + '/', ctx, requiredPerm, onlyFolders, onlyFiles, parallelizeRecursion })) {
+                if (ctx?.isAborted()) return stream.push(null)
+                if (!await emit(x)) return
+            }
+        }
+        stream.push(null)
+
+        async function produceDisk() {
+            if (!source)
+                return
+            if (requiredPerm && ctx // no permission, no reason to continue (at least for dynamic elements)
+                && !hasPermission(parent, requiredPerm, ctx)
+                && !masksCouldGivePermission(parent.masks, requiredPerm)
+                && !hasNegatedPathMasks(parent, true)) // an excluded descendant can regain permission from an ancestor's negated rule
+                return
+
+            const diskFolders = new Map<string, { node: VfsNodeWithPath, virtualPath: string }>()
+            diskFolders.set('', { node: parent, virtualPath: '' })
+            const applyPathMask = parentMaskApplier(parent, true, true)
+            const applyRootNameMask = parentMaskApplier(parent, false, true)
+            try {
+                await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion,
+                    onDirectoryEnd: path => { diskFolders.delete(path) },
+                }, async entry => {
+                    if (stream.destroyed || ctx?.isAborted())
+                        return null
+                    const {path} = entry // this path is not the original deprecated property: we are overwriting/reusing it
+                    const isFolder = entry.isDirectory()
+                    if (!isFolder && isCommentsFileName(entry.name))
+                        return
+                    const parentPath = dirname(path) === '.' ? '' : dirname(path)
+                    const evaluatedParent = diskFolders.get(parentPath)
+                    if (!evaluatedParent) return false
+                    const physicalName = basename(path)
+                    const virtualName = evaluatedParent.node.rename?.[physicalName] || physicalName
+                    const virtualPath = evaluatedParent.virtualPath
+                        ? evaluatedParent.virtualPath + '/' + virtualName
+                        : virtualName
+                    const name = prefixPath + virtualPath
+                    if (taken.has(normalizeFilename(name))
+                    || takenSources.has(normalizeFilename(prefixPath + path))) // taken by vfs node above
+                        return false // false just in case it's a folder
+                    const item = setVfsPath({
+                        name: virtualName,
+                        isFolder,
+                        source: join(source, path),
+                        parent: evaluatedParent.node,
+                        rename: renameUnderPath(evaluatedParent.node.rename, physicalName),
+                        stats: entry.stats,
+                    }, virtualName, evaluatedParent.node)
+                    const rootMaskProperties: VfsNode = { isFolder }
+                    const exceptions = applyPathMask(rootMaskProperties, virtualPath)
+                    for (const key of applyRootNameMask(rootMaskProperties, virtualName))
+                        exceptions.add(key)
+                    for (const key of exceptions)
+                        if (!(key in rootMaskProperties))
+                            rootMaskProperties[key] = parent[key]
+                    if (await cantSee(item, evaluatedParent.node, virtualName, rootMaskProperties)) // can't see: don't produce and don't recur
+                        return false
+                    item.name = name
+                    if (canEmit(item, isFolder) && !await emit(item))
+                        return null
+                    if (cantRecur(item))
+                        return false
+                    if (isFolder && path.split('/').length <= depth)
+                        diskFolders.set(path, { node: item, virtualPath })
+                })
+            }
+            catch(e) {
+                if (isFatalDirectoryWalkError(e)) throw e
+                console.debug('walkNode', source, String(e)) // ENOTDIR, or lacking permissions
+            }
+        }
+
+        async function produceChildren() {
+            for (const child of pendingChildren) {
+                if (stream.destroyed || ctx?.isAborted()) return
+                const nodeName = getNodeName(child)
+                const name = prefixPath + nodeName
+                const item = setVfsPath({ ...child, original: child, name, parent }, name, parent)
+                if (await cantSee(item, parent, nodeName)) continue
+                if (item.source && !item.children?.length && !item.see_without_probing) // real items must be accessible, unless probing was explicitly disabled
+                    try { await fs.access(item.source) }
+                    catch { continue }
+                const isFolder = nodeIsFolder(child)
+                if (canEmit(item, isFolder) && !await emit(item)) return
+                if (!depth || !isFolder || cantRecur(item)) continue
+                visitLater.push([item, name]) // prioritize siblings
+            }
+        }
+
+        function cantRecur(item: VfsNodeWithPath) {
+            return ctx && !hasPermission(item, 'can_list', ctx)
+        }
+
+        function canEmit(item: VfsNodeWithPath, isFolder: boolean | undefined) {
+            return !(requiredPerm && ctx && !hasPermission(item, requiredPerm, ctx))
+                && (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
+        }
+
+        // item will be changed, so be sure to pass a temp node
+        async function cantSee(item: VfsNodeWithPath, itemParent: VfsNodeWithPath, virtualName: string, pathPermissions?: VfsPerms) {
+            const scoped = applyParentMasks(item, itemParent, virtualName, parent)
+            inheritFromParent(item)
+            if (!scoped)
+                Object.assign(item, pathPermissions)
+            if (ctx && !await canAccessUnfinishedUpload(item, ctx)) return true
+            if (ctx && !hasPermission(item, 'can_see', ctx)) return true
+            item.isTemp = true
+        }
+    }
+
     // must use a stream to be able to work with the callback-based mechanism of walkDir, but Readable is not typed so we wrap it with a generator
-    for await (const item of stream) {
-        if (ctx?.isAborted()) return
-        yield item as VfsNodeWithPath
+    try {
+        for await (const item of stream) {
+            if (ctx?.isAborted()) return
+            yield item as VfsNodeWithPath
+        }
+    }
+    finally {
+        stream.destroy()
     }
 }
 
