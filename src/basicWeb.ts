@@ -1,9 +1,10 @@
 import { getCurrentUsername, setLoggedIn } from './auth'
 import { BASIC_AUTHENTICATE_HEADER, HTTP_UNAUTHORIZED } from './cross-const'
 import Koa from 'koa'
+import { Readable } from 'stream'
 import { defineConfig } from './config'
 import { getNodeName, getDefaultFile, nodeIsFolder, VfsNodeWithPath, walkNode } from './vfs'
-import { asyncGeneratorToReadable, CFG, Dict, escapeHTML, filterMapGenerator, pathEncode, try_ } from './misc'
+import { CFG, Dict, escapeHTML, pathEncode, try_ } from './misc'
 import _ from 'lodash'
 import { title } from './adminApis'
 import { getSection } from './customHtml'
@@ -34,25 +35,24 @@ export async function basicWeb(ctx: Koa.Context, node: VfsNodeWithPath) {
     if (!shouldBeBasic(ctx)) return
     ctx.type = 'html'
     const force = get === 'basic' ? '?get=basic' : ''
-    const walker = walkNode(node, { ctx, depth: 0 })
-    const stream = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
-        const isFolder = nodeIsFolder(el)
-        const name = getNodeName(el) + (isFolder ? '/' : '')
-        const forceThis = isFolder && (el.see_without_probing || !await getDefaultFile(el, ctx)) ? force : ''
-        return `<li>${a(pathEncode(name) + forceThis, name)}\n`
-    }))
-    ctx.body = stream
-    stream.push(`<meta name="viewport" content="width=device-width" />`)
-    stream.push(`<style>body { font-size: 16pt; }</style>`)
-    stream.push(`<title>${title.get()}</title><body>`)
-    stream.push(getSection('basicHeader'))
-    const u = getCurrentUsername(ctx)
-    const links: Dict<string> = u ? { [`//LOGOUT%00:@${ctx.host}/?get=logout`]: `Logout (${u})` } : { '/?get=login': "Login" }
-    stream.push(_.map(links, (v,k) => a(k, v)).join(' ') + '\n<ul>\n')
-    if (ctx.state.originalPath.length > 1)
-        stream.push('<li>' + a('..' + force, '..') + '\n')
-    stream.on('ending', () =>
-        stream.push('</ul>\n' + getSection('basicFooter')) )
+    ctx.body = Readable.from((async function* () {
+        yield `<meta name="viewport" content="width=device-width" />`
+        yield `<style>body { font-size: 16pt; }</style>`
+        yield `<title>${title.get()}</title><body>`
+        yield getSection('basicHeader')
+        const u = getCurrentUsername(ctx)
+        const links: Dict<string> = u ? { [`//LOGOUT%00:@${ctx.host}/?get=logout`]: `Logout (${u})` } : { '/?get=login': "Login" }
+        yield _.map(links, (v,k) => a(k, v)).join(' ') + '\n<ul>\n'
+        if (ctx.state.originalPath.length > 1)
+            yield '<li>' + a('..' + force, '..') + '\n'
+        for await (const el of walkNode(node, { ctx, depth: 0 })) {
+            const isFolder = nodeIsFolder(el)
+            const name = getNodeName(el) + (isFolder ? '/' : '')
+            const forceThis = isFolder && (el.see_without_probing || !await getDefaultFile(el, ctx)) ? force : ''
+            yield `<li>${a(pathEncode(name) + forceThis, name)}\n`
+        }
+        yield '</ul>\n' + getSection('basicFooter')
+    })())
     return true
 
     function localReferer() {

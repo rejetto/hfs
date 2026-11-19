@@ -12,7 +12,7 @@ import {
 import { getUploadTempFor, uploadWriter } from './upload'
 import { handleMultipartUpload } from './multipartUpload'
 import { pipeline } from 'stream/promises'
-import { Transform } from 'stream'
+import { Readable, Transform } from 'stream'
 import { serveFile, serveFileNode } from './serveFile'
 import { BUILD_TIMESTAMP, DEV, MIME_AUTO, VERSION } from './const'
 import { zipStreamFromFolder } from './zip'
@@ -21,7 +21,7 @@ import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
 import {
-    asyncGeneratorToReadable, deleteStoredFileAttrs, filterMapGenerator, isValidFileName, loadFileCached, pathEncode,
+    deleteStoredFileAttrs, filterMapGenerator, isValidFileName, loadFileCached, pathEncode,
     pathDecodeSegments, safeDecodeURIComponent, try_, enforceFinal,
 } from './misc'
 import { roots } from './roots'
@@ -186,7 +186,7 @@ async function sendFolderList(node: VfsNodeWithPath, ctx: Koa.Context) {
         prepend = base + pathDecodeSegments(path, pathEncode)
     }
     const walker = walkNode(node, { ctx, depth: depth === '*' ? Infinity : Number(depth), parallelizeRecursion: false }) // parallelization produces out-of-order results, and we don't want it like that here
-    ctx.body = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
+    ctx.body = Readable.from(filterMapGenerator(walker, async el => {
         const isFolder = nodeIsFolder(el)
         return !folders && isFolder ? undefined
             : prepend + pathEncode(getNodeName(el)) + (isFolder ? '/' : '') + '\n'

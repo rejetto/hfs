@@ -9,7 +9,7 @@ export * from './cross'
 export * from './debounceAsync'
 export * from './AsapStream'
 export { pattern2filter } from './searchPattern'
-import { Readable, Transform } from 'stream'
+import { Transform } from 'stream'
 import { SocketAddress, BlockList } from 'node:net'
 import { ApiError } from './ApiError'
 import { HTTP_BAD_REQUEST } from './const'
@@ -78,23 +78,6 @@ function parseAddress(s: string) {
 
 export function same(a: any, b: any) {
     return _.isEqual(a, b)
-}
-
-export function asyncGeneratorToReadable<T>(generator: AsyncIterable<T>) {
-    const iterator = generator[Symbol.asyncIterator]()
-    return new Readable({
-        objectMode: true,
-        destroy(error, callback) {
-            Promise.resolve(iterator.return?.()).then(() => callback(error), callback)
-        },
-        read() {
-            iterator.next().then(it => {
-                if (it.done)
-                    this.emit('ending')
-                return this.push(it.done ? null : it.value)
-            }, e => this.destroy(e))
-        }
-    })
 }
 
 export function apiAssertTypes(paramsByType: { [type:string]: { [name:string]: any  } }) {

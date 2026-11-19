@@ -4,7 +4,7 @@ import Koa from 'koa'
 import { isNativeError } from 'node:util/types'
 import createSSE from './sse'
 import { pipeline, Readable } from 'stream'
-import { asyncGeneratorToReadable, CFG, Promisable } from './misc'
+import { CFG, Promisable } from './misc'
 import { HTTP_BAD_REQUEST, HTTP_FOOL, PLUGIN_CUSTOM_REST_PREFIX } from './const'
 import { defineConfig } from './config'
 import { firstPlugin } from './plugins'
@@ -52,7 +52,7 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
             return send(status, message)
         }
         if (isAsyncGenerator(res))
-            res = asyncGeneratorToReadable(res)
+            res = Readable.from(res)
         if (res instanceof Readable) { // Readable, we'll go SSE-mode
             // forward late failures and close the generator if the HTTP response is abandoned
             pipeline(res, createSSE(ctx), error => {

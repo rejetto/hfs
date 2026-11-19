@@ -349,6 +349,9 @@ describe('basics', () => {
         const script = `const failure = () => Error('fixture diagnostic')
             exports.customRest = {
                 returned_error_fixture: failure,
+                async *stream_end_fixture() {
+                    yield 'first'
+                },
                 async *stream_error_fixture() {
                     yield { started: true }
                     await new Promise(resolve => setTimeout(resolve, 100))
@@ -368,6 +371,8 @@ describe('basics', () => {
             const stream = await reqList('/f1/', 200, {}, { ...anonymous, headers: { accept: 'text/event-stream' } })()
             assert.match(stream, /\["e","Server error"/)
             assert.doesNotMatch(stream, /fixture diagnostic/)
+            await req('/~/api/_stream_end_fixture', { status: 200, re: /^data: "first"\n\ndata:\n\n$/ },
+                { headers: { 'x-hfs-anti-csrf': '1' } })()
             const response = await fetch(BASE_URL + '/~/api/_stream_error_fixture', {
                 headers: { 'x-hfs-anti-csrf': '1' }, signal: AbortSignal.timeout(3000),
             })
@@ -691,6 +696,9 @@ describe('basics', () => {
     test('name encoding search', reqList('/', { inList: [FUNNY_NAME] }, { search: FUNNY_NAME }))
     test('basic header and footer are available in the custom HTML editor', reqApi('get_custom_html', {},
         ({ sections }) => 'basicHeader' in sections && 'basicFooter' in sections, { auth, jar: {} }))
+    test('basic listing streams custom HTML around the folder entries', () =>
+        withCustomHtml({ basicHeader: '<header>Start</header>', basicFooter: '<footer>End</footer>' }, () =>
+            req('/tests/page/?get=basic', { status: 200, re: /<header>Start<\/header>.*<ul>.*gpl\.png.*<\/ul>\s*<footer>End<\/footer>$/s })()))
     test('basic listing escapes', { skip: process.platform === 'win32' && 'Windows forbids < and > in filenames' }, async () => {
         const name = '<img src=x onerror=alert(1)>.png'
         const path = resolve(__dirname, name)
