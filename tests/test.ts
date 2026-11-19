@@ -25,7 +25,7 @@ import { httpStream, httpString, httpWithBody, stream2string, XRequestOptions } 
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { makeQ } from '../src/makeQ'
 import { mkdir, readdir, rm, rename, writeFile, access, mkdtemp, symlink } from 'fs/promises'
-import { Readable } from 'stream'
+import { PassThrough, Readable } from 'stream'
 import { once } from 'events'
 import { QuickZipStream } from '../src/QuickZipStream'
 import { XMLValidator } from 'fast-xml-parser'
@@ -4313,11 +4313,25 @@ describe('after-login', () => {
     })
     test('upload.crossing', reqUpload(UPLOAD_DEST.replace(UPLOAD_DIR, '../..'), 404))
     test('upload.overlap', async () => {
-        const ms = 300
-        const first = reqUpload(UPLOAD_DEST, 200, makeReadableThatTakes(ms))()
-        await wait(ms/3)
-        await reqUpload(UPLOAD_DEST, 409)() // should conflict
-        await first
+        const name = `overlap-${randomId(6)}.txt`
+        const dest = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        const temp = resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR, UPLOAD_TEMP_PREFIX + name)
+        const body = new PassThrough()
+        const first = reqUpload(dest, 200, body, 2)()
+        body.write('a')
+        try {
+            // wait for the server to reserve the upload and hold the body open until the competing request finishes
+            const started = await Promise.race([
+                waitFor(() => existsSync(temp), { interval: 25, timeout: 3000 }),
+                first.then(() => false),
+            ])
+            assert.ok(started, 'first upload did not start')
+            await reqUpload(dest, 409, 'b')()
+        }
+        finally {
+            body.end('b')
+            await first.finally(() => rmAny(uploadUriToPath(dest)))
+        }
     })
     test('upload.concurrent', { timeout: 10_000 }, () => Promise.all([ // test concurrency, not disk throughput
         reqUpload(UPLOAD_DEST, 200, new StringRepeaterStream(BIG_CONTENT, 150))(), // 300MB
