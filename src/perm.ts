@@ -223,8 +223,8 @@ export function addAccount(username: string, props: Partial<Account>, updateExis
     let account = getAccount(username, false)
     if (account && !updateExisting) return
     account = setHidden(account || {}, { username })  // hidden so that stringification won't include it
-    accounts.set(was =>
-        Object.assign(was, { [username]: account }))
+    // keep unchanged account objects and their non-enumerable usernames
+    accounts.set({ ...accounts.get(), [username]: account })
     return updateAccount(account, _.pickBy(props, Boolean)).then(() => account!)
 }
 
@@ -232,7 +232,7 @@ export function delAccount(username: string) {
     if (!getAccount(username))
         return false
     username = normalizeUsername(username)
-    accounts.set(was => _.omit(was, username) )
+    accounts.set(_.omit(accounts.get(), username))
     saveAccountsAsap()
     return true
 }

@@ -1317,6 +1317,32 @@ describe('basics', () => {
     })
 })
 
+test('account mutations preserve unchanged account identity', async () => {
+    const adminReq = { auth, jar: {} }
+    const previous = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
+    const script = `exports.init = api => {
+        const { addAccount, delAccount, getAccount } = api.require('./perm')
+        exports.customRest = { account_mutation_probe: async ({ username, other }) => {
+            const original = getAccount(username)
+            const adding = addAccount(other, {})
+            const afterAdd = getAccount(username)
+            await adding
+            delAccount(other)
+            const afterDelete = getAccount(username)
+            return { added: afterAdd === original && afterAdd?.username === username,
+                deleted: afterDelete === original && afterDelete?.username === username }
+        } }
+    }`
+    try {
+        await reqApi('set_config', { values: { server_code: script } }, 200, adminReq)()
+        const result = await reqApi('_account_mutation_probe', { username, other: 'probe-' + randomId(6) }, 200, adminReq)()
+        assert.deepEqual(result, { added: true, deleted: true })
+    }
+    finally {
+        await reqApi('set_config', { values: previous }, 200, adminReq)()
+    }
+})
+
 describe('webdav', () => {
     const jar = {}
     after(() => rmAny(resolve(UPLOAD_DISK_ROOT, UPLOAD_DIR)))
