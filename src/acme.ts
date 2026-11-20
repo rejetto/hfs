@@ -1,5 +1,5 @@
 import {
-    Dict, haveTimeout, HOUR, HTTP_FAILED_DEPENDENCY, HTTP_OK, ipForUrl, MINUTE, repeat, formatDate,
+    Dict, haveTimeout, HOUR, HTTP_FAILED_DEPENDENCY, HTTP_OK, ipForUrl, MINUTE, repeat, formatDate, waitFor,
 } from './misc'
 import { createServer, IncomingMessage, ServerResponse } from 'http'
 import { Middleware } from 'koa'
@@ -199,6 +199,10 @@ export async function makeCert(domain: string, email?: string, altNames: string[
         await fs.writeFile(CERT_FILE, res.cert)
         cert.set(CERT_FILE)
         privateKey.set(KEY_FILE)
+        // the admin reads the loaded certificate as soon as we announce completion, even when the paths haven't changed
+        const key = res.key.toString()
+        if (!await waitFor(() => cert.compiled() === res.cert && privateKey.compiled() === key, { timeout: 10_000 }))
+            throw Error("Timed out loading the new certificate and private key")
         acmeRenewError = ''
         acmeStatus = { ...acmeStatus, state: 'done', warning: res.warning }
         progress("Certificate created")

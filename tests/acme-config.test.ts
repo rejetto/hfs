@@ -7,6 +7,8 @@ import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import yaml from 'yaml'
+import { rootCertificates } from 'node:tls'
+import { X509Certificate } from 'node:crypto'
 
 test('DNS settings persist across restart, reject incompatible schemas and unregister plugins', { timeout: 30_000 }, async t => {
     const cwd = await mkdtemp(join(tmpdir(), 'hfs-acme-config-'))
@@ -23,12 +25,23 @@ exports.init = api => {
 `)
     await writeFile(join(cwd, 'config.yaml'), yaml.stringify({ port: 0, listen_interface: '127.0.0.1', open_browser_at_start: false,
         enable_plugins: ['test-dns'], log: '', error_log: '', upnp: false }))
-    const first = await start()
+    const mockIssuer = join(cwd, 'mock-issuer.cjs')
+    await writeFile(mockIssuer, `
+let issued = 0
+require(${JSON.stringify(require.resolve('acme-client', { paths: [resolve(__dirname, '../dist/src')] }))}).Client.prototype.auto = async () =>
+    require('node:tls').rootCertificates[issued++]
+`)
+    const first = await start(['--require', mockIssuer])
     await waitFor(async () => (await first.api('get_acme')).providers.some((p: { id: string }) => p.id === 'Local test DNS'))
     const settings = { domain: '*.example.test', renew: true, challenge: 'dns-01',
         dns: [{ id: 'main', provider: 'Local test DNS', config_version: 1, credentials: { token: 'secret-one' } }] }
     const saved = await first.api('set_acme', { settings })
     assert.deepEqual(saved.dns[0].credentials, { token: 'secret-one' })
+    // the second issuance overwrites the same watched paths as the first
+    for (const pem of rootCertificates.slice(0, 2)) {
+        await first.api('make_cert', { domain: '*.example.test' })
+        assert.equal((await first.api('get_cert')).validTo, new X509Certificate(pem).validTo)
+    }
     settings.dns[0].credentials.token = ''
     const cleared = await first.api('set_acme', { settings })
     assert.equal(cleared.dns[0].credentials.token, '')
@@ -68,8 +81,8 @@ exports.init = api => {
     assert.equal(wildcard.status, 500)
     assert.match(await wildcard.text(), /Select a DNS provider for wildcard certificates/)
 
-    async function start() {
-        const child = spawn(process.execPath, [resolve(__dirname, '../dist/src/index.js'), '--cwd', cwd, '--no-central'], {
+    async function start(nodeArgs: string[] = []) {
+        const child = spawn(process.execPath, [...nodeArgs, resolve(__dirname, '../dist/src/index.js'), '--cwd', cwd, '--no-central'], {
             env: Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('HFS_'))), stdio: ['ignore', 'pipe', 'pipe'],
         })
         let output = '', url = ''
