@@ -5,7 +5,8 @@ import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
 import {
-    API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, MIME_AUTO, PLUGINS_PUB_URI, EMBEDDED_LANGUAGE, HTTP_NOT_FOUND,
+    API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, MIME_AUTO, PLUGINS_PUB_URI, EMBEDDED_LANGUAGE, 
+    HTTP_NOT_FOUND, PLUGIN_MAIN_FILE,
 } from './const'
 import * as Const from './const'
 import Koa from 'koa'
@@ -489,7 +490,6 @@ enablePlugins.sub(rescanAsap)
 export const suspendPlugins = defineConfig(CFG.suspend_plugins, false)
 
 export const pluginsConfig = defineConfig(CFG.plugins_config, {} as Record<string,any>)
-export const PLUGIN_MAIN_FILE = 'plugin.js'
 
 const pluginWatchers = new Map<string, ReturnType<typeof watchPlugin>>()
 
@@ -530,7 +530,7 @@ function watchPlugin(id: string, path: string) {
     const { unwatch } = watchLoad(module, async source => {
         const notRunning = inactivePlugins[id]
         if (!source)
-            return onUninstalled()
+            return onUninstalled(`${PLUGIN_MAIN_FILE} missing or empty`)
         if (isPluginEnabled(id, true))
             return start()
         const p = parsePluginSource(id, source) // plugin not running = json parsing
@@ -542,13 +542,14 @@ function watchPlugin(id: string, path: string) {
         console.debug('Plugin unwatch', id)
         unsub()
         unwatch()
-        return onUninstalled()
+        return onUninstalled("plugin folder absent from scan")
     }
 
-    async function onUninstalled() {
+    async function onUninstalled(reason: string) {
         await stop()
         const info = getPluginInfo(id)
         if (!info) return // already missing
+        console.log("Removing plugin from registry", id, module, reason)
         delete inactivePlugins[id]
         events.emit('pluginUninstalled', id, info.repo)
     }
@@ -567,8 +568,10 @@ function watchPlugin(id: string, path: string) {
         const p = plugins.get(id)
         if (!p) return
         await p.unload()
-        await markItInactive().catch(() =>
-            events.emit('pluginUninstalled', id, p.repo)) // when a running plugin is deleted, avoid error and report
+        await markItInactive().catch(error => {
+            console.warn("Cannot register stopped plugin", id, module, error)
+            events.emit('pluginUninstalled', id, p.repo)
+        })
         events.emit('pluginStopped', p)
     }
 

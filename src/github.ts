@@ -7,13 +7,12 @@ import {
 import {
     DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getInactivePlugins, getPluginInfo, isPluginRunning, mapPlugins,
     parsePluginSource, PATH as PLUGINS_PATH, Repo, startPlugin, stopPlugin, STORAGE_FOLDER, DELETE_ME_SUFFIX,
-    PLUGIN_MAIN_FILE
 } from './plugins'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
 import {
     HFS_REPO, HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FORBIDDEN, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR, VERSION,
-    RUNNING_BETA,
+    RUNNING_BETA, PLUGIN_MAIN_FILE,
 } from './const'
 import { access, mkdir, rmdir, readFile, rename, rm, writeFile } from 'fs/promises'
 import { join } from 'path'
@@ -43,7 +42,7 @@ function getGithubDefaultBranch(repo: string) {
         throw 'malformed repo'
     return branchCache.try(repo, async () => {
         for (const b of ['main', 'master']) // try to not consume api quota
-            if (await httpString(`https://github.com/${repo}/raw/refs/heads/${b}/dist/plugin.js`, { method: 'HEAD', noRedirect: true }).then(() => 1, () => 0))
+            if (await httpString(`https://github.com/${repo}/raw/refs/heads/${b}/dist/${PLUGIN_MAIN_FILE}`, { method: 'HEAD', noRedirect: true }).then(() => 1, () => 0))
                 return b
         return (await getRepoInfo(repo))?.default_branch as string
     })

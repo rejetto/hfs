@@ -29,7 +29,7 @@ import { PassThrough, Readable } from 'stream'
 import { once } from 'events'
 import { QuickZipStream } from '../src/QuickZipStream'
 import { XMLValidator } from 'fast-xml-parser'
-import { BASIC_AUTHENTICATE_HEADER } from '../src/cross'
+import { BASIC_AUTHENTICATE_HEADER, PLUGIN_MAIN_FILE } from '../src/cross'
 import { ClientRequest, createServer, request as httpRequest } from 'http'
 import fswin from 'fswin'
 import { tmpdir } from 'os'
@@ -5430,7 +5430,7 @@ exports.init = api => {
         }
     })
     test('antibrute.prototype-key username does not pollute Object prototype', async () => {
-        const antibrute = require('../plugins/antibrute/plugin.js')
+        const antibrute = require(`../plugins/antibrute/${PLUGIN_MAIN_FILE}`)
         const handlers: any = {}
         const proto: any = Object.prototype
         const hadTimer = Object.hasOwn(proto, 'timer')

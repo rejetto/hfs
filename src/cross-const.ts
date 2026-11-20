@@ -6,6 +6,7 @@ export const PLUGINS_PUB_URI = SPECIAL_URI + 'plugins/'
 export const ICONS_URI = SPECIAL_URI + 'icons/'
 export const PORT_DISABLED = -1
 export const NBSP = '\xA0'
+export const PLUGIN_MAIN_FILE = 'plugin.js'
 export const PLUGIN_CUSTOM_REST_PREFIX = '_'
 export const HFS_REPO = 'rejetto/hfs'
 export const PLUGIN_USAGE_URL = 'https://hfs-api.rejetto.com/plugin-usage'
