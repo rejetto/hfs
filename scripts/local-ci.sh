@@ -71,19 +71,6 @@ else
     done
 fi
 
-mkdir -p "$WORKTREE_BASE"
-
-# Validate commit if provided
-if [ -n "$COMMIT_REQUEST" ]; then
-    if resolved_commit=$(git -C "$PROJECT_ROOT" rev-parse --verify "$COMMIT_REQUEST^{commit}" 2>/dev/null); then
-        COMMIT_REQUEST="$resolved_commit"
-        echo "$COMMIT_REQUEST" > "$CI_DIR/test-commit"
-    else
-        echo "Error: Invalid commit hash: $COMMIT_REQUEST"
-        exit 1
-    fi
-fi
-
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
 }
@@ -435,6 +422,28 @@ run_test() {
     return $exit_code
 }
 
+tested_commits=$(load_tested)
+if [ "$MODE" = "once" ]; then
+    if ! resolved_commit=$(git -C "$PROJECT_ROOT" rev-parse --verify "$COMMIT_REQUEST^{commit}" 2>/dev/null); then
+        echo "Error: Invalid commit hash: $COMMIT_REQUEST"
+        exit 1
+    fi
+    COMMIT_REQUEST="$resolved_commit"
+    # a cache hit must leave the watcher's pending request and queue alone
+    if is_tested "$COMMIT_REQUEST" "$tested_commits"; then
+        if [ "$FORCE_TEST" -ne 1 ]; then
+            log "Commit $COMMIT_REQUEST is already validated. Run again with --force to check it again."
+            exit 0
+        fi
+        log "Commit $COMMIT_REQUEST is already validated; forcing a fresh check"
+    fi
+fi
+
+mkdir -p "$WORKTREE_BASE"
+if [ "$MODE" = "once" ]; then
+    echo "$COMMIT_REQUEST" > "$CI_DIR/test-commit"
+fi
+
 # Main loop
 trap 'on_stop_signal SIGINT' INT
 trap 'on_stop_signal SIGTERM' TERM
@@ -442,7 +451,6 @@ trap 'on_stop_signal SIGTERM' TERM
 log "Local CI started"
 
 # Load state from files (survives restarts)
-tested_commits=$(load_tested)
 queue=$(load_queue)
 current_branch=$(get_current_branch)
 head_commit=$(git -C "$PROJECT_ROOT" rev-parse HEAD)
@@ -476,16 +484,6 @@ if [ "$MODE" = "once" ]; then
     queue='[]'
     save_queue "$queue"
     clear_in_progress
-fi
-
-if [ "$MODE" = "once" ] && [ -n "$COMMIT_REQUEST" ] && is_tested "$COMMIT_REQUEST" "$tested_commits"; then
-    if [ "$FORCE_TEST" -eq 1 ]; then
-        log "Commit $COMMIT_REQUEST is already validated; forcing a fresh check"
-    else
-        log "Commit $COMMIT_REQUEST is already validated. Run again with --force to check it again."
-        rm -f "$CI_DIR/test-commit"
-        exit 0
-    fi
 fi
 
 log "Loaded tested: $(echo "$tested_commits" | jq 'length') commits"
