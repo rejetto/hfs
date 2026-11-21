@@ -33,6 +33,7 @@ export interface DirEntry { // common properties are single letter to reduce the
 }
 
 export function paramsToFilter({ search, wild, searchComment, fileMask }: any) {
+    apiAssertTypes({ string_undefined: { fileMask } })
     search = String(search || '').toLocaleLowerCase()
     searchComment = String(searchComment || '').toLocaleLowerCase()
     const budget = { remaining: 100 }

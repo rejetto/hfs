@@ -315,6 +315,7 @@ describe('basics', () => {
     })
     test('force slash', req('/f1', 302, { noRedirect: true }))
     test('list', reqList('/f1/', { inList:['f2/', 'page/'] }))
+    test('list rejects a non-string file mask', reqList('/f1/', { status: 400, re: /^bad fileMask$/ }, { fileMask: false }))
     test('disconnecting an SSE client closes the API source stream', async () => {
         const adminReq = { auth, jar: {} }
         const previous = await reqApi('get_config', { only: ['server_code'] }, 200, adminReq)()
