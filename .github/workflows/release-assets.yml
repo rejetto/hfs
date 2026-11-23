@@ -124,9 +124,9 @@ jobs:
         with:
           name: release-assets-windows
           path: dist/hfs-windows-x64-*.zip
+          if-no-files-found: error
 
   linux:
-    if: false  # all disabled but windows to reduce CI credits consumption
     runs-on: ubuntu-latest
     needs: windows
     permissions:
@@ -162,10 +162,10 @@ jobs:
         with:
           name: release-assets-linux
           path: dist/hfs-linux-x64-*.zip
+          if-no-files-found: error
 
   linux_arm:
-    if: false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     needs: windows
     permissions:
       actions: write
@@ -200,9 +200,9 @@ jobs:
         with:
           name: release-assets-linux-arm64
           path: dist/hfs-linux-arm64-*.zip
+          if-no-files-found: error
 
   mac_x64:
-    if: false
     runs-on: macos-15-intel
     needs: windows
     permissions:
@@ -238,10 +238,10 @@ jobs:
         with:
           name: release-assets-mac-x64
           path: dist/hfs-mac-x64-*.zip
+          if-no-files-found: error
 
   mac_arm:
-    if: false
-    runs-on: macos-14
+    runs-on: macos-15
     needs: windows
     permissions:
       actions: write
@@ -276,11 +276,16 @@ jobs:
         with:
           name: release-assets-mac-arm
           path: dist/hfs-mac-arm64-*.zip
+          if-no-files-found: error
 
   release:
     runs-on: ubuntu-latest
     needs:
       - windows
+      - linux
+      - linux_arm
+      - mac_x64
+      - mac_arm
     permissions:
       contents: write
     steps:
