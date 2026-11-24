@@ -26,6 +26,7 @@ import { toast, useDialogBarColors } from './dialog'
 import { BlockIpBtn } from './blockIp'
 import { ALL as COUNTRIES } from './countries'
 import { useRoutedTab } from './routing'
+import { pluginTabs } from './pluginApi'
 
 const logLabels = {
     log: "Served",
@@ -39,11 +40,12 @@ const LOG_FILES = typedKeys(logLabels)
 let reloadIps: any
 
 export default function LogsPage({ setTitleSide }: PageProps) {
-    const files = LOG_FILES
-    const [tab, setTab] = useRoutedTab('logs', files)
+    const tabs = [...LOG_FILES, ...pluginTabs.logs.keys()]
+    const [tab, setTab] = useRoutedTab('logs', tabs)
     const shorterLabels = !useBreakpoint('sm') && { error_log: t`Failed`, console: h(Terminal), disconnections: h(LinkOff) }
-    const file = files[tab]
-    const fileAvailable = file.endsWith('log')
+    const path = tabs[tab]
+    const pluginTab = pluginTabs.logs.get(path)
+    const fileAvailable = LOGS_ON_FILE.includes(path)
 
     const logInfo = useApiEx('get_log_info')
     setTitleSide(useMemo(() => fileAvailable && (logInfo.element || with_(logInfo.data, data =>
@@ -59,23 +61,29 @@ export default function LogsPage({ setTitleSide }: PageProps) {
 
     return h(Fragment, {},
         h(Flex, { gap: 0  },
-            h(Tabs, { value: tab, onChange(_ev,i){ setTab(i) } },
-                files.map(f => h(Tab, {
+            h(Tabs, {
+                value: tab,
+                variant: pluginTabs.logs.size ? 'scrollable' : 'standard',
+                onChange(_ev, i) { setTab(i) },
+            },
+                LOG_FILES.map(f => h(Tab, {
                     label: _.get(shorterLabels, f) || t(logLabels[f]),
                     key: f,
                     sx: { minWidth: 0, px: { xs: 1.5, sm: 2 } } // save space
-                }))),
+                })),
+                Array.from(pluginTabs.logs, ([key, { label }]) => h(Tab, { key, label }))),
             h(Box, { sx: { flex: 1 } }),
-            h(IconBtn, {
+            !pluginTab && h(IconBtn, {
                 icon: Download,
                 title: fileAvailable ? t`Download as file` : t`Not available`,
-                link: API_URL + `get_log_file?file=${file}`,
+                link: API_URL + `get_log_file?file=${path}`,
                 disabled: !fileAvailable
             }),
             h(IconBtn, { icon: Settings, title: t`Options`, onClick: showLogOptions })
         ),
-        files.map(f =>
-            h(LogFile, { hidden: file !== f, file: f, key: f, fillFlex: true }) ),
+        LOG_FILES.map(f =>
+            h(LogFile, { hidden: path !== f, file: f, key: f, fillFlex: true }) ),
+        pluginTab && h(pluginTab.component, { key: path }),
     )
 
     function showLogOptions() {

@@ -547,8 +547,8 @@ When an event name passed to `HFS.onEvent` ends with `:`, HFS appends the curren
 runtime plugin id. Use this form for plugin-scoped events without depending on
 the plugin's installation folder name.
 
-`HFS.onEvent` subscriptions and pages registered with `HFS.admin.addPage` are
-removed automatically when the plugin stops or updates. If a script creates
+`HFS.onEvent` subscriptions, plugin pages and plugin tabs are removed automatically
+when the plugin stops or updates. If a script creates
 other persistent effects, register their cleanup synchronously:
 
 ```js
@@ -624,6 +624,20 @@ render. Menu titles use `label`.
 Pages are inside Admin's login gate; plugin backend endpoints must independently
 check the permissions required for their operations. Navigate using links such
 as `href: '#/plugins/<plugin-id>/sessions'`.
+
+### Plugin tabs
+
+Call `HFS.admin.addPluginsTab({ id, label, component })` or
+`HFS.admin.addLogsTab({ id, label, component })` synchronously while evaluating
+an Admin plugin script. Each adds a tab after the built-in tabs and returns its
+path, `/plugins/<plugin-id>:<tab-id>` or `/logs/<plugin-id>:<tab-id>`. Use
+`'#' + path` for links within Admin. Tab ids accept letters, digits, underscores
+and hyphens and must be unique within the plugin on that page. `component` is a
+React component.
+
+When an active plugin tab is removed, Plugins falls back to Installed and Logs
+falls back to Served. A plugin's Logs component supplies its own log data and
+any download controls.
 
 ## Frontend JS
 
@@ -1524,7 +1538,7 @@ Registration returns an unregister function and is also removed automatically wh
 - 14 (v3.5.0)
   - `admin_js`, `admin_css` and Admin GUI API
   - Admin login events: `beforeLogin`, `beforeLoginSubmit`
-  - `HFS.admin.addPage`
+  - `HFS.admin.addPage`, `HFS.admin.addPluginsTab`, `HFS.admin.addLogsTab`
   - `api.registerPublicRoute`
   - `api.registerSearch`
   - frontend events: `searchFields`, `showNext`

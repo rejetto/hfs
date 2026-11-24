@@ -22,6 +22,26 @@ export interface PluginPage {
     component: ComponentType<PageProps>
 }
 
+type PluginTab = { id: string, label: string, component: ComponentType }
+export const pluginTabs = {
+    plugins: new Map<string, Omit<PluginTab, 'id'>>(),
+    logs: new Map<string, Omit<PluginTab, 'id'>>(),
+}
+
+function addPluginTab(page: keyof typeof pluginTabs, { id, label, component }: PluginTab) {
+    const pluginId = getHFS().getPluginKey()
+    if (!pluginId || typeof id !== 'string' || !/^[\w-]+$/.test(id))
+        throw Error("Tab registration requires a plugin script and a tab id containing letters, digits, underscores or hyphens")
+    const tabPath = `${encodeURIComponent(pluginId)}:${id}`
+    const path = `/${page}/${tabPath}`
+    const tabs = pluginTabs[page]
+    if (tabs.has(tabPath))
+        throw Error(`Tab already registered: ${path}`)
+    tabs.set(tabPath, { label, component })
+    addPluginCleanup(pluginId, () => { tabs.delete(tabPath) })
+    return path
+}
+
 export interface AdminPluginAssets {
     id: string
     started?: string | null
@@ -120,6 +140,12 @@ Object.assign(getHFS(), {
                 if (location.hash.startsWith('#' + path)) location.hash = '/plugins/installed'
             })
             return path
+        },
+        addPluginsTab(tab: PluginTab) {
+            return addPluginTab('plugins', tab)
+        },
+        addLogsTab(tab: PluginTab) {
+            return addPluginTab('logs', tab)
         },
     },
 })

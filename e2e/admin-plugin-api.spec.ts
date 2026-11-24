@@ -142,6 +142,16 @@ HFS.onEvent('pluginBeforeOptions:', ({ values }) => h(Box, {},
     h('p', { id: 'options-probe' }, values.message),
     h(Btn, { onClick: () => HFS.customRestCall('pluginProbe'), doneMessage: "Sent: " + values.message }, "Test current options")))
 HFS.admin.addPage({ id: 'probe', label: "Plugin probe", icon: ProbeIcon, component: Probe })
+window.pluginTabPaths = {
+    plugins: HFS.admin.addPluginsTab({
+        id: 'probe', label: "Plugin tree",
+        component: () => h('p', {}, "Plugin tree content"),
+    }),
+    logs: HFS.admin.addLogsTab({
+        id: 'probe', label: "Audit log",
+        component: () => h('p', {}, "Audit log content"),
+    }),
+}
 function ProbeIcon() {
     return h('span', { 'data-testid': 'plugin-page-icon' }, "P")
 }
@@ -308,6 +318,33 @@ test('plugin assets, OTP login and menu page use the real Admin flow', async ({ 
     await page.getByRole('button', { name: 'menu', exact: true }).click()
     await expect(page.getByRole('link', { name: /^Plugin probe/ })).toBeVisible()
 })
+
+for (const { section, defaultTab, label } of [
+    { section: 'plugins', defaultTab: 'installed', label: 'Plugin tree' },
+    { section: 'logs', defaultTab: 'log', label: 'Audit log' },
+]) {
+    test(`a plugin tab in ${section} keeps its URL across reload and disappears when stopped`, async ({ page }) => {
+        const defaultUrl = base + `/~/admin/#/${section}/${defaultTab}`
+        const tabPath = `/${section}/admin-api:probe`
+        await page.goto(defaultUrl)
+        await loginAdmin(page)
+        const tab = page.getByRole('tab', { name: label, exact: true })
+        await expect(page.evaluate(section => (window as any).pluginTabPaths[section], section)).resolves.toBe(tabPath)
+        await tab.click()
+        await expect(page).toHaveURL(base + '/~/admin/#' + tabPath)
+        await page.reload()
+        await expect(tab).toHaveAttribute('aria-selected', 'true')
+        await expect(page.getByText(label + ' content')).toBeVisible()
+        if (section === 'logs')
+            await expect(page.locator('a[href*="get_log_file"]')).toHaveCount(0)
+
+        await page.evaluate(() => HFS.apiCall('stop_plugin', { id: 'admin-api' }))
+        await expect(tab).toHaveCount(0)
+        await expect(page).toHaveURL(defaultUrl)
+        await page.evaluate(() => HFS.apiCall('start_plugin', { id: 'admin-api' }))
+        await expect(tab).toBeVisible()
+    })
+}
 
 test('shared hooks still render frontend extensions and login inputs', async ({ page }) => {
     await page.goto(base + '/')

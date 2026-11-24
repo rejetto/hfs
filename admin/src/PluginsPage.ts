@@ -6,24 +6,26 @@ import { Tab, Tabs } from '@mui/material'
 import InstalledPlugins from './InstalledPlugins'
 import OnlinePlugins from './OnlinePlugins'
 import { useRoutedTab } from './routing'
+import { pluginTabs } from './pluginApi'
 
 const TABS = [
     { label: t`Installed`, path: 'installed', Pane: InstalledPlugins },
     { label: t`Get more`, path: 'get', Pane: OnlinePlugins },
     { label: t`Check updates`, path: 'updates', Pane: () => h(InstalledPlugins, { updates: true }) },
 ]
-const TAB_PATHS = TABS.map(x => x.path)
 export default function PluginsPage() {
-    const [tab, setTab] = useRoutedTab('plugins', TAB_PATHS)
-    const { Pane } = TABS[tab]
+    const tabs = [...TABS, ...Array.from(pluginTabs.plugins, ([path, { label, component }]) => ({ path, label, Pane: component }))]
+    const [tab, setTab] = useRoutedTab('plugins', tabs.map(x => x.path))
+    const { path, Pane } = tabs[tab]
     return h(Fragment, {},
         h(Tabs, {
             value: tab,
+            variant: pluginTabs.plugins.size ? 'scrollable' : 'standard',
             onChange(ev, i) {
                 setTab(i)
             }
-        }, TABS.map(x =>
+        }, tabs.map(x =>
             h(Tab, { key: x.path, label: x.label }))),
-        h(Pane)
+        h(Pane, { key: path })
     )
 }
